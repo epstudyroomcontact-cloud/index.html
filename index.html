@@ -28,7 +28,6 @@
             display: flex; flex-direction: column; align-items: center; 
         }
 
-        /* Nâng cấp hình nền mây */
         .cloud-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; }
         .cloud { position: absolute; background: white; border-radius: 100px; filter: blur(50px); animation: float 30s infinite linear; opacity: 0.5; }
 
@@ -67,24 +66,17 @@
         .lang-btn { background: none; border: none; color: #7a7a9a; padding: 6px 15px; font-size: 11px; font-weight: 800; cursor: pointer; border-radius: 15px; transition: 0.3s; }
         .lang-btn.active { background: #fff; color: var(--accent); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
 
-        .week-nav { display: flex; gap: 15px; align-items: center; background: rgba(255,255,255,0.4); padding: 6px 18px; border-radius: 25px; border: 1px solid rgba(255,255,255,0.5); }
-        .nav-btn { background: none; border: none; color: var(--accent); font-size: 20px; cursor: pointer; transition: 0.3s; }
-        .nav-btn:hover { transform: scale(1.4); }
-        
-        #week-range { font-family: 'JetBrains Mono'; font-size: 13px; font-weight: 700; color: #6a6a8a; }
         #live-clock { font-family: 'JetBrains Mono'; font-size: 1.4rem; font-weight: 700; color: var(--accent); letter-spacing: -1px; }
 
         select { 
             background: rgba(255,255,255,0.7); border: 1px solid var(--border); color: var(--text); 
             padding: 8px 15px; border-radius: 20px; font-size: 12px; outline: none; transition: 0.3s;
         }
-        select:hover { border-color: var(--accent); transform: translateY(-2px); }
 
         .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 18px; }
         @media (max-width: 1100px) { .grid { grid-template-columns: repeat(4, 1fr); } }
         @media (max-width: 700px) { .grid { grid-template-columns: repeat(2, 1fr); } }
 
-        /* Card nâng cấp chuyên nghiệp */
         .card { 
             background: var(--glass); border: 1px solid var(--border); border-radius: 35px; 
             padding: 25px 15px; text-align: center; transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1); 
@@ -92,8 +84,6 @@
             position: relative; overflow: hidden;
             animation: cardAppear 0.7s cubic-bezier(0.165, 0.84, 0.44, 1) backwards;
         }
-        .card::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent); transition: 0.5s; }
-        .card:hover::before { left: 100%; }
 
         .card:hover { 
             transform: translateY(-12px); 
@@ -132,9 +122,7 @@
         #admin.open { right: 0; }
         .admin-row { background: #fbfbff; padding: 15px; border-radius: 25px; margin-bottom: 12px; border: 1px solid #f0f0ff; }
         input { width: 100%; padding: 10px 15px; border: 1px solid #eee; border-radius: 12px; margin-bottom: 8px; outline: none; transition: 0.3s; font-family: 'JetBrains Mono'; }
-        input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(255,125,163,0.1); }
         .btn-save { width: 100%; padding: 18px; background: var(--accent); color: #fff; border: none; border-radius: 25px; font-weight: 800; cursor: pointer; transition: 0.3s; box-shadow: 0 10px 20px rgba(255,125,163,0.2); }
-        .btn-save:hover { transform: translateY(-3px); box-shadow: 0 15px 30px rgba(255,125,163,0.3); }
     </style>
 </head>
 <body>
@@ -147,11 +135,6 @@
                 <div class="lang-toggle">
                     <button id="btn-en" class="lang-btn" onclick="setLang('en')">EN</button>
                     <button id="btn-vi" class="lang-btn" onclick="setLang('vi')">VI</button>
-                </div>
-                <div class="week-nav">
-                    <button class="nav-btn" id="prev-week" onclick="changeWeek(-1)">❮</button>
-                    <span id="week-range">---</span>
-                    <button class="nav-btn" onclick="changeWeek(1)">❯</button>
                 </div>
                 <select id="manual-tz" onchange="manualUpdate()"></select>
             </div>
@@ -168,6 +151,7 @@
     </div>
 
 <script>
+    // Config lấy từ hình ảnh của bạn
     const firebaseConfig = {
         apiKey: "AIzaSyBLp6sfgO6WR53RbfXMoU1RV9ROBmOHuQI",
         authDomain: "epstudyroom-bacaf.firebaseapp.com",
@@ -182,10 +166,9 @@
     const db = firebase.firestore();
     const DT = luxon.DateTime;
 
-    let scheduleData = {}; 
+    let daysArray = []; // Mảng chứa 7 ngày lấy từ Firestore
     let userTZ = DT.local().zoneName; 
     let userLang = 'en'; 
-    let weekOffset = 0;
     let isAutoTZ = true;
 
     const i18n = {
@@ -193,9 +176,12 @@
         vi: { days: ["THỨ HAI","THỨ BA","THỨ TƯ","THỨ NĂM","THỨ SÁU","THỨ BẢY","CHỦ NHẬT"], slots: ["Sáng","Chiều","Tối"], tzText: "Múi giờ:", auto: "Tự động", manual: "Thủ công" }
     };
 
-    db.collection("daily_schedules").onSnapshot(snapshot => {
-        snapshot.forEach(doc => { scheduleData[doc.id] = doc.data(); });
-        render();
+    // Lắng nghe dữ liệu đúng từ Collection 'settings' Document 'schedule'
+    db.collection("settings").doc("schedule").onSnapshot(doc => {
+        if (doc.exists) {
+            daysArray = doc.data().days || [];
+            render();
+        }
     });
 
     function initClouds() {
@@ -212,26 +198,16 @@
         }
     }
 
-    function setLang(lang) {
-        userLang = lang;
-        render();
-    }
+    function setLang(lang) { userLang = lang; render(); }
 
     const tzs = ["Asia/Ho_Chi_Minh","America/New_York","Europe/London","Asia/Tokyo","Australia/Sydney","Asia/Seoul"];
     const tzSelect = document.getElementById('manual-tz');
     tzSelect.innerHTML = `<option value="auto">🌍 Automatic</option>` + tzs.map(t => `<option value="${t}">${t.split('/').pop().replace('_', ' ')}</option>`).join('');
 
-    function changeWeek(n) { weekOffset += n; render(); }
-
     function manualUpdate() {
         const val = tzSelect.value;
-        if(val === 'auto') { 
-            userTZ = DT.local().zoneName; 
-            isAutoTZ = true; 
-        } else { 
-            userTZ = val; 
-            isAutoTZ = false; 
-        }
+        if(val === 'auto') { userTZ = DT.local().zoneName; isAutoTZ = true; } 
+        else { userTZ = val; isAutoTZ = false; }
         render();
     }
 
@@ -239,20 +215,18 @@
         const grid = document.getElementById('main-grid');
         grid.innerHTML = "";
         const now = DT.now().setZone(userTZ);
-        const startOfThisWeek = now.startOf('week');
-        const displayWeekStart = startOfThisWeek.plus({ weeks: weekOffset });
+        const startOfWeek = now.startOf('week');
         
         const lang = i18n[userLang];
         document.getElementById('tz-status').innerText = `📍 ${lang.tzText} ${userTZ.replace('_', ' ')} (${isAutoTZ ? lang.auto : lang.manual})`;
-        document.getElementById('week-range').innerText = `${displayWeekStart.toFormat('dd LLL')} - ${displayWeekStart.plus({days:6}).toFormat('dd LLL')}`;
         
         document.getElementById('btn-en').classList.toggle('active', userLang === 'en');
         document.getElementById('btn-vi').classList.toggle('active', userLang === 'vi');
 
+        // Render 7 ngày dựa trên mảng 'days' từ Firestore
         for(let i=0; i<7; i++) {
-            const date = displayWeekStart.plus({ days: i });
-            const dateId = date.toFormat('yyyy-MM-dd');
-            const data = scheduleData[dateId] || {m:"", a:"", e:""};
+            const date = startOfWeek.plus({ days: i });
+            const data = daysArray[i] || {m:"", a:"", e:""};
             const isToday = now.hasSame(date, 'day');
 
             let card = document.createElement('div');
@@ -267,6 +241,7 @@
                 const valid = /^([01]\d|2[0-3]):([0-5]\d)$/.test(raw);
                 let timeStr = "---";
                 if(valid) {
+                    // Chuyển đổi từ giờ VN sang giờ khách truy cập
                     timeStr = DT.fromFormat(raw, "HH:mm", {zone: "Asia/Ho_Chi_Minh"}).set({
                         year: date.year, month: date.month, day: date.day
                     }).setZone(userTZ).toFormat("HH:mm");
@@ -288,18 +263,15 @@
             if(prompt("Admin Access Code?") !== "hottea68") return;
             const div = document.getElementById('admin-fields');
             div.innerHTML = "";
-            const now = DT.now();
-            const startOfThisWeek = now.startOf('week').plus({ weeks: weekOffset });
+            const lang = i18n[userLang];
 
             for(let i=0; i<7; i++) {
-                const date = startOfThisWeek.plus({ days: i });
-                const dateId = date.toFormat('yyyy-MM-dd');
-                const d = scheduleData[dateId] || {m:"", a:"", e:""};
+                const d = daysArray[i] || {m:"", a:"", e:""};
                 div.innerHTML += `<div class="admin-row">
-                    <p style="font-size:12px; font-weight:800; color:var(--accent); margin-bottom:8px;">📅 ${date.toFormat('cccc, dd LLL')}</p>
-                    <input class="in-m" data-date="${dateId}" value="${d.m}" placeholder="Morning (e.g. 08:30)">
-                    <input class="in-a" data-date="${dateId}" value="${d.a}" placeholder="Afternoon (e.g. 14:00)">
-                    <input class="in-e" data-date="${dateId}" value="${d.e}" placeholder="Evening (e.g. 20:00)">
+                    <p style="font-size:12px; font-weight:800; color:var(--accent); margin-bottom:8px;">📅 ${lang.days[i]}</p>
+                    <input class="in-m" data-idx="${i}" value="${d.m}" placeholder="Morning (HH:mm)">
+                    <input class="in-a" data-idx="${i}" value="${d.a}" placeholder="Afternoon (HH:mm)">
+                    <input class="in-e" data-idx="${i}" value="${d.e}" placeholder="Evening (HH:mm)">
                 </div>`;
             }
             admin.classList.add('open');
@@ -307,30 +279,24 @@
     }
 
     async function save() {
-        const rows = document.querySelectorAll('.admin-row');
-        const batch = db.batch();
-        
-        rows.forEach(row => {
-            const firstInput = row.querySelector('input');
-            const dateId = firstInput.dataset.date;
-            const data = {
+        const newDays = [];
+        for(let i=0; i<7; i++) {
+            const row = document.querySelector(`.in-m[data-idx="${i}"]`).parentElement;
+            newDays.push({
                 m: row.querySelector('.in-m').value,
                 a: row.querySelector('.in-a').value,
                 e: row.querySelector('.in-e').value
-            };
-            const ref = db.collection("daily_schedules").doc(dateId);
-            batch.set(ref, data);
-        });
+            });
+        }
 
         try {
-            await batch.commit();
+            await db.collection("settings").doc("schedule").update({ days: newDays });
             alert("Schedule updated successfully! ✨");
             document.getElementById('admin').classList.remove('open');
-        } catch (e) { alert("Error updating schedule. Please try again."); }
+        } catch (e) { alert("Error: " + e.message); }
     }
 
     initClouds(); 
-    render();
     setInterval(() => { 
         document.getElementById('live-clock').innerText = DT.now().setZone(userTZ).toFormat('HH:mm:ss'); 
     }, 1000);
