@@ -3,148 +3,176 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EP Study Room | Official Link</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Montserrat:wght@700&display=swap" rel="stylesheet">
+    <title>EP Study Room | Global Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Montserrat:wght@700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.4.4/luxon.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
     <style>
-        :root { --primary: #c3a6ff; --bg: #050508; --card: rgba(255, 255, 255, 0.04); --border: rgba(255, 255, 255, 0.1); }
-        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: #fff; min-height: 100vh; padding: 15px; display: flex; flex-direction: column; align-items: center; }
-        
-        /* Background hiệu ứng sang trọng */
+        :root { --primary: #c3a6ff; --bg: #050508; --card: rgba(255, 255, 255, 0.04); --border: rgba(255, 255, 255, 0.1); --live: #00ff88; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: #fff; min-height: 100vh; padding: 15px; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
         .bg-effect { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background: radial-gradient(circle at 50% 0%, #1a1a2e 0%, #050508 100%); }
-        
-        .container { width: 100%; max-width: 1300px; z-index: 1; margin-top: 40px; }
-        header { text-align: center; margin-bottom: 40px; }
-        header h1 { font-family: 'Montserrat', sans-serif; font-size: clamp(1.5rem, 6vw, 2.2rem); letter-spacing: 4px; text-transform: uppercase; color: #fff; }
-
-        /* Grid tự thích ứng thông minh */
-        .grid { display: grid; gap: 12px; width: 100%; grid-template-columns: repeat(7, 1fr); }
-        @media (max-width: 1100px) { .grid { grid-template-columns: repeat(4, 1fr); } }
-        @media (max-width: 768px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+        .bg-grid { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px); background-size: 40px 40px; z-index: -1; opacity: 0.15; mask-image: radial-gradient(ellipse at center, black, transparent 90%); }
+        .container { width: 100%; max-width: 1400px; z-index: 1; margin-top: 70px; }
+        header { text-align: center; position: relative; margin-bottom: 5px; cursor: pointer; }
+        header h1 { font-family: 'Montserrat', sans-serif; font-size: clamp(1.5rem, 6vw, 2.5rem); letter-spacing: 6px; text-transform: uppercase; background: linear-gradient(90deg, #fff, var(--primary), #fff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-size: 200%; animation: shine 5s linear infinite; }
+        .status-bar { background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); padding: 12px 25px; border-radius: 50px; display: flex; align-items: center; gap: 15px; margin: 20px auto; backdrop-filter: blur(15px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); justify-content: space-between; min-width: 330px; }
+        #live-clock { font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; color: var(--live); }
+        #week-range { font-size: 0.8rem; font-weight: 600; color: #aaa; }
+        .nav-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: #fff; cursor: pointer; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: 0.3s; }
+        .nav-btn:hover { background: var(--primary); color: #000; transform: scale(1.1); }
+        .grid { display: grid; gap: 15px; width: 100%; grid-template-columns: repeat(7, 1fr); }
+        @media (max-width: 1300px) { .grid { grid-template-columns: repeat(4, 1fr); } }
+        @media (max-width: 850px) { .grid { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 480px) { .grid { grid-template-columns: 1fr; } }
-
-        .card { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 25px 15px; text-align: center; backdrop-filter: blur(15px); transition: 0.3s; position: relative; }
-        .card.today { border: 2px solid var(--primary); background: rgba(195, 166, 255, 0.08); }
-        .card.today::before { content: 'TODAY'; position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: var(--primary); color: #000; font-size: 0.6rem; font-weight: 800; padding: 2px 12px; border-radius: 20px; }
-
-        .day-label { font-family: 'Montserrat', sans-serif; font-size: 0.85rem; margin-bottom: 20px; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; }
-        .session { margin-bottom: 12px; padding: 10px; border-radius: 12px; background: rgba(255,255,255,0.02); }
-        .s-name { font-size: 0.6rem; color: #888; text-transform: uppercase; display: block; margin-bottom: 5px; }
-        .s-time { font-size: 1rem; font-weight: 500; font-family: monospace; }
-
-        /* Menu chọn ngôn ngữ */
-        .lang-box { position: absolute; top: 15px; right: 15px; }
-        select { background: var(--card); color: #fff; border: 1px solid var(--border); padding: 6px 12px; border-radius: 10px; font-size: 0.75rem; outline: none; }
-
-        /* Admin Dashboard */
-        #admin { position: fixed; top: 0; right: -100%; width: 100%; max-width: 400px; height: 100%; background: #0a0a0f; padding: 30px; z-index: 1000; transition: 0.5s; border-left: 1px solid var(--border); overflow-y: auto; }
-        #admin.open { right: 0; }
-        .gear { position: fixed; bottom: 25px; right: 25px; z-index: 1001; background: var(--primary); border: none; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.4); font-size: 1.2rem; }
-        
-        input { width: 100%; padding: 12px; margin: 8px 0 15px; background: #1a1a24; border: 1px solid #333; color: #fff; border-radius: 10px; font-size: 1rem; }
-        .save-btn { width: 100%; padding: 15px; background: var(--primary); color: #000; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; margin-top: 10px; }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 25px 15px; text-align: center; transition: 0.4s; }
+        .card.today { border: 1px solid var(--primary); background: rgba(195, 166, 255, 0.07); box-shadow: 0 0 20px rgba(195,166,255,0.1); }
+        .day-label { font-family: 'Montserrat', sans-serif; font-size: 0.85rem; color: var(--primary); text-transform: uppercase; margin-bottom: 2px; }
+        .date-label { font-size: 0.65rem; color: #555; margin-bottom: 18px; display: block; }
+        .session { margin-bottom: 10px; padding: 12px; border-radius: 18px; background: rgba(255,255,255,0.02); border: 1px solid transparent; transition: 0.3s; }
+        .session.active-now { border-color: var(--live); background: rgba(0, 255, 136, 0.05); animation: pulse 2s infinite; }
+        .s-name { font-size: 0.55rem; color: #777; text-transform: uppercase; display: block; margin-bottom: 5px; }
+        .s-time { font-family: 'JetBrains Mono', monospace; font-size: 1rem; font-weight: 600; }
+        .top-nav { position: absolute; top: 15px; width: 90%; max-width: 400px; z-index: 100; }
+        select { width: 100%; background: #000; color: #fff; border: 1px solid #333; padding: 10px; border-radius: 12px; font-size: 0.75rem; cursor: pointer; outline: none; }
+        @keyframes shine { to { background-position: 200% center; } }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(0, 255, 136, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); } }
+        #admin-panel { position: fixed; top: 0; right: -100%; width: 100%; max-width: 400px; height: 100vh; background: #0a0a0f; z-index: 1000; padding: 30px; transition: 0.4s; border-left: 1px solid var(--border); overflow-y: auto; }
+        #admin-panel.open { right: 0; }
+        input { width: 100%; padding: 10px; margin: 5px 0; background: #1a1a24; border: 1px solid #333; color: #fff; border-radius: 8px; }
+        .save-btn { width: 100%; padding: 15px; background: var(--primary); border: none; font-weight: bold; margin-top: 20px; border-radius: 12px; cursor: pointer; color: #000; }
     </style>
 </head>
 <body>
-
-<div class="bg-effect"></div>
-
-<div class="lang-box">
-    <select id="lang-switch" onchange="changeLang()">
-        <option value="en">English</option>
-        <option value="vi">Tiếng Việt</option>
-        <option value="ja">日本語</option>
-        <option value="ko">한국어</option>
+<div class="bg-effect"></div><div class="bg-grid"></div>
+<div class="top-nav">
+    <select id="region-switch" onchange="updateRegion()">
+        <option value="AUTO">📍 Auto-Detect (Recommend)</option>
+        <optgroup label="Asia & Oceania">
+            <option value="Asia/Ho_Chi_Minh|vi">🇻🇳 Vietnam (Tiếng Việt)</option>
+            <option value="Asia/Tokyo|ja">🇯🇵 Japan (日本語)</option>
+            <option value="Asia/Seoul|ko">🇰🇷 Korea (한국어)</option>
+            <option value="Asia/Singapore|en">🇸🇬 Singapore (English)</option>
+        </optgroup>
+        <optgroup label="Other Regions">
+            <option value="America/New_York|en">🇺🇸 USA East (EST)</option>
+            <option value="Europe/London|en">🇬🇧 UK (English)</option>
+        </optgroup>
     </select>
 </div>
-
 <div class="container">
-    <header><h1 id="v-title">STUDY ROOM</h1></header>
+    <header onclick="login()"><h1 id="display-title">EP STUDY ROOM</h1></header>
+    <div style="display: flex; justify-content: center;">
+        <div class="status-bar">
+            <button class="nav-btn" onclick="changeWeek(-1)">❮</button>
+            <div style="text-align: center; min-width: 180px;">
+                <div id="live-clock">00:00:00</div>
+                <div id="week-range">Syncing...</div>
+            </div>
+            <button class="nav-btn" onclick="changeWeek(1)">❯</button>
+        </div>
+    </div>
     <main class="grid" id="main-grid"></main>
 </div>
-
-<button class="gear" onclick="document.getElementById('admin').classList.toggle('open')">⚙️</button>
-
-<div id="admin">
-    <h2 style="margin-bottom:20px; color:var(--primary)">Settings</h2>
-    <label>Web Title</label><input type="text" id="in-title">
-    <label>Session Names</label>
-    <div style="display:flex; gap:5px"><input id="l-1"><input id="l-2"><input id="l-3"></div>
-    <div id="day-inputs"></div>
-    <button class="save-btn" onclick="save()">SAVE CHANGES</button>
+<div id="admin-panel">
+    <h2 style="color:var(--primary); margin-bottom:15px">Cloud Admin</h2>
+    <div id="edit-fields"></div>
+    <button class="save-btn" onclick="saveToCloud()">UPDATE WEB DATA</button>
+    <button style="width:100%; padding:12px; background:#222; color:#fff; border:none; margin-top:10px; border-radius:12px; cursor:pointer" onclick="closeAdmin()">CLOSE</button>
 </div>
 
 <script>
-    const DateTime = luxon.DateTime;
-    let locale = localStorage.getItem('p_lang') || 'en';
-
-    let cfg = JSON.parse(localStorage.getItem('ep_v12')) || {
-        title: "EP STUDY ROOM",
-        labels: ["Morning", "Afternoon", "Evening"],
-        days: [
-            {id:1, m:"07:30", a:"14:00", e:"19:30"}, {id:2, m:"07:30", a:"14:00", e:"19:30"},
-            {id:3, m:"07:30", a:"14:00", e:"19:30"}, {id:4, m:"07:30", a:"14:00", e:"19:30"},
-            {id:5, m:"07:30", a:"14:00", e:"19:30"}, {id:6, m:"08:00", a:"15:00", e:"20:00"},
-            {id:0, m:"09:00", a:"Off", e:"Off"}
-        ]
+    // CHÌA KHÓA FIREBASE CỦA BẠN ĐÃ ĐƯỢC LẮP Ở ĐÂY:
+    const firebaseConfig = {
+        apiKey: "AIzaSyBLp6sfgO6WR53RbfXMoU1RV9ROBmOHuQI",
+        authDomain: "epstudyroom-bacaf.firebaseapp.com",
+        projectId: "epstudyroom-bacaf",
+        storageBucket: "epstudyroom-bacaf.firebasestorage.app",
+        messagingSenderId: "189256681520",
+        appId: "1:189256681520:web:28a61a58628754b490c5f5"
     };
 
-    function changeLang() {
-        locale = document.getElementById('lang-switch').value;
-        localStorage.setItem('p_lang', locale);
-        render();
-    }
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const DateTime = luxon.DateTime;
+    const VN_TZ = "Asia/Ho_Chi_Minh";
+    let weekOffset = 0;
+    let currentSetting = localStorage.getItem('p_region_v27') || 'AUTO';
 
-    function save() {
-        cfg.title = document.getElementById('in-title').value;
-        cfg.labels = [document.getElementById('l-1').value, document.getElementById('l-2').value, document.getElementById('l-3').value];
-        cfg.days.forEach((d, i) => {
-            d.m = document.getElementById(`m-${i}`).value;
-            d.a = document.getElementById(`a-${i}`).value;
-            d.e = document.getElementById(`ie-${i}`).value;
-        });
-        localStorage.setItem('ep_v12', JSON.stringify(cfg));
-        location.reload();
+    let cfg = {
+        title: "EP STUDY ROOM",
+        labels: { 
+            en: ["Morning", "Afternoon", "Evening"], vi: ["Sáng", "Chiều", "Tối"], ko: ["오전", "오후", "저녁"], ja: ["午前", "午後", "夜"]
+        },
+        days: Array(7).fill({m: "07:30", a: "14:00", e: "19:30"})
+    };
+
+    db.collection("settings").doc("schedule").onSnapshot((doc) => {
+        if (doc.exists) { cfg = doc.data(); render(); }
+    });
+
+    function getActiveParams() {
+        if (currentSetting === 'AUTO') {
+            const tz = DateTime.local().zoneName;
+            let lang = tz.includes('Ho_Chi_Minh') ? 'vi' : (tz.includes('Tokyo') ? 'ja' : (tz.includes('Seoul') ? 'ko' : 'en'));
+            return { tz, lang };
+        }
+        const [tz, lang] = currentSetting.split('|');
+        return { tz, lang };
     }
 
     function render() {
-        document.getElementById('v-title').innerText = cfg.title;
-        document.getElementById('lang-switch').value = locale;
-        const grid = document.getElementById('main-grid');
-        grid.innerHTML = "";
-        const todayIdx = DateTime.local().weekday % 7;
-
-        cfg.days.forEach(d => {
-            const dayName = DateTime.fromObject({weekday: d.id === 0 ? 7 : d.id}).setLocale(locale).toFormat('cccc');
-            const isToday = d.id === todayIdx;
-            grid.innerHTML += `
-                <div class="card ${isToday ? 'today' : ''}">
-                    <div class="day-label">${dayName}</div>
-                    <div class="session"><span class="s-name">${cfg.labels[0]}</span><span class="s-time">${format(d.m)}</span></div>
-                    <div class="session"><span class="s-name">${cfg.labels[1]}</span><span class="s-time">${format(d.a)}</span></div>
-                    <div class="session"><span class="s-name">${cfg.labels[2]}</span><span class="s-time">${format(d.e)}</span></div>
-                </div>`;
+        const { tz, lang } = getActiveParams();
+        const now = DateTime.now().setZone(tz);
+        const startOfWeek = now.plus({ weeks: weekOffset }).startOf('week');
+        document.getElementById('display-title').innerText = cfg.title;
+        document.getElementById('week-range').innerText = `${startOfWeek.setLocale(lang).toFormat('dd LLL')} - ${startOfWeek.plus({days:6}).setLocale(lang).toFormat('dd LLL, yyyy')}`;
+        const grid = document.getElementById('main-grid'); grid.innerHTML = "";
+        const sorted = [...cfg.days]; sorted.push(sorted.shift());
+        sorted.forEach((d, index) => {
+            const actualDate = startOfWeek.plus({ days: index });
+            const isToday = now.hasSame(actualDate, 'day');
+            const lbl = cfg.labels[lang] || cfg.labels['en'];
+            let html = `<div class="card ${isToday ? 'today' : ''}"><div class="day-label">${actualDate.setLocale(lang).toFormat('cccc')}</div><span class="date-label">${actualDate.setLocale(lang).toFormat('dd LLL')}</span>`;
+            [d.m, d.a, d.e].forEach((tStr, i) => {
+                let disp = "---", active = false;
+                if(tStr && tStr.toLowerCase() !== 'off') {
+                    const tObj = DateTime.fromObject({hour: tStr.split(':')[0], minute: tStr.split(':')[1]}, {zone: VN_TZ}).setZone(tz);
+                    disp = tObj.toFormat('HH:mm');
+                    active = isToday && Math.abs(now.diff(tObj, 'minutes').minutes) < 60;
+                }
+                html += `<div class="session ${active ? 'active-now' : ''}"><span class="s-name">${lbl[i]}</span><span class="s-time">${disp}</span></div>`;
+            });
+            grid.innerHTML += html + `</div>`;
         });
     }
 
-    function format(t) {
-        if(!t || t.toLowerCase() === "off") return "---";
-        return DateTime.fromObject({hour: t.split(':')[0], minute: t.split(':')[1]}, {zone: "Asia/Ho_Chi_Minh"}).setZone(DateTime.local().zoneName).toFormat('HH:mm');
+    function login() { if(prompt("Admin Pass:") === "hottea68") { document.getElementById('admin-panel').classList.add('open'); initEdit(); } }
+    function closeAdmin() { document.getElementById('admin-panel').classList.remove('open'); }
+    function initEdit() {
+        const wrap = document.getElementById('edit-fields');
+        wrap.innerHTML = `<label>Title</label><input id="in-title" value="${cfg.title}">`;
+        cfg.days.forEach((d, i) => {
+            wrap.innerHTML += `<div style="margin-top:10px; color:#888">Day ${i}<div style="display:flex;gap:3px"><input id="m-${i}" value="${d.m}"><input id="a-${i}" value="${d.a}"><input id="e-${i}" value="${d.e}"></div></div>`;
+        });
     }
-
-    // Admin Fields Init
-    document.getElementById('in-title').value = cfg.title;
-    document.getElementById('l-1').value = cfg.labels[0];
-    document.getElementById('l-2').value = cfg.labels[1];
-    document.getElementById('l-3').value = cfg.labels[2];
-    const inpWrap = document.getElementById('day-inputs');
-    cfg.days.forEach((d, i) => {
-        inpWrap.innerHTML += `<div style="margin-top:10px"><small style="color:var(--primary)">${DateTime.fromObject({weekday: d.id === 0 ? 7 : d.id}).setLocale('en').toFormat('ccc')}</small><br>
-        <div style="display:flex; gap:5px"><input id="m-${i}" value="${d.m}"><input id="a-${i}" value="${d.a}"><input id="ie-${i}" value="${d.e}"></div></div>`;
-    });
-
-    render();
+    function saveToCloud() {
+        cfg.title = document.getElementById('in-title').value;
+        cfg.days.forEach((d, i) => {
+            d.m = document.getElementById(`m-${i}`).value;
+            d.a = document.getElementById(`a-${i}`).value;
+            d.e = document.getElementById(`e-${i}`).value;
+        });
+        db.collection("settings").doc("schedule").set(cfg).then(() => { alert("Updated!"); closeAdmin(); });
+    }
+    setInterval(() => {
+        const { tz } = getActiveParams();
+        document.getElementById('live-clock').innerText = DateTime.now().setZone(tz).toFormat('HH:mm:ss');
+    }, 1000);
+    function updateRegion() { currentSetting = document.getElementById('region-switch').value; localStorage.setItem('p_region_v27', currentSetting); render(); }
+    function changeWeek(dir) { weekOffset += dir; render(); }
 </script>
 </body>
 </html>
