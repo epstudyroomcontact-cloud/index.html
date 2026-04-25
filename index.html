@@ -147,7 +147,7 @@
         en: { days: ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"], slots: ["Morning","Afternoon","Evening"], tzText: "Timezone:", auto: "Auto", manual: "Manual" }
     };
 
-    // Theo dõi toàn bộ dữ liệu thay vì chỉ 1 doc duy nhất để không bị đè tuần
+    // Theo dõi toàn bộ dữ liệu mới (collection daily_schedules)
     db.collection("daily_schedules").onSnapshot(snapshot => {
         snapshot.forEach(doc => { scheduleData[doc.id] = doc.data(); });
         render();
@@ -254,7 +254,8 @@
         const batch = db.batch();
         
         rows.forEach(row => {
-            const dateId = row.querySelector('input').dataset.date;
+            const firstInput = row.querySelector('input');
+            const dateId = firstInput.dataset.date;
             const data = {
                 m: row.querySelector('.in-m').value,
                 a: row.querySelector('.in-a').value,
@@ -268,7 +269,10 @@
             await batch.commit();
             alert("Updated successfully! ✨");
             document.getElementById('admin').classList.remove('open');
-        } catch (e) { alert("Error saving!"); }
+        } catch (e) { 
+            console.error(e);
+            alert("Error saving! Check Firestore Rules."); 
+        }
     }
 
     initClouds(); setLang('vi');
