@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>EP Study Room | Official Link</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Montserrat:wght@700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.4.4/luxon.min.js"></script>
+    <style>
+        :root { --primary: #c3a6ff; --bg: #050508; --card: rgba(255, 255, 255, 0.04); --border: rgba(255, 255, 255, 0.1); }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: #fff; min-height: 100vh; padding: 15px; display: flex; flex-direction: column; align-items: center; }
+        
+        /* Background hiệu ứng sang trọng */
+        .bg-effect { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background: radial-gradient(circle at 50% 0%, #1a1a2e 0%, #050508 100%); }
+        
+        .container { width: 100%; max-width: 1300px; z-index: 1; margin-top: 40px; }
+        header { text-align: center; margin-bottom: 40px; }
+        header h1 { font-family: 'Montserrat', sans-serif; font-size: clamp(1.5rem, 6vw, 2.2rem); letter-spacing: 4px; text-transform: uppercase; color: #fff; }
+
+        /* Grid tự thích ứng thông minh */
+        .grid { display: grid; gap: 12px; width: 100%; grid-template-columns: repeat(7, 1fr); }
+        @media (max-width: 1100px) { .grid { grid-template-columns: repeat(4, 1fr); } }
+        @media (max-width: 768px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 480px) { .grid { grid-template-columns: 1fr; } }
+
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 25px 15px; text-align: center; backdrop-filter: blur(15px); transition: 0.3s; position: relative; }
+        .card.today { border: 2px solid var(--primary); background: rgba(195, 166, 255, 0.08); }
+        .card.today::before { content: 'TODAY'; position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: var(--primary); color: #000; font-size: 0.6rem; font-weight: 800; padding: 2px 12px; border-radius: 20px; }
+
+        .day-label { font-family: 'Montserrat', sans-serif; font-size: 0.85rem; margin-bottom: 20px; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; }
+        .session { margin-bottom: 12px; padding: 10px; border-radius: 12px; background: rgba(255,255,255,0.02); }
+        .s-name { font-size: 0.6rem; color: #888; text-transform: uppercase; display: block; margin-bottom: 5px; }
+        .s-time { font-size: 1rem; font-weight: 500; font-family: monospace; }
+
+        /* Menu chọn ngôn ngữ */
+        .lang-box { position: absolute; top: 15px; right: 15px; }
+        select { background: var(--card); color: #fff; border: 1px solid var(--border); padding: 6px 12px; border-radius: 10px; font-size: 0.75rem; outline: none; }
+
+        /* Admin Dashboard */
+        #admin { position: fixed; top: 0; right: -100%; width: 100%; max-width: 400px; height: 100%; background: #0a0a0f; padding: 30px; z-index: 1000; transition: 0.5s; border-left: 1px solid var(--border); overflow-y: auto; }
+        #admin.open { right: 0; }
+        .gear { position: fixed; bottom: 25px; right: 25px; z-index: 1001; background: var(--primary); border: none; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.4); font-size: 1.2rem; }
+        
+        input { width: 100%; padding: 12px; margin: 8px 0 15px; background: #1a1a24; border: 1px solid #333; color: #fff; border-radius: 10px; font-size: 1rem; }
+        .save-btn { width: 100%; padding: 15px; background: var(--primary); color: #000; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="bg-effect"></div>
+
+<div class="lang-box">
+    <select id="lang-switch" onchange="changeLang()">
+        <option value="en">English</option>
+        <option value="vi">Tiếng Việt</option>
+        <option value="ja">日本語</option>
+        <option value="ko">한국어</option>
+    </select>
+</div>
+
+<div class="container">
+    <header><h1 id="v-title">STUDY ROOM</h1></header>
+    <main class="grid" id="main-grid"></main>
+</div>
+
+<button class="gear" onclick="document.getElementById('admin').classList.toggle('open')">⚙️</button>
+
+<div id="admin">
+    <h2 style="margin-bottom:20px; color:var(--primary)">Settings</h2>
+    <label>Web Title</label><input type="text" id="in-title">
+    <label>Session Names</label>
+    <div style="display:flex; gap:5px"><input id="l-1"><input id="l-2"><input id="l-3"></div>
+    <div id="day-inputs"></div>
+    <button class="save-btn" onclick="save()">SAVE CHANGES</button>
+</div>
+
+<script>
+    const DateTime = luxon.DateTime;
+    let locale = localStorage.getItem('p_lang') || 'en';
+
+    let cfg = JSON.parse(localStorage.getItem('ep_v12')) || {
+        title: "EP STUDY ROOM",
+        labels: ["Morning", "Afternoon", "Evening"],
+        days: [
+            {id:1, m:"07:30", a:"14:00", e:"19:30"}, {id:2, m:"07:30", a:"14:00", e:"19:30"},
+            {id:3, m:"07:30", a:"14:00", e:"19:30"}, {id:4, m:"07:30", a:"14:00", e:"19:30"},
+            {id:5, m:"07:30", a:"14:00", e:"19:30"}, {id:6, m:"08:00", a:"15:00", e:"20:00"},
+            {id:0, m:"09:00", a:"Off", e:"Off"}
+        ]
+    };
+
+    function changeLang() {
+        locale = document.getElementById('lang-switch').value;
+        localStorage.setItem('p_lang', locale);
+        render();
+    }
+
+    function save() {
+        cfg.title = document.getElementById('in-title').value;
+        cfg.labels = [document.getElementById('l-1').value, document.getElementById('l-2').value, document.getElementById('l-3').value];
+        cfg.days.forEach((d, i) => {
+            d.m = document.getElementById(`m-${i}`).value;
+            d.a = document.getElementById(`a-${i}`).value;
+            d.e = document.getElementById(`ie-${i}`).value;
+        });
+        localStorage.setItem('ep_v12', JSON.stringify(cfg));
+        location.reload();
+    }
+
+    function render() {
+        document.getElementById('v-title').innerText = cfg.title;
+        document.getElementById('lang-switch').value = locale;
+        const grid = document.getElementById('main-grid');
+        grid.innerHTML = "";
+        const todayIdx = DateTime.local().weekday % 7;
+
+        cfg.days.forEach(d => {
+            const dayName = DateTime.fromObject({weekday: d.id === 0 ? 7 : d.id}).setLocale(locale).toFormat('cccc');
+            const isToday = d.id === todayIdx;
+            grid.innerHTML += `
+                <div class="card ${isToday ? 'today' : ''}">
+                    <div class="day-label">${dayName}</div>
+                    <div class="session"><span class="s-name">${cfg.labels[0]}</span><span class="s-time">${format(d.m)}</span></div>
+                    <div class="session"><span class="s-name">${cfg.labels[1]}</span><span class="s-time">${format(d.a)}</span></div>
+                    <div class="session"><span class="s-name">${cfg.labels[2]}</span><span class="s-time">${format(d.e)}</span></div>
+                </div>`;
+        });
+    }
+
+    function format(t) {
+        if(!t || t.toLowerCase() === "off") return "---";
+        return DateTime.fromObject({hour: t.split(':')[0], minute: t.split(':')[1]}, {zone: "Asia/Ho_Chi_Minh"}).setZone(DateTime.local().zoneName).toFormat('HH:mm');
+    }
+
+    // Admin Fields Init
+    document.getElementById('in-title').value = cfg.title;
+    document.getElementById('l-1').value = cfg.labels[0];
+    document.getElementById('l-2').value = cfg.labels[1];
+    document.getElementById('l-3').value = cfg.labels[2];
+    const inpWrap = document.getElementById('day-inputs');
+    cfg.days.forEach((d, i) => {
+        inpWrap.innerHTML += `<div style="margin-top:10px"><small style="color:var(--primary)">${DateTime.fromObject({weekday: d.id === 0 ? 7 : d.id}).setLocale('en').toFormat('ccc')}</small><br>
+        <div style="display:flex; gap:5px"><input id="m-${i}" value="${d.m}"><input id="a-${i}" value="${d.a}"><input id="ie-${i}" value="${d.e}"></div></div>`;
+    });
+
+    render();
+</script>
+</body>
+</html>
