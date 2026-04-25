@@ -2,71 +2,157 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EP Study Room | Global Hub</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Montserrat:wght@700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EP STUDY ROOM | SWEET PASTEL</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.4.4/luxon.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
     <style>
-        :root { --primary: #c3a6ff; --bg: #050508; --card: rgba(255, 255, 255, 0.04); --border: rgba(255, 255, 255, 0.1); --live: #00ff88; }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: #fff; min-height: 100vh; padding: 15px; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
-        .bg-effect { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background: radial-gradient(circle at 50% 0%, #1a1a2e 0%, #050508 100%); }
-        .bg-grid { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px); background-size: 40px 40px; z-index: -1; opacity: 0.15; mask-image: radial-gradient(ellipse at center, black, transparent 90%); }
-        .container { width: 100%; max-width: 1400px; z-index: 1; margin-top: 70px; }
-        header { text-align: center; position: relative; margin-bottom: 5px; cursor: pointer; }
-        header h1 { font-family: 'Montserrat', sans-serif; font-size: clamp(1.5rem, 6vw, 2.5rem); letter-spacing: 6px; text-transform: uppercase; background: linear-gradient(90deg, #fff, var(--primary), #fff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-size: 200%; animation: shine 5s linear infinite; }
-        .status-bar { background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); padding: 12px 25px; border-radius: 50px; display: flex; align-items: center; gap: 15px; margin: 20px auto; backdrop-filter: blur(15px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); justify-content: space-between; min-width: 330px; }
-        #live-clock { font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; color: var(--live); }
-        #week-range { font-size: 0.8rem; font-weight: 600; color: #aaa; }
-        .nav-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: #fff; cursor: pointer; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: 0.3s; }
-        .nav-btn:hover { background: var(--primary); color: #000; transform: scale(1.1); }
-        .grid { display: grid; gap: 15px; width: 100%; grid-template-columns: repeat(7, 1fr); }
-        @media (max-width: 1300px) { .grid { grid-template-columns: repeat(4, 1fr); } }
-        @media (max-width: 850px) { .grid { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 480px) { .grid { grid-template-columns: 1fr; } }
-        .card { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 25px 15px; text-align: center; transition: 0.4s; position: relative; }
-        .card.today { border: 1px solid var(--primary); background: rgba(195, 166, 255, 0.07); box-shadow: 0 0 20px rgba(195,166,255,0.1); }
-        .day-label { font-family: 'Montserrat', sans-serif; font-size: 0.85rem; color: var(--primary); text-transform: uppercase; margin-bottom: 2px; }
-        .date-label { font-size: 0.65rem; color: #555; margin-bottom: 18px; display: block; }
-        .session { margin-bottom: 10px; padding: 12px; border-radius: 18px; background: rgba(255,255,255,0.02); border: 1px solid transparent; transition: 0.3s; }
-        .session.active-now { border-color: var(--live); background: rgba(0, 255, 136, 0.05); animation: pulse 2s infinite; }
-        .s-name { font-size: 0.55rem; color: #777; text-transform: uppercase; display: block; margin-bottom: 5px; }
-        .s-time { font-family: 'JetBrains Mono', monospace; font-size: 1rem; font-weight: 600; }
-        #admin-panel { position: fixed; top: 0; right: -100%; width: 100%; max-width: 400px; height: 100vh; background: #0a0a0f; z-index: 1000; padding: 30px; transition: 0.4s; border-left: 1px solid var(--border); overflow-y: auto; }
-        #admin-panel.open { right: 0; }
-        input { width: 100%; padding: 10px; margin: 5px 0; background: #1a1a24; border: 1px solid #333; color: #fff; border-radius: 8px; }
-        .save-btn { width: 100%; padding: 15px; background: var(--primary); border: none; font-weight: bold; margin-top: 20px; border-radius: 12px; cursor: pointer; color: #000; }
-        @keyframes shine { to { background-position: 200% center; } }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(0, 255, 136, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); } }
+        :root { 
+            --p-pink: #ffdae9; --p-purple: #e2d5ff; --p-blue: #d0f4ff;
+            --text: #5a5a7a; --glass: rgba(255, 255, 255, 0.7);
+            --border: rgba(255, 255, 255, 0.5);
+            --accent: #ff8fb1;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; cursor: url('https://cur.cursors-4u.net/symbols/sym-1/sym49.cur'), auto; }
+        
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background: linear-gradient(135deg, #fdfcfb 0%, #e2d1f9 100%);
+            color: var(--text); min-height: 100vh; overflow-x: hidden; 
+            display: flex; flex-direction: column; align-items: center; 
+        }
+
+        /* Floating Clouds Background */
+        .cloud-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; opacity: 0.6; }
+        .cloud { position: absolute; background: white; border-radius: 100px; filter: blur(30px); animation: float 20s infinite linear; }
+
+        @keyframes float {
+            0% { transform: translateX(-200px); }
+            100% { transform: translateX(100vw); }
+        }
+
+        .container { width: 94%; max-width: 1400px; padding: 40px 0; z-index: 1; }
+        
+        header h1 { 
+            font-size: clamp(2rem, 6vw, 2.5rem); font-weight: 800; text-align: center; 
+            letter-spacing: -1px; margin-bottom: 5px; color: var(--accent);
+            text-shadow: 2px 2px 0px #fff; cursor: pointer;
+        }
+
+        #tz-status {
+            font-size: 11px; font-weight: 700; text-align: center; color: #a3a3c2;
+            margin-bottom: 25px; text-transform: uppercase; letter-spacing: 1px;
+        }
+
+        .nav-bar { 
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--glass); border: 2px solid white;
+            padding: 10px 20px; border-radius: 40px; margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05); backdrop-filter: blur(10px);
+        }
+
+        .controls { display: flex; align-items: center; gap: 10px; }
+        
+        .lang-toggle { display: flex; background: #fff; border-radius: 20px; padding: 3px; border: 1px solid #eee; }
+        .lang-btn {
+            background: none; border: none; color: #ccc; padding: 5px 12px;
+            font-size: 10px; font-weight: 800; cursor: pointer; border-radius: 15px;
+        }
+        .lang-btn.active { background: var(--p-pink); color: var(--accent); }
+
+        .week-nav { 
+            display: flex; gap: 10px; align-items: center; 
+            background: #fff; padding: 5px 15px; border-radius: 25px; border: 1px solid #eee;
+        }
+        .nav-btn { background: none; border: none; color: var(--accent); font-size: 18px; cursor: pointer; transition: 0.2s; }
+        .nav-btn:hover { transform: scale(1.3); }
+        
+        #week-range { font-family: 'JetBrains Mono'; font-size: 12px; font-weight: 700; color: #7a7a9a; }
+        #live-clock { font-family: 'JetBrains Mono'; font-size: 1.2rem; font-weight: 700; color: var(--accent); }
+
+        select { 
+            background: #fff; border: 1px solid #eee; color: var(--text); 
+            padding: 6px 12px; border-radius: 20px; font-size: 11px; outline: none;
+        }
+
+        .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 15px; }
+        @media (max-width: 1100px) { .grid { grid-template-columns: repeat(4, 1fr); } }
+        @media (max-width: 700px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+
+        .card { 
+            background: var(--glass); border: 2px solid white; border-radius: 35px;
+            padding: 20px 10px; text-align: center; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.02);
+        }
+        .card:hover { transform: translateY(-8px); box-shadow: 0 15px 30px rgba(255,143,177,0.15); border-color: var(--p-pink); }
+        .card.today { border-color: var(--accent); background: #fff; }
+
+        .d-name { font-weight: 800; font-size: 13px; color: var(--accent); }
+        .d-date { font-size: 10px; color: #aaa; font-weight: 700; margin-bottom: 20px; display: block; }
+
+        .slot { 
+            background: rgba(255,255,255,0.4); border-radius: 22px; padding: 15px 5px; margin-bottom: 8px;
+            border: 1px solid transparent; min-height: 80px; display: flex; flex-direction: column; justify-content: center;
+        }
+        .slot.active { 
+            background: #fff; border-color: var(--p-pink);
+            animation: bounce 2s infinite ease-in-out;
+        }
+
+        @keyframes bounce { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+
+        .s-icon { font-size: 18px; margin-bottom: 5px; opacity: 0.1; transition: 0.3s; }
+        .slot.active .s-icon { opacity: 1; }
+        .s-label { font-size: 9px; font-weight: 800; color: #ddd; text-transform: uppercase; }
+        .slot.active .s-label { color: var(--accent); }
+        .s-time { font-family: 'JetBrains Mono'; font-size: 1.1rem; font-weight: 800; color: transparent; }
+        .slot.active .s-time { color: var(--text); }
+
+        /* Admin Panel - Sweet Style */
+        #admin { position: fixed; top: 0; right: -100%; width: 100%; max-width: 350px; height: 100vh; background: #fff; z-index: 1000; padding: 30px; box-shadow: -10px 0 30px rgba(0,0,0,0.05); transition: 0.4s; }
+        #admin.open { right: 0; }
+        .admin-row { background: #f9f9ff; padding: 12px; border-radius: 20px; margin-bottom: 10px; border: 1px solid #eee; }
+        input { width: 100%; padding: 8px; border: 1px solid #eee; border-radius: 10px; margin-bottom: 5px; outline: none; }
+        .btn-save { width: 100%; padding: 15px; background: var(--accent); color: #fff; border: none; border-radius: 20px; font-weight: 800; cursor: pointer; }
     </style>
 </head>
 <body>
-<div class="bg-effect"></div><div class="bg-grid"></div>
-<div class="container">
-    <header onclick="login()"><h1 id="display-title">EP STUDY ROOM</h1></header>
-    <div style="display: flex; justify-content: center;">
-        <div class="status-bar">
-            <button class="nav-btn" onclick="changeWeek(-1)">❮</button>
-            <div style="text-align: center; min-width: 180px;">
-                <div id="live-clock">00:00:00</div>
-                <div id="week-range">Syncing...</div>
-            </div>
-            <button class="nav-btn" onclick="changeWeek(1)">❯</button>
-        </div>
-    </div>
-    <main class="grid" id="main-grid"></main>
-</div>
+    <div class="cloud-bg" id="cloud-container"></div>
 
-<div id="admin-panel">
-    <h2 style="color:var(--primary); margin-bottom:5px">Cloud Admin</h2>
-    <p style="font-size: 11px; color: #666; margin-bottom: 20px;">Day 0 = Thứ Hai | Day 6 = Chủ Nhật</p>
-    <div id="edit-fields"></div>
-    <button class="save-btn" onclick="saveToCloud()">UPDATE WEB DATA</button>
-    <button style="width:100%; padding:12px; background:#222; color:#fff; border:none; margin-top:10px; border-radius:12px; cursor:pointer" onclick="closeAdmin()">CLOSE</button>
-</div>
+    <div class="container">
+        <header><h1 onclick="toggleAdmin()">EP STUDY ROOM</h1></header>
+        <div id="tz-status">...</div>
+
+        <div class="nav-bar">
+            <div class="controls">
+                <div class="lang-toggle">
+                    <button id="btn-vi" class="lang-btn" onclick="setLang('vi')">VI</button>
+                    <button id="btn-en" class="lang-btn" onclick="setLang('en')">EN</button>
+                </div>
+                <div class="week-nav">
+                    <button class="nav-btn" id="prev-week" onclick="changeWeek(-1)">❮</button>
+                    <span id="week-range">---</span>
+                    <button class="nav-btn" onclick="changeWeek(1)">❯</button>
+                </div>
+                <select id="manual-tz" onchange="manualUpdate()"></select>
+            </div>
+            <div id="live-clock">00:00:00</div>
+        </div>
+
+        <main class="grid" id="main-grid"></main>
+    </div>
+
+    <div id="admin">
+        <h2 style="color:var(--accent); margin-bottom:20px;">Admin Mode ✨</h2>
+        <div id="admin-fields" style="max-height:70vh; overflow-y:auto; margin-bottom:20px;"></div>
+        <button class="btn-save" onclick="save()">SAVE CHANGES</button>
+        <p style="text-align:center; margin-top:20px; opacity:0.3; cursor:pointer;" onclick="toggleAdmin()">Close</p>
+    </div>
 
 <script>
     const firebaseConfig = {
@@ -77,107 +163,144 @@
         messagingSenderId: "189256681520",
         appId: "1:189256681520:web:28a61a58628754b490c5f5"
     };
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-    const DateTime = luxon.DateTime;
-    let weekOffset = 0;
+    const DT = luxon.DateTime;
 
-    let cfg = {
-        title: "EP STUDY ROOM",
-        days: Array(7).fill({m: "07:30", a: "14:00", e: "19:30"})
+    let schedule = { days: [] };
+    let userTZ = DT.local().zoneName;
+    let userLang = 'en';
+    let weekOffset = 0;
+    let isAutoTZ = true;
+
+    const i18n = {
+        vi: { days: ["Thứ Hai","Thứ Ba","Thứ Tư","Thứ Năm","Thứ Sáu","Thứ Bảy","Chủ Nhật"], slots: ["Sáng","Chiều","Tối"], tzText: "Lịch theo:", auto: "Tự động", manual: "Thủ công" },
+        en: { days: ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"], slots: ["Morning","Afternoon","Evening"], tzText: "Timezone:", auto: "Auto", manual: "Manual" }
     };
 
-    db.collection("settings").doc("schedule").onSnapshot((doc) => {
-        if (doc.exists) { cfg = doc.data(); render(); }
+    function initClouds() {
+        const container = document.getElementById('cloud-container');
+        for(let i=0; i<6; i++) {
+            let c = document.createElement('div');
+            c.className = 'cloud';
+            c.style.width = Math.random()*200 + 100 + 'px';
+            c.style.height = c.style.width;
+            c.style.top = Math.random()*100 + 'vh';
+            c.style.left = '-200px';
+            c.style.animationDelay = Math.random()*20 + 's';
+            container.appendChild(c);
+        }
+    }
+
+    function initLang() {
+        const saved = localStorage.getItem('ep_lang');
+        userLang = saved || (navigator.language.startsWith('vi') ? 'vi' : 'en');
+        updateLangUI();
+    }
+
+    function setLang(lang) {
+        userLang = lang;
+        localStorage.setItem('ep_lang', lang);
+        updateLangUI();
+        render();
+    }
+
+    function updateLangUI() {
+        document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`btn-${userLang}`).classList.add('active');
+    }
+
+    const tzs = ["Asia/Ho_Chi_Minh","America/New_York","Europe/London","Asia/Tokyo","Australia/Sydney"];
+    const tzSelect = document.getElementById('manual-tz');
+    tzSelect.innerHTML = `<option value="auto">🌍 Local Time</option>` + tzs.map(t => `<option value="${t}">${t}</option>`).join('');
+
+    db.collection("settings").doc("schedule").onSnapshot(doc => {
+        if(doc.exists) { schedule = doc.data(); render(); }
     });
 
+    function changeWeek(n) { weekOffset += n; render(); }
+
+    function manualUpdate() {
+        const val = tzSelect.value;
+        if(val === 'auto') { userTZ = DT.local().zoneName; isAutoTZ = true; }
+        else { userTZ = val; isAutoTZ = false; }
+        render();
+    }
+
     function render() {
-        const now = DateTime.now().setZone("Asia/Ho_Chi_Minh");
-        // Force start of week to Monday
-        const startOfWeek = now.plus({ weeks: weekOffset }).startOf('week');
-        
-        document.getElementById('display-title').innerText = cfg.title;
-        document.getElementById('week-range').innerText = `${startOfWeek.toFormat('dd LLL')} - ${startOfWeek.plus({days:6}).toFormat('dd LLL, yyyy')}`;
-        
-        const grid = document.getElementById('main-grid'); 
+        const grid = document.getElementById('main-grid');
         grid.innerHTML = "";
+        const now = DT.now().setZone(userTZ);
+        const startOfThisWeek = now.startOf('week');
+        const displayWeekStart = startOfThisWeek.plus({ weeks: weekOffset });
+        const displayWeekEnd = displayWeekStart.plus({ days: 6 });
+        
+        const lang = i18n[userLang];
+        const icons = ["☀️", "☕", "🌙"];
 
-        // Dữ liệu trong cfg.days: [0]=Mon, [1]=Tue, ... [6]=Sun
+        document.getElementById('tz-status').innerText = `📍 ${lang.tzText} ${userTZ.split('/').pop()} (${isAutoTZ ? lang.auto : lang.manual})`;
+        document.getElementById('week-range').innerText = `${displayWeekStart.toFormat('dd LLL')} - ${displayWeekEnd.toFormat('dd LLL')}`;
+        document.getElementById('prev-week').disabled = (weekOffset <= -1);
+
         for(let i=0; i<7; i++) {
-            const actualDate = startOfWeek.plus({ days: i });
-            const isToday = now.hasSame(actualDate, 'day');
-            const d = cfg.days[i];
-            
-            let html = `<div class="card ${isToday ? 'today' : ''}">
-                <div class="day-label">${actualDate.toFormat('cccc')}</div>
-                <span class="date-label">${actualDate.toFormat('dd LLL')}</span>`;
-            
-            const sessions = [
-                {k: 'm', l: 'Morning'}, 
-                {k: 'a', l: 'Afternoon'}, 
-                {k: 'e', l: 'Evening'}
-            ];
+            const date = displayWeekStart.plus({ days: i });
+            const data = (schedule.days && schedule.days[i]) ? schedule.days[i] : {m:"", a:"", e:""};
+            const isToday = now.hasSame(date, 'day');
 
-            sessions.forEach(s => {
-                let tStr = d[s.k];
-                let disp = "---", active = false;
-                if(tStr && tStr.toLowerCase() !== 'off') {
-                    disp = tStr;
-                    // Check active (khoảng 1 tiếng quanh mốc giờ)
-                    const tObj = DateTime.fromFormat(tStr, "HH:mm", {zone: "Asia/Ho_Chi_Minh"}).set({
-                        year: actualDate.year, month: actualDate.month, day: actualDate.day
-                    });
-                    active = isToday && Math.abs(now.diff(tObj, 'minutes').minutes) < 60;
+            let h = `<div class="card ${isToday ? 'today' : ''}">
+                <span class="d-name">${lang.days[i]}</span>
+                <span class="d-date">${date.toFormat('dd/MM/yyyy')}</span>`;
+
+            ['m','a','e'].forEach((k, idx) => {
+                const raw = (data[k] || "").trim();
+                const valid = /^([01]\d|2[0-3]):([0-5]\d)$/.test(raw);
+                let timeStr = "";
+                if(valid) {
+                    timeStr = DT.fromFormat(raw, "HH:mm", {zone: "Asia/Ho_Chi_Minh"}).set({
+                        year: date.year, month: date.month, day: date.day
+                    }).setZone(userTZ).toFormat("HH:mm");
                 }
-                html += `<div class="session ${active ? 'active-now' : ''}">
-                    <span class="s-name">${s.l}</span>
-                    <span class="s-time">${disp}</span>
+                h += `<div class="slot ${valid ? 'active' : ''}">
+                    <span class="s-icon">${icons[idx]}</span>
+                    <span class="s-label">${lang.slots[idx]}</span>
+                    <div class="s-time">${timeStr}</div>
                 </div>`;
             });
-            grid.innerHTML += html + `</div>`;
+            grid.innerHTML += h + `</div>`;
         }
     }
 
-    function login() { if(prompt("Admin Pass:") === "hottea68") { document.getElementById('admin-panel').classList.add('open'); initEdit(); } }
-    function closeAdmin() { document.getElementById('admin-panel').classList.remove('open'); }
-    
-    function initEdit() {
-        const wrap = document.getElementById('edit-fields');
-        const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-        wrap.innerHTML = `<label>Title</label><input id="in-title" value="${cfg.title}">`;
-        cfg.days.forEach((d, i) => {
-            wrap.innerHTML += `<div style="margin-top:10px;">
-                <span style="color:var(--primary); font-size:12px; font-weight:bold">${dayNames[i]} (Day ${i})</span>
-                <div style="display:flex;gap:5px">
-                    <input id="m-${i}" value="${d.m}" placeholder="07:30">
-                    <input id="a-${i}" value="${d.a}" placeholder="14:00">
-                    <input id="e-${i}" value="${d.e}" placeholder="19:30">
-                </div>
-            </div>`;
-        });
+    function toggleAdmin() {
+        const admin = document.getElementById('admin');
+        if(!admin.classList.contains('open')) {
+            if(prompt("Pass?") !== "hottea68") return;
+            const div = document.getElementById('admin-fields');
+            div.innerHTML = "";
+            for(let i=0; i<7; i++) {
+                const d = (schedule.days && schedule.days[i]) ? schedule.days[i] : {m:"", a:"", e:""};
+                div.innerHTML += `<div class="admin-row">
+                    <p style="font-size:10px; color:var(--accent)">DAY ${i+1}</p>
+                    <input id="m-${i}" value="${d.m}" placeholder="00:00">
+                    <input id="a-${i}" value="${d.a}" placeholder="00:00">
+                    <input id="e-${i}" value="${d.e}" placeholder="00:00">
+                </div>`;
+            }
+            admin.classList.add('open');
+        } else { admin.classList.remove('open'); }
     }
 
-    function saveToCloud() {
-        cfg.title = document.getElementById('in-title').value;
-        cfg.days = [];
+    function save() {
+        const ds = [];
         for(let i=0; i<7; i++) {
-            cfg.days.push({
-                m: document.getElementById(`m-${i}`).value,
-                a: document.getElementById(`a-${i}`).value,
-                e: document.getElementById(`e-${i}`).value
-            });
+            ds.push({ m: document.getElementById(`m-${i}`).value, a: document.getElementById(`a-${i}`).value, e: document.getElementById(`e-${i}`).value });
         }
-        db.collection("settings").doc("schedule").set(cfg).then(() => { 
-            alert("Updated! Lịch đã được đồng bộ chuẩn Thứ Hai -> Chủ Nhật."); 
-            closeAdmin(); 
+        db.collection("settings").doc("schedule").set({ days: ds }).then(() => {
+            alert("Updated ✨"); document.getElementById('admin').classList.remove('open');
         });
     }
 
-    setInterval(() => {
-        document.getElementById('live-clock').innerText = DateTime.now().setZone("Asia/Ho_Chi_Minh").toFormat('HH:mm:ss');
-    }, 1000);
-    function changeWeek(dir) { weekOffset += dir; render(); }
+    initClouds(); initLang(); 
+    setInterval(() => { document.getElementById('live-clock').innerText = DT.now().setZone(userTZ).toFormat('HH:mm:ss'); }, 1000);
 </script>
 </body>
 </html>
