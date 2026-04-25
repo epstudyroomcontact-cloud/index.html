@@ -27,7 +27,7 @@
         @media (max-width: 1300px) { .grid { grid-template-columns: repeat(4, 1fr); } }
         @media (max-width: 850px) { .grid { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 480px) { .grid { grid-template-columns: 1fr; } }
-        .card { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 25px 15px; text-align: center; transition: 0.4s; }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 25px 15px; text-align: center; transition: 0.4s; position: relative; }
         .card.today { border: 1px solid var(--primary); background: rgba(195, 166, 255, 0.07); box-shadow: 0 0 20px rgba(195,166,255,0.1); }
         .day-label { font-family: 'Montserrat', sans-serif; font-size: 0.85rem; color: var(--primary); text-transform: uppercase; margin-bottom: 2px; }
         .date-label { font-size: 0.65rem; color: #555; margin-bottom: 18px; display: block; }
@@ -35,33 +35,16 @@
         .session.active-now { border-color: var(--live); background: rgba(0, 255, 136, 0.05); animation: pulse 2s infinite; }
         .s-name { font-size: 0.55rem; color: #777; text-transform: uppercase; display: block; margin-bottom: 5px; }
         .s-time { font-family: 'JetBrains Mono', monospace; font-size: 1rem; font-weight: 600; }
-        .top-nav { position: absolute; top: 15px; width: 90%; max-width: 400px; z-index: 100; }
-        select { width: 100%; background: #000; color: #fff; border: 1px solid #333; padding: 10px; border-radius: 12px; font-size: 0.75rem; cursor: pointer; outline: none; }
-        @keyframes shine { to { background-position: 200% center; } }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(0, 255, 136, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); } }
         #admin-panel { position: fixed; top: 0; right: -100%; width: 100%; max-width: 400px; height: 100vh; background: #0a0a0f; z-index: 1000; padding: 30px; transition: 0.4s; border-left: 1px solid var(--border); overflow-y: auto; }
         #admin-panel.open { right: 0; }
         input { width: 100%; padding: 10px; margin: 5px 0; background: #1a1a24; border: 1px solid #333; color: #fff; border-radius: 8px; }
         .save-btn { width: 100%; padding: 15px; background: var(--primary); border: none; font-weight: bold; margin-top: 20px; border-radius: 12px; cursor: pointer; color: #000; }
+        @keyframes shine { to { background-position: 200% center; } }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(0, 255, 136, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); } }
     </style>
 </head>
 <body>
 <div class="bg-effect"></div><div class="bg-grid"></div>
-<div class="top-nav">
-    <select id="region-switch" onchange="updateRegion()">
-        <option value="AUTO">📍 Auto-Detect (Recommend)</option>
-        <optgroup label="Asia & Oceania">
-            <option value="Asia/Ho_Chi_Minh|vi">🇻🇳 Vietnam (Tiếng Việt)</option>
-            <option value="Asia/Tokyo|ja">🇯🇵 Japan (日本語)</option>
-            <option value="Asia/Seoul|ko">🇰🇷 Korea (한국어)</option>
-            <option value="Asia/Singapore|en">🇸🇬 Singapore (English)</option>
-        </optgroup>
-        <optgroup label="Other Regions">
-            <option value="America/New_York|en">🇺🇸 USA East (EST)</option>
-            <option value="Europe/London|en">🇬🇧 UK (English)</option>
-        </optgroup>
-    </select>
-</div>
 <div class="container">
     <header onclick="login()"><h1 id="display-title">EP STUDY ROOM</h1></header>
     <div style="display: flex; justify-content: center;">
@@ -76,15 +59,16 @@
     </div>
     <main class="grid" id="main-grid"></main>
 </div>
+
 <div id="admin-panel">
-    <h2 style="color:var(--primary); margin-bottom:15px">Cloud Admin</h2>
+    <h2 style="color:var(--primary); margin-bottom:5px">Cloud Admin</h2>
+    <p style="font-size: 11px; color: #666; margin-bottom: 20px;">Day 0 = Thứ Hai | Day 6 = Chủ Nhật</p>
     <div id="edit-fields"></div>
     <button class="save-btn" onclick="saveToCloud()">UPDATE WEB DATA</button>
     <button style="width:100%; padding:12px; background:#222; color:#fff; border:none; margin-top:10px; border-radius:12px; cursor:pointer" onclick="closeAdmin()">CLOSE</button>
 </div>
 
 <script>
-    // CHÌA KHÓA FIREBASE CỦA BẠN ĐÃ ĐƯỢC LẮP Ở ĐÂY:
     const firebaseConfig = {
         apiKey: "AIzaSyBLp6sfgO6WR53RbfXMoU1RV9ROBmOHuQI",
         authDomain: "epstudyroom-bacaf.firebaseapp.com",
@@ -97,15 +81,10 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const DateTime = luxon.DateTime;
-    const VN_TZ = "Asia/Ho_Chi_Minh";
     let weekOffset = 0;
-    let currentSetting = localStorage.getItem('p_region_v27') || 'AUTO';
 
     let cfg = {
         title: "EP STUDY ROOM",
-        labels: { 
-            en: ["Morning", "Afternoon", "Evening"], vi: ["Sáng", "Chiều", "Tối"], ko: ["오전", "오후", "저녁"], ja: ["午前", "午後", "夜"]
-        },
         days: Array(7).fill({m: "07:30", a: "14:00", e: "19:30"})
     };
 
@@ -113,65 +92,91 @@
         if (doc.exists) { cfg = doc.data(); render(); }
     });
 
-    function getActiveParams() {
-        if (currentSetting === 'AUTO') {
-            const tz = DateTime.local().zoneName;
-            let lang = tz.includes('Ho_Chi_Minh') ? 'vi' : (tz.includes('Tokyo') ? 'ja' : (tz.includes('Seoul') ? 'ko' : 'en'));
-            return { tz, lang };
-        }
-        const [tz, lang] = currentSetting.split('|');
-        return { tz, lang };
-    }
-
     function render() {
-        const { tz, lang } = getActiveParams();
-        const now = DateTime.now().setZone(tz);
+        const now = DateTime.now().setZone("Asia/Ho_Chi_Minh");
+        // Force start of week to Monday
         const startOfWeek = now.plus({ weeks: weekOffset }).startOf('week');
+        
         document.getElementById('display-title').innerText = cfg.title;
-        document.getElementById('week-range').innerText = `${startOfWeek.setLocale(lang).toFormat('dd LLL')} - ${startOfWeek.plus({days:6}).setLocale(lang).toFormat('dd LLL, yyyy')}`;
-        const grid = document.getElementById('main-grid'); grid.innerHTML = "";
-        const sorted = [...cfg.days]; sorted.push(sorted.shift());
-        sorted.forEach((d, index) => {
-            const actualDate = startOfWeek.plus({ days: index });
+        document.getElementById('week-range').innerText = `${startOfWeek.toFormat('dd LLL')} - ${startOfWeek.plus({days:6}).toFormat('dd LLL, yyyy')}`;
+        
+        const grid = document.getElementById('main-grid'); 
+        grid.innerHTML = "";
+
+        // Dữ liệu trong cfg.days: [0]=Mon, [1]=Tue, ... [6]=Sun
+        for(let i=0; i<7; i++) {
+            const actualDate = startOfWeek.plus({ days: i });
             const isToday = now.hasSame(actualDate, 'day');
-            const lbl = cfg.labels[lang] || cfg.labels['en'];
-            let html = `<div class="card ${isToday ? 'today' : ''}"><div class="day-label">${actualDate.setLocale(lang).toFormat('cccc')}</div><span class="date-label">${actualDate.setLocale(lang).toFormat('dd LLL')}</span>`;
-            [d.m, d.a, d.e].forEach((tStr, i) => {
+            const d = cfg.days[i];
+            
+            let html = `<div class="card ${isToday ? 'today' : ''}">
+                <div class="day-label">${actualDate.toFormat('cccc')}</div>
+                <span class="date-label">${actualDate.toFormat('dd LLL')}</span>`;
+            
+            const sessions = [
+                {k: 'm', l: 'Morning'}, 
+                {k: 'a', l: 'Afternoon'}, 
+                {k: 'e', l: 'Evening'}
+            ];
+
+            sessions.forEach(s => {
+                let tStr = d[s.k];
                 let disp = "---", active = false;
                 if(tStr && tStr.toLowerCase() !== 'off') {
-                    const tObj = DateTime.fromObject({hour: tStr.split(':')[0], minute: tStr.split(':')[1]}, {zone: VN_TZ}).setZone(tz);
-                    disp = tObj.toFormat('HH:mm');
+                    disp = tStr;
+                    // Check active (khoảng 1 tiếng quanh mốc giờ)
+                    const tObj = DateTime.fromFormat(tStr, "HH:mm", {zone: "Asia/Ho_Chi_Minh"}).set({
+                        year: actualDate.year, month: actualDate.month, day: actualDate.day
+                    });
                     active = isToday && Math.abs(now.diff(tObj, 'minutes').minutes) < 60;
                 }
-                html += `<div class="session ${active ? 'active-now' : ''}"><span class="s-name">${lbl[i]}</span><span class="s-time">${disp}</span></div>`;
+                html += `<div class="session ${active ? 'active-now' : ''}">
+                    <span class="s-name">${s.l}</span>
+                    <span class="s-time">${disp}</span>
+                </div>`;
             });
             grid.innerHTML += html + `</div>`;
-        });
+        }
     }
 
     function login() { if(prompt("Admin Pass:") === "hottea68") { document.getElementById('admin-panel').classList.add('open'); initEdit(); } }
     function closeAdmin() { document.getElementById('admin-panel').classList.remove('open'); }
+    
     function initEdit() {
         const wrap = document.getElementById('edit-fields');
+        const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
         wrap.innerHTML = `<label>Title</label><input id="in-title" value="${cfg.title}">`;
         cfg.days.forEach((d, i) => {
-            wrap.innerHTML += `<div style="margin-top:10px; color:#888">Day ${i}<div style="display:flex;gap:3px"><input id="m-${i}" value="${d.m}"><input id="a-${i}" value="${d.a}"><input id="e-${i}" value="${d.e}"></div></div>`;
+            wrap.innerHTML += `<div style="margin-top:10px;">
+                <span style="color:var(--primary); font-size:12px; font-weight:bold">${dayNames[i]} (Day ${i})</span>
+                <div style="display:flex;gap:5px">
+                    <input id="m-${i}" value="${d.m}" placeholder="07:30">
+                    <input id="a-${i}" value="${d.a}" placeholder="14:00">
+                    <input id="e-${i}" value="${d.e}" placeholder="19:30">
+                </div>
+            </div>`;
         });
     }
+
     function saveToCloud() {
         cfg.title = document.getElementById('in-title').value;
-        cfg.days.forEach((d, i) => {
-            d.m = document.getElementById(`m-${i}`).value;
-            d.a = document.getElementById(`a-${i}`).value;
-            d.e = document.getElementById(`e-${i}`).value;
+        cfg.days = [];
+        for(let i=0; i<7; i++) {
+            cfg.days.push({
+                m: document.getElementById(`m-${i}`).value,
+                a: document.getElementById(`a-${i}`).value,
+                e: document.getElementById(`e-${i}`).value
+            });
+        }
+        db.collection("settings").doc("schedule").set(cfg).then(() => { 
+            alert("Updated! Lịch đã được đồng bộ chuẩn Thứ Hai -> Chủ Nhật."); 
+            closeAdmin(); 
         });
-        db.collection("settings").doc("schedule").set(cfg).then(() => { alert("Updated!"); closeAdmin(); });
     }
+
     setInterval(() => {
-        const { tz } = getActiveParams();
-        document.getElementById('live-clock').innerText = DateTime.now().setZone(tz).toFormat('HH:mm:ss');
+        document.getElementById('live-clock').innerText = DateTime.now().setZone("Asia/Ho_Chi_Minh").toFormat('HH:mm:ss');
     }, 1000);
-    function updateRegion() { currentSetting = document.getElementById('region-switch').value; localStorage.setItem('p_region_v27', currentSetting); render(); }
     function changeWeek(dir) { weekOffset += dir; render(); }
 </script>
 </body>
