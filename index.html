@@ -27,7 +27,6 @@
             display: flex; flex-direction: column; align-items: center; 
         }
 
-        /* Floating Clouds Background */
         .cloud-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; opacity: 0.6; }
         .cloud { position: absolute; background: white; border-radius: 100px; filter: blur(30px); animation: float 20s infinite linear; }
 
@@ -113,7 +112,6 @@
         .s-time { font-family: 'JetBrains Mono'; font-size: 1.1rem; font-weight: 800; color: transparent; }
         .slot.active .s-time { color: var(--text); }
 
-        /* Admin Panel - Sweet Style */
         #admin { position: fixed; top: 0; right: -100%; width: 100%; max-width: 350px; height: 100vh; background: #fff; z-index: 1000; padding: 30px; box-shadow: -10px 0 30px rgba(0,0,0,0.05); transition: 0.4s; }
         #admin.open { right: 0; }
         .admin-row { background: #f9f9ff; padding: 12px; border-radius: 20px; margin-bottom: 10px; border: 1px solid #eee; }
@@ -155,14 +153,17 @@
     </div>
 
 <script>
+    // ĐÃ TỰ ĐỘNG ĐIỀN MÃ FIREBASE TỪ ẢNH CỦA BẠN
     const firebaseConfig = {
         apiKey: "AIzaSyBLp6sfgO6WR53RbfXMoU1RV9ROBmOHuQI",
         authDomain: "epstudyroom-bacaf.firebaseapp.com",
         projectId: "epstudyroom-bacaf",
         storageBucket: "epstudyroom-bacaf.firebasestorage.app",
         messagingSenderId: "189256681520",
-        appId: "1:189256681520:web:28a61a58628754b490c5f5"
+        appId: "1:189256681520:web:28a61a58628754b490c5f5",
+        measurementId: "G-XNC0QYGSG6"
     };
+
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const DT = luxon.DateTime;
@@ -244,63 +245,4 @@
 
         for(let i=0; i<7; i++) {
             const date = displayWeekStart.plus({ days: i });
-            const data = (schedule.days && schedule.days[i]) ? schedule.days[i] : {m:"", a:"", e:""};
-            const isToday = now.hasSame(date, 'day');
-
-            let h = `<div class="card ${isToday ? 'today' : ''}">
-                <span class="d-name">${lang.days[i]}</span>
-                <span class="d-date">${date.toFormat('dd/MM/yyyy')}</span>`;
-
-            ['m','a','e'].forEach((k, idx) => {
-                const raw = (data[k] || "").trim();
-                const valid = /^([01]\d|2[0-3]):([0-5]\d)$/.test(raw);
-                let timeStr = "";
-                if(valid) {
-                    timeStr = DT.fromFormat(raw, "HH:mm", {zone: "Asia/Ho_Chi_Minh"}).set({
-                        year: date.year, month: date.month, day: date.day
-                    }).setZone(userTZ).toFormat("HH:mm");
-                }
-                h += `<div class="slot ${valid ? 'active' : ''}">
-                    <span class="s-icon">${icons[idx]}</span>
-                    <span class="s-label">${lang.slots[idx]}</span>
-                    <div class="s-time">${timeStr}</div>
-                </div>`;
-            });
-            grid.innerHTML += h + `</div>`;
-        }
-    }
-
-    function toggleAdmin() {
-        const admin = document.getElementById('admin');
-        if(!admin.classList.contains('open')) {
-            if(prompt("Pass?") !== "hottea68") return;
-            const div = document.getElementById('admin-fields');
-            div.innerHTML = "";
-            for(let i=0; i<7; i++) {
-                const d = (schedule.days && schedule.days[i]) ? schedule.days[i] : {m:"", a:"", e:""};
-                div.innerHTML += `<div class="admin-row">
-                    <p style="font-size:10px; color:var(--accent)">DAY ${i+1}</p>
-                    <input id="m-${i}" value="${d.m}" placeholder="00:00">
-                    <input id="a-${i}" value="${d.a}" placeholder="00:00">
-                    <input id="e-${i}" value="${d.e}" placeholder="00:00">
-                </div>`;
-            }
-            admin.classList.add('open');
-        } else { admin.classList.remove('open'); }
-    }
-
-    function save() {
-        const ds = [];
-        for(let i=0; i<7; i++) {
-            ds.push({ m: document.getElementById(`m-${i}`).value, a: document.getElementById(`a-${i}`).value, e: document.getElementById(`e-${i}`).value });
-        }
-        db.collection("settings").doc("schedule").set({ days: ds }).then(() => {
-            alert("Updated ✨"); document.getElementById('admin').classList.remove('open');
-        });
-    }
-
-    initClouds(); initLang(); 
-    setInterval(() => { document.getElementById('live-clock').innerText = DT.now().setZone(userTZ).toFormat('HH:mm:ss'); }, 1000);
-</script>
-</body>
-</html>
+            const data = (schedule.
