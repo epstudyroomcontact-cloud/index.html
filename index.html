@@ -28,10 +28,14 @@
             display: flex; flex-direction: column; align-items: center; 
         }
 
-        /* Nền mây bay chậm hơn, nghệ hơn */
+        /* HIỆU ỨNG MÂY BAY NGHỆ THUẬT */
         .cloud-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; }
         .cloud { position: absolute; background: white; border-radius: 100px; filter: blur(60px); animation: float 45s infinite linear; opacity: 0.4; }
-        @keyframes float { 0% { transform: translateX(-400px) translateY(0); } 50% { transform: translateX(50vw) translateY(20px); } 100% { transform: translateX(110vw) translateY(0); } }
+        @keyframes float { 
+            0% { transform: translateX(-400px) translateY(0); } 
+            50% { transform: translateX(50vw) translateY(30px); } 
+            100% { transform: translateX(110vw) translateY(0); } 
+        }
 
         .container { width: 94%; max-width: 1400px; padding: 40px 0; z-index: 1; }
         
@@ -46,7 +50,6 @@
         #tz-status { 
             font-size: 10px; font-weight: 800; text-align: center; color: #8e8ea8; 
             margin-bottom: 30px; text-transform: uppercase; letter-spacing: 3px;
-            opacity: 0; animation: fadeIn 1s forwards 0.5s;
         }
 
         .nav-bar { 
@@ -56,7 +59,6 @@
             box-shadow: var(--shadow); backdrop-filter: blur(20px);
             animation: slideDown 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
-
         @keyframes slideDown { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
 
         .controls { display: flex; align-items: center; gap: 20px; }
@@ -74,61 +76,46 @@
 
         #live-clock { font-family: 'JetBrains Mono'; font-size: 1.5rem; font-weight: 800; color: var(--accent); letter-spacing: -1px; }
 
-        .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 20px; }
+        select { background: rgba(255,255,255,0.7); border: 1px solid var(--border); color: var(--text); padding: 8px 15px; border-radius: 20px; font-size: 12px; outline: none; }
+
+        /* GRID VÀ CARD HIỆU ỨNG 3D */
+        .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 20px; transition: 0.5s ease; }
         @media (max-width: 1100px) { .grid { grid-template-columns: repeat(4, 1fr); } }
         @media (max-width: 700px) { .grid { grid-template-columns: repeat(2, 1fr); } }
 
-        /* Card với hiệu ứng Entrance Anim */
         .card { 
             background: var(--glass); border: 1px solid var(--border); border-radius: 40px; 
             padding: 30px 15px; text-align: center; 
             transition: all 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
-            position: relative; overflow: hidden; opacity: 0; transform: translateY(30px);
+            position: relative; overflow: hidden; opacity: 0; transform: translateY(40px);
         }
         .card.show { opacity: 1; transform: translateY(0); }
-
-        .card:hover { 
-            transform: translateY(-15px) scale(1.02); 
-            background: white; border-color: var(--accent);
-            box-shadow: 0 25px 50px rgba(255,125,163,0.15);
-        }
-
+        .card:hover { transform: translateY(-15px) scale(1.03); background: white; border-color: var(--accent); box-shadow: 0 25px 50px rgba(255,125,163,0.18); }
         .card.today { border-color: var(--accent); background: #fff; box-shadow: 0 15px 35px rgba(255,125,163,0.2); }
         .card.today::after { content: 'TODAY'; position: absolute; top: 12px; right: -20px; background: var(--accent); color: white; font-size: 9px; font-weight: 800; padding: 3px 25px; transform: rotate(45deg); }
 
         .d-name { font-weight: 800; font-size: 14px; color: var(--accent); letter-spacing: 1px; display: block; margin-bottom: 2px; }
         .d-date { font-size: 11px; color: #9a9ab5; font-weight: 700; margin-bottom: 25px; display: block; opacity: 0.7; }
 
-        .slot { 
-            background: rgba(255,255,255,0.3); border-radius: 28px; padding: 20px 5px; 
-            margin-bottom: 12px; min-height: 90px; display: flex; flex-direction: column; 
-            justify-content: center; transition: 0.5s; border: 1px solid transparent;
-        }
-        .slot.active { 
-            background: white; border: 1px solid var(--p-pink); 
-            box-shadow: 0 8px 20px rgba(255,218,233,0.6);
-            transform: scale(1.05);
-        }
+        .slot { background: rgba(255,255,255,0.3); border-radius: 28px; padding: 20px 5px; margin-bottom: 12px; min-height: 90px; display: flex; flex-direction: column; justify-content: center; transition: 0.5s; border: 1px solid transparent; }
+        .slot.active { background: white; border: 1px solid var(--p-pink); box-shadow: 0 8px 20px rgba(255,218,233,0.6); transform: scale(1.05); }
 
-        .s-icon { font-size: 22px; margin-bottom: 8px; filter: grayscale(1); opacity: 0.1; transition: 0.5s; }
-        .slot.active .s-icon { filter: grayscale(0); opacity: 1; transform: translateY(-3px) scale(1.1); }
+        .s-icon { font-size: 22px; margin-bottom: 8px; opacity: 0.1; transition: 0.5s; filter: grayscale(1); }
+        .slot.active .s-icon { opacity: 1; transform: translateY(-3px) scale(1.1); filter: grayscale(0); }
         .s-label { font-size: 10px; font-weight: 800; color: #ccc; text-transform: uppercase; letter-spacing: 1px; }
         .slot.active .s-label { color: var(--accent); }
         .s-time { font-family: 'JetBrains Mono'; font-size: 1.2rem; font-weight: 800; color: var(--text); opacity: 0; transition: 0.5s; }
         .slot.active .s-time { opacity: 1; }
 
+        /* ADMIN PANEL */
         #admin { position: fixed; top: 0; right: -100%; width: 100%; max-width: 420px; height: 100vh; background: #fff; z-index: 1000; padding: 40px; box-shadow: -30px 0 60px rgba(0,0,0,0.1); transition: 0.6s cubic-bezier(0.77, 0, 0.175, 1); overflow-y: auto; }
         #admin.open { right: 0; }
         .admin-row { background: #fbfbff; padding: 20px; border-radius: 30px; margin-bottom: 15px; border: 1px solid #f0f0ff; transition: 0.3s; }
         .admin-row:hover { border-color: var(--p-pink); background: white; }
-        
-        input { width: 100%; padding: 12px 18px; border: 2px solid #f0f0ff; border-radius: 15px; margin-bottom: 10px; font-family: 'JetBrains Mono'; transition: 0.3s; }
-        input:focus { border-color: var(--accent); outline: none; background: white; box-shadow: 0 5px 15px rgba(255,125,163,0.1); }
-        
+        input { width: 100%; padding: 12px 18px; border: 2px solid #f0f0ff; border-radius: 15px; margin-bottom: 10px; font-family: 'JetBrains Mono'; transition: 0.3s; outline: none; }
+        input:focus { border-color: var(--accent); background: white; box-shadow: 0 5px 15px rgba(255,125,163,0.1); }
         .btn-save { width: 100%; padding: 20px; background: var(--accent); color: #fff; border: none; border-radius: 30px; font-weight: 800; cursor: pointer; transition: 0.4s; box-shadow: 0 10px 25px rgba(255,125,163,0.3); }
         .btn-save:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(255,125,163,0.4); }
-
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
@@ -155,10 +142,10 @@
     </div>
 
     <div id="admin">
-        <h2 style="color:var(--accent); margin-bottom:25px; text-align:center; font-weight:800; font-size:1.8rem;">Settings ✨</h2>
+        <h2 style="color:var(--accent); margin-bottom:25px; text-align:center; font-weight:800; font-size:1.8rem;">Weekly Config ✨</h2>
         <div id="admin-fields" style="margin-bottom:30px;"></div>
-        <button class="btn-save" onclick="save()">SAVE CHANGES</button>
-        <p style="text-align:center; margin-top:25px; color:#aaa; cursor:pointer; font-weight:700; font-size:13px;" onclick="toggleAdmin()">CLOSE PANEL</p>
+        <button class="btn-save" onclick="save()">SAVE THIS WEEK</button>
+        <p style="text-align:center; margin-top:25px; color:#aaa; cursor:pointer; font-weight:700;" onclick="toggleAdmin()">CLOSE PANEL</p>
     </div>
 
 <script>
@@ -187,12 +174,19 @@
         vi: { days: ["THỨ HAI","THỨ BA","THỨ TƯ","THỨ NĂM","THỨ SÁU","THỨ BẢY","CHỦ NHẬT"], slots: ["Sáng","Chiều","Tối"], tzText: "Múi giờ:", auto: "Tự động", manual: "Thủ công" }
     };
 
-    db.collection("settings").doc("schedule").onSnapshot(doc => {
-        if (doc.exists) {
-            daysArray = doc.data().days || [];
+    function getWeekKey() {
+        const d = DT.now().setZone(userTZ).plus({ weeks: weekOffset }).startOf('week');
+        return `${d.year}-W${d.weekNumber}`;
+    }
+
+    function listenToSchedule() {
+        const weekKey = getWeekKey();
+        if (window.unsubscribe) window.unsubscribe();
+        window.unsubscribe = db.collection("weekly_schedules").doc(weekKey).onSnapshot(doc => {
+            daysArray = doc.exists ? doc.data().days : Array(7).fill({m:"", a:"", e:""});
             render();
-        }
-    });
+        });
+    }
 
     function initClouds() {
         const container = document.getElementById('cloud-container');
@@ -210,18 +204,20 @@
 
     function setLang(lang) { 
         userLang = lang; 
-        document.getElementById('main-grid').style.opacity = 0;
-        setTimeout(() => { render(); document.getElementById('main-grid').style.opacity = 1; }, 200);
+        const grid = document.getElementById('main-grid');
+        grid.style.opacity = 0;
+        setTimeout(() => { render(); grid.style.opacity = 1; }, 200);
     }
 
     function changeWeek(n) { 
         weekOffset += n; 
-        document.getElementById('main-grid').style.transform = `translateX(${n > 0 ? '-20px' : '20px'})`;
-        document.getElementById('main-grid').style.opacity = 0;
+        const grid = document.getElementById('main-grid');
+        grid.style.opacity = 0;
+        grid.style.transform = `translateX(${n > 0 ? '-30px' : '30px'})`;
+        listenToSchedule();
         setTimeout(() => {
-            render();
-            document.getElementById('main-grid').style.transform = 'translateX(0)';
-            document.getElementById('main-grid').style.opacity = 1;
+            grid.style.opacity = 1;
+            grid.style.transform = 'translateX(0)';
         }, 300);
     }
 
@@ -240,26 +236,25 @@
         const grid = document.getElementById('main-grid');
         grid.innerHTML = "";
         const now = DT.now().setZone(userTZ);
-        const startOfThisWeek = now.startOf('week');
-        const displayWeekStart = startOfThisWeek.plus({ weeks: weekOffset });
+        const startOfWeek = now.startOf('week').plus({ weeks: weekOffset });
         
         const lang = i18n[userLang];
         document.getElementById('tz-status').innerText = `📍 ${lang.tzText} ${userTZ.replace('_', ' ')} (${isAutoTZ ? lang.auto : lang.manual})`;
-        document.getElementById('week-range').innerText = `${displayWeekStart.toFormat('dd LLL')} - ${displayWeekStart.plus({days:6}).toFormat('dd LLL')}`;
+        document.getElementById('week-range').innerText = `${startOfWeek.toFormat('dd LLL')} - ${startOfWeek.plus({days:6}).toFormat('dd LLL')}`;
 
         document.getElementById('btn-en').classList.toggle('active', userLang === 'en');
         document.getElementById('btn-vi').classList.toggle('active', userLang === 'vi');
 
         for(let i=0; i<7; i++) {
-            const date = displayWeekStart.plus({ days: i });
+            const date = startOfWeek.plus({ days: i });
             const data = daysArray[i] || {m:"", a:"", e:""};
             const isToday = now.hasSame(date, 'day');
 
             let card = document.createElement('div');
             card.className = `card ${isToday ? 'today' : ''}`;
             
-            // Hiệu ứng mọc lần lượt (Staggered)
-            setTimeout(() => card.classList.add('show'), i * 100);
+            // STAGGERED ENTRANCE EFFECT
+            setTimeout(() => card.classList.add('show'), i * 80);
 
             let h = `<span class="d-name">${lang.days[i]}</span>
                      <span class="d-date">${date.toFormat('dd/MM/yyyy')}</span>`;
@@ -290,11 +285,10 @@
             if(prompt("Admin Access Code?") !== "hottea68") return;
             const div = document.getElementById('admin-fields');
             div.innerHTML = "";
-            const lang = i18n[userLang];
             for(let i=0; i<7; i++) {
                 const d = daysArray[i] || {m:"", a:"", e:""};
                 div.innerHTML += `<div class="admin-row">
-                    <p style="font-size:13px; font-weight:800; color:var(--accent); margin-bottom:12px;">📅 ${lang.days[i]}</p>
+                    <p style="font-size:13px; font-weight:800; color:var(--accent); margin-bottom:12px;">📅 ${i18n[userLang].days[i]}</p>
                     <input class="in-m" data-idx="${i}" value="${d.m}" placeholder="Morning (HH:mm)">
                     <input class="in-a" data-idx="${i}" value="${d.a}" placeholder="Afternoon (HH:mm)">
                     <input class="in-e" data-idx="${i}" value="${d.e}" placeholder="Evening (HH:mm)">
@@ -317,23 +311,18 @@
             });
         }
         try {
-            await db.collection("settings").doc("schedule").update({ days: newDays });
+            await db.collection("weekly_schedules").doc(getWeekKey()).set({ days: newDays });
             btn.innerText = "SUCCESS! ✨";
-            setTimeout(() => {
-                btn.innerText = "SAVE CHANGES";
-                document.getElementById('admin').classList.remove('open');
+            setTimeout(() => { 
+                btn.innerText = "SAVE THIS WEEK"; 
+                document.getElementById('admin').classList.remove('open'); 
             }, 1000);
-        } catch (e) { 
-            alert("Error: " + e.message); 
-            btn.innerText = "SAVE CHANGES";
-        }
+        } catch (e) { alert("Error: " + e.message); btn.innerText = "SAVE THIS WEEK"; }
     }
 
     initClouds(); 
-    render();
-    setInterval(() => { 
-        document.getElementById('live-clock').innerText = DT.now().setZone(userTZ).toFormat('HH:mm:ss'); 
-    }, 1000);
+    listenToSchedule();
+    setInterval(() => { document.getElementById('live-clock').innerText = DT.now().setZone(userTZ).toFormat('HH:mm:ss'); }, 1000);
 </script>
 </body>
 </html>
