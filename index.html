@@ -45,7 +45,6 @@
 
         /* --- CONTAINER --- */
         .container { width: 95%; max-width: 1400px; padding: 20px 0 50px 0; z-index: 1; }
-        
         header { text-align: center; margin-bottom: 30px; }
         header h1 { 
             font-size: clamp(1.5rem, 6vw, 3.5rem); font-weight: 800; color: var(--accent); 
@@ -99,6 +98,7 @@
         .card { 
             background: var(--glass); border: 1px solid var(--border); border-radius: 30px; padding: 25px 15px; 
             text-align: center; transition: 0.4s; backdrop-filter: blur(10px);
+            min-height: 250px; display: flex; flex-direction: column;
         }
         .card.today { border-color: var(--accent); background: rgba(255,125,163,0.08); box-shadow: var(--glow); }
 
@@ -110,7 +110,7 @@
         .slot.is-live { border: 1px solid var(--live); background: rgba(0, 255, 136, 0.1); animation: livePulse 2s infinite; }
         @keyframes livePulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
 
-        .s-time { font-family: 'JetBrains Mono'; font-size: 1.1rem; font-weight: 700; color: rgba(255,255,255,0.1); }
+        .s-time { font-family: 'JetBrains Mono'; font-size: 0.9rem; font-weight: 700; color: rgba(255,255,255,0.5); }
         .slot.active .s-time { color: #fff; }
         .slot.is-live .s-time { color: var(--live); }
 
@@ -149,7 +149,7 @@
                 <div id="tz-display" style="font-family:'JetBrains Mono'; font-size:9px; color:var(--accent); opacity:0.7; text-align: center;">Syncing Satellite...</div>
             </div>
 
-            <div class="nav-center"><div id="live-clock">00:00:00</div></div>
+            <div class="nav-center"><div id="live-clock">00:00:00 AM</div></div>
             
             <div class="nav-right">
                 <div class="week-picker">
@@ -194,7 +194,8 @@
     const db = firebase.firestore();
     const DT = luxon.DateTime;
 
-    let daysArray = [], weekOffset = 0, userLang = 'vi', userTZ = DT.local().zoneName;
+    // QUAN TRỌNG: Tự động lấy múi giờ địa phương của khách
+    let daysArray = [], weekOffset = 0, userLang = 'vi', userTZ = DT.local().zoneName; 
     let stationName = "EP INTERSTELLAR", contacts = {}, socialLinks = {};
 
     const i18n = {
@@ -204,7 +205,7 @@
         ko: { days: ["월요일","화요일","수요일","목요일","금요일","토요일","일요일"], label: "시간대" },
         zh: { days: ["星期一","星期二","星期三","星期四","星期五","星期六","星期日"], label: "时区" },
         fr: { days: ["LUNDI","MARDI","MERCREDI","JEUDI","VENDREDI","SAMEDI","DIMANCHE"], label: "Fuseau" },
-        es: { days: ["LUNES","MARTES","MIÉRCOLES","JUEVES","VIERNES","SÁBADO","DOMINGO"], label: "Zona horaria" }
+        es: { days: ["LUNES","MARTES","MIÉRCOLES","JUEVES","VIERNES","SÁBADO","DOMINGO"], label: "Zona" }
     };
 
     const zones = [
@@ -256,46 +257,68 @@
 
     function render() {
         const grid = document.getElementById('main-grid'); grid.innerHTML = "";
-        const nowVN = DT.now().setZone("Asia/Ho_Chi_Minh");
-        const startVN = nowVN.plus({ weeks: weekOffset }).startOf('week');
         const lang = i18n[userLang];
         
-        document.getElementById('week-label').innerText = `${startVN.toFormat('dd/MM')} - ${startVN.plus({days:6}).toFormat('dd/MM')}`;
+        const userNow = DT.now().setZone(userTZ);
+        const userStartOfWeek = userNow.plus({ weeks: weekOffset }).startOf('week');
+
+        document.getElementById('week-label').innerText = `${userStartOfWeek.toFormat('dd/MM')} - ${userStartOfWeek.plus({days:6}).toFormat('dd/MM')}`;
         document.getElementById('tz-display').innerText = `📡 ${lang.label}: ${userTZ.replace('_', ' ')}`;
 
-        for(let i=0; i<7; i++) {
-            const dateVN = startVN.plus({ days: i });
-            const data = daysArray[i] || {m:"", a:"", e:""};
-            const isToday = nowVN.hasSame(dateVN, 'day');
-            
+        const displayDays = Array.from({ length: 7 }, (_, i) => ({
+            date: userStartOfWeek.plus({ days: i }),
+            slots: []
+        }));
+
+        daysArray.forEach((vnDayData, vnIdx) => {
+            const vnStartOfWeek = DT.now().setZone("Asia/Ho_Chi_Minh").plus({ weeks: weekOffset }).startOf('week');
+            const thisVNDate = vnStartOfWeek.plus({ days: vnIdx });
+
+            ['m', 'a', 'e'].forEach((k, iconIdx) => {
+                const raw = (vnDayData[k] || "").trim();
+                if (/^([01]\d|2[0-3]):([0-5]\d)$/.test(raw)) {
+                    const sessionVN = DT.fromFormat(raw, "HH:mm", { zone: "Asia/Ho_Chi_Minh" })
+                                        .set({ year: thisVNDate.year, month: thisVNDate.month, day: thisVNDate.day });
+                    const sessionUser = sessionVN.setZone(userTZ);
+                    const targetDay = displayDays.find(d => d.date.hasSame(sessionUser, 'day'));
+                    
+                    if (targetDay) {
+                        const isLive = userNow >= sessionUser && userNow <= sessionUser.plus({ hours: 2 });
+                        targetDay.slots.push({
+                            timeStr: sessionUser.toFormat("hh:mm a"), 
+                            isLive: isLive,
+                            icon: ['🫧', '🪐', '✨'][iconIdx],
+                            sortTime: sessionUser.toMillis()
+                        });
+                    }
+                }
+            });
+        });
+
+        displayDays.forEach((day, i) => {
             const card = document.createElement('div');
-            card.className = `card ${isToday?'today':''}`;
+            const isToday = userNow.hasSame(day.date, 'day');
+            card.className = `card ${isToday ? 'today' : ''}`;
 
             let h = `<span style="font-size:11px; color:var(--accent); font-weight:800; letter-spacing:1px;">${lang.days[i]}</span>
-                     <span style="display:block; font-size:9px; opacity:0.4; margin-bottom:15px;">${dateVN.toFormat('dd/MM')}</span>`;
+                     <span style="display:block; font-size:9px; opacity:0.4; margin-bottom:15px;">${day.date.toFormat('dd/MM')}</span>`;
             
-            ['m','a','e'].forEach((k, idx) => {
-                const raw = (data[k]||"").trim();
-                const valid = /^([01]\d|2[0-3]):([0-5]\d)$/.test(raw);
-                let displayTime = "--:--", isLive = false;
+            day.slots.sort((a, b) => a.sortTime - b.sortTime);
 
-                if(valid) {
-                    const sessionTimeVN = DT.fromFormat(raw, "HH:mm", {zone: "Asia/Ho_Chi_Minh"}).set({year:dateVN.year, month:dateVN.month, day:dateVN.day});
-                    displayTime = sessionTimeVN.setZone(userTZ).toFormat("HH:mm");
-                    
-                    const nowInUserTZ = DT.now().setZone(userTZ);
-                    const sessionInUserTZ = sessionTimeVN.setZone(userTZ);
-                    if(nowInUserTZ >= sessionInUserTZ && nowInUserTZ <= sessionInUserTZ.plus({hours: 2})) isLive = true;
-                }
-                
-                h += `<div class="slot ${valid?'active':''} ${isLive?'is-live':''}">
-                        <div style="font-size:14px; opacity: ${valid?1:0.2};">${['🫧','🪐','✨'][idx]}</div>
-                        <div class="s-time">${displayTime}</div>
-                      </div>`;
-            });
+            if(day.slots.length === 0) {
+                h += `<div style="flex:1; display:flex; align-items:center; justify-content:center; font-size:10px; opacity:0.1;">---</div>`;
+            } else {
+                day.slots.forEach(s => {
+                    h += `<div class="slot active ${s.isLive ? 'is-live' : ''}">
+                            <div style="font-size:14px;">${s.icon}</div>
+                            <div class="s-time">${s.timeStr}</div>
+                          </div>`;
+                });
+            }
+
             card.innerHTML = h;
             grid.appendChild(card);
-        }
+        });
     }
 
     function renderContacts() {
@@ -347,7 +370,10 @@
     document.getElementById('sel-tz').innerHTML = zones.map(z => `<option value="${z.v}">${z.n}</option>`).join('');
     initUniverse();
     listen();
-    setInterval(() => { document.getElementById('live-clock').innerText = DT.now().setZone(userTZ).toFormat('HH:mm:ss'); }, 1000);
+    
+    setInterval(() => { 
+        document.getElementById('live-clock').innerText = DT.now().setZone(userTZ).toFormat('hh:mm:ss a'); 
+    }, 1000);
 </script>
 </body>
 </html>
