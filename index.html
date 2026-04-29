@@ -43,6 +43,54 @@
         .star-blink { animation: starBlink var(--d) infinite alternate; }
         @keyframes starBlink { 0% { opacity: 0.1; transform: scale(0.8); } 100% { opacity: 0.9; transform: scale(1.3); } }
 
+        /* --- NOTIFICATION BELL --- */
+        .notif-bell {
+            position: fixed; top: 20px; right: 20px; z-index: 100;
+            background: var(--glass); border: 1px solid var(--border);
+            width: 45px; height: 45px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: 0.3s;
+        }
+        .notif-bell.enabled { border-color: var(--live); color: var(--live); box-shadow: 0 0 15px rgba(0, 255, 136, 0.3); }
+        .notif-bell:hover { transform: scale(1.1); background: rgba(255,255,255,0.1); }
+
+        /* --- ANNOUNCEMENT --- */
+        .announcement-bar {
+            width: 100%; max-width: 600px; margin: 10px auto;
+            background: rgba(255, 125, 163, 0.1);
+            border-radius: 50px;
+            padding: 5px 20px; overflow: hidden; white-space: nowrap;
+            position: relative; border: 1px solid var(--border);
+        }
+        .announcement-content {
+            display: inline-block; padding-left: 100%;
+            animation: marquee 20s linear infinite;
+            font-size: 11px; font-weight: 600; color: var(--accent);
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        @keyframes marquee { 0% { transform: translate(0, 0); } 100% { transform: translate(-100%, 0); } }
+
+        /* --- LIVE NOTIFICATION POPUP --- */
+        #live-toast {
+            position: fixed; bottom: 30px; right: 30px; z-index: 9999;
+            background: rgba(0, 255, 136, 0.1); backdrop-filter: blur(15px);
+            border: 1px solid var(--live); padding: 15px 25px; border-radius: 20px;
+            display: none; align-items: center; gap: 15px;
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.2);
+            animation: slideIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes slideIn { from { transform: translateX(120%); } to { transform: translateX(0); } }
+        
+        .radar-ping {
+            width: 12px; height: 12px; background: var(--live); border-radius: 50%; position: relative;
+        }
+        .radar-ping::after {
+            content: ''; position: absolute; width: 100%; height: 100%;
+            background: var(--live); border-radius: 50%;
+            animation: ping 1.5s infinite;
+        }
+        @keyframes ping { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(3); opacity: 0; } }
+
         /* --- CONTAINER --- */
         .container { width: 95%; max-width: 1400px; padding: 20px 0 50px 0; z-index: 1; }
         header { text-align: center; margin-bottom: 30px; }
@@ -110,12 +158,20 @@
         .slot.is-live { border: 1px solid var(--live); background: rgba(0, 255, 136, 0.1); animation: livePulse 2s infinite; }
         @keyframes livePulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
 
+        .live-action {
+            display: block; margin-top: 8px; text-decoration: none;
+            color: #fff; background: var(--live); font-size: 9px; font-weight: 800;
+            padding: 4px 8px; border-radius: 10px; text-transform: uppercase;
+            animation: textBlink 1s infinite alternate;
+        }
+        @keyframes textBlink { from { opacity: 1; transform: scale(1); } to { opacity: 0.7; transform: scale(0.95); } }
+
         .s-time { font-family: 'JetBrains Mono'; font-size: 0.9rem; font-weight: 700; color: rgba(255,255,255,0.5); }
         .slot.active .s-time { color: #fff; }
         .slot.is-live .s-time { color: var(--live); }
 
         /* --- ADMIN --- */
-        #admin { position: fixed; top: 0; right: -100%; width: 100%; max-width: 450px; height: 100vh; background: #050512; z-index: 1000; padding: 30px; border-left: 1px solid var(--accent); overflow-y: auto; transition: 0.5s; }
+        #admin { position: fixed; top: 0; right: -100%; width: 100%; max-width: 450px; height: 100vh; background: #050512; z-index: 1100; padding: 30px; border-left: 1px solid var(--accent); overflow-y: auto; transition: 0.5s; }
         #admin.open { right: 0; }
         .admin-sec { background: rgba(255,255,255,0.03); padding: 20px; border-radius: 20px; margin-bottom: 15px; border: 1px solid var(--border); }
         label { font-size: 10px; font-weight: 800; color: var(--accent); display: block; margin-bottom: 8px; }
@@ -126,9 +182,23 @@
 <body>
     <div class="universe" id="universe"><div class="nebula"></div></div>
     
+    <div id="notif-btn" class="notif-bell" onclick="requestNotif()">🔔</div>
+
+    <div id="live-toast">
+        <div class="radar-ping"></div>
+        <div style="flex:1">
+            <div style="font-size: 10px; color: var(--live); font-weight: 800; letter-spacing: 1px;">SIGNAL DETECTED</div>
+            <div id="live-toast-text" style="font-size: 12px; font-weight: 600; margin-top: 2px;">Station is currently LIVE!</div>
+        </div>
+        <a id="live-toast-link" href="#" target="_blank" style="background: var(--live); color: #000; padding: 8px 15px; border-radius: 10px; font-size: 10px; font-weight: 800; text-decoration: none;">CONNECT</a>
+    </div>
+
     <div class="container">
         <header>
             <h1 id="brand-name" onclick="toggleAdmin()">EP INTERSTELLAR</h1>
+            <div class="announcement-bar" id="ann-bar" style="display: none;">
+                <div class="announcement-content" id="ann-text">Welcome to the Interstellar Station. Synchronizing systems...</div>
+            </div>
             <div id="comm-hub"></div>
         </header>
 
@@ -171,7 +241,8 @@
         <div class="admin-sec">
             <label>Branding & Live</label>
             <input id="ad-brand" placeholder="Station Name">
-            <input id="ad-live-url" placeholder="Live Link">
+            <input id="ad-live-url" placeholder="YouTube Live Link">
+            <input id="ad-ann" placeholder="Announcement (Leave empty to hide)">
         </div>
         <div class="admin-sec">
             <label>Social JSON</label>
@@ -194,18 +265,18 @@
     const db = firebase.firestore();
     const DT = luxon.DateTime;
 
-    // QUAN TRỌNG: Tự động lấy múi giờ địa phương của khách
     let daysArray = [], weekOffset = 0, userLang = 'vi', userTZ = DT.local().zoneName; 
-    let stationName = "EP INTERSTELLAR", contacts = {}, socialLinks = {};
+    let stationName = "EP INTERSTELLAR", contacts = {}, socialLinks = {}, announcement = "";
+    let lastNotified = null; 
 
     const i18n = {
-        vi: { days: ["THỨ HAI","THỨ BA","THỨ TƯ","THỨ NĂM","THỨ SÁU","THỨ BẢY","CHỦ NHẬT"], label: "Múi giờ" },
-        en: { days: ["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY","SUNDAY"], label: "Timezone" },
-        ja: { days: ["月曜日","火曜日","水曜日","木曜日","金曜日","土曜日","日曜日"], label: "現地時間" },
-        ko: { days: ["월요일","화요일","수요일","목요일","금요일","토요일","일요일"], label: "시간대" },
-        zh: { days: ["星期一","星期二","星期三","星期四","星期五","星期六","星期日"], label: "时区" },
-        fr: { days: ["LUNDI","MARDI","MERCREDI","JEUDI","VENDREDI","SAMEDI","DIMANCHE"], label: "Fuseau" },
-        es: { days: ["LUNES","MARTES","MIÉRCOLES","JUEVES","VIERNES","SÁBADO","DOMINGO"], label: "Zona" }
+        vi: { days: ["THỨ HAI","THỨ BA","THỨ TƯ","THỨ NĂM","THỨ SÁU","THỨ BẢY","CHỦ NHẬT"], label: "Múi giờ", watch: "Xem Ngay 🛰️", liveAlert: "Trạm đang phát trực tiếp!" },
+        en: { days: ["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY","SUNDAY"], label: "Timezone", watch: "Watch Now 🛰️", liveAlert: "Station is currently LIVE!" },
+        ja: { days: ["月曜日","火曜日","水曜日","木曜日","金曜日","土曜日","日曜日"], label: "現地時間", watch: "ライブを見る", liveAlert: "ライブ配信中！" },
+        ko: { days: ["월요일","화요일","수曜日","목요일","금요일","토요일","일요일"], label: "시간대", watch: "실시간 시청", liveAlert: "현재 라이브 방송 중!" },
+        zh: { days: ["星期一","星期二","星期三","星期四","星期五","星期六","星期日"], label: "时区", watch: "立即观看", liveAlert: "正在直播中！" },
+        fr: { days: ["LUNDI","MARDI","MERCREDI","JEUDI","VENDREDI","SAMEDI","DIMANCHE"], label: "Fuseau", watch: "Regarder", liveAlert: "La station est en DIRECT!" },
+        es: { days: ["LUNES","MARTES","MIÉRCOLES","JUEVES","VIERNES","SÁBADO","DOMINGO"], label: "Zona", watch: "Ver Ahora", liveAlert: "¡En vivo ahora!" }
     };
 
     const zones = [
@@ -232,6 +303,25 @@
         }
     }
 
+    function requestNotif() {
+        if (!("Notification" in window)) return alert("Browser does not support notifications.");
+        Notification.requestPermission().then(permission => {
+            if (permission === "granted") {
+                document.getElementById('notif-btn').classList.add('enabled');
+            }
+        });
+    }
+
+    function checkAndPush(isAnyLive) {
+        if (isAnyLive && Notification.permission === "granted") {
+            const nowKey = DT.now().toFormat('yyyy-MM-dd-HH-mm');
+            if (lastNotified !== nowKey) {
+                new Notification("🔴 LIVE STREAM STARTING!", { body: "Join the interstellar station now." });
+                lastNotified = nowKey;
+            }
+        }
+    }
+
     function getWeekKey() {
         const d = DT.now().setZone("Asia/Ho_Chi_Minh").plus({ weeks: weekOffset }).startOf('week');
         return `${d.year}-W${d.weekNumber}`;
@@ -244,7 +334,13 @@
                 stationName = data.name || "EP INTERSTELLAR";
                 contacts = data.contacts || {};
                 socialLinks = data.socialLinks || {};
+                announcement = data.announcement || "";
                 document.getElementById('brand-name').innerText = stationName;
+                const annBar = document.getElementById('ann-bar');
+                if(announcement) {
+                    annBar.style.display = "block";
+                    document.getElementById('ann-text').innerText = announcement;
+                } else { annBar.style.display = "none"; }
                 renderContacts();
             }
         });
@@ -258,89 +354,74 @@
     function render() {
         const grid = document.getElementById('main-grid'); grid.innerHTML = "";
         const lang = i18n[userLang];
-        
         const userNow = DT.now().setZone(userTZ);
         const userStartOfWeek = userNow.plus({ weeks: weekOffset }).startOf('week');
-
         document.getElementById('week-label').innerText = `${userStartOfWeek.toFormat('dd/MM')} - ${userStartOfWeek.plus({days:6}).toFormat('dd/MM')}`;
-        document.getElementById('tz-display').innerText = `📡 ${lang.label}: ${userTZ.replace('_', ' ')}`;
+        const isAuto = document.getElementById('sel-tz').value === 'auto';
+        document.getElementById('tz-display').innerText = isAuto ? `🛰️ AUTO: ${userTZ}` : `📡 ${lang.label}: ${userTZ}`;
 
-        const displayDays = Array.from({ length: 7 }, (_, i) => ({
-            date: userStartOfWeek.plus({ days: i }),
-            slots: []
-        }));
+        let anyLive = false;
+        const displayDays = Array.from({ length: 7 }, (_, i) => ({ date: userStartOfWeek.plus({ days: i }), slots: [] }));
 
         daysArray.forEach((vnDayData, vnIdx) => {
             const vnStartOfWeek = DT.now().setZone("Asia/Ho_Chi_Minh").plus({ weeks: weekOffset }).startOf('week');
             const thisVNDate = vnStartOfWeek.plus({ days: vnIdx });
-
-            ['m', 'a', 'e'].forEach((k, iconIdx) => {
+            ['m', 'a', 'e'].forEach((k, idx) => {
                 const raw = (vnDayData[k] || "").trim();
                 if (/^([01]\d|2[0-3]):([0-5]\d)$/.test(raw)) {
-                    const sessionVN = DT.fromFormat(raw, "HH:mm", { zone: "Asia/Ho_Chi_Minh" })
-                                        .set({ year: thisVNDate.year, month: thisVNDate.month, day: thisVNDate.day });
-                    const sessionUser = sessionVN.setZone(userTZ);
+                    const sessionUser = DT.fromFormat(raw, "HH:mm", { zone: "Asia/Ho_Chi_Minh" }).set({ year: thisVNDate.year, month: thisVNDate.month, day: thisVNDate.day }).setZone(userTZ);
                     const targetDay = displayDays.find(d => d.date.hasSame(sessionUser, 'day'));
-                    
                     if (targetDay) {
                         const isLive = userNow >= sessionUser && userNow <= sessionUser.plus({ hours: 2 });
-                        targetDay.slots.push({
-                            timeStr: sessionUser.toFormat("hh:mm a"), 
-                            isLive: isLive,
-                            icon: ['🫧', '🪐', '✨'][iconIdx],
-                            sortTime: sessionUser.toMillis()
-                        });
+                        if(isLive) anyLive = true;
+                        targetDay.slots.push({ timeStr: sessionUser.toFormat("hh:mm a"), isLive, icon: ['🫧','🪐','✨'][idx], sortTime: sessionUser.toMillis() });
                     }
                 }
             });
         });
 
+        checkAndPush(anyLive);
+        const toast = document.getElementById('live-toast');
+        if(anyLive && contacts.live) {
+            toast.style.display = "flex";
+            document.getElementById('live-toast-link').href = contacts.live;
+        } else { toast.style.display = "none"; }
+
         displayDays.forEach((day, i) => {
             const card = document.createElement('div');
             const isToday = userNow.hasSame(day.date, 'day');
             card.className = `card ${isToday ? 'today' : ''}`;
-
-            let h = `<span style="font-size:11px; color:var(--accent); font-weight:800; letter-spacing:1px;">${lang.days[i]}</span>
-                     <span style="display:block; font-size:9px; opacity:0.4; margin-bottom:15px;">${day.date.toFormat('dd/MM')}</span>`;
-            
-            day.slots.sort((a, b) => a.sortTime - b.sortTime);
-
-            if(day.slots.length === 0) {
-                h += `<div style="flex:1; display:flex; align-items:center; justify-content:center; font-size:10px; opacity:0.1;">---</div>`;
-            } else {
+            let h = `<span style="font-size:11px; color:var(--accent); font-weight:800;">${lang.days[i]}</span><span style="display:block; font-size:9px; opacity:0.4; margin-bottom:15px;">${day.date.toFormat('dd/MM')}</span>`;
+            day.slots.sort((a,b)=>a.sortTime-b.sortTime);
+            if(day.slots.length === 0) h += `<div style="flex:1; opacity:0.1; font-size:10px;">---</div>`;
+            else {
                 day.slots.forEach(s => {
-                    h += `<div class="slot active ${s.isLive ? 'is-live' : ''}">
-                            <div style="font-size:14px;">${s.icon}</div>
-                            <div class="s-time">${s.timeStr}</div>
-                          </div>`;
+                    h += `<div class="slot active ${s.isLive ? 'is-live' : ''}"><div style="font-size:14px;">${s.icon}</div><div class="s-time">${s.timeStr}</div>${s.isLive?`<a href="${contacts.live}" target="_blank" class="live-action">${lang.watch}</a>`:''}</div>`;
                 });
             }
-
-            card.innerHTML = h;
-            grid.appendChild(card);
+            card.innerHTML = h; grid.appendChild(card);
         });
     }
 
     function renderContacts() {
         const hub = document.getElementById('comm-hub'); hub.innerHTML = "";
         if(contacts.live) hub.innerHTML += `<a href="${contacts.live}" target="_blank" class="comm-link" style="border-color:var(--live); color:var(--live)">● LIVE</a>`;
-        Object.entries(socialLinks).forEach(([name, url]) => {
-            hub.innerHTML += `<a href="${url}" target="_blank" class="comm-link">${name.toUpperCase()}</a>`;
-        });
+        Object.entries(socialLinks).forEach(([name, url]) => { hub.innerHTML += `<a href="${url}" target="_blank" class="comm-link">${name.toUpperCase()}</a>`; });
     }
 
     function toggleAdmin() {
         const ad = document.getElementById('admin');
         if(!ad.classList.contains('open')) {
-            if(prompt("Code:") !== "hottea68") return;
+            let pass = prompt("Code:");
+            if(pass !== "hottea68") return;
             document.getElementById('ad-brand').value = stationName;
             document.getElementById('ad-live-url').value = contacts.live || "";
+            document.getElementById('ad-ann').value = announcement;
             document.getElementById('ad-contacts').value = JSON.stringify(socialLinks);
             const fields = document.getElementById('ad-fields'); fields.innerHTML = "";
             ["MON","TUE","WED","THU","FRI","SAT","SUN"].forEach((day, i) => {
                 const d = daysArray[i] || {m:"", a:"", e:""};
-                fields.innerHTML += `<div class="admin-sec"><label>${day}</label><div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:5px;">
-                    <input id="m-${i}" value="${d.m}" placeholder="08:00"><input id="a-${i}" value="${d.a}" placeholder="14:00"><input id="e-${i}" value="${d.e}" placeholder="20:00"></div></div>`;
+                fields.innerHTML += `<div class="admin-sec"><label>${day}</label><div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:5px;"><input id="m-${i}" value="${d.m}"><input id="a-${i}" value="${d.a}"><input id="e-${i}" value="${d.e}"></div></div>`;
             });
             ad.classList.add('open');
         } else ad.classList.remove('open');
@@ -349,18 +430,12 @@
     async function save() {
         try {
             const socialData = JSON.parse(document.getElementById('ad-contacts').value || "{}");
-            await db.collection("settings").doc("branding").set({ 
-                name: document.getElementById('ad-brand').value, 
-                contacts: { live: document.getElementById('ad-live-url').value },
-                socialLinks: socialData 
-            });
+            await db.collection("settings").doc("branding").set({ name: document.getElementById('ad-brand').value, contacts: { live: document.getElementById('ad-live-url').value }, announcement: document.getElementById('ad-ann').value, socialLinks: socialData });
             const newDays = [];
-            for(let i=0; i<7; i++) {
-                newDays.push({ m: document.getElementById(`m-${i}`).value, a: document.getElementById(`a-${i}`).value, e: document.getElementById(`e-${i}`).value });
-            }
+            for(let i=0; i<7; i++) newDays.push({ m: document.getElementById(`m-${i}`).value, a: document.getElementById(`a-${i}`).value, e: document.getElementById(`e-${i}`).value });
             await db.collection("weekly_schedules").doc(getWeekKey()).set({ days: newDays });
             alert("Updated!"); toggleAdmin();
-        } catch(e) { alert("Format Error!"); }
+        } catch(e) { alert("Error!"); }
     }
 
     function updateTZ(v) { userTZ = (v === 'auto') ? DT.local().zoneName : v; render(); }
@@ -373,6 +448,7 @@
     
     setInterval(() => { 
         document.getElementById('live-clock').innerText = DT.now().setZone(userTZ).toFormat('hh:mm:ss a'); 
+        if(DT.now().second === 0) render(); 
     }, 1000);
 </script>
 </body>
