@@ -34,14 +34,25 @@
         .universe { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background: radial-gradient(circle at center, #0a0a20 0%, #02020a 100%); }
         .nebula { 
             position: absolute; width: 150%; height: 150%; top: -25%; left: -25%;
-            background: radial-gradient(circle at 30% 50%, rgba(255,125,163,0.07) 0%, transparent 40%),
+            background: radial-gradient(circle at 30% 50%, rgba(var(--accent-rgb, 255,125,163), 0.07) 0%, transparent 40%),
                         radial-gradient(circle at 70% 20%, rgba(100,150,255,0.07) 0%, transparent 35%);
-            filter: blur(60px); animation: nebulaRotate 120s infinite linear;
+            filter: blur(60px); 
         }
+        .anim-rotate { animation: nebulaRotate 120s infinite linear; }
         @keyframes nebulaRotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        
         .star { position: absolute; background: white; border-radius: 50%; opacity: 0.5; }
         .star-blink { animation: starBlink var(--d) infinite alternate; }
         @keyframes starBlink { 0% { opacity: 0.1; transform: scale(0.8); } 100% { opacity: 0.9; transform: scale(1.3); } }
+        
+        /* Hiệu ứng ma trận mưa sao rơi */
+        .star-rain { animation: starRain var(--d) infinite linear; }
+        @keyframes starRain { 
+            0% { transform: translateY(-10px) translateX(0); opacity: 0; }
+            10% { opacity: 0.8; }
+            90% { opacity: 0.8; }
+            100% { transform: translateY(105vh) translateX(-50px); opacity: 0; }
+        }
 
         /* --- NOTIFICATION BELL --- */
         .notif-bell {
@@ -57,7 +68,7 @@
         /* --- ANNOUNCEMENT --- */
         .announcement-bar {
             width: 100%; max-width: 600px; margin: 10px auto;
-            background: rgba(255, 125, 163, 0.1);
+            background: rgba(var(--accent-rgb, 255, 125, 163), 0.1);
             border-radius: 50px;
             padding: 5px 20px; overflow: hidden; white-space: nowrap;
             position: relative; border: 1px solid var(--border);
@@ -81,9 +92,7 @@
         }
         @keyframes slideIn { from { transform: translateX(120%); } to { transform: translateX(0); } }
         
-        .radar-ping {
-            width: 12px; height: 12px; background: var(--live); border-radius: 50%; position: relative;
-        }
+        .radar-ping { width: 12px; height: 12px; background: var(--live); border-radius: 50%; position: relative; }
         .radar-ping::after {
             content: ''; position: absolute; width: 100%; height: 100%;
             background: var(--live); border-radius: 50%;
@@ -105,7 +114,7 @@
             padding: 8px 16px; border-radius: 50px; border: 1px solid var(--border); 
             background: rgba(255,255,255,0.03); transition: 0.3s;
         }
-        .comm-link:hover { border-color: var(--accent); background: rgba(255,125,163,0.1); }
+        .comm-link:hover { border-color: var(--accent); background: rgba(var(--accent-rgb, 255,125,163),0.1); }
 
         /* --- NAV BAR --- */
         .nav-bar { 
@@ -148,7 +157,7 @@
             text-align: center; transition: 0.4s; backdrop-filter: blur(10px);
             min-height: 250px; display: flex; flex-direction: column;
         }
-        .card.today { border-color: var(--accent); background: rgba(255,125,163,0.08); box-shadow: var(--glow); }
+        .card.today { border-color: var(--accent); background: rgba(var(--accent-rgb, 255,125,163), 0.08); box-shadow: var(--glow); }
 
         .slot { 
             background: rgba(255,255,255,0.03); border-radius: 20px; padding: 15px 5px; 
@@ -160,27 +169,30 @@
 
         .live-action {
             display: block; margin-top: 8px; text-decoration: none;
-            color: #fff; background: var(--live); font-size: 9px; font-weight: 800;
+            color: #000; background: var(--live); font-size: 9px; font-weight: 800;
             padding: 4px 8px; border-radius: 10px; text-transform: uppercase;
             animation: textBlink 1s infinite alternate;
         }
         @keyframes textBlink { from { opacity: 1; transform: scale(1); } to { opacity: 0.7; transform: scale(0.95); } }
 
         .s-time { font-family: 'JetBrains Mono'; font-size: 0.9rem; font-weight: 700; color: rgba(255,255,255,0.5); }
+        .s-duration { font-size: 9px; color: rgba(255,255,255,0.3); margin-top: 2px; font-family: 'JetBrains Mono'; }
         .slot.active .s-time { color: #fff; }
         .slot.is-live .s-time { color: var(--live); }
 
         /* --- ADMIN --- */
-        #admin { position: fixed; top: 0; right: -100%; width: 100%; max-width: 450px; height: 100vh; background: #050512; z-index: 1100; padding: 30px; border-left: 1px solid var(--accent); overflow-y: auto; transition: 0.5s; }
+        #admin { position: fixed; top: 0; right: -100%; width: 100%; max-width: 480px; height: 100vh; background: #050512; z-index: 1100; padding: 30px; border-left: 1px solid var(--accent); overflow-y: auto; transition: 0.5s; }
         #admin.open { right: 0; }
         .admin-sec { background: rgba(255,255,255,0.03); padding: 20px; border-radius: 20px; margin-bottom: 15px; border: 1px solid var(--border); }
-        label { font-size: 10px; font-weight: 800; color: var(--accent); display: block; margin-bottom: 8px; }
-        input { width: 100%; background: #000; border: 1px solid #222; color: #fff; padding: 10px; border-radius: 10px; margin-bottom: 10px; outline: none; font-size: 12px; }
+        label { font-size: 10px; font-weight: 800; color: var(--accent); display: block; margin-bottom: 8px; text-transform: uppercase; }
+        input, select.ad-select { width: 100%; background: #000; border: 1px solid #222; color: #fff; padding: 10px; border-radius: 10px; margin-bottom: 10px; outline: none; font-size: 12px; }
         .btn-main { width: 100%; padding: 15px; background: var(--accent); color: white; border: none; border-radius: 15px; font-weight: 800; cursor: pointer; }
+        .admin-grid-row { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 5px; margin-bottom: 10px; }
+        .admin-grid-header { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 5px; font-size: 9px; color: #666; margin-bottom: 3px; font-weight: bold;}
     </style>
 </head>
 <body>
-    <div class="universe" id="universe"><div class="nebula"></div></div>
+    <div class="universe" id="universe"><div class="nebula" id="nebula-layer"></div></div>
     
     <div id="notif-btn" class="notif-bell" onclick="requestNotif()">🔔</div>
 
@@ -239,6 +251,23 @@
             <span onclick="toggleAdmin()" style="cursor:pointer; font-size:24px;">✕</span>
         </div>
         <div class="admin-sec">
+            <label>Custom Theme & Style</label>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <span style="font-size:10px; color:#aaa;">Accent Color (Hex):</span>
+                    <input id="ad-color" placeholder="#ff7da3">
+                </div>
+                <div>
+                    <span style="font-size:10px; color:#aaa;">Background Animation:</span>
+                    <select id="ad-anim" class="ad-select" style="margin-top:4px;">
+                        <option value="rotate">Space Rotation (Xoay)</option>
+                        <option value="rain">Star Rain (Sao rơi)</option>
+                        <option value="static">Static (Tĩnh - Mượt)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="admin-sec">
             <label>Branding & Live</label>
             <input id="ad-brand" placeholder="Station Name">
             <input id="ad-live-url" placeholder="YouTube Live Link">
@@ -248,6 +277,7 @@
             <label>Social JSON</label>
             <input id="ad-contacts" placeholder='{"Instagram": "url"}'>
         </div>
+        
         <div id="ad-fields"></div>
         <button class="btn-main" onclick="save()">SAVE TO CLOUD</button>
     </div>
@@ -267,6 +297,7 @@
 
     let daysArray = [], weekOffset = 0, userLang = 'vi', userTZ = DT.local().zoneName; 
     let stationName = "EP INTERSTELLAR", contacts = {}, socialLinks = {}, announcement = "";
+    let themeColor = "#ff7da3", bgAnimation = "rotate";
     let lastNotified = null; 
 
     const i18n = {
@@ -290,15 +321,50 @@
         { n: "🇫🇷 PARIS", v: "Europe/Paris" }
     ];
 
+    // Chuyển mã hex thành RGB để chạy hiệu ứng mờ nhòe (Nebula)
+    function hexToRgb(hex) {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || "#ff7da3");
+        return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : "255, 125, 163";
+    }
+
+    function applyTheme(color, anim) {
+        themeColor = color || "#ff7da3";
+        bgAnimation = anim || "rotate";
+        
+        document.documentElement.style.setProperty('--accent', themeColor);
+        document.documentElement.style.setProperty('--glow', `0 0 25px ${themeColor}66`);
+        document.documentElement.style.setProperty('--accent-rgb', hexToRgb(themeColor));
+
+        const nebula = document.getElementById('nebula-layer');
+        if (nebula) {
+            nebula.className = "nebula";
+            if (bgAnimation === "rotate") nebula.classList.add('anim-rotate');
+        }
+        initUniverse();
+    }
+
     function initUniverse() {
         const uv = document.getElementById('universe');
+        // Xóa các ngôi sao cũ nếu có để re-render
+        const oldStars = uv.querySelectorAll('.star');
+        oldStars.forEach(s => s.remove());
+
         for(let i=0; i<100; i++) {
             const s = document.createElement('div');
-            s.className = 'star star-blink';
-            const size = Math.random()*2;
-            s.style.width = size+'px'; s.style.height = size+'px';
-            s.style.top = Math.random()*100+'vh'; s.style.left = Math.random()*100+'vw';
-            s.style.setProperty('--d', (Math.random()*5+2)+'s');
+            s.className = 'star';
+            if (bgAnimation === "rain") {
+                s.classList.add('star-rain');
+                s.style.setProperty('--d', (Math.random() * 4 + 2) + 's');
+                s.style.left = Math.random() * 100 + 'vw';
+                s.style.top = '-10px';
+            } else {
+                s.classList.add('star-blink');
+                s.style.setProperty('--d', (Math.random() * 5 + 2) + 's');
+                s.style.left = Math.random() * 100 + 'vw';
+                s.style.top = Math.random() * 100 + 'vh';
+            }
+            const size = Math.random() * 2;
+            s.style.width = size + 'px'; s.style.height = size + 'px';
             uv.appendChild(s);
         }
     }
@@ -335,18 +401,31 @@
                 contacts = data.contacts || {};
                 socialLinks = data.socialLinks || {};
                 announcement = data.announcement || "";
+                
                 document.getElementById('brand-name').innerText = stationName;
+                document.getElementById('tab-title').innerText = stationName + " | LIVE SCHEDULE";
+                
                 const annBar = document.getElementById('ann-bar');
                 if(announcement) {
                     annBar.style.display = "block";
                     document.getElementById('ann-text').innerText = announcement;
                 } else { annBar.style.display = "none"; }
+                
+                applyTheme(data.themeColor, data.bgAnimation);
                 renderContacts();
+            } else {
+                applyTheme("#ff7da3", "rotate");
             }
         });
+        
         if (window.unsub) window.unsub();
         window.unsub = db.collection("weekly_schedules").doc(getWeekKey()).onSnapshot(doc => {
-            daysArray = doc.exists ? doc.data().days : Array(7).fill({m:"", a:"", e:""});
+            // Khởi tạo mảng cấu trúc dữ liệu mới: có thêm trường `.h` (thời lượng) và `.i` (icon tùy chỉnh)
+            daysArray = doc.exists ? doc.data().days : Array(7).fill({
+                m:"", m_h:"2", m_i:"🫧",
+                a:"", a_h:"2", a_i:"🪐",
+                e:"", e_h:"2", e_i:"✨"
+            });
             render();
         });
     }
@@ -366,15 +445,29 @@
         daysArray.forEach((vnDayData, vnIdx) => {
             const vnStartOfWeek = DT.now().setZone("Asia/Ho_Chi_Minh").plus({ weeks: weekOffset }).startOf('week');
             const thisVNDate = vnStartOfWeek.plus({ days: vnIdx });
-            ['m', 'a', 'e'].forEach((k, idx) => {
+            
+            ['m', 'a', 'e'].forEach((k) => {
                 const raw = (vnDayData[k] || "").trim();
                 if (/^([01]\d|2[0-3]):([0-5]\d)$/.test(raw)) {
                     const sessionUser = DT.fromFormat(raw, "HH:mm", { zone: "Asia/Ho_Chi_Minh" }).set({ year: thisVNDate.year, month: thisVNDate.month, day: thisVNDate.day }).setZone(userTZ);
                     const targetDay = displayDays.find(d => d.date.hasSame(sessionUser, 'day'));
+                    
                     if (targetDay) {
-                        const isLive = userNow >= sessionUser && userNow <= sessionUser.plus({ hours: 2 });
+                        // Lấy thời lượng live (giờ) tự chọn từ dữ liệu của Admin, mặc định là 2 nếu trống
+                        const liveHours = parseFloat(vnDayData[`${k}_h`] || "2");
+                        const customIcon = vnDayData[`${k}_i`] || (k === 'm' ? '🫧' : k === 'a' ? '🪐' : '✨');
+                        
+                        // Tính toán thời gian live thực tế dựa trên cấu hình mới
+                        const isLive = userNow >= sessionUser && userNow <= sessionUser.plus({ hours: liveHours });
                         if(isLive) anyLive = true;
-                        targetDay.slots.push({ timeStr: sessionUser.toFormat("hh:mm a"), isLive, icon: ['🫧','🪐','✨'][idx], sortTime: sessionUser.toMillis() });
+                        
+                        targetDay.slots.push({ 
+                            timeStr: sessionUser.toFormat("hh:mm a"), 
+                            duration: liveHours,
+                            isLive, 
+                            icon: customIcon, 
+                            sortTime: sessionUser.toMillis() 
+                        });
                     }
                 }
             });
@@ -393,10 +486,16 @@
             card.className = `card ${isToday ? 'today' : ''}`;
             let h = `<span style="font-size:11px; color:var(--accent); font-weight:800;">${lang.days[i]}</span><span style="display:block; font-size:9px; opacity:0.4; margin-bottom:15px;">${day.date.toFormat('dd/MM')}</span>`;
             day.slots.sort((a,b)=>a.sortTime-b.sortTime);
+            
             if(day.slots.length === 0) h += `<div style="flex:1; opacity:0.1; font-size:10px;">---</div>`;
             else {
                 day.slots.forEach(s => {
-                    h += `<div class="slot active ${s.isLive ? 'is-live' : ''}"><div style="font-size:14px;">${s.icon}</div><div class="s-time">${s.timeStr}</div>${s.isLive?`<a href="${contacts.live}" target="_blank" class="live-action">${lang.watch}</a>`:''}</div>`;
+                    h += `<div class="slot active ${s.isLive ? 'is-live' : ''}">
+                            <div style="font-size:14px;">${s.icon}</div>
+                            <div class="s-time">${s.timeStr}</div>
+                            <div class="s-duration">⏱️ ${s.duration}h</div>
+                            ${s.isLive ? `<a href="${contacts.live}" target="_blank" class="live-action">${lang.watch}</a>` : ''}
+                          </div>`;
                 });
             }
             card.innerHTML = h; grid.appendChild(card);
@@ -414,14 +513,42 @@
         if(!ad.classList.contains('open')) {
             let pass = prompt("Code:");
             if(pass !== "hottea68") return;
+            
+            document.getElementById('ad-color').value = themeColor;
+            document.getElementById('ad-anim').value = bgAnimation;
             document.getElementById('ad-brand').value = stationName;
             document.getElementById('ad-live-url').value = contacts.live || "";
             document.getElementById('ad-ann').value = announcement;
             document.getElementById('ad-contacts').value = JSON.stringify(socialLinks);
+            
             const fields = document.getElementById('ad-fields'); fields.innerHTML = "";
             ["MON","TUE","WED","THU","FRI","SAT","SUN"].forEach((day, i) => {
-                const d = daysArray[i] || {m:"", a:"", e:""};
-                fields.innerHTML += `<div class="admin-sec"><label>${day}</label><div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:5px;"><input id="m-${i}" value="${d.m}"><input id="a-${i}" value="${d.a}"><input id="e-${i}" value="${d.e}"></div></div>`;
+                const d = daysArray[i] || {};
+                // Đồng bộ dự phòng dữ liệu cũ lên form điều khiển mới
+                const valM = d.m || ""; const valM_h = d.m_h || "2"; const valM_i = d.m_i || "🫧";
+                const valA = d.a || ""; const valA_h = d.a_h || "2"; const valA_i = d.a_i || "🪐";
+                const valE = d.e || ""; const valE_h = d.e_h || "2"; const valE_i = d.e_i || "✨";
+
+                fields.innerHTML += `
+                    <div class="admin-sec">
+                        <label>${day}</label>
+                        <div class="admin-grid-header"><span>Giờ (HH:MM)</span><span>Số Giờ Live</span><span>Icon</span></div>
+                        <div class="admin-grid-row">
+                            <input id="m-${i}" value="${valM}" placeholder="Sáng">
+                            <input id="m-h-${i}" value="${valM_h}" placeholder="Giờ">
+                            <input id="m-i-${i}" value="${valM_i}" placeholder="Icon">
+                        </div>
+                        <div class="admin-grid-row">
+                            <input id="a-${i}" value="${valA}" placeholder="Chiều">
+                            <input id="a-h-${i}" value="${valA_h}" placeholder="Giờ">
+                            <input id="a-i-${i}" value="${valA_i}" placeholder="Icon">
+                        </div>
+                        <div class="admin-grid-row">
+                            <input id="e-${i}" value="${valE}" placeholder="Tối">
+                            <input id="e-h-${i}" value="${valE_h}" placeholder="Giờ">
+                            <input id="e-i-${i}" value="${valE_i}" placeholder="Icon">
+                        </div>
+                    </div>`;
             });
             ad.classList.add('open');
         } else ad.classList.remove('open');
@@ -430,20 +557,50 @@
     async function save() {
         try {
             const socialData = JSON.parse(document.getElementById('ad-contacts').value || "{}");
-            await db.collection("settings").doc("branding").set({ name: document.getElementById('ad-brand').value, contacts: { live: document.getElementById('ad-live-url').value }, announcement: document.getElementById('ad-ann').value, socialLinks: socialData });
+            const chosenColor = document.getElementById('ad-color').value || "#ff7da3";
+            const chosenAnim = document.getElementById('ad-anim').value || "rotate";
+            
+            // 1. Lưu cài đặt giao diện & nhận diện trạm
+            await db.collection("settings").doc("branding").set({ 
+                name: document.getElementById('ad-brand').value, 
+                contacts: { live: document.getElementById('ad-live-url').value }, 
+                announcement: document.getElementById('ad-ann').value, 
+                socialLinks: socialData,
+                themeColor: chosenColor,
+                bgAnimation: chosenAnim
+            });
+            
+            // 2. Thu thập và lưu lịch trình kèm thời lượng + icon mới
             const newDays = [];
-            for(let i=0; i<7; i++) newDays.push({ m: document.getElementById(`m-${i}`).value, a: document.getElementById(`a-${i}`).value, e: document.getElementById(`e-${i}`).value });
+            for(let i=0; i<7; i++) {
+                newDays.push({ 
+                    m: document.getElementById(`m-${i}`).value, 
+                    m_h: document.getElementById(`m-h-${i}`).value || "2",
+                    m_i: document.getElementById(`m-i-${i}`).value || "🫧",
+                    
+                    a: document.getElementById(`a-${i}`).value, 
+                    a_h: document.getElementById(`a-h-${i}`).value || "2",
+                    a_i: document.getElementById(`a-i-${i}`).value || "🪐",
+                    
+                    e: document.getElementById(`e-${i}`).value,
+                    e_h: document.getElementById(`e-h-${i}`).value || "2",
+                    e_i: document.getElementById(`e-i-${i}`).value || "✨"
+                });
+            }
             await db.collection("weekly_schedules").doc(getWeekKey()).set({ days: newDays });
-            alert("Updated!"); toggleAdmin();
-        } catch(e) { alert("Error!"); }
+            
+            alert("Updated successfully!"); toggleAdmin();
+        } catch(e) { alert("Error saving data!"); }
     }
 
     function updateTZ(v) { userTZ = (v === 'auto') ? DT.local().zoneName : v; render(); }
     function setLang(l) { userLang = l; render(); }
     function changeWeek(n) { weekOffset += n; listen(); }
 
-    document.getElementById('sel-tz').innerHTML = zones.map(z => `<option value="${z.v}">${z.n}</option>`).join('');
-    initUniverse();
+    document.getElementById('sel-tz').innerHTML = zones.map(z => `<option value="${z.v}">${z.v === userTZ ? 'selected' : ''}">${z.n}</option>`).join('');
+    // Đặt mặc định auto trong menu
+    document.getElementById('sel-tz').value = 'auto';
+
     listen();
     
     setInterval(() => { 
