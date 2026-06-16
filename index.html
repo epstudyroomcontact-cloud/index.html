@@ -356,7 +356,6 @@
         { n: "🇫🇷 PARIS", v: "Europe/Paris" }
     ];
 
-    // CẬP NHẬT HÀM XỬ LÝ ĐĂNG KÝ CHALLENGE (ĐÃ SỬA CHUẨN ĐỒNG BỘ ĐỂ GỬI QUA EMAILJS)
     async function handleChallengeSignUp(event) {
         event.preventDefault();
         const name = document.getElementById('user-name').value;
@@ -367,14 +366,12 @@
             submitBtn.innerText = "TRANSMITTING... 🛰️";
             submitBtn.disabled = true;
 
-            // 1. Ghi dữ liệu vào Firestore Database
             await db.collection("challenge_participants").add({
                 codename: name,
                 email: email,
                 signup_at: firebase.firestore.FieldValue.serverTimestamp()
             });
 
-            // 2. Kích hoạt EmailJS gửi thông báo tự động (Đã đổi thuộc tính từ 'name' thành 'codename' khớp hoàn toàn giao diện EmailJS của bạn)
             await emailjs.send("service_djho59o", "template_lhv0y0n", {
                 codename: name, 
                 email: email,
@@ -392,7 +389,6 @@
         }
     }
 
-    // Chuyển mã hex thành RGB để chạy hiệu ứng mờ nhòe (Nebula)
     function hexToRgb(hex) {
         const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || "#ff7da3");
         return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : "255, 125, 163";
@@ -620,49 +616,74 @@
         } else { ad.classList.remove('open'); }
     }
 
-    async function save() {
+    function save() {
         const newDays = [];
         for(let i=0; i<7; i++) {
             newDays.push({
-                m: document.getElementById(`m-${i}`).value, m_h: document.getElementById(`m_h-${i}`).value, m_i: document.getElementById(`m_i-${i}`).value,
-                a: document.getElementById(`a-${i}`).value, a_h: document.getElementById(`a_h-${i}`).value, a_i: document.getElementById(`a_i-${i}`).value,
-                e: document.getElementById(`e-${i}`).value, e_h: document.getElementById(`e_h-${i}`).value, e_i: document.getElementById(`e_i-${i}`).value
+                m: document.getElementById(`m-${i}`).value,
+                m_h: document.getElementById(`m_h-${i}`).value,
+                m_i: document.getElementById(`m_i-${i}`).value,
+                a: document.getElementById(`a-${i}`).value,
+                a_h: document.getElementById(`a_h-${i}`).value,
+                a_i: document.getElementById(`a_i-${i}`).value,
+                e: document.getElementById(`e-${i}`).value,
+                e_h: document.getElementById(`e_h-${i}`).value,
+                e_i: document.getElementById(`e_i-${i}`).value
             });
         }
         
-        try {
-            let sLinks = {};
-            try { sLinks = JSON.parse(document.getElementById('ad-contacts').value || "{}"); } catch(e) { alert("Social JSON error!"); return; }
+        let parsedContacts = {};
+        try { parsedContacts = JSON.parse(document.getElementById('ad-contacts').value || "{}"); } catch(e) { alert("JSON Social sai định dạng!"); return; }
 
-            await db.collection("settings").doc("branding").set({
+        const liveUrl = document.getElementById('ad-live-url').value.trim();
+
+        Promise.all([
+            db.collection("weekly_schedules").doc(getWeekKey()).set({ days: newDays }),
+            db.collection("settings").doc("branding").set({
                 name: document.getElementById('ad-brand').value,
                 themeColor: document.getElementById('ad-color').value,
                 bgAnimation: document.getElementById('ad-anim').value,
                 announcement: document.getElementById('ad-ann').value,
-                contacts: { live: document.getElementById('ad-live-url').value },
-                socialLinks: sLinks
-            });
-
-            await db.collection("weekly_schedules").doc(getWeekKey()).set({ days: newDays });
-            alert("Saved to Space Cloud!"); toggleAdmin();
-        } catch(e) { alert("Save Error: " + e); }
+                contacts: { live: liveUrl },
+                socialLinks: parsedContacts
+            })
+        ]).then(() => {
+            alert("Đã đồng bộ lên Vệ tinh thành công!");
+            toggleAdmin();
+        }).catch(e => {
+            console.error(e);
+            alert("Lỗi kết nối Trạm!");
+        });
     }
 
     function changeWeek(offset) { weekOffset += offset; listen(); }
+    
     function setLang(l) { userLang = l; render(); }
-    function updateTZ(z) { userTZ = z === 'auto' ? DT.local().zoneName : z; render(); }
+    
+    function updateTZ(z) {
+        userTZ = (z === 'auto') ? DT.local().zoneName : z;
+        render();
+    }
 
-    // Khởi tạo các múi giờ cho thẻ Select
-    const tzSel = document.getElementById('sel-tz');
-    zones.forEach(z => { const o = document.createElement('option'); o.value = z.v; o.textContent = z.n; tzSel.appendChild(o); });
+    function initTimezones() {
+        const sel = document.getElementById('sel-tz');
+        zones.forEach(z => {
+            const op = document.createElement('option');
+            op.value = z.v; op.innerText = z.n;
+            sel.appendChild(op);
+        });
+    }
 
-    // Đồng hồ chạy thời gian thực
-    setInterval(() => {
-        const clock = document.getElementById('live-clock');
-        if(clock) clock.innerText = DT.now().setZone(userTZ).toFormat('hh:mm:ss a');
-    }, 1000);
-
+    // Khởi chạy hệ thống liên tục
+    initTimezones();
     listen();
+    setInterval(() => {
+        document.getElementById('live-clock').innerText = DT.now().setZone(userTZ).toFormat('hh:mm:ss a');
+        
+        // Kiểm tra chuyển phút để cập nhật giao diện Live động
+        const currentSec = DT.now().second;
+        if(currentSec === 0) { render(); }
+    }, 1000);
 </script>
 </body>
 </html>
