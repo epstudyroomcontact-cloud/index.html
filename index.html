@@ -10,6 +10,13 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <script>
+       (function(){
+          emailjs.init("JKo4tonk0gQMwrHFZ"); // Điền Public Key của Ep Study Room
+       })();
+    </script>
+
     <style>
         :root { 
             --space-bg: #02020a;
@@ -180,6 +187,24 @@
         .slot.active .s-time { color: #fff; }
         .slot.is-live .s-time { color: var(--live); }
 
+        /* --- 30-DAY CHALLENGE BOX --- */
+        .challenge-box {
+            max-width: 550px; margin: 40px auto 0 auto; padding: 35px;
+            background: var(--glass); border: 1px solid var(--border);
+            border-radius: 30px; text-align: center; backdrop-filter: blur(20px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .challenge-box h3 { color: var(--live); letter-spacing: 2px; font-size: 15px; text-transform: uppercase; font-weight: 800; }
+        .challenge-box p { font-size: 11px; opacity: 0.6; margin: 10px 0 20px 0; line-height: 1.6; }
+        .challenge-form { display: flex; flex-direction: column; gap: 12px; }
+        .challenge-input { 
+            width: 100%; background: rgba(0,0,0,0.5); border: 1px solid var(--border); color: #fff; 
+            padding: 12px; border-radius: 15px; outline: none; font-size: 12px; text-align: center; transition: 0.3s;
+        }
+        .challenge-input:focus { border-color: var(--accent); }
+        .challenge-btn { width: 100%; padding: 14px; background: var(--live); color: #000; border: none; border-radius: 15px; font-weight: 800; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; font-size: 11px; transition: 0.3s; }
+        .challenge-btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+
         /* --- ADMIN --- */
         #admin { position: fixed; top: 0; right: -100%; width: 100%; max-width: 480px; height: 100vh; background: #050512; z-index: 1100; padding: 30px; border-left: 1px solid var(--accent); overflow-y: auto; transition: 0.5s; }
         #admin.open { right: 0; }
@@ -243,6 +268,16 @@
         </div>
         
         <main class="grid" id="main-grid"></main>
+
+        <section class="challenge-box">
+            <h3>🚀 JOIN THE 30-DAY CHALLENGE TODAY!</h3>
+            <p>Commit to discipline, receive automated transmission alerts, and unlock your exclusive Interstellar Study Planner.</p>
+            <form id="challenge-form" class="challenge-form" onsubmit="handleChallengeSignUp(event)">
+                <input type="text" id="user-name" class="challenge-input" placeholder="Enter your Codename..." required>
+                <input type="email" id="user-email" class="challenge-input" placeholder="Enter your Email Address..." required>
+                <button type="submit" class="challenge-btn">INITIALIZE PROGRESSION 🛸</button>
+            </form>
+        </section>
     </div>
 
     <div id="admin">
@@ -320,6 +355,43 @@
         { n: "🇦🇺 SYDNEY", v: "Australia/Sydney" },
         { n: "🇫🇷 PARIS", v: "Europe/Paris" }
     ];
+
+    // CẬP NHẬT HÀM XỬ LÝ ĐĂNG KÝ CHALLENGE: LƯU FIREBASE + GỬI EMAILJS
+    async function handleChallengeSignUp(event) {
+        event.preventDefault();
+        const name = document.getElementById('user-name').value;
+        const email = document.getElementById('user-email').value;
+        const submitBtn = event.target.querySelector('.challenge-btn');
+        
+        try {
+            // Đổi trạng thái button để tránh user bấm spam liên tục
+            submitBtn.innerText = "TRANSMITTING... 🛰️";
+            submitBtn.disabled = true;
+
+            // 1. Ghi dữ liệu vào Firestore Database
+            await db.collection("challenge_participants").add({
+                codename: name,
+                email: email,
+                signup_at: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            // 2. Kích hoạt EmailJS gửi thông báo tự động về hòm thư hệ thống
+            await emailjs.send("service_djho59o", "template_lhv0y0n", {
+                codename: name,
+                email: email
+            });
+
+            alert(`Welcome aboard, Specialist ${name}! Your transmission has been recorded & email confirmed. 🌟`);
+            document.getElementById('challenge-form').reset();
+        } catch(e) {
+            console.error("Transmission Error: ", e);
+            alert("Satellite connection lost! Please verify your configurations and try again.");
+        } finally {
+            // Trả lại trạng thái ban đầu cho nút bấm
+            submitBtn.innerText = "INITIALIZE PROGRESSION 🛸";
+            submitBtn.disabled = false;
+        }
+    }
 
     // Chuyển mã hex thành RGB để chạy hiệu ứng mờ nhòe (Nebula)
     function hexToRgb(hex) {
@@ -420,7 +492,7 @@
         
         if (window.unsub) window.unsub();
         window.unsub = db.collection("weekly_schedules").doc(getWeekKey()).onSnapshot(doc => {
-            // Khởi tạo mảng cấu trúc dữ liệu mới: có thêm trường `.h` (thời lượng) và `.i` (icon tùy chỉnh)
+            // Khởi tạo mảng cấu trúc dữ liệu mới
             daysArray = doc.exists ? doc.data().days : Array(7).fill({
                 m:"", m_h:"2", m_i:"🫧",
                 a:"", a_h:"2", a_i:"🪐",
@@ -453,11 +525,9 @@
                     const targetDay = displayDays.find(d => d.date.hasSame(sessionUser, 'day'));
                     
                     if (targetDay) {
-                        // Lấy thời lượng live (giờ) tự chọn từ dữ liệu của Admin, mặc định là 2 nếu trống
                         const liveHours = parseFloat(vnDayData[`${k}_h`] || "2");
                         const customIcon = vnDayData[`${k}_i`] || (k === 'm' ? '🫧' : k === 'a' ? '🪐' : '✨');
                         
-                        // Tính toán thời gian live thực tế dựa trên cấu hình mới
                         const isLive = userNow >= sessionUser && userNow <= sessionUser.plus({ hours: liveHours });
                         if(isLive) anyLive = true;
                         
@@ -524,7 +594,6 @@
             const fields = document.getElementById('ad-fields'); fields.innerHTML = "";
             ["MON","TUE","WED","THU","FRI","SAT","SUN"].forEach((day, i) => {
                 const d = daysArray[i] || {};
-                // Đồng bộ dự phòng dữ liệu cũ lên form điều khiển mới
                 const valM = d.m || ""; const valM_h = d.m_h || "2"; const valM_i = d.m_i || "🫧";
                 const valA = d.a || ""; const valA_h = d.a_h || "2"; const valA_i = d.a_i || "🪐";
                 const valE = d.e || ""; const valE_h = d.e_h || "2"; const valE_i = d.e_i || "✨";
@@ -560,53 +629,57 @@
             const chosenColor = document.getElementById('ad-color').value || "#ff7da3";
             const chosenAnim = document.getElementById('ad-anim').value || "rotate";
             
-            // 1. Lưu cài đặt giao diện & nhận diện trạm
             await db.collection("settings").doc("branding").set({ 
                 name: document.getElementById('ad-brand').value, 
-                contacts: { live: document.getElementById('ad-live-url').value }, 
-                announcement: document.getElementById('ad-ann').value, 
+                contacts: { live: document.getElementById('ad-live-url').value },
                 socialLinks: socialData,
+                announcement: document.getElementById('ad-ann').value,
                 themeColor: chosenColor,
                 bgAnimation: chosenAnim
             });
-            
-            // 2. Thu thập và lưu lịch trình kèm thời lượng + icon mới
-            const newDays = [];
+
+            const updatedDays = [];
             for(let i=0; i<7; i++) {
-                newDays.push({ 
-                    m: document.getElementById(`m-${i}`).value, 
-                    m_h: document.getElementById(`m-h-${i}`).value || "2",
-                    m_i: document.getElementById(`m-i-${i}`).value || "🫧",
-                    
-                    a: document.getElementById(`a-${i}`).value, 
-                    a_h: document.getElementById(`a-h-${i}`).value || "2",
-                    a_i: document.getElementById(`a-i-${i}`).value || "🪐",
-                    
+                updatedDays.push({
+                    m: document.getElementById(`m-${i}`).value,
+                    m_h: document.getElementById(`m-h-${i}`).value,
+                    m_i: document.getElementById(`m-i-${i}`).value,
+                    a: document.getElementById(`a-${i}`).value,
+                    a_h: document.getElementById(`a-h-${i}`).value,
+                    a_i: document.getElementById(`a-i-${i}`).value,
                     e: document.getElementById(`e-${i}`).value,
-                    e_h: document.getElementById(`e-h-${i}`).value || "2",
-                    e_i: document.getElementById(`e-i-${i}`).value || "✨"
+                    e_h: document.getElementById(`e-h-${i}`).value,
+                    e_i: document.getElementById(`e-i-${i}`).value
                 });
             }
-            await db.collection("weekly_schedules").doc(getWeekKey()).set({ days: newDays });
-            
-            alert("Updated successfully!"); toggleAdmin();
-        } catch(e) { alert("Error saving data!"); }
+            await db.collection("weekly_schedules").doc(getWeekKey()).set({ days: updatedDays });
+            alert("Satellite data successfully updated!");
+            toggleAdmin();
+        } catch(e) { console.error(e); alert("Update failed."); }
     }
 
-    function updateTZ(v) { userTZ = (v === 'auto') ? DT.local().zoneName : v; render(); }
     function setLang(l) { userLang = l; render(); }
-    function changeWeek(n) { weekOffset += n; listen(); }
-
-    document.getElementById('sel-tz').innerHTML = zones.map(z => `<option value="${z.v}">${z.v === userTZ ? 'selected' : ''}">${z.n}</option>`).join('');
-    // Đặt mặc định auto trong menu
-    document.getElementById('sel-tz').value = 'auto';
-
-    listen();
     
-    setInterval(() => { 
-        document.getElementById('live-clock').innerText = DT.now().setZone(userTZ).toFormat('hh:mm:ss a'); 
-        if(DT.now().second === 0) render(); 
-    }, 1000);
+    function changeWeek(dir) { weekOffset += dir; listen(); }
+
+    function updateTZ(tz) {
+        userTZ = tz === 'auto' ? DT.local().zoneName : tz;
+        render();
+    }
+
+    function initClock() {
+        setInterval(() => {
+            document.getElementById('live-clock').innerText = DT.now().setZone(userTZ).toFormat('hh:mm:ss a');
+        }, 1000);
+    }
+
+    // Khởi tạo các tùy chọn múi giờ
+    const selTZ = document.getElementById('sel-tz');
+    zones.forEach(z => { selTZ.innerHTML += `<option value="${z.v}">${z.n}</option>`; });
+
+    // Khởi chạy hệ thống
+    listen();
+    initClock();
 </script>
 </body>
 </html>
