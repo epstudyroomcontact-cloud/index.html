@@ -9,6 +9,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    
     <style>
         :root { 
             --space-bg: #02020a;
@@ -286,6 +288,9 @@
     </div>
 
 <script>
+    // Khởi tạo EmailJS với Public Key chuẩn xác từ màn hình tài khoản của bạn
+    emailjs.init("JKo4tonk0gQMwrHFZ");
+
     const firebaseConfig = {
         apiKey: "AIzaSyBLp6sfgO6WR53RbfXMoU1RV9ROBmOHuQI",
         authDomain: "epstudyroom-bacaf.firebaseapp.com",
@@ -428,7 +433,6 @@
             document.getElementById('ad-ann').value = announcement;
             document.getElementById('ad-contacts').value = JSON.stringify(socialLinks || {});
             
-            // Xây dựng form nhập lịch cho Admin
             const inputsContainer = document.getElementById('admin-days-inputs');
             inputsContainer.innerHTML = "";
             i18n.vi.days.forEach((dayName, idx) => {
@@ -484,16 +488,36 @@
         }).catch(err => alert("Lỗi đám mây: " + err.message));
     }
 
+    // HÀM ĐĂNG KÝ CHALLENGE - ĐÃ CẬP NHẬT SERVICE_ID VÀ TEMPLATE_ID CHUẨN XÁC
     function handleChallengeSignUp(e) {
         e.preventDefault();
         const codename = document.getElementById('user-name').value;
         const email = document.getElementById('user-email').value;
+        
+        // 1. Lưu dữ liệu người dùng vào Firebase
         db.collection("challenge_signups").add({
-            codename, email, timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            codename: codename,
+            email: email,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
         }).then(() => {
-            alert("INITIALIZATION SUCCESSFUL! Welcome to the 30-Day challenge.");
+            
+            // 2. Đồng bộ các biến thẻ {{}} khớp hoàn toàn với giao diện Email Templates của bạn
+            const templateParams = {
+                user_name: codename,
+                user_email: email
+            };
+
+            // Gửi qua Service ID và Template ID chính xác của tài khoản bạn
+            return emailjs.send('service_a098n5f', 'template_lhv0y0n', templateParams);
+        })
+        .then(() => {
+            alert("INITIALIZATION SUCCESSFUL! Welcome to the 30-Day challenge. Check your email for transmission alerts!");
             document.getElementById('challenge-form').reset();
-        }).catch(err => alert("Error: " + err.message));
+        })
+        .catch(err => {
+            console.error("System Error:", err);
+            alert("Error: " + (err.text || err.message || err));
+        });
     }
 
     function startClock() {
@@ -533,6 +557,18 @@
             });
             render();
         });
+    }
+
+    function renderContacts() {
+        const hub = document.getElementById('comm-hub');
+        hub.innerHTML = "";
+        for (const [name, url] of Object.entries(socialLinks)) {
+            if(url) {
+                const a = document.createElement('a');
+                a.className = 'comm-link'; a.href = url; a.target = '_blank'; a.innerText = name.toUpperCase();
+                hub.appendChild(a);
+            }
+        }
     }
 
     function render() {
@@ -587,37 +623,38 @@
         } else { toast.style.display = "none"; }
 
         displayDays.forEach((day, i) => {
-            const card = document.createElement('div');
+            day.slots.sort((a,b) => a.sortTime - b.sortTime);
             const isToday = userNow.hasSame(day.date, 'day');
-            card.className = `card ${isToday ? 'today' : ''}`;
             
-            let h = `<span style="font-size:11px; color:var(--accent); font-weight:800;">${lang.days[i]}</span><span style="display:block; font-size:9px; opacity:0.4; margin-bottom:15px;">${day.date.toFormat('dd/MM')}</span>`;
-            
-            day.slots.sort((a,b)=>a.sortTime-b.sortTime);
+            let slotsHTML = "";
+            day.slots.forEach(s => {
+                slotsHTML += `
+                    <div class="slot ${s.isLive ? 'is-live' : 'active'}">
+                        <div style="font-size:18px; margin-bottom:2px;">${s.icon}</div>
+                        <div class="s-time">${s.timeStr}</div>
+                        <div class="s-duration">${s.duration}h duration</div>
+                        ${s.isLive && contacts.live ? `<a class="live-action" href="${contacts.live}" target="_blank">${lang.watch}</a>` : ""}
+                    </div>
+                `;
+            });
+
             if(day.slots.length === 0) {
-                h += `<div style="flex:1; opacity:0.1; font-size:10px; padding-top:20px;">---</div>`;
-            } else {
-                day.slots.forEach(s => {
-                    h += `<div class="slot active ${s.isLive ? 'is-live' : ''}">
-                            <div style="font-size:14px;">${s.icon}</div>
-                            <div class="s-time">${s.timeStr}</div>
-                            <div class="s-duration">${s.duration}h</div>
-                            ${s.isLive ? `<a href="${contacts.live}" target="_blank" class="live-action">${lang.watch}</a>` : ''}
-                          </div>`;
-                });
+                slotsHTML = `<div style="font-size:10px; opacity:0.3; margin:auto; font-style:italic;">SYSTEM OFFLINE</div>`;
             }
-            card.innerHTML = h; grid.appendChild(card);
+
+            const card = document.createElement('div');
+            card.className = `card ${isToday ? 'today' : ''}`;
+            card.innerHTML = `
+                <div style="font-size:11px; font-weight:800; color:var(--accent); letter-spacing:1px; margin-bottom:5px;">${lang.days[i]}</div>
+                <div style="font-family:'JetBrains Mono'; font-size:12px; font-weight:700; opacity:0.5; margin-bottom:20px;">${day.date.toFormat('dd MMM')}</div>
+                <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">${slotsHTML}</div>
+            `;
+            grid.appendChild(card);
         });
     }
 
-    function renderContacts() {
-        const hub = document.getElementById('comm-hub'); hub.innerHTML = "";
-        if(contacts.live) hub.innerHTML += `<a href="${contacts.live}" target="_blank" class="comm-link" style="border-color:var(--live); color:var(--live)">● LIVE</a>`;
-        Object.entries(socialLinks).forEach(([name, url]) => { hub.innerHTML += `<a href="${url}" target="_blank" class="comm-link">${name.toUpperCase()}</a>`; });
-    }
-
-    // Khởi chạy hệ thống vệ tinh điều khiển
     initTimezones();
+    document.getElementById('sel-tz').value = "auto";
     startClock();
     listen();
 </script>
