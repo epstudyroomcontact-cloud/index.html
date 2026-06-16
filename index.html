@@ -356,7 +356,7 @@
         { n: "🇫🇷 PARIS", v: "Europe/Paris" }
     ];
 
-    // CẬP NHẬT HÀM XỬ LÝ ĐĂNG KÝ CHALLENGE: LƯU FIREBASE + GỬI EMAILJS
+    // CẬP NHẬT HÀM XỬ LÝ ĐĂNG KÝ CHALLENGE: LƯU FIREBASE + GỬI EMAILJS (ĐÃ SỬA BIẾN THÀNH name, email, message)
     async function handleChallengeSignUp(event) {
         event.preventDefault();
         const name = document.getElementById('user-name').value;
@@ -375,10 +375,11 @@
                 signup_at: firebase.firestore.FieldValue.serverTimestamp()
             });
 
-            // 2. Kích hoạt EmailJS gửi thông báo tự động về hòm thư hệ thống
+            // 2. Kích hoạt EmailJS gửi thông báo tự động (Đổi tên trường thành name, email, message để trùng khớp hoàn toàn cấu hình trên Template EmailJS)
             await emailjs.send("service_djho59o", "template_lhv0y0n", {
-                codename: name,
-                email: email
+                name: name,
+                email: email,
+                message: "Registered for the 30-Day Interstellar Challenge!"
             });
 
             alert(`Welcome aboard, Specialist ${name}! Your transmission has been recorded & email confirmed. 🌟`);
@@ -604,82 +605,75 @@
                         <div class="admin-grid-header"><span>Giờ (HH:MM)</span><span>Số Giờ Live</span><span>Icon</span></div>
                         <div class="admin-grid-row">
                             <input id="m-${i}" value="${valM}" placeholder="Sáng">
-                            <input id="m-h-${i}" value="${valM_h}" placeholder="Giờ">
-                            <input id="m-i-${i}" value="${valM_i}" placeholder="Icon">
+                            <input id="m-h-${i}" value="${valM_h}">
+                            <input id="m-i-${i}" value="${valM_i}">
                         </div>
                         <div class="admin-grid-row">
                             <input id="a-${i}" value="${valA}" placeholder="Chiều">
-                            <input id="a-h-${i}" value="${valA_h}" placeholder="Giờ">
-                            <input id="a-i-${i}" value="${valA_i}" placeholder="Icon">
+                            <input id="a-h-${i}" value="${valA_h}">
+                            <input id="a-i-${i}" value="${valA_i}">
                         </div>
                         <div class="admin-grid-row">
                             <input id="e-${i}" value="${valE}" placeholder="Tối">
-                            <input id="e-h-${i}" value="${valE_h}" placeholder="Giờ">
-                            <input id="e-i-${i}" value="${valE_i}" placeholder="Icon">
+                            <input id="e-h-${i}" value="${valE_h}">
+                            <input id="e-i-${i}" value="${valE_i}">
                         </div>
                     </div>`;
             });
             ad.classList.add('open');
-        } else ad.classList.remove('open');
+        } else {
+            ad.classList.remove('open');
+        }
     }
 
-    async function save() {
-        try {
-            const socialData = JSON.parse(document.getElementById('ad-contacts').value || "{}");
-            const chosenColor = document.getElementById('ad-color').value || "#ff7da3";
-            const chosenAnim = document.getElementById('ad-anim').value || "rotate";
-            
-            await db.collection("settings").doc("branding").set({ 
-                name: document.getElementById('ad-brand').value, 
-                contacts: { live: document.getElementById('ad-live-url').value },
-                socialLinks: socialData,
-                announcement: document.getElementById('ad-ann').value,
-                themeColor: chosenColor,
-                bgAnimation: chosenAnim
+    function save() {
+        const newDays = [];
+        for(let i=0; i<7; i++) {
+            newDays.push({
+                m: document.getElementById(`m-${i}`).value,
+                m_h: document.getElementById(`m-h-${i}`).value,
+                m_i: document.getElementById(`m-i-${i}`).value,
+                a: document.getElementById(`a-${i}`).value,
+                a_h: document.getElementById(`a-h-${i}`).value,
+                a_i: document.getElementById(`a-i-${i}`).value,
+                e: document.getElementById(`e-${i}`).value,
+                e_h: document.getElementById(`e-h-${i}`).value,
+                e_i: document.getElementById(`e-i-${i}`).value,
             });
+        }
+        
+        let sLinks = {};
+        try { sLinks = JSON.parse(document.getElementById('ad-contacts').value || "{}"); } catch(e) {}
 
-            const updatedDays = [];
-            for(let i=0; i<7; i++) {
-                updatedDays.push({
-                    m: document.getElementById(`m-${i}`).value,
-                    m_h: document.getElementById(`m-h-${i}`).value,
-                    m_i: document.getElementById(`m-i-${i}`).value,
-                    a: document.getElementById(`a-${i}`).value,
-                    a_h: document.getElementById(`a-h-${i}`).value,
-                    a_i: document.getElementById(`a-i-${i}`).value,
-                    e: document.getElementById(`e-${i}`).value,
-                    e_h: document.getElementById(`e-h-${i}`).value,
-                    e_i: document.getElementById(`e-i-${i}`).value
-                });
-            }
-            await db.collection("weekly_schedules").doc(getWeekKey()).set({ days: updatedDays });
-            alert("Satellite data successfully updated!");
-            toggleAdmin();
-        } catch(e) { console.error(e); alert("Update failed."); }
+        db.collection("weekly_schedules").doc(getWeekKey()).set({ days: newDays });
+        db.collection("settings").doc("branding").set({
+            name: document.getElementById('ad-brand').value,
+            themeColor: document.getElementById('ad-color').value,
+            bgAnimation: document.getElementById('ad-anim').value,
+            announcement: document.getElementById('ad-ann').value,
+            contacts: { live: document.getElementById('ad-live-url').value },
+            socialLinks: sLinks
+        }).then(() => { alert("🚀 Satellite updated successfully!"); toggleAdmin(); });
     }
 
+    function changeWeek(offset) { weekOffset += offset; listen(); }
+    
     function setLang(l) { userLang = l; render(); }
     
-    function changeWeek(dir) { weekOffset += dir; listen(); }
-
-    function updateTZ(tz) {
-        userTZ = tz === 'auto' ? DT.local().zoneName : tz;
-        render();
+    function updateTZ(z) { 
+        userTZ = z === 'auto' ? DT.local().zoneName : z; 
+        render(); 
     }
 
-    function initClock() {
-        setInterval(() => {
-            document.getElementById('live-clock').innerText = DT.now().setZone(userTZ).toFormat('hh:mm:ss a');
-        }, 1000);
-    }
-
-    // Khởi tạo các tùy chọn múi giờ
+    // Khởi tạo các thành phần múi giờ khi bắt đầu tải trang
     const selTZ = document.getElementById('sel-tz');
-    zones.forEach(z => { selTZ.innerHTML += `<option value="${z.v}">${z.n}</option>`; });
+    zones.forEach(z => { const opt = document.createElement('option'); opt.value = z.v; opt.innerText = z.n; selTZ.appendChild(opt); });
 
-    // Khởi chạy hệ thống
+    setInterval(() => {
+        document.getElementById('live-clock').innerText = DT.now().setZone(userTZ).toFormat('hh:mm:ss a');
+    }, 1000);
+
     listen();
-    initClock();
 </script>
 </body>
 </html>
