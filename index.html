@@ -176,6 +176,7 @@
         .challenge-input:focus { border-color: var(--accent); }
         .challenge-btn { width: 100%; padding: 14px; background: var(--live); color: #000; border: none; border-radius: 15px; font-weight: 800; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; font-size: 11px; transition: 0.3s; }
         .challenge-btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+        .challenge-btn:disabled { background: #555 !important; color: #aaa !important; cursor: not-allowed; transform: none !important; }
         /* --- ADMIN PANEL --- */
         #admin { position: fixed; top: 0; right: -100%; width: 100%; max-width: 480px; height: 100vh; background: #050512; z-index: 1100; padding: 30px; border-left: 1px solid var(--accent); overflow-y: auto; transition: 0.5s; }
         #admin.open { right: 0; }
@@ -243,7 +244,7 @@
             <form id="challenge-form" class="challenge-form" onsubmit="handleChallengeSignUp(event)">
                 <input type="text" id="user-name" class="challenge-input" placeholder="Enter your Codename..." required>
                 <input type="email" id="user-email" class="challenge-input" placeholder="Enter your Email Address..." required>
-                <button type="submit" class="challenge-btn">INITIALIZE PROGRESSION</button>
+                <button type="submit" class="challenge-btn" id="challenge-submit-btn">INITIALIZE PROGRESSION</button>
             </form>
         </section>
     </div>
@@ -312,7 +313,7 @@
         vi: { days: ["THỨ HAI","THỨ BA","THỨ TƯ","THỨ NĂM","THỨ SÁU","THỨ BẢY","CHỦ NHẬT"], label: "Múi giờ", watch: "Xem Ngay", liveAlert: "Trạm đang trực tiếp!" },
         en: { days: ["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY","SUNDAY"], label: "Timezone", watch: "Watch Now", liveAlert: "Station is LIVE!" },
         ja: { days: ["月曜日","火曜日","水曜日","木曜日","金曜日","土曜日","日曜日"], label: "現地時間", watch: "ライブを見る", liveAlert: "ライブ配信中！" },
-        ko: { days: ["월요일","화요일","수요일","목요일","금요일","토요일","일요일"], label: "시간대", watch: "실시간 시청", liveAlert: "현재 라이브 방송 중!" },
+        ko: { days: ["월요일","화요일","수요일","목요일","금요일","토요일","일요일"], label: "時間대", watch: "실시간 시청", liveAlert: "현재 라이브 방송 중!" },
         zh: { days: ["星期一","星期二","星期三","星期四","星期五","星期六","星期日"], label: "时区", watch: "立即观看", liveAlert: "正在直播中！" },
         fr: { days: ["LUNDI","MARDI","MERCREDI","JEUDI","VENDREDI","SAMEDI","DIMANCHE"], label: "Fuseau", watch: "Regarder", liveAlert: "En DIRECT!" },
         es: { days: ["LUNES","MARTES","MIÉRCOLES","JUEVES","VIERNES","SÁBADO","DOMINGO"], label: "Zona", watch: "Ver Ahora", liveAlert: "¡En vivo ahora!" }
@@ -488,41 +489,71 @@
         }).catch(err => alert("Lỗi đám mây: " + err.message));
     }
 
-    // HÀM ĐĂNG KÝ CHALLENGE - ĐÃ CẬP NHẬT SERVICE_ID VÀ TEMPLATE_ID CHUẨN XÁC
+    // HÀM ĐĂNG KÝ CHALLENGE - ĐÃ THÊM TÍNH NĂNG CHỐNG SPAM MAIL & KHÓA NÚT BẤM
     function handleChallengeSignUp(e) {
         e.preventDefault();
+        const btn = document.getElementById('challenge-submit-btn');
         const codename = document.getElementById('user-name').value;
-        const email = document.getElementById('user-email').value;
+        const email = document.getElementById('user-email').value.trim().toLowerCase();
         
-        // 1. Lưu dữ liệu người dùng vào Firebase
-        db.collection("challenge_signups").add({
-            codename: codename,
-            email: email,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        }).then(() => {
-            
-            // 2. Đồng bộ các biến thẻ {{}} khớp hoàn toàn với giao diện Email Templates của bạn
-            const templateParams = {
-                user_name: codename,
-                user_email: email
-            };
+        // Bước 1: Khóa nút bấm ngay lập tức để chặn spam click liên tục (Cách 1)
+        btn.disabled = true;
+        btn.innerText = "TRANSMITTING...";
 
-            // Gửi qua Service ID và Template ID chính xác của tài khoản bạn
-            return emailjs.send('service_a098n5f', 'template_lhv0y0n', templateParams);
-        })
-        .then(() => {
-            alert("INITIALIZATION SUCCESSFUL! Welcome to the 30-Day challenge. Check your email for transmission alerts!");
-            document.getElementById('challenge-form').reset();
-        })
-        .catch(err => {
-            console.error("System Error:", err);
-            alert("Error: " + (err.text || err.message || err));
-        });
+        // Bước 2: Truy vấn Firebase xem email này đã tồn tại chưa (Cách 2)
+        db.collection("challenge_signups")
+          .where("email", "==", email)
+          .get()
+          .then(querySnapshot => {
+              if (!querySnapshot.empty) {
+                  // Email đã đăng ký rồi -> Hiện cảnh báo và mở khóa nút, KHÔNG GỬI EMAILJS
+                  alert("ERROR: This email address has already been registered in the system!");
+                  btn.disabled = false;
+                  btn.innerText = "INITIALIZE PROGRESSION";
+                  return; // Dừng tiến trình tại đây
+              }
+
+              // Nếu chưa tồn tại -> Tiến hành lưu dữ liệu mới vào Firebase
+              db.collection("challenge_signups").add({
+                  codename: codename,
+                  email: email,
+                  timestamp: firebase.firestore.FieldValue.serverTimestamp()
+              }).then(() => {
+                  // Các tham số gửi đi EmailJS
+                  const templateParams = {
+                      user_name: codename,
+                      user_email: email
+                  };
+
+                  // Gửi qua Service ID và Template ID của bạn
+                  return emailjs.send('service_a098n5f', 'template_lhv0y0n', templateParams);
+              })
+              .then(() => {
+                  alert("INITIALIZATION SUCCESSFUL! Welcome to the 30-Day challenge. Check your email for transmission alerts!");
+                  document.getElementById('challenge-form').reset();
+              })
+              .catch(err => {
+                  console.error("System Error:", err);
+                  alert("Error: " + (err.text || err.message || err));
+              })
+              .finally(() => {
+                  // Đưa nút bấm quay trở lại trạng thái ban đầu
+                  btn.disabled = false;
+                  btn.innerText = "INITIALIZE PROGRESSION";
+              });
+          })
+          .catch(err => {
+              console.error("Database Query Error:", err);
+              alert("Database Error: " + err.message);
+              btn.disabled = false;
+              btn.innerText = "INITIALIZE PROGRESSION";
+          });
     }
 
     function startClock() {
         setInterval(() => {
-            document.getElementById('live-clock').innerText = DT.now().setZone(userTZ).toFormat('hh:mm:ss a');
+            const el = document.getElementById('live-clock');
+            if(el) el.innerText = DT.now().setZone(userTZ).toFormat('hh:mm:ss a');
         }, 1000);
     }
 
@@ -572,7 +603,8 @@
     }
 
     function render() {
-        const grid = document.getElementById('main-grid'); grid.innerHTML = "";
+        const grid = document.getElementById('main-grid'); if(!grid) return;
+        grid.innerHTML = "";
         const lang = i18n[userLang];
         const userNow = DT.now().setZone(userTZ);
         const userStartOfWeek = userNow.plus({ weeks: weekOffset }).startOf('week');
@@ -593,70 +625,75 @@
                 if (/^([01]\d|2[0-3]):([0-5]\d)$/.test(raw)) {
                     const sessionUser = DT.fromFormat(raw, "HH:mm", { zone: "Asia/Ho_Chi_Minh" })
                         .set({ year: thisVNDate.year, month: thisVNDate.month, day: thisVNDate.day })
-                        .setZone(userTZ);
+                        .setZone(userTZ, { keepLocalTime: false });
+                    
+                    const durationHrs = parseFloat(vnDayData[k+'_h'] || "2");
+                    const endUser = sessionUser.plus({ hours: durationHrs });
+                    
+                    const dayDiff = Math.floor(sessionUser.startOf('day').diff(userStartOfWeek.startOf('day'), 'days').days);
+                    
+                    if (dayDiff >= 0 && dayDiff < 7) {
+                        const isLiveNow = userNow >= sessionUser && userNow < endUser && weekOffset === 0;
+                        if(isLiveNow) anyLive = true;
                         
-                    const targetDay = displayDays.find(d => d.date.hasSame(sessionUser, 'day'));
-                    if (targetDay) {
-                        const liveHours = parseFloat(vnDayData[`${k}_h`] || "2");
-                        const customIcon = vnDayData[`${k}_i`] || (k === 'm' ? '🌅' : k === 'a' ? '☀️' : '🌌');
-                        const isLive = userNow >= sessionUser && userNow <= sessionUser.plus({ hours: liveHours });
-                        
-                        if(isLive) anyLive = true;
-                        
-                        targetDay.slots.push({ 
-                            timeStr: sessionUser.toFormat("hh:mm a"), 
-                            duration: liveHours,
-                            isLive, 
-                            icon: customIcon, 
-                            sortTime: sessionUser.toMillis() 
+                        displayDays[dayDiff].slots.push({
+                            start: sessionUser,
+                            end: endUser,
+                            icon: vnDayData[k+'_i'] || "🛰️",
+                            isLive: isLiveNow
                         });
                     }
                 }
             });
         });
 
-        checkAndPush(anyLive);
-        const toast = document.getElementById('live-toast');
-        if(anyLive && contacts.live) {
-            toast.style.display = "flex";
-            document.getElementById('live-toast-link').href = contacts.live;
-        } else { toast.style.display = "none"; }
-
-        displayDays.forEach((day, i) => {
-            day.slots.sort((a,b) => a.sortTime - b.sortTime);
-            const isToday = userNow.hasSame(day.date, 'day');
+        displayDays.forEach((d, idx) => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            if (d.date.hasSame(userNow, 'day') && weekOffset === 0) card.classList.add('today');
             
-            let slotsHTML = "";
-            day.slots.forEach(s => {
-                slotsHTML += `
-                    <div class="slot ${s.isLive ? 'is-live' : 'active'}">
-                        <div style="font-size:18px; margin-bottom:2px;">${s.icon}</div>
-                        <div class="s-time">${s.timeStr}</div>
-                        <div class="s-duration">${s.duration}h duration</div>
-                        ${s.isLive && contacts.live ? `<a class="live-action" href="${contacts.live}" target="_blank">${lang.watch}</a>` : ""}
+            let slotsHtml = "";
+            d.slots.sort((a,b) => a.start - b.start).forEach(s => {
+                slotsHtml += `
+                    <div class="slot ${s.isLive ? 'is-live' : ''}">
+                        <div style="font-size:18px; margin-bottom:4px;">${s.icon}</div>
+                        <div class="s-time">${s.start.toFormat('hh:mm a')}</div>
+                        <div class="s-duration">${s.start.toFormat('HH:mm')} - ${s.end.toFormat('HH:mm')}</div>
+                        ${s.isLive && contacts.live ? `<a class="live-action" href="${contacts.live}" target="_blank">${lang.watch}</a>` : ''}
                     </div>
                 `;
             });
 
-            if(day.slots.length === 0) {
-                slotsHTML = `<div style="font-size:10px; opacity:0.3; margin:auto; font-style:italic;">SYSTEM OFFLINE</div>`;
-            }
-
-            const card = document.createElement('div');
-            card.className = `card ${isToday ? 'today' : ''}`;
             card.innerHTML = `
-                <div style="font-size:11px; font-weight:800; color:var(--accent); letter-spacing:1px; margin-bottom:5px;">${lang.days[i]}</div>
-                <div style="font-family:'JetBrains Mono'; font-size:12px; font-weight:700; opacity:0.5; margin-bottom:20px;">${day.date.toFormat('dd MMM')}</div>
-                <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">${slotsHTML}</div>
+                <div style="font-size:9px; font-weight:800; opacity:0.4; margin-bottom:2px; font-family:'JetBrains Mono';">${d.date.toFormat('dd LLL yyyy')}</div>
+                <div style="font-size:11px; font-weight:800; color:var(--accent); letter-spacing:1px; margin-bottom:15px;">${lang.days[idx]}</div>
+                <div style="flex:1; display:flex; flex-direction:column; justify-content:center; gap:5px;">
+                    ${slotsHtml || `<div style="font-size:10px; opacity:0.25; font-style:italic; margin: 30px 0;">OFFLINE</div>`}
+                </div>
             `;
             grid.appendChild(card);
         });
+
+        const toast = document.getElementById('live-toast');
+        if (toast) {
+            if (anyLive && contacts.live) {
+                toast.style.display = 'flex';
+                document.getElementById('live-toast-text').innerText = lang.liveAlert;
+                document.getElementById('live-toast-link').href = contacts.live;
+            } else {
+                toast.style.display = 'none';
+            }
+        }
+        checkAndPush(anyLive);
     }
 
-    initTimezones();
-    document.getElementById('sel-tz').value = "auto";
-    startClock();
-    listen();
+    // Sửa các lỗi cú pháp cắt đoạn ở cuối file gốc của bạn để đảm bảo code chạy mượt
+    window.onload = function() {
+        initTimezones();
+        document.getElementById('sel-tz').value = "auto";
+        listen();
+        startClock();
+    };
 </script>
 </body>
 </html>
