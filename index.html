@@ -289,7 +289,7 @@
     </div>
 
 <script>
-    // Khởi tạo EmailJS với Public Key chuẩn xác từ màn hình tài khoản của bạn
+    // Khởi tạo EmailJS
     emailjs.init("JKo4tonk0gQMwrHFZ");
 
     const firebaseConfig = {
@@ -489,43 +489,37 @@
         }).catch(err => alert("Lỗi đám mây: " + err.message));
     }
 
-    // HÀM ĐĂNG KÝ CHALLENGE - ĐÃ THÊM TÍNH NĂNG CHỐNG SPAM MAIL & KHÓA NÚT BẤM
+    // HÀM ĐĂNG KÝ CHALLENGE - KIỂM TRA EMAIL TRÙNG & CHỐNG SPAM
     function handleChallengeSignUp(e) {
         e.preventDefault();
         const btn = document.getElementById('challenge-submit-btn');
         const codename = document.getElementById('user-name').value;
         const email = document.getElementById('user-email').value.trim().toLowerCase();
         
-        // Bước 1: Khóa nút bấm ngay lập tức để chặn spam click liên tục (Cách 1)
         btn.disabled = true;
         btn.innerText = "TRANSMITTING...";
 
-        // Bước 2: Truy vấn Firebase xem email này đã tồn tại chưa (Cách 2)
         db.collection("challenge_signups")
           .where("email", "==", email)
           .get()
           .then(querySnapshot => {
               if (!querySnapshot.empty) {
-                  // Email đã đăng ký rồi -> Hiện cảnh báo và mở khóa nút, KHÔNG GỬI EMAILJS
                   alert("ERROR: This email address has already been registered in the system!");
                   btn.disabled = false;
                   btn.innerText = "INITIALIZE PROGRESSION";
-                  return; // Dừng tiến trình tại đây
+                  return;
               }
 
-              // Nếu chưa tồn tại -> Tiến hành lưu dữ liệu mới vào Firebase
               db.collection("challenge_signups").add({
                   codename: codename,
                   email: email,
                   timestamp: firebase.firestore.FieldValue.serverTimestamp()
               }).then(() => {
-                  // Các tham số gửi đi EmailJS
                   const templateParams = {
                       user_name: codename,
                       user_email: email
                   };
 
-                  // Gửi qua Service ID và Template ID của bạn
                   return emailjs.send('service_a098n5f', 'template_lhv0y0n', templateParams);
               })
               .then(() => {
@@ -537,7 +531,6 @@
                   alert("Error: " + (err.text || err.message || err));
               })
               .finally(() => {
-                  // Đưa nút bấm quay trở lại trạng thái ban đầu
                   btn.disabled = false;
                   btn.innerText = "INITIALIZE PROGRESSION";
               });
@@ -596,104 +589,116 @@
         for (const [name, url] of Object.entries(socialLinks)) {
             if(url) {
                 const a = document.createElement('a');
-                a.className = 'comm-link'; a.href = url; a.target = '_blank'; a.innerText = name.toUpperCase();
+                a.className = "comm-link";
+                a.href = url;
+                a.target = "_blank";
+                a.innerText = name.toUpperCase();
                 hub.appendChild(a);
             }
         }
     }
 
-    function render() {
-        const grid = document.getElementById('main-grid'); if(!grid) return;
-        grid.innerHTML = "";
-        const lang = i18n[userLang];
-        const userNow = DT.now().setZone(userTZ);
-        const userStartOfWeek = userNow.plus({ weeks: weekOffset }).startOf('week');
-        
-        document.getElementById('week-label').innerText = `${userStartOfWeek.toFormat('dd/MM')} - ${userStartOfWeek.plus({days:6}).toFormat('dd/MM')}`;
-        const isAuto = document.getElementById('sel-tz').value === 'auto';
-        document.getElementById('tz-display').innerText = isAuto ? `AUTO: ${userTZ}` : `${lang.label}: ${userTZ}`;
-        
-        let anyLive = false;
-        const displayDays = Array.from({ length: 7 }, (_, i) => ({ date: userStartOfWeek.plus({ days: i }), slots: [] }));
+    function parseTime(timeStr, baseDateVN) {
+        if (!timeStr) return null;
+        const parts = timeStr.trim().split(':');
+        if (parts.length < 2) return null;
+        const h = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        if (isNaN(h) || isNaN(m)) return null;
 
-        daysArray.forEach((vnDayData, vnIdx) => {
-            const vnStartOfWeek = DT.now().setZone("Asia/Ho_Chi_Minh").plus({ weeks: weekOffset }).startOf('week');
-            const thisVNDate = vnStartOfWeek.plus({ days: vnIdx });
-            
-            ['m', 'a', 'e'].forEach((k) => {
-                const raw = (vnDayData[k] || "").trim();
-                if (/^([01]\d|2[0-3]):([0-5]\d)$/.test(raw)) {
-                    const sessionUser = DT.fromFormat(raw, "HH:mm", { zone: "Asia/Ho_Chi_Minh" })
-                        .set({ year: thisVNDate.year, month: thisVNDate.month, day: thisVNDate.day })
-                        .setZone(userTZ, { keepLocalTime: false });
-                    
-                    const durationHrs = parseFloat(vnDayData[k+'_h'] || "2");
-                    const endUser = sessionUser.plus({ hours: durationHrs });
-                    
-                    const dayDiff = Math.floor(sessionUser.startOf('day').diff(userStartOfWeek.startOf('day'), 'days').days);
-                    
-                    if (dayDiff >= 0 && dayDiff < 7) {
-                        const isLiveNow = userNow >= sessionUser && userNow < endUser && weekOffset === 0;
-                        if(isLiveNow) anyLive = true;
-                        
-                        displayDays[dayDiff].slots.push({
-                            start: sessionUser,
-                            end: endUser,
-                            icon: vnDayData[k+'_i'] || "🛰️",
-                            isLive: isLiveNow
-                        });
-                    }
-                }
-            });
-        });
-
-        displayDays.forEach((d, idx) => {
-            const card = document.createElement('div');
-            card.className = 'card';
-            if (d.date.hasSame(userNow, 'day') && weekOffset === 0) card.classList.add('today');
-            
-            let slotsHtml = "";
-            d.slots.sort((a,b) => a.start - b.start).forEach(s => {
-                slotsHtml += `
-                    <div class="slot ${s.isLive ? 'is-live' : ''}">
-                        <div style="font-size:18px; margin-bottom:4px;">${s.icon}</div>
-                        <div class="s-time">${s.start.toFormat('hh:mm a')}</div>
-                        <div class="s-duration">${s.start.toFormat('HH:mm')} - ${s.end.toFormat('HH:mm')}</div>
-                        ${s.isLive && contacts.live ? `<a class="live-action" href="${contacts.live}" target="_blank">${lang.watch}</a>` : ''}
-                    </div>
-                `;
-            });
-
-            card.innerHTML = `
-                <div style="font-size:9px; font-weight:800; opacity:0.4; margin-bottom:2px; font-family:'JetBrains Mono';">${d.date.toFormat('dd LLL yyyy')}</div>
-                <div style="font-size:11px; font-weight:800; color:var(--accent); letter-spacing:1px; margin-bottom:15px;">${lang.days[idx]}</div>
-                <div style="flex:1; display:flex; flex-direction:column; justify-content:center; gap:5px;">
-                    ${slotsHtml || `<div style="font-size:10px; opacity:0.25; font-style:italic; margin: 30px 0;">OFFLINE</div>`}
-                </div>
-            `;
-            grid.appendChild(card);
-        });
-
-        const toast = document.getElementById('live-toast');
-        if (toast) {
-            if (anyLive && contacts.live) {
-                toast.style.display = 'flex';
-                document.getElementById('live-toast-text').innerText = lang.liveAlert;
-                document.getElementById('live-toast-link').href = contacts.live;
-            } else {
-                toast.style.display = 'none';
-            }
-        }
-        checkAndPush(anyLive);
+        return baseDateVN.set({ hour: h, minute: m, second: 0, millisecond: 0 });
     }
 
-    // Sửa các lỗi cú pháp cắt đoạn ở cuối file gốc của bạn để đảm bảo code chạy mượt
-    window.onload = function() {
-        initTimezones();
-        document.getElementById('sel-tz').value = "auto";
-        listen();
-        startClock();
-    };
+    function render() {
+        const grid = document.getElementById('main-grid');
+        grid.innerHTML = "";
+
+        const startOfWeekVN = DT.now().setZone("Asia/Ho_Chi_Minh").plus({ weeks: weekOffset }).startOf('week');
+        const endOfWeekVN = startOfWeekVN.plus({ days: 6 }).endOf('day');
+        
+        document.getElementById('week-label').innerText = `${startOfWeekVN.toFormat('dd/MM')} - ${endOfWeekVN.toFormat('dd/MM')}`;
+        document.getElementById('tz-display').innerText = `${i18n[userLang].label}: ${userTZ}`;
+
+        const nowUser = DT.now().setZone(userTZ);
+        let isAnyLiveGlobal = false;
+
+        for (let i = 0; i < 7; i++) {
+            const dayVN = startOfWeekVN.plus({ days: i });
+            const dayData = daysArray[i] || {};
+            const langObj = i18n[userLang] || i18n['vi'];
+
+            const card = document.createElement('div');
+            card.className = 'card';
+
+            const dayInUserTZ = dayVN.setZone(userTZ);
+            if (nowUser.hasSame(dayInUserTZ, 'day') && weekOffset === 0) {
+                card.classList.add('today');
+            }
+
+            let cardHTML = `
+                <div style="font-size:10px; font-weight:800; color:var(--accent); letter-spacing:1px; margin-bottom:5px;">${langObj.days[i]}</div>
+                <div style="font-family:'JetBrains Mono'; font-size:12px; opacity:0.6; margin-bottom:15px;">${dayInUserTZ.toFormat('dd/MM')}</div>
+                <div style="flex:1;">
+            `;
+
+            const slots = [
+                { key: 'm', name: 'MORNING', dur: dayData.m_h || "2", icon: dayData.m_i || "☕" },
+                { key: 'a', name: 'AFTERNOON', dur: dayData.a_h || "2", icon: dayData.a_i || "☀️" },
+                { key: 'e', name: 'EVENING', dur: dayData.e_h || "2", icon: dayData.e_i || "🌙" }
+            ];
+
+            slots.forEach(s => {
+                const timeVal = dayData[s.key];
+                if (timeVal) {
+                    const startVN = parseTime(timeVal, dayVN);
+                    if (startVN) {
+                        const durationHours = parseFloat(s.dur) || 2;
+                        const endVN = startVN.plus({ hours: durationHours });
+
+                        const startUser = startVN.setZone(userTZ);
+                        const endUser = endVN.setZone(userTZ);
+
+                        const isLive = nowUser >= startUser && nowUser <= endUser;
+
+                        if (isLive) isAnyLiveGlobal = true;
+
+                        cardHTML += `
+                            <div class="slot ${isLive ? 'is-live' : 'active'}">
+                                <div style="font-size:12px; margin-bottom:4px;">${s.icon}</div>
+                                <div class="s-time">${startUser.toFormat('HH:mm')} - ${endUser.toFormat('HH:mm')}</div>
+                                <div class="s-duration">${durationHours}h Session</div>
+                                ${isLive && contacts.live ? `<a href="${contacts.live}" target="_blank" class="live-action">${langObj.watch}</a>` : ''}
+                            </div>
+                        `;
+                    }
+                } else {
+                    cardHTML += `
+                        <div class="slot">
+                            <div class="s-time" style="opacity:0.2;">-- : --</div>
+                        </div>
+                    `;
+                }
+            });
+
+            cardHTML += `</div>`;
+            card.innerHTML = cardHTML;
+            grid.appendChild(card);
+        }
+
+        const liveToast = document.getElementById('live-toast');
+        if (isAnyLiveGlobal && contacts.live) {
+            liveToast.style.display = 'flex';
+            document.getElementById('live-toast-link').href = contacts.live;
+            checkAndPush(true);
+        } else {
+            liveToast.style.display = 'none';
+        }
+    }
+
+    // Khởi chạy hệ thống
+    initTimezones();
+    listen();
+    startClock();
 </script>
 </body>
 </html>
