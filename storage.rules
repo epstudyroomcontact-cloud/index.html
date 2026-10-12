@@ -1,0 +1,22 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email_verified == true && request.auth.token.email == 'epstudyroom.contact@gmail.com';
+    }
+
+    // Ảnh dùng trên trang (logo, ảnh sản phẩm, ảnh bài viết…): ai cũng xem, chỉ admin tải lên (≤ 10 MB)
+    match /public/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && request.resource.size < 10 * 1024 * 1024;
+    }
+
+    // File sản phẩm số (planner, PDF…): chỉ admin, hoặc người đã được cấp quyền trong thư viện của họ
+    match /files/{productId}/{fileName} {
+      allow read: if request.auth != null && (isAdmin()
+        || firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)/library/$(productId)));
+      allow write: if isAdmin() && request.resource.size < 100 * 1024 * 1024;
+    }
+  }
+}

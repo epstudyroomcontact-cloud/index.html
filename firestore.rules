@@ -1,0 +1,85 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Admin = đúng email của chủ trang VÀ email đã được xác minh (không thể mạo danh vì phải mở được hộp thư).
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email == 'epstudyroom.contact@gmail.com';
+    }
+    function signedIn() { return request.auth != null; }
+    // Giao diện, nội dung chữ/ảnh, thông tin thanh toán hiển thị cho khách, lịch live: ai cũng xem, chỉ admin sửa
+    match /settings/{id}         { allow read: if true; allow write: if isAdmin(); }
+    match /weekly_schedules/{id} { allow read: if true; allow write: if isAdmin(); }
+
+    // Bài viết: khách chỉ đọc được bài đã xuất bản
+    match /posts/{id} {
+      allow read: if resource.data.published == true || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // Sản phẩm đang hiển thị
+    match /products/{id} {
+      allow read: if resource.data.active == true || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // File/link tải của sản phẩm số: chỉ admin, hoặc người đã được cấp quyền trong thư viện của họ
+    match /products_private/{id} {
+      allow read: if isAdmin()
+        || (signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)/library/$(id)));
+      allow write: if isAdmin();
+    }
+
+    // Đơn hàng: khách (kể cả chưa đăng nhập) chỉ được TẠO đơn trạng thái pending; chỉ admin sửa
+    match /orders/{id} {
+      allow create: if request.resource.data.status == 'pending'
+                    && request.resource.data.code is string && request.resource.data.code.size() < 20
+                    && request.resource.data.buyer.email is string
+                    && (request.resource.data.uid == null
+                        || (signedIn() && request.resource.data.uid == request.auth.uid));
+      allow read: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+
+    // Mã giảm giá: khách chỉ kiểm tra được từng mã (get), không liệt kê được toàn bộ
+    match /coupons/{code} {
+      allow get: if true;
+      allow list, write: if isAdmin();
+    }
+
+    // Đánh giá: khách đã đăng nhập gửi (chờ duyệt); chỉ hiện công khai khi admin duyệt
+    match /reviews/{id} {
+      allow read: if resource.data.approved == true || isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.approved == false
+                    && request.resource.data.text is string && request.resource.data.text.size() <= 600
+                    && request.resource.data.rating >= 1 && request.resource.data.rating <= 5;
+      allow update, delete: if isAdmin();
+    }
+
+    // Hồ sơ người dùng (việc cần làm, thống kê tập trung) — chỉ chính họ và admin
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create, update: if signedIn() && request.auth.uid == uid;
+      match /library/{pid} {
+        allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+        allow write: if isAdmin();                            // admin cấp quyền tải khi xác nhận đã thanh toán
+      }
+    }
+
+    // Người đồng hành (ủng hộ hằng tháng): chỉ admin ghi; người dùng chỉ đọc được tài liệu của chính mình
+    match /companions/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // Email nhắc lịch (trước đây là Challenge 30 ngày): id = email → tạo lần 2 bị từ chối (chống trùng)
+    match /challenge_signups/{id} {
+      allow create: if request.resource.data.email is string && request.resource.data.email.size() < 200
+                    && id == request.resource.data.email;
+      allow read, update, delete: if isAdmin();
+    }
+  }
+}
