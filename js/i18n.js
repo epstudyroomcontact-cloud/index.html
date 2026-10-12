@@ -1,0 +1,139 @@
+/* =========================================================
+   I18N — giao diện 7 ngôn ngữ (EN + VI đầy đủ; ngôn ngữ khác thiếu thì rơi về EN)
+   Nội dung chủ trang viết (bài viết, sản phẩm…) lưu dạng {vi, en}.
+   Mọi key trong I18N đều có thể được admin sửa trực tiếp trên trang (data-cms).
+   ========================================================= */
+const DAYS = {
+  vi:["THỨ HAI","THỨ BA","THỨ TƯ","THỨ NĂM","THỨ SÁU","THỨ BẢY","CHỦ NHẬT"],
+  en:["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY","SUNDAY"],
+  ja:["月曜日","火曜日","水曜日","木曜日","金曜日","土曜日","日曜日"],
+  ko:["월요일","화요일","수요일","목요일","금요일","토요일","일요일"],
+  zh:["星期一","星期二","星期三","星期四","星期五","星期六","星期日"],
+  fr:["LUNDI","MARDI","MERCREDI","JEUDI","VENDREDI","SAMEDI","DIMANCHE"],
+  es:["LUNES","MARTES","MIÉRCOLES","JUEVES","VIERNES","SÁBADO","DOMINGO"]
+};
+const LANGS = Object.keys(DAYS);
+
+const I18N = {
+en:{
+  nav_home:"Overview",nav_club:"Moon Journey",nav_donate:"Support",donate_title:"Support the channel",donate_sub:"Everything here is free to watch. If you would like to chip in, here is how.",donate_once:"One-time support",donate_custom:"Other amount",donate_scan:"Scan with your banking app or MoMo",donate_via:"Send with",donate_note:"Transfer note",donate_thanks:"Thank you. It genuinely helps.",donate_none:"Support options are not set up yet.",donate_amount:"Amount",comp_title:"Companions",comp_text:"Companions are people who support the channel every month. There is nothing to unlock and nothing you owe. It is just a way to stay close and help me keep streaming.",comp_perks:"What companions get",comp_perk1:"A small badge next to your name",comp_perk2:"Your name on the supporters list (optional)",comp_perk3:"Early access to new planners and posts",comp_cta:"Become a companion",comp_badge:"Companion",comp_active:"You are a companion. Thank you.",club_title:"Moon Journey",club_sub:"A simple check-in calendar for the days you study with the stream. Check in 30 days and the moon is full.",club_start:"Start my journey",club_checkin:"Check in for today",club_done_today:"Checked in today",club_day:"Day {d} of {t}",club_full:"The moon is full",club_full_sub:"30 days checked in. Thanks for studying along.",club_rounds:"Full moons: {n}",club_again:"Start another round",club_login:"Sign in to keep your moon.",club_how:"How it works",club_how1:"Join a stream, live or a recording.",club_how2:"Press check in. Once a day is enough.",club_how3:"Each day fills a bit more of the moon.",club_calendar:"Your 30 days",club_today:"today",club_remind:"Reminder emails",club_login_btn:"Sign in or create an account",cat_all:"All",featured:"Pinned",more_in:"More in {c}",cat_empty:"Nothing here yet.",plan_chip:"{n} focus blocks · {f} min focus · {b} min break",moon_label:"Moon Journey",nav_schedule:"Schedule",nav_watch:"Watch live",nav_focus:"Focus room",nav_blog:"Writing",nav_shop:"Shop",nav_about:"About",nav_library:"My library",nav_account:"Account",nav_admin:"Admin console",nav_signin:"Sign in",
+  menu:"Menu",search:"Search…",all:"All",back:"Back",save:"Save",cancel:"Cancel",close:"Close",copy:"Copy",copied:"Copied!",view_all:"View all",loading:"Loading…",language:"Language",timezone:"Timezone",theme:"Theme",dark:"Dark mode",calm:"Reduce motion",auto:"Auto detect",
+  th_rain:"Night",th_pop:"Pop",th_violet:"Neon Violet",th_teal:"Teal Storm",edit_page:"Edit page",editing_in:"Editing text in",done_editing:"Done",edit_hint:"Click any highlighted text to edit. Click an image to replace it.",saved:"Saved ✔",
+  hello_m:"Good morning",hello_a:"Good afternoon",hello_e:"Good evening",
+  home_badge:"Live study sessions",
+  home_title:"Study together, quietly.",
+  home_sub:"Live Pomodoro study sessions on YouTube. Join when you can, leave when you need to.",
+  btn_watch_live:"Watch live",btn_see_schedule:"See schedule",btn_start_focus:"Start focusing",
+  live_now:"Live right now",next_live:"Next live in",no_next:"No live scheduled yet",
+  stat_lives:"Lives this week",stat_hours:"Study hours",stat_focus_today:"Your focus today",stat_rating:"Community rating",min:"min",h:"h",
+  sec_today:"Today's sessions",sec_blog:"From the journal",sec_shop:"In the shop",sec_reviews:"What people say",nothing_today:"No sessions scheduled for today.",
+  sch_title:"Live schedule",sch_sub:"Every time is converted to your timezone automatically. Days follow the Vietnam calendar.",
+  tz_label:"Your timezone",watch:"Watch now",focus:"Focus",short_break:"Break",long_break:"Long break",today:"Today",
+  pomo_chip:"{n} × {f}′ focus · {s}′ break · {l}′ long break",session_h:"{h}h session",total_min:"Total {m} min",show_plan:"Show plan",hide_plan:"Hide plan",cancelled:"Cancelled",day_off:"Day off — no live",rest:"No live today",prev_day:"previous day",next_day:"next day",
+  watch_title:"Watch live",watch_sub:"Join the study room right here, or catch up on recent videos.",offline:"The stream is offline",offline_sub:"Check the schedule to see when we're back.",open_youtube:"Open on YouTube",latest_videos:"Latest videos",no_videos:"Videos will appear here soon.",
+  focus_title:"Focus room",focus_sub:"Your own Pomodoro timer and to-do list — study alongside the stream.",
+  start:"Start",pause:"Pause",resume:"Resume",reset:"Reset",skip:"Skip",mode_focus:"Focus",mode_short:"Short break",mode_long:"Long break",
+  cfg_focus:"Focus (min)",cfg_short:"Break (min)",cfg_long:"Long break (min)",cfg_every:"Long break every",
+  presets:"Presets",sessions_today:"Sessions today",minutes_today:"Focus minutes today",week_chart:"Last 7 days",
+  todo_title:"To-do list",todo_ph:"Add a task and press Enter…",todo_empty:"Nothing here yet — add your first task.",sound_noise:"Soft background noise",auto_start:"Auto-start next block",
+  notify_done_focus:"Focus block complete! Time for a break.",notify_done_break:"Break is over — let's focus.",sync_note:"Sign in to sync your tasks and stats across devices.",
+  blog_title:"Writing",blog_sub:"Journal entries, study notes, essays and short pieces.",read_more:"Read more",min_read:"{m} min read",no_posts:"No posts yet",no_posts_sub:"The first one is on its way.",translate:"Translate this page",not_found:"Post not found.",
+  shop_title:"Shop",shop_sub:"Planners, printables and little things for your study desk.",add_cart:"Add to cart",in_cart:"In cart",soon:"Coming soon",soon_sub:"New products are being prepared. Check back soon!",sold_out:"Sold out",digital:"Digital",physical:"Physical",
+  cart:"Your cart",cart_empty:"Your cart is empty",subtotal:"Subtotal",discount:"Discount",total:"Total",coupon_ph:"Discount code",apply:"Apply",coupon_ok:"Code applied",coupon_bad:"This code isn't valid",checkout:"Checkout",remove:"Remove",
+  your_name:"Your name",your_email:"Email",address:"Shipping address",note:"Note (optional)",continue:"Continue to payment",order_code:"Order code",scan_qr:"Scan with your banking app or MoMo",bank:"Bank",acc_no:"Account number",acc_name:"Account name",amount:"Amount",content:"Transfer note",
+  pay_wait:"After you transfer, I'll confirm by email and unlock your download. Keep the transfer note exactly as shown.",pay_wait_link:"After you pay, I'll confirm by email. If asked for a note, write {code}.",pay_card:"Pay by card",pay_none:"Payment details aren't set up yet. Please contact me via the social links.",momo:"MoMo",
+  ship_note:"Shipping fee (if any) will be confirmed by email.",order_err:"Couldn't create the order: ",login_to_buy:"Please sign in so your downloads are saved to your library.",na_currency:"Not sold in this currency",instant_download:"Instant download after payment is confirmed",
+  about_title:"About",about_badge:"About",about_h:"Hi, I'm EP",about_text:"I stream study sessions on YouTube, mostly Pomodoro blocks with short breaks. This site has the schedule, my writing, a few things I make, and a small check-in calendar if you like keeping track.",
+  about_c1_t:"Pomodoro, your way",about_c1_d:"Block lengths change from stream to stream. The schedule shows the exact plan for each one.",about_c2_t:"Your timezone",about_c2_d:"Every time is converted to your local time automatically.",about_c3_t:"A few tools",about_c3_d:"A focus timer, a to-do list and printable planners.",
+  faq_title:"Frequently asked questions",
+  faq1q:"How do I know when you're live?",faq1a:"Open the Schedule page — every session is shown in your own timezone, and you can enable browser notifications with the bell icon.",
+  faq2q:"What is the Pomodoro method?",faq2a:"You work in short focused blocks (for example 25 minutes), take a short break, and after several rounds take a longer break. Each live shows its exact plan.",
+  faq3q:"How do I get my purchase?",faq3a:"Sign in before buying. Once your payment is confirmed, digital products appear in your Library for download.",
+  faq4q:"What if a session is cancelled?",faq4a:"Cancelled sessions are marked on the schedule with a reason, and no live notification is sent.",
+  reviews_title:"Reviews",review_write:"Write a review",review_ph:"Leave a short review",review_submit:"Submit review",review_pending:"Thanks! Your review will appear once approved.",review_login:"Sign in to leave a review.",no_reviews:"No reviews yet — be the first.",rating_label:"Your rating",
+  signin:"Sign in",signup:"Create account",signout:"Sign out",email:"Email",password:"Password",name_ph:"Display name",forgot:"Forgot password?",reset_sent:"Password reset email sent.",have_account:"Already have an account?",no_account:"New here?",
+  verify_banner:"Please verify your email address — we sent you a link.",verify_sent:"Verification email sent.",resend:"Resend",account_title:"Your account",my_orders:"Orders",my_library:"Library",no_orders:"No orders yet.",no_library:"Purchased digital products will appear here.",download:"Download",profile:"Profile",display_name:"Display name",member_since:"Member since",
+  err_email_in_use:"This email is already registered.",err_weak:"Password should be at least 6 characters.",err_bad_login:"Wrong email or password.",err_generic:"Something went wrong: ",
+  ch_title:"Reminder emails",ch_desc:"A short email on the days I am live. Nothing else.",ch_name:"Your nickname",ch_email:"Your email address",ch_btn:"Sign up",ch_sending:"Sending…",ch_dup:"This email is already registered.",ch_ok:"You are signed up. Check your email.",ch_err:"Something went wrong: ",
+  follow:"Follow",signal:"We're live",connect:"Watch",notif_unsupported:"Your browser doesn't support notifications.",notif_title:"We're live!",notif_body:"Come study with me now.",rights:"All rights reserved."
+},
+vi:{
+  nav_home:"Tổng quan",nav_club:"Hành trình trăng",nav_donate:"Ủng hộ",donate_title:"Ủng hộ kênh",donate_sub:"Mọi thứ ở đây đều xem miễn phí. Nếu bạn muốn góp một chút, đây là cách.",donate_once:"Ủng hộ một lần",donate_custom:"Số tiền khác",donate_scan:"Quét bằng app ngân hàng hoặc MoMo",donate_via:"Gửi qua",donate_note:"Nội dung chuyển khoản",donate_thanks:"Cảm ơn bạn, thật sự rất có ích.",donate_none:"Chưa cài đặt cách ủng hộ.",donate_amount:"Số tiền",comp_title:"Người đồng hành",comp_text:"Người đồng hành là những người ủng hộ kênh mỗi tháng. Không có gì phải mở khoá và bạn không nợ gì cả. Đây chỉ là cách ở gần hơn và giúp mình tiếp tục livestream.",comp_perks:"Người đồng hành nhận được",comp_perk1:"Một huy hiệu nhỏ cạnh tên bạn",comp_perk2:"Tên bạn trong danh sách ủng hộ (tuỳ chọn)",comp_perk3:"Xem sớm sổ kế hoạch và bài viết mới",comp_cta:"Trở thành người đồng hành",comp_badge:"Đồng hành",comp_active:"Bạn là người đồng hành. Cảm ơn bạn.",club_title:"Hành trình trăng",club_sub:"Một lịch điểm danh đơn giản cho những ngày bạn học cùng buổi stream. Điểm danh đủ 30 ngày thì trăng tròn.",club_start:"Bắt đầu hành trình",club_checkin:"Điểm danh hôm nay",club_done_today:"Đã điểm danh hôm nay",club_day:"Ngày {d} / {t}",club_full:"Trăng đã tròn",club_full_sub:"Đã điểm danh đủ 30 ngày. Cảm ơn bạn đã học cùng.",club_rounds:"Số lần trăng tròn: {n}",club_again:"Bắt đầu vòng mới",club_login:"Đăng nhập để giữ mặt trăng của bạn.",club_how:"Cách hoạt động",club_how1:"Xem một buổi stream, live hoặc xem lại.",club_how2:"Bấm điểm danh. Mỗi ngày một lần là đủ.",club_how3:"Mỗi ngày mặt trăng đầy thêm một chút.",club_calendar:"30 ngày của bạn",club_today:"hôm nay",club_remind:"Email nhắc lịch",club_login_btn:"Đăng nhập hoặc tạo tài khoản",cat_all:"Tất cả",featured:"Ghim",more_in:"Thêm trong {c}",cat_empty:"Chưa có bài nào.",plan_chip:"{n} khối tập trung · {f} phút tập trung · {b} phút nghỉ",moon_label:"Hành trình trăng",nav_schedule:"Lịch live",nav_watch:"Xem live",nav_focus:"Phòng tập trung",nav_blog:"Bài viết",nav_shop:"Cửa hàng",nav_about:"Giới thiệu",nav_library:"Thư viện của tôi",nav_account:"Tài khoản",nav_admin:"Trang quản trị",nav_signin:"Đăng nhập",
+  menu:"Menu",search:"Tìm kiếm…",all:"Tất cả",back:"Quay lại",save:"Lưu",cancel:"Huỷ",close:"Đóng",copy:"Sao chép",copied:"Đã chép!",view_all:"Xem tất cả",loading:"Đang tải…",language:"Ngôn ngữ",timezone:"Múi giờ",theme:"Giao diện",dark:"Chế độ tối",calm:"Giảm chuyển động",auto:"Tự nhận diện",
+  th_rain:"Đêm mưa",th_pop:"Rực rỡ",th_violet:"Tím neon",th_teal:"Xanh bão",edit_page:"Sửa trang",editing_in:"Đang sửa chữ ở ngôn ngữ",done_editing:"Xong",edit_hint:"Bấm vào chữ có viền nét đứt để sửa. Bấm vào ảnh để thay.",saved:"Đã lưu ✔",
+  hello_m:"Chào buổi sáng",hello_a:"Chào buổi chiều",hello_e:"Chào buổi tối",
+  home_badge:"Livestream học",
+  home_title:"Học cùng nhau, thật yên tĩnh.",
+  home_sub:"Livestream học Pomodoro trên YouTube. Vào khi bạn rảnh, rời đi khi bạn cần.",
+  btn_watch_live:"Xem live",btn_see_schedule:"Xem lịch",btn_start_focus:"Bắt đầu tập trung",
+  live_now:"Đang live",next_live:"Live tiếp theo sau",no_next:"Chưa có lịch live",
+  stat_lives:"Buổi live tuần này",stat_hours:"Giờ học",stat_focus_today:"Bạn đã tập trung hôm nay",stat_rating:"Đánh giá cộng đồng",min:"phút",h:"giờ",
+  sec_today:"Các buổi hôm nay",sec_blog:"Từ nhật ký",sec_shop:"Trong cửa hàng",sec_reviews:"Mọi người nói gì",nothing_today:"Hôm nay chưa có buổi nào.",
+  sch_title:"Lịch live",sch_sub:"Mọi giờ đều tự quy đổi sang múi giờ của bạn. Ngày tính theo lịch Việt Nam.",
+  tz_label:"Múi giờ của bạn",watch:"Xem ngay",focus:"Tập trung",short_break:"Nghỉ ngắn",long_break:"Nghỉ dài",today:"Hôm nay",
+  pomo_chip:"{n} × {f}′ tập trung · {s}′ nghỉ · {l}′ nghỉ dài",session_h:"Buổi {h} giờ",total_min:"Tổng {m} phút",show_plan:"Xem chi tiết",hide_plan:"Ẩn chi tiết",cancelled:"Đã huỷ",day_off:"Nghỉ — không live",rest:"Hôm nay không live",prev_day:"ngày trước",next_day:"ngày sau",
+  watch_title:"Xem live",watch_sub:"Vào phòng học ngay tại đây, hoặc xem lại các video gần đây.",offline:"Hiện chưa phát sóng",offline_sub:"Xem lịch live để biết khi nào mình quay lại.",open_youtube:"Mở trên YouTube",latest_videos:"Video mới nhất",no_videos:"Video sẽ sớm xuất hiện ở đây.",
+  focus_title:"Phòng tập trung",focus_sub:"Đồng hồ Pomodoro và danh sách việc của riêng bạn — học song song cùng buổi live.",
+  start:"Bắt đầu",pause:"Tạm dừng",resume:"Tiếp tục",reset:"Đặt lại",skip:"Bỏ qua",mode_focus:"Tập trung",mode_short:"Nghỉ ngắn",mode_long:"Nghỉ dài",
+  cfg_focus:"Tập trung (phút)",cfg_short:"Nghỉ (phút)",cfg_long:"Nghỉ dài (phút)",cfg_every:"Nghỉ dài mỗi",
+  presets:"Mẫu có sẵn",sessions_today:"Phiên hôm nay",minutes_today:"Phút tập trung hôm nay",week_chart:"7 ngày gần nhất",
+  todo_title:"Danh sách việc",todo_ph:"Thêm việc rồi nhấn Enter…",todo_empty:"Chưa có gì — thêm việc đầu tiên nhé.",sound_noise:"Tiếng ồn nền nhẹ",auto_start:"Tự bắt đầu khối kế tiếp",
+  notify_done_focus:"Xong một khối tập trung! Nghỉ chút nhé.",notify_done_break:"Hết giờ nghỉ — quay lại tập trung nào.",sync_note:"Đăng nhập để đồng bộ việc cần làm và thống kê giữa các thiết bị.",
+  blog_title:"Bài viết",blog_sub:"Nhật ký, ghi chép học tập, tản văn và những đoạn viết ngắn.",read_more:"Đọc tiếp",min_read:"{m} phút đọc",no_posts:"Chưa có bài viết",no_posts_sub:"Bài đầu tiên sắp ra mắt.",translate:"Dịch trang này",not_found:"Không tìm thấy bài viết.",
+  shop_title:"Cửa hàng",shop_sub:"Sổ kế hoạch, bản in và những món nhỏ cho góc học tập.",add_cart:"Thêm vào giỏ",in_cart:"Đã trong giỏ",soon:"Sắp ra mắt",soon_sub:"Sản phẩm mới đang được chuẩn bị. Ghé lại sớm nhé!",sold_out:"Hết hàng",digital:"Sản phẩm số",physical:"Sản phẩm vật lý",
+  cart:"Giỏ hàng",cart_empty:"Giỏ hàng đang trống",subtotal:"Tạm tính",discount:"Giảm giá",total:"Tổng cộng",coupon_ph:"Mã giảm giá",apply:"Áp dụng",coupon_ok:"Đã áp dụng mã",coupon_bad:"Mã không hợp lệ",checkout:"Thanh toán",remove:"Xoá",
+  your_name:"Tên của bạn",your_email:"Email",address:"Địa chỉ nhận hàng",note:"Ghi chú (tuỳ chọn)",continue:"Tiếp tục thanh toán",order_code:"Mã đơn",scan_qr:"Quét bằng app ngân hàng hoặc MoMo",bank:"Ngân hàng",acc_no:"Số tài khoản",acc_name:"Chủ tài khoản",amount:"Số tiền",content:"Nội dung chuyển khoản",
+  pay_wait:"Sau khi chuyển khoản, mình sẽ xác nhận qua email và mở tải xuống cho bạn. Hãy giữ nguyên nội dung chuyển khoản.",pay_wait_link:"Sau khi thanh toán, mình sẽ xác nhận qua email. Nếu có ô ghi chú, bạn hãy ghi {code} nhé.",pay_card:"Thanh toán bằng thẻ",pay_none:"Chưa cài đặt thông tin thanh toán. Bạn vui lòng liên hệ mình qua mạng xã hội.",momo:"MoMo",
+  ship_note:"Phí vận chuyển (nếu có) sẽ được xác nhận qua email.",order_err:"Không tạo được đơn: ",login_to_buy:"Hãy đăng nhập để file tải xuống được lưu vào thư viện của bạn.",na_currency:"Không bán bằng đơn vị tiền này",instant_download:"Tải ngay sau khi thanh toán được xác nhận",
+  about_title:"Giới thiệu",about_badge:"Giới thiệu",about_h:"Xin chào, mình là EP",about_text:"Mình phát các buổi học trên YouTube, chủ yếu là Pomodoro có giờ nghỉ ngắn. Trang này có lịch live, các bài viết của mình, vài thứ mình làm, và một lịch điểm danh nhỏ nếu bạn thích theo dõi.",
+  about_c1_t:"Pomodoro theo cách riêng",about_c1_d:"Độ dài mỗi khối khác nhau tuỳ buổi. Lịch hiển thị kế hoạch cụ thể của từng buổi.",about_c2_t:"Múi giờ của bạn",about_c2_d:"Mọi giờ đều tự quy đổi sang giờ địa phương.",about_c3_t:"Vài công cụ",about_c3_d:"Đồng hồ tập trung, danh sách việc và sổ kế hoạch in được.",
+  faq_title:"Câu hỏi thường gặp",
+  faq1q:"Làm sao biết khi nào bạn live?",faq1a:"Mở trang Lịch live — mỗi buổi hiển thị theo múi giờ của bạn, và bạn có thể bật thông báo trình duyệt bằng biểu tượng chuông.",
+  faq2q:"Phương pháp Pomodoro là gì?",faq2a:"Bạn làm việc theo khối ngắn tập trung (ví dụ 25 phút), nghỉ ngắn, và sau vài vòng thì nghỉ dài. Mỗi buổi live đều hiển thị kế hoạch chính xác.",
+  faq3q:"Làm sao nhận sản phẩm đã mua?",faq3a:"Hãy đăng nhập trước khi mua. Khi thanh toán được xác nhận, sản phẩm số sẽ xuất hiện trong Thư viện để tải xuống.",
+  faq4q:"Nếu buổi live bị huỷ thì sao?",faq4a:"Buổi bị huỷ được đánh dấu trên lịch kèm lý do và sẽ không có thông báo live.",
+  reviews_title:"Đánh giá",review_write:"Viết đánh giá",review_ph:"Viết vài dòng đánh giá",review_submit:"Gửi đánh giá",review_pending:"Cảm ơn bạn! Đánh giá sẽ hiện sau khi được duyệt.",review_login:"Đăng nhập để viết đánh giá.",no_reviews:"Chưa có đánh giá — hãy là người đầu tiên.",rating_label:"Số sao của bạn",
+  signin:"Đăng nhập",signup:"Tạo tài khoản",signout:"Đăng xuất",email:"Email",password:"Mật khẩu",name_ph:"Tên hiển thị",forgot:"Quên mật khẩu?",reset_sent:"Đã gửi email đặt lại mật khẩu.",have_account:"Đã có tài khoản?",no_account:"Bạn mới đến?",
+  verify_banner:"Vui lòng xác minh địa chỉ email — mình đã gửi cho bạn một liên kết.",verify_sent:"Đã gửi email xác minh.",resend:"Gửi lại",account_title:"Tài khoản của bạn",my_orders:"Đơn hàng",my_library:"Thư viện",no_orders:"Chưa có đơn hàng.",no_library:"Sản phẩm số đã mua sẽ hiện ở đây.",download:"Tải xuống",profile:"Hồ sơ",display_name:"Tên hiển thị",member_since:"Thành viên từ",
+  err_email_in_use:"Email này đã được đăng ký.",err_weak:"Mật khẩu cần ít nhất 6 ký tự.",err_bad_login:"Sai email hoặc mật khẩu.",err_generic:"Có lỗi xảy ra: ",
+  ch_title:"Email nhắc lịch",ch_desc:"Một email ngắn vào những ngày mình live. Không gì khác.",ch_name:"Biệt danh của bạn",ch_email:"Địa chỉ email",ch_btn:"Đăng ký",ch_sending:"Đang gửi…",ch_dup:"Email này đã được đăng ký.",ch_ok:"Đã đăng ký. Hãy kiểm tra email.",ch_err:"Có lỗi xảy ra: ",
+  follow:"Theo dõi",signal:"Đang live",connect:"Vào xem",notif_unsupported:"Trình duyệt không hỗ trợ thông báo.",notif_title:"Mình lên sóng rồi!",notif_body:"Vào học cùng mình nào.",rights:"Bảo lưu mọi quyền."
+},
+ja:{nav_home:"ホーム",nav_schedule:"スケジュール",nav_watch:"ライブ視聴",nav_focus:"集中ルーム",nav_blog:"ジャーナル",nav_shop:"ショップ",nav_about:"について",nav_library:"ライブラリ",nav_account:"アカウント",nav_signin:"ログイン",
+  home_title:"一緒に勉強。もっと深く集中。",btn_watch_live:"ライブを見る",btn_see_schedule:"スケジュール",btn_start_focus:"集中を始める",live_now:"ライブ配信中",next_live:"次のライブまで",no_next:"ライブ予定はありません",
+  sch_title:"ライブスケジュール",sch_sub:"時間はあなたのタイムゾーンに自動変換されます。",focus:"集中",short_break:"休憩",long_break:"長い休憩",watch:"今すぐ見る",cancelled:"中止",today:"今日",
+  watch_title:"ライブ視聴",latest_videos:"最新動画",focus_title:"集中ルーム",start:"開始",pause:"一時停止",reset:"リセット",todo_title:"やることリスト",blog_title:"ジャーナル",shop_title:"ショップ",add_cart:"カートに追加",cart:"カート",checkout:"購入手続き",total:"合計",
+  about_title:"について",faq_title:"よくある質問",reviews_title:"レビュー",signin:"ログイン",signup:"アカウント作成",signout:"ログアウト",email:"メール",password:"パスワード",timezone:"タイムゾーン",language:"言語",theme:"テーマ",dark:"ダークモード",follow:"フォロー"},
+ko:{nav_home:"홈",nav_schedule:"일정",nav_watch:"라이브 시청",nav_focus:"집중 룸",nav_blog:"저널",nav_shop:"샵",nav_about:"소개",nav_library:"내 라이브러리",nav_account:"계정",nav_signin:"로그인",
+  home_title:"함께 공부해요. 더 깊게 집중해요.",btn_watch_live:"라이브 보기",btn_see_schedule:"일정 보기",btn_start_focus:"집중 시작",live_now:"지금 라이브 중",next_live:"다음 라이브까지",no_next:"예정된 라이브가 없어요",
+  sch_title:"라이브 일정",sch_sub:"모든 시간은 내 시간대로 자동 변환돼요.",focus:"집중",short_break:"휴식",long_break:"긴 휴식",watch:"지금 시청",cancelled:"취소됨",today:"오늘",
+  watch_title:"라이브 시청",latest_videos:"최신 영상",focus_title:"집중 룸",start:"시작",pause:"일시정지",reset:"초기화",todo_title:"할 일 목록",blog_title:"저널",shop_title:"샵",add_cart:"장바구니 담기",cart:"장바구니",checkout:"결제하기",total:"합계",
+  about_title:"소개",faq_title:"자주 묻는 질문",reviews_title:"리뷰",signin:"로그인",signup:"계정 만들기",signout:"로그아웃",email:"이메일",password:"비밀번호",timezone:"시간대",language:"언어",theme:"테마",dark:"다크 모드",follow:"팔로우"},
+zh:{nav_home:"概览",nav_schedule:"直播表",nav_watch:"观看直播",nav_focus:"专注室",nav_blog:"日记",nav_shop:"商店",nav_about:"关于",nav_library:"我的资料库",nav_account:"账户",nav_signin:"登录",
+  home_title:"一起学习，更深度专注。",btn_watch_live:"观看直播",btn_see_schedule:"查看直播表",btn_start_focus:"开始专注",live_now:"正在直播",next_live:"距离下次直播",no_next:"暂无直播安排",
+  sch_title:"直播时间表",sch_sub:"所有时间都会自动换算为你的时区。",focus:"专注",short_break:"休息",long_break:"长休息",watch:"立即观看",cancelled:"已取消",today:"今天",
+  watch_title:"观看直播",latest_videos:"最新视频",focus_title:"专注室",start:"开始",pause:"暂停",reset:"重置",todo_title:"待办清单",blog_title:"日记",shop_title:"商店",add_cart:"加入购物车",cart:"购物车",checkout:"结算",total:"合计",
+  about_title:"关于",faq_title:"常见问题",reviews_title:"评价",signin:"登录",signup:"创建账户",signout:"退出登录",email:"邮箱",password:"密码",timezone:"时区",language:"语言",theme:"主题",dark:"深色模式",follow:"关注"},
+fr:{nav_home:"Aperçu",nav_schedule:"Planning",nav_watch:"Regarder le live",nav_focus:"Salle de focus",nav_blog:"Journal",nav_shop:"Boutique",nav_about:"À propos",nav_library:"Ma bibliothèque",nav_account:"Compte",nav_signin:"Connexion",
+  home_title:"Étudions ensemble. Concentrons-nous mieux.",btn_watch_live:"Regarder le live",btn_see_schedule:"Voir le planning",btn_start_focus:"Commencer",live_now:"En direct",next_live:"Prochain live dans",no_next:"Aucun live prévu",
+  sch_title:"Planning des lives",sch_sub:"Les heures sont converties dans ton fuseau horaire.",focus:"Concentration",short_break:"Pause",long_break:"Longue pause",watch:"Regarder",cancelled:"Annulé",today:"Aujourd'hui",
+  watch_title:"Regarder le live",latest_videos:"Dernières vidéos",focus_title:"Salle de focus",start:"Démarrer",pause:"Pause",reset:"Réinitialiser",todo_title:"Liste de tâches",blog_title:"Journal",shop_title:"Boutique",add_cart:"Ajouter au panier",cart:"Panier",checkout:"Payer",total:"Total",
+  about_title:"À propos",faq_title:"Questions fréquentes",reviews_title:"Avis",signin:"Connexion",signup:"Créer un compte",signout:"Déconnexion",email:"E-mail",password:"Mot de passe",timezone:"Fuseau horaire",language:"Langue",theme:"Thème",dark:"Mode sombre",follow:"Suivre"},
+es:{nav_home:"Resumen",nav_schedule:"Horario",nav_watch:"Ver en vivo",nav_focus:"Sala de enfoque",nav_blog:"Diario",nav_shop:"Tienda",nav_about:"Acerca de",nav_library:"Mi biblioteca",nav_account:"Cuenta",nav_signin:"Entrar",
+  home_title:"Estudiemos juntos. Enfócate más.",btn_watch_live:"Ver en vivo",btn_see_schedule:"Ver horario",btn_start_focus:"Empezar",live_now:"En directo",next_live:"Próximo directo en",no_next:"No hay directos programados",
+  sch_title:"Horario de directos",sch_sub:"Las horas se convierten a tu zona horaria.",focus:"Enfoque",short_break:"Descanso",long_break:"Descanso largo",watch:"Ver ahora",cancelled:"Cancelado",today:"Hoy",
+  watch_title:"Ver en vivo",latest_videos:"Últimos vídeos",focus_title:"Sala de enfoque",start:"Iniciar",pause:"Pausa",reset:"Reiniciar",todo_title:"Lista de tareas",blog_title:"Diario",shop_title:"Tienda",add_cart:"Añadir al carrito",cart:"Carrito",checkout:"Pagar",total:"Total",
+  about_title:"Acerca de",faq_title:"Preguntas frecuentes",reviews_title:"Reseñas",signin:"Entrar",signup:"Crear cuenta",signout:"Salir",email:"Correo",password:"Contraseña",timezone:"Zona horaria",language:"Idioma",theme:"Tema",dark:"Modo oscuro",follow:"Seguir"}
+};
+
+const TZ_LANG_HINT = {"Asia/Ho_Chi_Minh":"vi","Asia/Saigon":"vi","Asia/Tokyo":"ja","Asia/Seoul":"ko","Asia/Shanghai":"zh","Asia/Taipei":"zh","Asia/Hong_Kong":"zh","Europe/Paris":"fr","Europe/Madrid":"es","America/Mexico_City":"es","America/Bogota":"es","America/Argentina/Buenos_Aires":"es"};
+
+// Tự chọn ngôn ngữ theo trình duyệt, sau đó theo múi giờ (đoán quốc gia); mặc định English
+function detectLang(){
+  const list = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || 'en']).map(l => String(l).toLowerCase().slice(0,2));
+  const first = list.find(l => LANGS.includes(l));
+  const hint = TZ_LANG_HINT[Intl.DateTimeFormat().resolvedOptions().timeZone];
+  if (first && first !== 'en') return first;
+  if (hint) return hint;
+  return first || 'en';
+}
