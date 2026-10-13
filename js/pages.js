@@ -76,7 +76,7 @@ const ratingAvg = () => reviews.length ? (reviews.reduce((a, r) => a + (+r.ratin
 function secHead(titleKey, href){ return `<div class="card-h" style="margin:34px 0 14px"><h2 style="font-size:1.2rem" ${cms(titleKey)}>${esc(ctext(titleKey))}</h2>${href ? `<a class="link" href="${href}">${esc(t('view_all'))} ${ic('arrow', 'sm')}</a>` : ''}</div>`; }
 function blogCard(p){
   return `<a class="pcard" href="#/blog/${encodeURIComponent(p.slug || p.id)}"><div class="cv">${p.cover ? `<img loading="lazy" alt="" src="${esc(p.cover)}">` : paintFor(p.slug || p.id, { lite:true })}</div>
-    <div class="bd"><div class="meta"><span>${esc(fmtDate(p.createdAt))}</span><span>${esc(t('min_read', { m:readMins(L(p.body)) }))}</span></div><h3>${esc(L(p.title))}</h3><p>${esc(L(p.excerpt))}</p>
+    <div class="bd"><div class="meta"><span>${esc(fmtDate(p.createdAt))}</span><span>${esc(t('min_read', { m:postMins(p) }))}</span></div><h3>${esc(L(p.title))}</h3><p>${esc(L(p.excerpt))}</p>
     <div class="tags">${p.pinned ? `<span class="badge">${ic('star', 'sm')} ${esc(t('featured'))}</span>` : ''}${p.category ? `<span class="badge muted">${esc(catLabel(p.category))}</span>` : ''}</div></div></a>`;
 }
 function reviewCard(r){ return `<div class="card review"><div class="row between">${stars(+r.rating || 5)}<span class="small faint">${esc(fmtDate(r.createdAt))}</span></div><p>${esc(r.text)}</p><div class="row between"><b class="small">${esc(r.name || '—')}</b>${state.isAdmin ? `<button type="button" class="btn danger sm" data-act="reviewDelPublic" data-id="${esc(r.id)}">${ic('trash', 'sm')} Xoá</button>` : ''}</div></div>`; }
@@ -317,6 +317,21 @@ FORMS.todo = () => { const i = $('todo-in'), v = i.value.trim(); if (!v) return;
    BLOG
    ========================================================= */
 let blogTag = '', blogQ = '', blogCat = '';
+/* Bản gộp chỉ chứa phần giới thiệu bài (không kèm nội dung). Nội dung bài chỉ được đọc khi người xem mở bài, rồi lưu trong trình duyệt 30 phút. */
+const postMins = p => (p.rm && (p.rm[state.lang] || p.rm.en || p.rm.vi)) || readMins(L(p.body));
+const postBodyCache = store.get('pbodies', {});
+function ensurePostBody(p){
+  if (p.body) return;
+  if (SITE.bodies && SITE.bodies[p.id]) { p.body = SITE.bodies[p.id]; return; }
+  const c = postBodyCache[p.id]; if (c && Date.now() - c.t < 30 * 60e3) { p.body = c.body; return; }
+  if (p._loading || DEMO) return; p._loading = true;
+  db.collection('posts').doc(p.id).get().then(d => {
+    const b = d.exists ? d.data().body : null;
+    if (b) { p.body = b; postBodyCache[p.id] = { t:Date.now(), body:b }; const ks = Object.keys(postBodyCache); if (ks.length > 8) delete postBodyCache[ks.sort((x, y) => postBodyCache[x].t - postBodyCache[y].t)[0]]; store.set('pbodies', postBodyCache); }
+    if (!b) p._err = true;
+    p._loading = false; if (route.name === 'blog') render(true);
+  }).catch(() => { p._loading = false; p._err = true; if (route.name === 'blog') render(true); });
+}
 const livePosts = () => posts.filter(p => !(p.publishAt && tsMs(p.publishAt) > Date.now())).sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || tsMs(b.createdAt) - tsMs(a.createdAt));
 const blogCats = () => (branding.blogCats || []);
 const catOf = id => blogCats().find(c => c.id === id);
@@ -340,13 +355,14 @@ PAGES.blog = function(){
 function renderPost(slug){
   const lp = livePosts(), i = lp.findIndex(p => (p.slug || p.id) === slug), p = lp[i];
   if (!p) return page(`<a class="btn secondary sm" href="#/blog">${ic('chev-l', 'sm')} ${esc(t('back'))}</a>${emptyBox('pen', posts.length ? t('not_found') : t('loading'), '')}`);
+  ensurePostBody(p);
   const same = lp.filter(x => x.category === p.category && x.id !== p.id).slice(0, 3), prev = lp[i + 1], next = lp[i - 1];
-  const tr = (!isNativeContent() && !(p.body && p.body[state.lang])) ? `<a class="badge" target="_blank" rel="noopener" href="https://translate.google.com/translate?sl=auto&tl=${state.lang}&u=${encodeURIComponent(location.href.split('#')[0] + '#/blog/' + encodeURIComponent(slug))}">${ic('globe', 'sm')} ${esc(t('translate'))}</a>` : '';
+  const tr = (!isNativeContent() && p.body && !p.body[state.lang]) ? `<a class="badge" target="_blank" rel="noopener" href="https://translate.google.com/translate?sl=auto&tl=${state.lang}&u=${encodeURIComponent(location.href.split('#')[0] + '#/blog/' + encodeURIComponent(slug))}">${ic('globe', 'sm')} ${esc(t('translate'))}</a>` : '';
   page(`<article class="post"><a class="btn secondary sm" href="#/blog${p.category ? '/c/' + esc(p.category) : ''}">${ic('chev-l', 'sm')} ${esc(p.category ? catLabel(p.category) : t('back'))}</a><h1>${esc(L(p.title))}</h1>
-    <div class="meta"><span>${esc(fmtDate(p.createdAt))}</span><span>${esc(t('min_read', { m:readMins(L(p.body)) }))}</span>${tr}</div>
+    <div class="meta"><span>${esc(fmtDate(p.createdAt))}</span><span>${esc(t('min_read', { m:postMins(p) }))}</span>${tr}</div>
     <div class="tags mt-s">${p.category ? `<a class="badge" href="#/blog/c/${esc(p.category)}">${esc(catLabel(p.category))}</a>` : ''}${(p.tags || []).map(g => `<span class="badge muted">#${esc(g)}</span>`).join('')}</div>
     ${state.isAdmin ? `<div class="row mt-s"><button type="button" class="btn secondary sm" data-act="editPostPage" data-id="${esc(p.id)}">${ic('pen', 'sm')} Sửa bài này</button><button type="button" class="btn danger sm" data-act="delPostPage" data-id="${esc(p.id)}">${ic('trash', 'sm')} Xoá bài</button></div>` : ''}
-    ${p.cover ? `<div class="cover"><img alt="" src="${esc(p.cover)}"></div>` : ''}<div class="prose">${sanitizeHtml(L(p.body))}</div>
+    ${p.cover ? `<div class="cover"><img alt="" src="${esc(p.cover)}"></div>` : ''}<div class="prose">${p.body ? sanitizeHtml(L(p.body)) : `<p class="muted">${esc(p._err ? t('not_found') : t('loading'))}</p>`}</div>
     ${same.length ? `<h3 style="margin:40px 0 14px">${esc(t('more_in', { c:catLabel(p.category) }))}</h3><div class="pgrid">${same.map(blogCard).join('')}</div>` : ''}
     <div class="row between mt" style="margin-top:36px">${prev ? `<a class="btn secondary sm" href="#/blog/${encodeURIComponent(prev.slug || prev.id)}">${ic('chev-l', 'sm')} ${esc(L(prev.title))}</a>` : '<span></span>'}${next ? `<a class="btn secondary sm" href="#/blog/${encodeURIComponent(next.slug || next.id)}">${esc(L(next.title))} ${ic('chev-r', 'sm')}</a>` : ''}</div></article>`);
 }

@@ -1,5 +1,5 @@
 'use strict';
-const BUILD = '2026-10-13 · bản 5 (có mục cảm ơn + khung stream)';   // hiện ở Admin để biết web đang chạy bản nào
+const BUILD = '2026-10-13 · bản 7 (tiết kiệm lượt đọc + file dự phòng)';   // hiện ở Admin để biết web đang chạy bản nào
 /* =========================================================
    CORE — cấu hình, trạng thái, dữ liệu realtime, đăng nhập, router, sự kiện
    ========================================================= */
@@ -223,6 +223,12 @@ function demoWeek(off){
 function listenWeek(off){
   if (unsubs['w' + off]) { unsubs['w' + off](); delete unsubs['w' + off]; }
   if (DEMO) { weekDocs[off] = demoWeek(off); render(); return; }
+  if (SITE.on) {                                   // người xem: lấy từ bản gộp, tuần nằm ngoài bản gộp thì đọc 1 lần
+    const key = weekKeyFor(off);
+    if (SITE.weeks && key in SITE.weeks) { weekDocs[off] = SITE.weeks[key] || null; render(); return; }
+    db.collection('weekly_schedules').doc(key).get().then(doc => { weekDocs[off] = doc.exists ? (doc.data().days || []) : null; render(); }).catch(() => { weekDocs[off] = null; render(); });
+    return;
+  }
   unsubs['w' + off] = db.collection('weekly_schedules').doc(weekKeyFor(off)).onSnapshot(
     doc => { weekDocs[off] = doc.exists ? (doc.data().days || []) : null; render(); },
     err => { console.warn('schedule', err.code); weekDocs[off] = null; render(); });
@@ -233,11 +239,62 @@ function listenWeeks(){
   keep.forEach(listenWeek);
 }
 const snap = (q, fn, errFn) => q.onSnapshot(fn, e => { console.warn(e.code || e); errFn && errFn(e); });
-function listenAll(){
+/* ---------------------------------------------------------
+   TIẾT KIỆM LƯỢT ĐỌC FIREBASE (gói miễn phí giới hạn 50.000 lượt đọc / ngày)
+   - Dữ liệu công khai (giao diện, chữ, nhạc, bài viết, sản phẩm, lịch live…) được admin gộp thành MỘT tài liệu
+     settings/site. Người xem chỉ đọc đúng 1 tài liệu đó, rồi lưu trong trình duyệt SITE_TTL phút:
+     mở lại web trong thời gian này thì tốn 0 lượt đọc. Nếu Firebase báo hết hạn mức, vẫn dùng bản đã lưu.
+   - Admin (và khi chưa có bản gộp) dùng cách cũ: nghe dữ liệu trực tiếp để thấy thay đổi ngay.
+   --------------------------------------------------------- */
+const SITE_V = 1, SITE_TTL = 10 * 60e3;
+const SITE = { on:false, weeks:null, bodies:null, failT:0 }, LEGACY = { on:false };
+async function loadFallback(){                         // file tĩnh do admin tải lên GitHub (tuỳ chọn): người mới vẫn thấy nội dung dù Firebase lỗi
+  try {
+    const r = await fetch('site-fallback.json?d=' + DT.now().toISODate(), { cache:'no-cache' }); if (!r.ok) return false;
+    const j = await r.json(); if (!j.site) return false;
+    SITE.bodies = j.bodies || {}; SITE.on = true; if (!LEGACY.on) { applySite(j.site); listenWeeks(); } return true;
+  } catch (e) { return false; }
+}
+const normBranding = (b, d) => { const a = d.announcement;
+  return { ...b, ...d, name:d.name || 'EP Study Room', contacts:d.contacts || {}, socialLinks:d.socialLinks || {}, videos:d.videos || [], homeSections:d.homeSections || {}, announcement: typeof a === 'string' ? { vi:a, en:a } : (a || {}), defaultTheme: ['rain','pop','violet','teal'].includes(d.defaultTheme) ? d.defaultTheme : 'rain', font: FONTS[d.font] ? d.font : 'baloo', themeColor: ['#ff7da3','#ff7da3'].includes(d.themeColor) || !d.themeColor ? '#ff3d9a' : d.themeColor }; };
+function applySite(s){
+  if (s.branding && Object.keys(s.branding).length) branding = normBranding(branding, s.branding);
+  content = { texts:{}, images:{}, faq:null, ...(s.content || {}) };
+  payments = fixPayUrls(s.payments || {});
+  const m = s.music || {}; music = { picks:m.picks || [], recent:m.recent || [] };
+  gear = { items:(s.gear || {}).items || [] };
+  supporters = { items:(s.supporters || {}).items || [] };
+  posts = (s.posts || []).map(p => ({ ...p })).sort((a, b) => tsMs(b.createdAt) - tsMs(a.createdAt));
+  products = (s.products || []).map(p => ({ ...p })).sort((a, b) => tsMs(a.createdAt) - tsMs(b.createdAt));
+  reviews = (s.reviews || []).map(r => ({ ...r })).sort((a, b) => tsMs(b.createdAt) - tsMs(a.createdAt));
+  SITE.weeks = s.weeks || {};
+  applyLook(); render(); loadVideos();
+}
+async function refreshSite(force){
+  if (LEGACY.on) return true;
+  const c = store.get('site', null);
+  if (!force && c && c.d && c.d.v >= SITE_V && Date.now() - c.t < SITE_TTL) return true;       // còn mới: không đọc gì cả
+  if (!force && SITE.failT && Date.now() - SITE.failT < 5 * 60e3) return SITE.on;             // vừa lỗi: nghỉ 5 phút rồi thử lại, không dồn dập
+  try {
+    const d = await db.collection('settings').doc('site').get();
+    if (!d.exists || !((d.data().v || 0) >= SITE_V)) return SITE.on;                           // admin chưa xuất bản: dùng cách cũ
+    const data = d.data(); store.set('site', { t:Date.now(), d:data }); SITE.on = true;
+    if (!LEGACY.on) { applySite(data); listenWeeks(); }
+    return true;
+  } catch (e) { console.warn('site', e.code || e); SITE.failT = Date.now(); if (!SITE.on) await loadFallback(); return SITE.on; }   // lỗi / hết hạn mức: giữ bản đã lưu, hoặc dùng file dự phòng
+}
+function goLegacy(){ if (LEGACY.on || DEMO) return; LEGACY.on = true; SITE.on = false; listenLegacy(); }       // admin: xem thay đổi ngay
+async function listenAll(){
   if (DEMO) { loadDemo(); listenWeeks(); return; }
+  const c = store.get('site', null);
+  if (c && c.d && c.d.v >= SITE_V) { SITE.on = true; applySite(c.d); listenWeeks(); }                          // hiện ngay bản đã lưu
+  const got = await refreshSite(false);
+  if (!got && !SITE.on) listenLegacy();
+  setInterval(() => { if (!document.hidden && SITE.on && !LEGACY.on) refreshSite(false); }, 60e3);              // tự làm mới (chỉ đọc khi bản lưu đã quá 10 phút)
+}
+function listenLegacy(){
   snap(db.collection('settings').doc('branding'), doc => {
-    if (doc.exists) { const d = doc.data(), a = d.announcement;
-      branding = { ...branding, ...d, name:d.name || 'EP Study Room', contacts:d.contacts || {}, socialLinks:d.socialLinks || {}, videos:d.videos || [], homeSections:d.homeSections || {}, announcement: typeof a === 'string' ? { vi:a, en:a } : (a || {}), defaultTheme: ['rain','pop','violet','teal'].includes(d.defaultTheme) ? d.defaultTheme : 'rain', font: FONTS[d.font] ? d.font : 'baloo', themeColor: ['#ff7da3','#ff7da3'].includes(d.themeColor) || !d.themeColor ? '#ff3d9a' : d.themeColor }; }
+    if (doc.exists) branding = normBranding(branding, doc.data());
     applyLook(); render(); loadVideos();
   });
   snap(db.collection('settings').doc('content'), doc => { content = { texts:{}, images:{}, faq:null, ...(doc.exists ? doc.data() : {}) }; render(); });
@@ -299,6 +356,11 @@ async function loadVideos(){
    AUTH + HỒ SƠ NGƯỜI DÙNG
    ========================================================= */
 let unsubLib = null;
+/* thư viện đã mua: chỉ nghe khi cần (mở trang Tài khoản / Thư viện) để khỏi tốn lượt đọc mỗi lần vào web */
+function startLibrary(){
+  if (unsubLib || !state.user || DEMO || route.name !== 'account') return;
+  unsubLib = db.collection('users').doc(state.user.uid).collection('library').onSnapshot(s => { library = s.docs.map(d => ({ id:d.id, ...d.data() })); if (route.name === 'account') render(true); renderChrome(); }, () => {});
+}
 /* Admin = đúng email này VÀ đã xác minh email. (Quyền thật được Firestore/Storage rules kiểm tra lại — xem firestore.rules)
    Không có mật khẩu nào nằm trong mã nguồn: bạn tự đặt mật khẩu khi tạo tài khoản. */
 const ADMIN_EMAIL = 'epstudyroom.contact@gmail.com';
@@ -325,6 +387,7 @@ auth.onAuthStateChanged(async u => {
   if (u) {
     try { await u.reload(); await u.getIdToken(true); } catch (e) {}
     state.isAdmin = isAdminUser(u);
+    if (state.isAdmin) { goLegacy(); if (typeof ensureSitePublished === 'function') ensureSitePublished(); }
     try {
       const d = await db.collection('users').doc(u.uid).get(); profile = d.exists ? d.data() : {};
       const todos = [...(profile.todos || [])]; localTodos().forEach(x => { if (!todos.find(y => y.id === x.id)) todos.push(x); });
@@ -334,14 +397,19 @@ auth.onAuthStateChanged(async u => {
       if (!d.exists || !profile.displayName) { profile.displayName = profile.displayName || u.displayName || (u.email || '').split('@')[0]; }
       saveProfileNow();
     } catch (e) { console.warn('profile', e.code); }
-    try { const cd = await db.collection('companions').doc(u.uid).get(); state.companion = cd.exists && !(cd.data().until && cd.data().until < DT.now().toISODate()); } catch (e) {}
-    unsubLib = db.collection('users').doc(u.uid).collection('library').onSnapshot(s => { library = s.docs.map(d => ({ id:d.id, ...d.data() })); if (route.name === 'account') render(true); }, () => {});
+    const cc = store.get('comp_' + u.uid, null);                       // tiết kiệm lượt đọc: nhớ kết quả 30 phút
+    if (cc && Date.now() - cc.t < 30 * 60e3) state.companion = !!cc.v;
+    else { try { const cd = await db.collection('companions').doc(u.uid).get(); state.companion = cd.exists && !(cd.data().until && cd.data().until < DT.now().toISODate()); store.set('comp_' + u.uid, { t:Date.now(), v:state.companion }); } catch (e) {} }
+    startLibrary();
   }
   render(true);
 });
 const saveProfileNow = () => {
   if (!state.user || DEMO) return;
-  db.collection('users').doc(state.user.uid).set({ displayName: profile.displayName || state.user.displayName || '', email: state.user.email, todos: store.get('todos', []), focusLog: store.get('focus', {}), updatedAt: TS() }, { merge:true }).catch(e => console.warn('save profile', e.code));
+  const data = { displayName: profile.displayName || state.user.displayName || '', email: state.user.email, todos: store.get('todos', []), focusLog: store.get('focus', {}) };
+  const sig = state.user.uid + JSON.stringify(data);
+  if (store.get('profsig', '') === sig) return;          // không có gì thay đổi thì không ghi (tiết kiệm lượt ghi)
+  db.collection('users').doc(state.user.uid).set({ ...data, updatedAt: TS() }, { merge:true }).then(() => store.set('profsig', sig)).catch(e => console.warn('save profile', e.code));
 };
 const saveProfileSoon = debounce(saveProfileNow, 1500);
 const displayName = () => (profile.displayName || (state.user && (state.user.displayName || (state.user.email || '').split('@')[0])) || '');
@@ -380,6 +448,7 @@ function doRender(){
   if (!state.booted) return;                      // chưa nạp xong các file (pages.js, admin.js) thì chưa vẽ
   readRoute();
   state.locked = isLocked(route.name);
+  startLibrary();
   if (state.locked && !state.authReady) { renderChrome(); $('page').innerHTML = '<div class="gate-load"><i></i></div>'; return; }   // đợi biết đã đăng nhập hay chưa
   if (route.name === 'admin' && !state.isAdmin && !DEMO) { /* trang admin yêu cầu quyền */ }
   const fn = state.locked ? PAGES.locked : (PAGES[route.name] || PAGES.home);

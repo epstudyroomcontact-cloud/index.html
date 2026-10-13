@@ -41,6 +41,74 @@ PAGES.admin = function(){
 const reloadTab = () => { const f = ({ overview:tabOverview, site:tabSite, schedule:tabSchedule, blog:tabBlog, music:tabMusic, products:tabProducts, gear:tabGear, orders:tabOrders, coupons:tabCoupons, content:tabContent, reviews:tabReviews, payments:tabPayments, members:tabMembers })[route.args[0] || 'overview']; if (f) f(); };
 const getAll = (col, order, limit = 200) => DEMO ? Promise.resolve([]) : (order ? db.collection(col).orderBy(order, 'desc').limit(limit) : db.collection(col).limit(limit)).get().then(s => s.docs.map(d => ({ id:d.id, ...d.data() })));
 
+/* =========================================================
+   XUẤT BẢN DỮ LIỆU CHO NGƯỜI XEM (tiết kiệm lượt đọc Firebase — xem core.js "TIẾT KIỆM LƯỢT ĐỌC")
+   Gộp giao diện, chữ, nhạc, bài viết (không kèm nội dung), sản phẩm, đánh giá, lịch live… vào settings/site.
+   Tự chạy 4 giây sau mỗi lần admin lưu bất cứ thứ gì công khai; có nút "Xuất bản ngay" ở tab Tổng quan.
+   ========================================================= */
+const PUBLIC_COLS = ['settings', 'posts', 'products', 'reviews', 'weekly_schedules'], SITE_WEEKS = [-1, 0, 1, 2, 3, 4];
+function plain(v){
+  if (v && typeof v.toMillis === 'function') return v.toMillis();
+  if (Array.isArray(v)) return v.map(plain);
+  if (v && typeof v === 'object') { const o = {}; Object.keys(v).forEach(k => { if (v[k] !== undefined) o[k] = plain(v[k]); }); return o; }
+  return v;
+}
+async function gatherSite(){
+  const g = async id => { const d = await db.collection('settings').doc(id).get(); return d.exists ? d.data() : {}; };
+  const [br, ct, pay, mu, ge, su] = await Promise.all(['branding', 'content', 'payments', 'music', 'gear', 'supporters'].map(g));
+  const [ps, pr, rv] = await Promise.all([db.collection('posts').where('published', '==', true).get(), db.collection('products').where('active', '==', true).get(), db.collection('reviews').where('approved', '==', true).get()]);
+  const postsFull = ps.docs.map(d => ({ id:d.id, ...d.data() }));
+  const idx = postsFull.map(p => ({ id:p.id, slug:p.slug || p.id, title:p.title || {}, excerpt:p.excerpt || {}, cover:p.cover || '', category:p.category || '', tags:p.tags || [], pinned:!!p.pinned, publishAt:p.publishAt ? tsMs(p.publishAt) : null, createdAt:tsMs(p.createdAt), published:true,
+    rm:Object.fromEntries(Object.entries(p.body || {}).filter(([, h]) => typeof h === 'string').map(([l, h]) => [l, readMins(h)])) })).sort((a, b) => b.createdAt - a.createdAt);
+  const products_ = pr.docs.map(d => { const x = d.data(); delete x.updatedAt; return { id:d.id, ...x, createdAt:tsMs(x.createdAt) }; });
+  const reviews_ = rv.docs.map(d => ({ id:d.id, ...d.data() })).sort((a, b) => tsMs(b.createdAt) - tsMs(a.createdAt)).slice(0, 30).map(r => ({ id:r.id, name:r.name || '', rating:r.rating || 5, text:r.text || '', createdAt:tsMs(r.createdAt) }));
+  const weeks = {}; await Promise.all(SITE_WEEKS.map(async off => { const key = weekKeyFor(off); const d = await db.collection('weekly_schedules').doc(key).get(); weeks[key] = d.exists ? (d.data().days || []) : null; }));
+  const site = plain({ v:SITE_V, updatedAt:Date.now(), branding:br, content:ct, payments:pay, music:mu, gear:ge, supporters:su, posts:idx, products:products_, reviews:reviews_, weeks });
+  return { site, postsFull };
+}
+let pubTimer = null, pubBusy = false;
+function schedulePublish(){ clearTimeout(pubTimer); pubTimer = setTimeout(() => publishSite(true), 4000); }
+async function publishSite(quiet){
+  if (DEMO || !state.isAdmin) return;
+  if (pubBusy) return schedulePublish();
+  pubBusy = true;
+  try {
+    const { site } = await gatherSite(); let note = '';
+    const size = () => new Blob([JSON.stringify(site)]).size;           // tài liệu Firestore tối đa 1 MB
+    while (size() > 900000 && site.reviews.length) site.reviews.pop();
+    while (size() > 900000 && site.posts.length > 20) { site.posts.pop(); note = ' (đã bớt bài cũ khỏi trang người xem vì dữ liệu quá lớn)'; }
+    await db.collection('settings').doc('site').set(site);
+    store.set('site', { t:Date.now(), d:site });
+    if (quiet) toast('Đã cập nhật cho người xem ✔'); else ok('Đã xuất bản dữ liệu cho người xem ✔' + note);
+    const st = $('pub-status'); if (st) st.textContent = 'Lần xuất bản gần nhất: ' + DT.fromMillis(site.updatedAt).toFormat('dd/MM/yyyy HH:mm') + ' · dung lượng ' + Math.round(size() / 1024) + ' KB';
+  } catch (e) { console.warn('publish', e); if (!quiet) fail(e); }
+  pubBusy = false;
+}
+async function ensureSitePublished(){        // lần đầu (hoặc khi nâng cấp bản gộp) tự xuất bản, không cần admin làm gì
+  if (DEMO) return;
+  try { const d = await db.collection('settings').doc('site').get(); if (!d.exists || !((d.data().v || 0) >= SITE_V)) await publishSite(true); } catch (e) { console.warn('ensure site', e); }
+}
+(function hookWrites(){                        // mọi lần admin ghi dữ liệu công khai → tự xuất bản lại sau 4 giây
+  try {
+    const DR = firebase.firestore.DocumentReference.prototype;
+    ['set', 'update', 'delete'].forEach(m => { const o = DR[m]; DR[m] = function (...a) {
+      const p = o.apply(this, a);
+      try { if (state.isAdmin && PUBLIC_COLS.includes(this.parent.id) && !(this.parent.id === 'settings' && this.id === 'site')) p.then(schedulePublish, () => {}); } catch (e) {}
+      return p; }; });
+  } catch (e) { console.warn('hookWrites', e); }
+})();
+async function fallbackNow(){
+  const { site, postsFull } = await gatherSite();
+  const bodies = Object.fromEntries(postsFull.filter(p => p.body).map(p => [p.id, p.body]));
+  const blob = new Blob([JSON.stringify(plain({ site, bodies }))], { type:'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'site-fallback.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+async function backupNow(){
+  const { site, postsFull } = await gatherSite();
+  const extra = {}; for (const c of ['coupons', 'companions']) { try { extra[c] = (await db.collection(c).get()).docs.map(d => ({ id:d.id, ...d.data() })); } catch (e) {} }
+  const blob = new Blob([JSON.stringify(plain({ exportedAt:new Date().toISOString(), site, posts:postsFull, ...extra }), null, 1)], { type:'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'epstudyroom-backup-' + DT.now().toFormat('yyyy-MM-dd') + '.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
 /* ---------------- Tổng quan ---------------- */
 async function tabOverview(){
   A('<p class="muted">Đang tải…</p>');
@@ -51,7 +119,12 @@ async function tabOverview(){
   const kpi = (icn, l, v, s = '') => `<div class="card tile"><span class="t-ic">${ic(icn)}</span><span class="t-l">${l}</span><span class="t-v">${v}</span><span class="t-s">${s}</span></div>`;
   A(`<div class="grid g4 keep2">${kpi('credit', 'Doanh thu (đã thanh toán)', money(rev('VND'), 'VND'), rev('USD') ? money(rev('USD'), 'USD') : '')}${kpi('box', 'Đơn chờ xác nhận', orders.filter(o => o.status === 'pending').length, orders.length + ' đơn gần đây')}${kpi('users', 'Thành viên', users.length, signups.length + ' đăng ký Challenge')}${kpi('star', 'Đánh giá chờ duyệt', revs.filter(r => !r.approved).length, revs.length + ' tổng')}</div>
     <div class="grid g2 mt">${aCard('Đơn hàng mới nhất', orders.length ? `<div class="tbl-wrap"><table class="table"><tr><th>Mã</th><th>Khách</th><th>Tổng</th><th>Trạng thái</th></tr>${orders.slice(0, 8).map(o => `<tr><td class="mono">${esc(o.code)}</td><td>${esc(o.buyer && o.buyer.name || '')}<div class="small faint">${esc(o.buyer && o.buyer.email || '')}</div></td><td>${money(o.total, o.currency)}</td><td><span class="badge ${['paid', 'shipped'].includes(o.status) ? 'live' : o.status === 'cancelled' ? 'danger' : 'warn'}">${esc(o.status)}</span></td></tr>`).join('')}</table></div>` : '<p class="muted">Chưa có đơn hàng.</p>', '<a class="link" href="#/admin/orders">Xem tất cả</a>')}
-    ${aCard('Bắt đầu nhanh', `<div class="stack"><a class="btn secondary" href="#/admin/schedule">${ic('calendar', 'sm')} Thêm lịch live tuần này</a><a class="btn secondary" href="#/admin/blog">${ic('pen', 'sm')} Viết bài mới</a><a class="btn secondary" href="#/admin/products">${ic('bag', 'sm')} Tải lên sản phẩm (planner, PDF…)</a><a class="btn secondary" href="#/admin/site">${ic('sliders', 'sm')} Đổi màu, font, logo, menu</a></div>`)}</div>`);
+    ${aCard('Bắt đầu nhanh', `<div class="stack"><a class="btn secondary" href="#/admin/schedule">${ic('calendar', 'sm')} Thêm lịch live tuần này</a><a class="btn secondary" href="#/admin/blog">${ic('pen', 'sm')} Viết bài mới</a><a class="btn secondary" href="#/admin/products">${ic('bag', 'sm')} Tải lên sản phẩm (planner, PDF…)</a><a class="btn secondary" href="#/admin/site">${ic('sliders', 'sm')} Đổi màu, font, logo, menu</a></div>`)}</div>
+    ${aCard('Dữ liệu cho người xem & bản sao dự phòng', `<p class="hint" style="margin-bottom:10px">Để web chạy nhanh và <b>không vượt hạn mức miễn phí của Firebase</b>, dữ liệu công khai (giao diện, chữ, bài viết, sản phẩm, lịch live, nhạc…) được gộp thành một bản cho người xem. Bản này <b>tự cập nhật vài giây sau mỗi lần bạn bấm Lưu</b>. Người xem thấy thay đổi trong vòng khoảng 10 phút (hoặc ngay khi họ tải lại sau đó). Bạn không cần làm gì thêm.</p>
+      <p class="small muted" id="pub-status">Đang kiểm tra…</p>
+      <div class="row mt-s"><button class="btn primary" data-act="publishNow">Xuất bản ngay</button><button class="btn secondary" data-act="backupNow">Tải bản sao dữ liệu (file .json)</button><button class="btn secondary" data-act="fallbackNow">Tải file dự phòng cho web</button></div>
+      <p class="hint"><b>File dự phòng cho web</b> (tuỳ chọn): tải file <code>site-fallback.json</code> rồi đưa lên GitHub, để <b>cùng chỗ với file index.html</b>. Nếu Firebase hết hạn mức hoặc gặp sự cố, người mới vào web vẫn thấy đủ nội dung từ file này (không tốn lượt đọc nào). Nên tải lại khi bạn đăng bài hoặc đổi lịch nhiều.</p><p class="hint">Nên tải bản sao dữ liệu khoảng mỗi tuần và cất vào ổ đĩa của bạn: bài viết, sản phẩm, cài đặt nằm trong Firebase, đây là bản dự phòng nếu có sự cố.</p>`)}`);
+  if (!DEMO) db.collection('settings').doc('site').get().then(d => { const st = $('pub-status'); if (st) st.textContent = d.exists ? 'Lần xuất bản gần nhất: ' + DT.fromMillis(d.data().updatedAt).toFormat('dd/MM/yyyy HH:mm') : 'Chưa xuất bản lần nào. Bấm "Xuất bản ngay".'; }).catch(() => {});
 }
 
 /* ---------------- Giao diện & Menu ---------------- */
@@ -564,4 +637,10 @@ Object.assign(ACTIONS, {
     }
     await dbSet('settings', 'gear', { items }, false); gear = { items }; ok(trMsg('Đã lưu.')); tabGear();
   }).catch(fail)
+});
+
+Object.assign(ACTIONS, {
+  publishNow: el => withTranslate(el, () => publishSite(false)).catch(fail),
+  fallbackNow: el => { const t0 = el.textContent; el.disabled = true; el.textContent = 'Đang chuẩn bị…'; return fallbackNow().then(() => ok('Đã tải site-fallback.json ✔ Đưa file này lên GitHub cùng chỗ với index.html')).catch(fail).finally(() => { el.disabled = false; el.textContent = t0; }); },
+  backupNow: el => { const t0 = el.textContent; el.disabled = true; el.textContent = 'Đang chuẩn bị…'; return backupNow().then(() => ok('Đã tải bản sao dữ liệu ✔')).catch(fail).finally(() => { el.disabled = false; el.textContent = t0; }); }
 });
