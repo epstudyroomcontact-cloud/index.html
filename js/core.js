@@ -1,4 +1,5 @@
 'use strict';
+const BUILD = '2026-10-13 · bản 5 (có mục cảm ơn + khung stream)';   // hiện ở Admin để biết web đang chạy bản nào
 /* =========================================================
    CORE — cấu hình, trạng thái, dữ liệu realtime, đăng nhập, router, sự kiện
    ========================================================= */
@@ -52,7 +53,9 @@ let branding = { name:'EP Study Room', themeColor:'#ff3d9a', defaultTheme:'rain'
   ], donate:{} };
 let content = { texts:{}, images:{}, faq:null };
 let payments = {}, posts = [], products = [], reviews = [], library = [], profile = {};
-let music = { picks:[], recent:[] }, gear = { items:[] };           // nhạc gợi ý ở Phòng tập trung; đồ mình dùng (affiliate)
+let music = { picks:[], recent:[] }, gear = { items:[] };
+let supporters = { items:[] };                                       // settings/supporters: tên người đồng hành hiện ở mục cảm ơn (admin quản lý)
+const thanksList = () => (supporters.items || []).filter(x => x && x.show !== false && x.name && (!x.until || x.until >= DT.now().toISODate())).sort((a, b) => String(a.since || '').localeCompare(String(b.since || '')));
 /* Tự thêm https:// cho các link thanh toán nếu người dùng quên */
 function fixPayUrls(p) { const o = { ...p }; ['stripe', 'paypal', 'kofi', 'companionUrl', 'momoQr'].forEach(k => { const v = (o[k] || '').trim(); o[k] = v && !/^(https?:)?\/\//i.test(v) && !/^data:/i.test(v) ? 'https://' + v : v; }); return o; }
 state.companion = false;
@@ -240,6 +243,7 @@ function listenAll(){
   snap(db.collection('settings').doc('content'), doc => { content = { texts:{}, images:{}, faq:null, ...(doc.exists ? doc.data() : {}) }; render(); });
   snap(db.collection('settings').doc('payments'), d => { payments = fixPayUrls(d.exists ? d.data() : {}); });
   snap(db.collection('settings').doc('music'), d => { const x = d.exists ? d.data() : {}; music = { picks:x.picks || [], recent:x.recent || [] }; if (['focus'].includes(route.name)) render(); });
+  snap(db.collection('settings').doc('supporters'), d => { const x = d.exists ? d.data() : {}; supporters = { items:x.items || [] }; if (['home', 'donate'].includes(route.name)) render(); });
   snap(db.collection('settings').doc('gear'), d => { const x = d.exists ? d.data() : {}; gear = { items:x.items || [] }; if (route.name === 'gear') render(); });
   snap(db.collection('posts').where('published', '==', true), s => { posts = s.docs.map(d => ({ id:d.id, ...d.data() })).sort((a, b) => tsMs(b.createdAt) - tsMs(a.createdAt)); render(); }, () => { posts = []; render(); });
   snap(db.collection('products').where('active', '==', true), s => { products = s.docs.map(d => ({ id:d.id, ...d.data() })).sort((a, b) => tsMs(a.createdAt) - tsMs(b.createdAt)); render(); }, () => { products = []; render(); });
@@ -251,6 +255,7 @@ function loadDemo(){
     videos:[{ url:'https://youtu.be/jfKfPfyJRdk', title:'lofi hip hop radio — beats to relax/study to' },{ url:'https://youtu.be/5qap5aO4i9A', title:'Study with me — 2 hours Pomodoro 50/10' },{ url:'https://youtu.be/lTRiuFIWV54', title:'Rainy night study session' }] };
   payments = { bankBin:'970436', accountNo:'0123456789', accountName:'NGUYEN VAN A', momoPhone:'0900000000', stripe:'https://stripe.com' };
   music = { picks:[{ title:{ en:'Rain & piano', vi:'Mưa và piano' }, note:{ en:'Soft, no lyrics', vi:'Nhẹ nhàng, không lời' }, url:'https://www.youtube.com/watch?v=jfKfPfyJRdk' }, { title:{ en:'Focus playlist', vi:'Danh sách tập trung' }, note:{}, url:'https://open.spotify.com/playlist/37i9dQZF1DWZeKCadgRdKQ' }], recent:[{ title:{ en:'Late-night study mix', vi:'Mix học khuya' }, note:{ en:'What I have on repeat this week', vi:'Tuần này mình nghe đi nghe lại' }, url:'https://open.spotify.com/playlist/37i9dQZF1DX8Uebhn9wzrS' }] };
+  supporters = { items:[{ id:'u1', name:'Linh', show:true, since:'2026-09-01' }, { id:'u2', name:'Daniel', show:true, since:'2026-09-20' }, { id:'u3', name:'Mai', show:true, since:'2026-10-05' }] };
   gear = { items:[{ id:'lamp', name:{ en:'Warm desk lamp', vi:'Đèn bàn ánh vàng' }, note:{ en:'Soft light for late sessions.', vi:'Ánh sáng dịu cho những buổi học khuya.' }, cat:{ en:'Desk', vi:'Bàn học' }, price:'', store:'Amazon', url:'https://example.com/lamp', img:'' }, { id:'headphones', name:{ en:'Noise-cancelling headphones', vi:'Tai nghe chống ồn' }, note:{ en:'Keeps the room quiet.', vi:'Giữ cho căn phòng yên tĩnh.' }, cat:{ en:'Audio', vi:'Âm thanh' }, price:'', store:'Shopee', url:'https://example.com/headphones', img:'' }, { id:'notebook', name:{ en:'Dotted notebook', vi:'Sổ chấm bi' }, note:{ en:'For plans and to-do lists.', vi:'Để ghi kế hoạch và việc cần làm.' }, cat:{ en:'Stationery', vi:'Văn phòng phẩm' }, price:'', store:'', url:'https://example.com/notebook', img:'' }] };
   const now = Date.now(), body = en => `<p>${en}</p><h2>Why Pomodoro?</h2><p>Short, focused sprints with <b>gentle breaks</b> make big tasks feel small.</p><blockquote>Slow progress is still progress.</blockquote><ul><li>25 minutes focus</li><li>5 minutes breathe</li><li>Repeat</li></ul>`;
   posts = [

@@ -435,3 +435,8 @@ html[data-font="serif"] h1,html[data-font="serif"] h2,html[data-font="serif"] h3
 .mplayer{margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:16px;background:var(--bg-soft,var(--surface))}
 .mplayer iframe{width:100%;border:0;border-radius:12px;margin-top:8px;display:block}
 .music-card input[type=range]{accent-color:var(--accent)}
+
+/* ---------- mục cảm ơn người đồng hành ---------- */
+.thanks-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.thanks-chip{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:99px;background:rgba(var(--accent-rgb),.12);border:1px solid rgba(var(--accent-rgb),.35);font-weight:700;font-size:.9rem}
+.thanks-chip .ic{width:14px;height:14px;color:var(--accent)}

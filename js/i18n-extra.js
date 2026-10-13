@@ -52,3 +52,33 @@
   };
   Object.keys(G).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], G[l]); });
 })();
+
+/* Ô xem stream trong Phòng tập trung */
+(function () {
+  const G = {
+    en:{ focus_stream:"Watch the stream", focus_stream_hide:"Hide", focus_stream_show:"Show" },
+    vi:{ focus_stream:"Xem stream", focus_stream_hide:"Ẩn", focus_stream_show:"Hiện" },
+    hi:{ focus_stream:"स्ट्रीम देखें", focus_stream_hide:"छिपाएँ", focus_stream_show:"दिखाएँ" },
+    ja:{ focus_stream:"配信を見る", focus_stream_hide:"隠す", focus_stream_show:"表示" },
+    ko:{ focus_stream:"스트림 보기", focus_stream_hide:"숨기기", focus_stream_show:"보기" },
+    zh:{ focus_stream:"观看直播", focus_stream_hide:"隐藏", focus_stream_show:"显示" },
+    fr:{ focus_stream:"Regarder le live", focus_stream_hide:"Masquer", focus_stream_show:"Afficher" },
+    es:{ focus_stream:"Ver el directo", focus_stream_hide:"Ocultar", focus_stream_show:"Mostrar" }
+  };
+  Object.keys(G).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], G[l]); });
+})();
+
+/* Mục cảm ơn người đồng hành */
+(function () {
+  const G = {
+    en:{ thanks_title:"Thank you, companions", thanks_text:"These kind people support the channel every month. Thank you for keeping the streams going." },
+    vi:{ thanks_title:"Cảm ơn những người đồng hành", thanks_text:"Những người bạn tốt này ủng hộ kênh mỗi tháng. Cảm ơn các bạn đã giúp mình giữ những buổi stream." },
+    hi:{ thanks_title:"साथियों का धन्यवाद", thanks_text:"ये दयालु लोग हर महीने चैनल का साथ देते हैं। स्ट्रीम जारी रखने में मदद के लिए धन्यवाद।" },
+    ja:{ thanks_title:"仲間のみなさん、ありがとう", thanks_text:"毎月チャンネルを支えてくれている優しい方々です。配信を続けられるのはみなさんのおかげです。" },
+    ko:{ thanks_title:"동반자 여러분, 감사합니다", thanks_text:"매달 채널을 후원해 주시는 고마운 분들이에요. 스트림을 이어갈 수 있게 도와주셔서 감사합니다." },
+    zh:{ thanks_title:"感谢每一位同伴", thanks_text:"这些温暖的人每个月都在支持频道。谢谢你们让直播得以继续。" },
+    fr:{ thanks_title:"Merci aux compagnons", thanks_text:"Ces personnes généreuses soutiennent la chaîne chaque mois. Merci de permettre aux lives de continuer." },
+    es:{ thanks_title:"Gracias, acompañantes", thanks_text:"Estas personas amables apoyan el canal cada mes. Gracias por ayudar a que sigan los directos." }
+  };
+  Object.keys(G).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], G[l]); });
+})();

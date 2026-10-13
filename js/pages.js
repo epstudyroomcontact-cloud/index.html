@@ -117,6 +117,7 @@ PAGES.home = function(){
   if (on('blog') && livePosts().length) html += secHead('sec_blog', '#/blog') + `<div class="pgrid">${livePosts().slice(0, 3).map(blogCard).join('')}</div>`;
   if (on('shop') && products.length) html += secHead('sec_shop', '#/shop') + `<div class="pgrid">${products.slice(0, 3).map(prodCard).join('')}</div>`;
   if (on('reviews') && reviews.length) html += secHead('sec_reviews', '#/about') + `<div class="grid g3">${reviews.slice(0, 3).map(reviewCard).join('')}</div>`;
+  if (on('thanks') && thanksList().length) html += thanksCard();
   if (on('challenge')) html += clubPromo();
   page(html);
 };
@@ -125,8 +126,9 @@ PAGES.home = function(){
    WATCH
    ========================================================= */
 let playingId = null;
+const liveEmbedSrc = () => branding.ytLiveId ? `https://www.youtube.com/embed/${youTubeId(branding.ytLiveId)}?rel=0` : (branding.ytChannelId ? `https://www.youtube.com/embed/live_stream?channel=${encodeURIComponent(branding.ytChannelId)}` : '');
 PAGES.watch = function(){
-  const liveSrc = branding.ytLiveId ? `https://www.youtube.com/embed/${youTubeId(branding.ytLiveId)}?rel=0` : (branding.ytChannelId ? `https://www.youtube.com/embed/live_stream?channel=${encodeURIComponent(branding.ytChannelId)}` : '');
+  const liveSrc = liveEmbedSrc();
   const src = playingId ? `https://www.youtube-nocookie.com/embed/${playingId}?autoplay=1&rel=0` : liveSrc, { live, next } = liveState(), url = watchUrl();
   page(`${head('watch_title', 'watch_sub', url ? `<a class="btn secondary" target="_blank" rel="noopener" href="${esc(url)}">${ic('link', 'sm')} ${esc(t('open_youtube'))}</a>` : '', 'gaze', 5)}
     <div class="grid g-main"><div class="player">${src ? `<iframe src="${esc(src)}" title="YouTube" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe>` : `<div class="ph">${paint('gaze', { crop:'banner', seed:4 })}<div class="glass" style="position:relative"><h3 style="margin-bottom:4px">${esc(t('offline'))}</h3><p class="muted small">${esc(t('offline_sub'))}</p></div></div>`}</div>
@@ -276,6 +278,14 @@ function renderTodos(){
   const box = $('todo-list'); if (!box) return; const l = todos();
   box.innerHTML = l.length ? l.map(x => `<div class="todo-item ${x.done ? 'done' : ''}"><label><input type="checkbox" data-change="todoToggle" data-id="${esc(x.id)}" ${x.done ? 'checked' : ''}><span>${esc(x.text)}</span></label><button type="button" class="btn ghost icon sm" data-act="todoDel" data-id="${esc(x.id)}" aria-label="${esc(t('remove'))}">${ic('trash', 'sm')}</button></div>`).join('') : `<div class="small faint" style="padding:12px 0">${esc(t('todo_empty'))}</div>`;
 }
+/* ô xem stream nhỏ ngay trong Phòng tập trung (Watch live giữ nguyên) */
+function streamCard(){
+  const open = store.get('fs_open', true), src = liveEmbedSrc(), url = watchUrl(), { live } = liveState();
+  return `<section class="card pad fstream"><div class="row between"><b class="row" style="gap:8px">${ic('play', 'sm')} ${esc(t('focus_stream'))} ${live ? '<span class="badge live">LIVE</span>' : ''}</b>
+    <span class="row" style="gap:4px"><button type="button" class="btn ghost sm" data-act="fsToggle">${esc(open ? t('focus_stream_hide') : t('focus_stream_show'))}</button>${url ? `<a class="btn ghost sm" target="_blank" rel="noopener" href="${esc(url)}" aria-label="${esc(t('open_youtube'))}" title="${esc(t('open_youtube'))}">${ic('link', 'sm')}</a>` : ''}</span></div>
+    ${open ? (src ? `<div class="player mt-s"><iframe src="${esc(src)}" title="YouTube" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>` : `<p class="small muted mt-s"><b>${esc(t('offline'))}.</b> ${esc(t('offline_sub'))}</p>`) : ''}</section>`;
+}
+ACTIONS.fsToggle = () => { store.set('fs_open', !store.get('fs_open', true)); render(true); };
 PAGES.focus = function(){
   const fl = localFocus(), today = DT.now().setZone(userTZ), days = Array.from({ length:7 }, (_, i) => today.minus({ days:6 - i })), vals = days.map(d => (fl[d.toISODate()] || { m:0 }).m), mx = Math.max(30, ...vals), td = fl[today.toISODate()] || { m:0, s:0 };
   const c = pomo.cfg, num = (k, lab) => `<div class="field"><label class="label">${esc(lab)}</label><input class="input" type="number" min="1" max="180" value="${c[k]}" data-change="cfg" data-k="${k}"></div>`;
@@ -291,7 +301,7 @@ PAGES.focus = function(){
       <div class="cfg-grid">${num('focus', t('cfg_focus'))}${num('short', t('cfg_short'))}${num('long', t('cfg_long'))}${num('every', t('cfg_every'))}</div>
       <div class="row between" style="width:100%"><label class="row small" style="font-weight:600"><input type="checkbox" data-change="cfgAuto" ${c.auto ? 'checked' : ''}> ${esc(t('auto_start'))}</label></div>
     </section>
-    <div class="stack"><section class="card pad"><div class="card-h"><h2>${esc(t('todo_title'))}</h2></div>
+    <div class="stack">${streamCard()}<section class="card pad"><div class="card-h"><h2>${esc(t('todo_title'))}</h2></div>
         <form class="row" style="flex-wrap:nowrap" data-form="todo"><input class="input" id="todo-in" placeholder="${esc(t('todo_ph'))}" maxlength="140" autocomplete="off"><button class="btn primary icon" type="submit" aria-label="add">${ic('plus')}</button></form>
         <div id="todo-list" class="mt-s"></div>${!state.user ? `<p class="hint mt-s">${esc(t('sync_note'))} <a class="link" href="#/account">${esc(t('signin'))}</a></p>` : ''}</section>
       <div class="grid g2 keep2"><div class="card tile"><span class="t-l">${esc(t('sessions_today'))}</span><span class="t-v">${td.s}</span></div><div class="card tile"><span class="t-l">${esc(t('minutes_today'))}</span><span class="t-v">${td.m}</span></div></div>
@@ -624,6 +634,8 @@ PAGES.club = function(){
    ========================================================= */
 let donAmt = null, donCur = null;
 const parseAmts = (s, d) => { const a = String(s || '').split(/[,\s]+/).map(Number).filter(n => n > 0); return a.length ? a : d; };
+/* mục cảm ơn những người đồng hành (tên do admin chọn hiện, xem tab Thành viên) */
+const thanksCard = () => { const l = thanksList(); return l.length ? `<section class="card pad thanks mt"><div class="card-h"><h2 ${cms('thanks_title')}>${ic('heart', 'sm')} ${esc(ctext('thanks_title'))}</h2></div><p class="muted small" ${cms('thanks_text')}>${esc(ctext('thanks_text'))}</p><div class="thanks-list">${l.map(x => `<span class="thanks-chip">${ic('heart', 'sm')} ${esc(x.name)}</span>`).join('')}</div></section>` : ''; };
 PAGES.donate = function(){
   const cur = donCur || effCurrency(), amts = cur === 'VND' ? parseAmts(payments.donateVND, [20000, 50000, 100000, 200000]) : parseAmts(payments.donateUSD, [3, 5, 10, 25]);
   const amt = donAmt && donAmt.cur === cur ? donAmt.v : amts[1] || amts[0], hasBank = payments.bankBin && payments.accountNo;
@@ -644,7 +656,7 @@ PAGES.donate = function(){
         ${pay || `<p class="muted">${esc(t('donate_none'))}</p>`}<p class="small faint">${esc(t('donate_thanks'))}</p></section>
       <section class="card pad stack"><div class="row between"><h2 style="font-size:1.2rem" ${cms('comp_title')}>${esc(ctext('comp_title'))}</h2>${state.companion ? `<span class="badge">${ic('heart', 'sm')} ${esc(t('comp_badge'))}</span>` : ''}</div>
         <p class="muted" ${cms('comp_text')}>${esc(ctext('comp_text'))}</p><div><div class="label">${esc(t('comp_perks'))}</div><ul class="perks"><li ${cms('comp_perk1')}>${esc(ctext('comp_perk1'))}</li><li ${cms('comp_perk2')}>${esc(ctext('comp_perk2'))}</li><li ${cms('comp_perk3')}>${esc(ctext('comp_perk3'))}</li></ul></div>
-        ${branding.focusCodeHash ? `<div><div class="label">${esc(t('comp_steps_title'))}</div><ol class="steps"><li>${esc(t('comp_step1'))}</li><li>${esc(t('comp_step2'))}</li><li>${esc(t('comp_step3'))}</li></ol></div>${unlockBox()}` : ''}${state.companion || unlockValid() ? `<p class="small" style="color:var(--live)">${esc(t('comp_active'))}</p>` : ''}${payments.companionUrl ? `<a class="btn primary lg" target="_blank" rel="noopener" href="${esc(payments.companionUrl)}">${ic('heart', 'sm')} ${esc(t('comp_cta'))}</a>` : ''}</section></div>`);
+        ${branding.focusCodeHash ? `<div><div class="label">${esc(t('comp_steps_title'))}</div><ol class="steps"><li>${esc(t('comp_step1'))}</li><li>${esc(t('comp_step2'))}</li><li>${esc(t('comp_step3'))}</li></ol></div>${unlockBox()}` : ''}${state.companion || unlockValid() ? `<p class="small" style="color:var(--live)">${esc(t('comp_active'))}</p>` : ''}${payments.companionUrl ? `<a class="btn primary lg" target="_blank" rel="noopener" href="${esc(payments.companionUrl)}">${ic('heart', 'sm')} ${esc(t('comp_cta'))}</a>` : ''}</section></div>${thanksCard()}`);
 };
 CHANGES.donCustom = el => { const v = Math.round(+el.value); if (v > 0) { donAmt = { cur:donCur || effCurrency(), v }; render(true); } };
 Object.assign(ACTIONS, {

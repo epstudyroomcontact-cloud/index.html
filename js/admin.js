@@ -34,7 +34,7 @@ PAGES.admin = function(){
       ? `<p class="muted small">Email <b>${esc(ADMIN_EMAIL)}</b> là email của chủ trang, nhưng cần được <b>xác minh</b> trước (để không ai khác mạo danh được). Mở hộp thư, bấm vào đường link trong email xác minh, rồi bấm nút bên dưới.</p>
          <div class="row"><button class="btn primary" data-act="recheckAdmin">${ic('check', 'sm')} Tôi đã xác minh rồi</button><button class="btn secondary" data-act="resendVerify">${ic('mail', 'sm')} Gửi lại email xác minh</button></div>`
       : `<p class="muted small">Chỉ tài khoản <b>${esc(ADMIN_EMAIL)}</b> mới có quyền quản trị. Bạn đang đăng nhập bằng <b>${esc(state.user.email)}</b>.</p><button class="btn secondary" data-act="signout">${ic('logout', 'sm')} Đăng xuất</button>`}</div></div>`);  const tab = A_TABS.some(x => x[0] === route.args[0]) ? route.args[0] : 'overview';
-  page(`<div class="page-head"><div><h1>Trang quản trị</h1><p>Tuỳ chỉnh giao diện, nội dung, sản phẩm và đơn hàng của bạn.</p></div><button class="btn primary" data-act="startEdit">${ic('pen', 'sm')} Sửa chữ & ảnh trực tiếp trên trang</button></div>
+  page(`<div class="page-head"><div><h1>Trang quản trị</h1><p>Tuỳ chỉnh giao diện, nội dung, sản phẩm và đơn hàng của bạn.</p><p class="faint small">Phiên bản web: ${esc(BUILD)}</p></div><button class="btn primary" data-act="startEdit">${ic('pen', 'sm')} Sửa chữ & ảnh trực tiếp trên trang</button></div>
     <nav class="a-tabs">${A_TABS.map(([k, icn, l]) => `<a href="#/admin/${k}" class="${tab === k ? 'on' : ''}">${ic(icn, 'sm')} ${esc(l)}</a>`).join('')}</nav><div id="admin-body"></div>`);
   ({ overview:tabOverview, site:tabSite, schedule:tabSchedule, blog:tabBlog, music:tabMusic, products:tabProducts, gear:tabGear, orders:tabOrders, coupons:tabCoupons, content:tabContent, reviews:tabReviews, payments:tabPayments, members:tabMembers })[tab]();
 };
@@ -56,7 +56,7 @@ async function tabOverview(){
 
 /* ---------------- Giao diện & Menu ---------------- */
 let adminNav = [], adminSocial = [], adminVideos = [];
-const HOME_SECTIONS = [['hero', 'Khối chào (hero)'], ['stats', 'Thẻ thống kê'], ['today', 'Buổi live hôm nay'], ['blog', 'Bài viết mới'], ['shop', 'Sản phẩm nổi bật'], ['reviews', 'Đánh giá'], ['challenge', 'Đăng ký Challenge 30 ngày']];
+const HOME_SECTIONS = [['hero', 'Khối chào (hero)'], ['stats', 'Thẻ thống kê'], ['today', 'Buổi live hôm nay'], ['blog', 'Bài viết mới'], ['shop', 'Sản phẩm nổi bật'], ['reviews', 'Đánh giá'], ['challenge', 'Đăng ký Challenge 30 ngày'], ['thanks', 'Lời cảm ơn người đồng hành']];
 const SWATCHES = ['#ff3d9a', '#ff2d55', '#ff4fd8', '#b45cff', '#4d7cff', '#00d4e6', '#2ee66b', '#ffb21f'];
 function imgField(label, id, v, hint){ return `<div class="field"><label class="label" for="${id}">${label}</label><div class="row" style="flex-wrap:nowrap"><input class="input" id="${id}" value="${esc(v || '')}" placeholder="https://… hoặc bấm Chọn ảnh"><button type="button" class="btn secondary" data-act="pickInto" data-target="${id}">${ic('image', 'sm')} Chọn ảnh</button></div>${hint ? `<div class="hint">${hint}</div>` : ''}</div>`; }
 function tabSite(){
@@ -317,22 +317,31 @@ function tabPayments(){
 }
 
 /* ---------------- Thành viên ---------------- */
+/* ---- Mục cảm ơn: settings/supporters { items:[{ id, name, show, since, until }] } — công khai, chỉ hiện tên ---- */
+const supItem = id => (supporters.items || []).find(x => x.id === id);
+async function supSave(items){ if (!DEMO) await db.collection('settings').doc('supporters').set({ items }); supporters = { items }; }
+async function supUpsert(id, patch){ const items = [...(supporters.items || [])], i = items.findIndex(x => x.id === id); if (i >= 0) items[i] = { ...items[i], ...patch }; else items.push({ id, name:'', show:true, since:DT.now().toISODate(), ...patch }); await supSave(items); }
+const supRemove = id => supSave((supporters.items || []).filter(x => x.id !== id));
 async function tabMembers(){
   A('<p class="muted">Đang tải…</p>'); let users = [], signups = [], comps = []; try { [users, signups, comps] = await Promise.all([getAll('users'), getAll('challenge_signups', 'timestamp', 500), getAll('companions')]); } catch (e) { return fail(e); }
   if (DEMO) { users = [{ id:'u1', displayName:'Linh', email:'linh@mail.com', moon:{ days:new Array(30).fill('x'), rounds:1 } }, { id:'u2', displayName:'Daniel', email:'d@mail.com', moon:{ days:new Array(11).fill('x') } }]; comps = [{ id:'u1' }]; }
   const isC = id => comps.some(c => c.id === id);
   A(`<div class="grid g2">${aCard(`Thành viên (${users.length})`, users.length ? users.map(u => { const d = u.moon && u.moon.days ? u.moon.days.length : 0; return `<div class="ord-row"><div><b>${esc(u.displayName || '—')}</b> ${isC(u.id) ? `<span class="badge">${ic('heart', 'sm')} Đồng hành</span>` : ''}<div class="small muted">${esc(u.email || '')}</div><div class="small faint">${u.moon ? `Hành trình trăng: ${d}/30${u.moon.rounds ? ' · ' + u.moon.rounds + ' lần trăng tròn' : ''}` : 'Chưa bắt đầu hành trình trăng'}</div></div>
-        <span class="stack" style="gap:6px;align-items:flex-end"><label class="row small" style="font-weight:700"><input type="checkbox" data-change="companion" data-id="${esc(u.id)}" data-name="${esc(u.displayName || u.email || '')}" ${isC(u.id) ? 'checked' : ''}> Người đồng hành</label>${isC(u.id) ? `<label class="small faint">Đến ngày <input class="input" type="date" style="width:150px;padding:4px 8px" data-change="compUntil" data-id="${esc(u.id)}" value="${esc((comps.find(c => c.id === u.id) || {}).until || '')}"></label>` : ''}</span></div>`; }).join('') : '<p class="muted">Chưa có.</p>', '')}
+        <span class="stack" style="gap:6px;align-items:flex-end"><label class="row small" style="font-weight:700"><input type="checkbox" data-change="companion" data-id="${esc(u.id)}" data-name="${esc(u.displayName || u.email || '')}" ${isC(u.id) ? 'checked' : ''}> Người đồng hành</label>${isC(u.id) ? `<label class="small faint">Đến ngày <input class="input" type="date" style="width:150px;padding:4px 8px" data-change="compUntil" data-id="${esc(u.id)}" value="${esc((comps.find(c => c.id === u.id) || {}).until || '')}"></label>
+          <label class="row small" style="font-weight:700"><input type="checkbox" data-change="supShow" data-id="${esc(u.id)}" data-name="${esc(u.displayName || '')}" data-until="${esc((comps.find(c => c.id === u.id) || {}).until || '')}" ${supItem(u.id) ? 'checked' : ''}> Hiện tên ở mục cảm ơn</label>${supItem(u.id) ? `<label class="small faint">Tên hiện <input class="input" style="width:150px;padding:4px 8px" maxlength="40" data-change="supName" data-id="${esc(u.id)}" value="${esc(supItem(u.id).name || '')}"></label>` : ''}` : ''}</span></div>`; }).join('') : '<p class="muted">Chưa có.</p>', '')}
     ${aCard(`Đăng ký email nhắc lịch (${signups.length})`, signups.length ? signups.map(s => `<div class="ord-row"><div><b>${esc(s.codename || '')}</b><div class="small muted">${esc(s.email || '')}</div></div><span class="small faint">${esc(dateStr(s.timestamp))}</span></div>`).join('') : '<p class="muted">Chưa có.</p>', `<button class="btn secondary sm" data-act="copyEmails">Sao chép email</button>`)}</div>
-    <p class="hint mt">"Người đồng hành" là những người ủng hộ hằng tháng của bạn. Ô tích này chỉ dùng khi bạn muốn <b>tặng</b> hoặc làm ngoại lệ (họ có huy hiệu nhỏ và không bị giới hạn). Người ủng hộ bình thường chỉ cần nhập <b>mã hàng tháng</b> (tab Thanh toán & Ủng hộ), bạn không phải tick.</p>`);
+    <p class="hint mt">"Người đồng hành" là những người ủng hộ hằng tháng của bạn. Khi bạn <b>tích</b> một người (bạn thấy họ đăng ký trên Ko-fi / PayPal / chuyển khoản), tên họ tự hiện ở <b>mục cảm ơn</b> trên trang chủ và trang Ủng hộ. Bỏ tích ô "Hiện tên ở mục cảm ơn" nếu họ muốn ẩn danh, và sửa ô "Tên hiện" nếu họ muốn dùng biệt danh. Đến ngày hết hạn thì tên tự ẩn. Chỉ tên hiện công khai, không hiện email.</p>`);
   window._signups = signups;
 }
-CHANGES.compUntil = async el => { try { if (DEMO) return toast('Chế độ xem thử'); await db.collection('companions').doc(el.dataset.id).update({ until:el.value || null }); ok('Đã cập nhật ngày hết hạn'); } catch (e) { fail(e); } };
+CHANGES.compUntil = async el => { try { if (DEMO) return toast('Chế độ xem thử'); await db.collection('companions').doc(el.dataset.id).update({ until:el.value || null }); if (supItem(el.dataset.id)) await supUpsert(el.dataset.id, { until:el.value || '' }); ok('Đã cập nhật ngày hết hạn'); } catch (e) { fail(e); } };
+CHANGES.supShow = async el => { try { if (el.checked) await supUpsert(el.dataset.id, { name:el.dataset.name || '', show:true, until:el.dataset.until || '' }); else await supRemove(el.dataset.id); ok(el.checked ? 'Đã hiện tên ở mục cảm ơn ✔' : 'Đã ẩn tên khỏi mục cảm ơn'); tabMembers(); } catch (e) { fail(e); el.checked = !el.checked; } };
+CHANGES.supName = async el => { try { await supUpsert(el.dataset.id, { name:el.value.trim().slice(0, 40) }); ok('Đã lưu tên hiện ✔'); } catch (e) { fail(e); } };
 CHANGES.companion = async el => {
   try {
     if (DEMO) return toast('Chế độ xem thử');
     const ref = db.collection('companions').doc(el.dataset.id);
-    if (el.checked) await ref.set({ name:el.dataset.name, since:TS(), until:DT.now().plus({ days:31 }).toISODate() }); else await ref.delete();
+    const until = DT.now().plus({ days:31 }).toISODate();
+    if (el.checked) { await ref.set({ name:el.dataset.name, since:TS(), until }); await supUpsert(el.dataset.id, { name:el.dataset.name || '', show:true, until }); } else { await ref.delete(); await supRemove(el.dataset.id); }
     ok(el.checked ? 'Đã đánh dấu người đồng hành (hết hạn sau 31 ngày — có thể sửa ngày)' : 'Đã bỏ đánh dấu'); tabMembers();
   } catch (e) { fail(e); el.checked = !el.checked; }
 };
