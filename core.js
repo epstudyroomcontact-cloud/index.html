@@ -1,5 +1,5 @@
 'use strict';
-const BUILD = '2026-10-13 · bản 7 (tiết kiệm lượt đọc + file dự phòng)';   // hiện ở Admin để biết web đang chạy bản nào
+const BUILD = '2026-10-13 · bản 8 (khung stream xem được video đã live)';   // hiện ở Admin để biết web đang chạy bản nào
 /* =========================================================
    CORE — cấu hình, trạng thái, dữ liệu realtime, đăng nhập, router, sự kiện
    ========================================================= */
@@ -349,7 +349,7 @@ async function loadVideos(){
       if (j.status === 'ok') { const v = j.items.slice(0, 12).map(i => ({ id:youTubeId(i.link), title:i.title })).filter(i => i.id); try { sessionStorage.setItem(ck, JSON.stringify({ t:Date.now(), v })); } catch (e) {} videos = [...v, ...manual]; }
     } catch (e) { console.warn('rss', e); }
   }
-  if (['home', 'watch'].includes(route.name)) render();
+  if (['home', 'watch', 'focus'].includes(route.name)) render();
 }
 
 /* =========================================================

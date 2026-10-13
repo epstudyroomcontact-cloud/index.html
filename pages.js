@@ -279,13 +279,20 @@ function renderTodos(){
   box.innerHTML = l.length ? l.map(x => `<div class="todo-item ${x.done ? 'done' : ''}"><label><input type="checkbox" data-change="todoToggle" data-id="${esc(x.id)}" ${x.done ? 'checked' : ''}><span>${esc(x.text)}</span></label><button type="button" class="btn ghost icon sm" data-act="todoDel" data-id="${esc(x.id)}" aria-label="${esc(t('remove'))}">${ic('trash', 'sm')}</button></div>`).join('') : `<div class="small faint" style="padding:12px 0">${esc(t('todo_empty'))}</div>`;
 }
 /* ô xem stream nhỏ ngay trong Phòng tập trung (Watch live giữ nguyên) */
+let fsPick = 'auto';                 // auto = đang live thì xem live, chưa live thì xem video mới nhất; 'live' = luôn xem live; hoặc id video đã live
 function streamCard(){
-  const open = store.get('fs_open', true), src = liveEmbedSrc(), url = watchUrl(), { live } = liveState();
-  return `<section class="card pad fstream"><div class="row between"><b class="row" style="gap:8px">${ic('play', 'sm')} ${esc(t('focus_stream'))} ${live ? '<span class="badge live">LIVE</span>' : ''}</b>
+  const open = store.get('fs_open', true), liveSrc = liveEmbedSrc(), url = watchUrl(), { live } = liveState();
+  const vids = videos.filter(v => v.id).slice(0, 12);
+  let pick = fsPick;
+  if (pick === 'auto') pick = (live && liveSrc) || !vids.length ? 'live' : vids[0].id;       // chưa live → hiện video đã live gần nhất, khỏi trống
+  if (pick !== 'live' && !vids.some(v => v.id === pick)) pick = 'live';
+  const src = pick === 'live' ? liveSrc : `https://www.youtube-nocookie.com/embed/${pick}?rel=0${fsPick === 'auto' ? '' : '&autoplay=1'}`;
+  const sel = vids.length ? `<select class="select fs-sel" data-change="fsPick" aria-label="${esc(t('focus_stream'))}"><option value="live" ${pick === 'live' ? 'selected' : ''}>● ${esc(t('focus_stream_live'))}</option><optgroup label="${esc(t('focus_stream_past'))}">${vids.map(v => `<option value="${esc(v.id)}" ${pick === v.id ? 'selected' : ''}>${esc((v.title || 'YouTube').slice(0, 64))}</option>`).join('')}</optgroup></select>` : '';
+  return `<section class="card pad fstream"><div class="row between"><b class="row" style="gap:8px">${ic('play', 'sm')} ${esc(t('focus_stream'))} ${live && pick === 'live' ? '<span class="badge live">LIVE</span>' : ''}</b>
     <span class="row" style="gap:4px"><button type="button" class="btn ghost sm" data-act="fsToggle">${esc(open ? t('focus_stream_hide') : t('focus_stream_show'))}</button>${url ? `<a class="btn ghost sm" target="_blank" rel="noopener" href="${esc(url)}" aria-label="${esc(t('open_youtube'))}" title="${esc(t('open_youtube'))}">${ic('link', 'sm')}</a>` : ''}</span></div>
-    ${open ? (src ? `<div class="player mt-s"><iframe src="${esc(src)}" title="YouTube" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>` : `<p class="small muted mt-s"><b>${esc(t('offline'))}.</b> ${esc(t('offline_sub'))}</p>`) : ''}</section>`;
+    ${open ? `${sel ? `<div class="mt-s">${sel}</div>` : ''}${src ? `<div class="player mt-s"><iframe src="${esc(src)}" title="YouTube" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>` : `<p class="small muted mt-s"><b>${esc(t('offline'))}.</b> ${esc(t('offline_sub'))}</p>`}` : ''}</section>`;
 }
-ACTIONS.fsToggle = () => { store.set('fs_open', !store.get('fs_open', true)); render(true); };
+CHANGES.fsPick = el => { fsPick = el.value; render(true); };ACTIONS.fsToggle = () => { store.set('fs_open', !store.get('fs_open', true)); render(true); };
 PAGES.focus = function(){
   const fl = localFocus(), today = DT.now().setZone(userTZ), days = Array.from({ length:7 }, (_, i) => today.minus({ days:6 - i })), vals = days.map(d => (fl[d.toISODate()] || { m:0 }).m), mx = Math.max(30, ...vals), td = fl[today.toISODate()] || { m:0, s:0 };
   const c = pomo.cfg, num = (k, lab) => `<div class="field"><label class="label">${esc(lab)}</label><input class="input" type="number" min="1" max="180" value="${c[k]}" data-change="cfg" data-k="${k}"></div>`;
