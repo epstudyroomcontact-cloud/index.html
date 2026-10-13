@@ -247,3 +247,33 @@ Cách làm mỗi khi có người đăng ký (Ko-fi, PayPal hoặc chuyển kho�
 Lưu ý quan trọng: web **không tự biết** ai vừa đăng ký trên Ko-fi hay PayPal (cần máy chủ riêng mới làm được). Vì vậy bạn tích tay mỗi khi có người mới, mất khoảng 10 giây. Câu chữ của mục cảm ơn sửa được bằng nút ✏️ trên trang. Luật bảo mật Firestore **không cần đổi**.
 
 Cần tải lên GitHub: thư mục **js**, thư mục **css**, và **SETUP.md**.
+
+## PHẦN 14 — Giữ web không vượt hạn mức miễn phí của Firebase
+
+**Vấn đề:** gói miễn phí của Firebase cho đọc 50.000 lượt/ngày. Trước đây mỗi lần một người mở web tốn khoảng 50 lượt đọc, nên chỉ khoảng 1.000 người/ngày là chạm trần.
+
+**Cách đã làm (tự động, bạn không cần làm gì):**
+1. **Gộp dữ liệu công khai thành một bản** (giao diện, chữ, nhạc, bài viết, sản phẩm, đánh giá, lịch live…). Người xem chỉ đọc 1 lượt thay vì ~50.
+2. **Lưu bản gộp trong trình duyệt 10 phút.** Mở lại web hoặc chuyển trang trong thời gian này tốn **0** lượt đọc.
+3. **Nội dung bài viết chỉ tải khi người xem mở bài đó** (và lưu 30 phút).
+4. **Khi Firebase báo hết hạn mức,** người đã từng vào web vẫn thấy bản đã lưu trong trình duyệt.
+5. **Không ghi hồ sơ người dùng khi không có gì thay đổi** (tiết kiệm cả lượt ghi).
+Kết quả ước tính: web chịu được khoảng **10.000 người xem khác nhau mỗi ngày** trong gói miễn phí.
+
+**Bản gộp cập nhật thế nào:**
+- Tự cập nhật khoảng **4 giây sau mỗi lần bạn bấm Lưu** bất cứ thứ gì công khai (bài viết, chữ, sản phẩm, lịch, nhạc, tên người đồng hành…).
+- Lần đầu sau khi đưa bản này lên, bản gộp được tạo **ngay khi bạn đăng nhập admin**. Trước lúc đó web vẫn chạy bằng cách cũ, nên không bị gián đoạn.
+- Xem tình trạng ở **Admin → Tổng quan → "Dữ liệu cho người xem & bản sao dự phòng"**: có giờ xuất bản gần nhất và nút **Xuất bản ngay** (dùng khi bạn nghi bản gộp chưa mới).
+- Người xem thấy thay đổi của bạn trong vòng khoảng 10 phút (hoặc ngay khi họ tải lại sau đó). Riêng bạn (admin) luôn thấy thay đổi tức thì.
+
+**Bản sao dự phòng:** cũng ở thẻ trên có nút **"Tải bản sao dữ liệu (file .json)"**. Nên bấm khoảng mỗi tuần và cất file vào ổ đĩa của bạn (bài viết, sản phẩm, cài đặt nằm trong Firebase, đây là bản dự phòng nếu có sự cố).
+
+**Tự kiểm tra mức dùng:** vào Firebase → **Firestore Database → tab Usage**. Mục "Reads" phải ở mức rất thấp. Nếu một ngày thấy gần 50.000, báo mình.
+
+Cần tải lên GitHub: thư mục **js** (các file `core.js`, `pages.js`, `admin.js` có thay đổi) và `SETUP.md`.
+
+### 14.1. Các tầng bảo vệ thêm (bản 7)
+- Người đã đăng nhập tốn ít lượt đọc hơn: kết quả kiểm tra "người đồng hành" được nhớ 30 phút, thư viện đã mua chỉ được tải khi mở trang Tài khoản.
+- Khi Firebase lỗi, các lần thử lại được giãn ra (nghỉ 5 phút), không dồn dập.
+- **File dự phòng cho web (tuỳ chọn, rất nên làm một lần):** vào **Admin → Tổng quan → "Tải file dự phòng cho web"** để tải `site-fallback.json`, rồi đưa file này lên GitHub **cùng chỗ với file index.html** (Add file → Upload files, kéo file vào, Commit). Nếu Firebase hết hạn mức hoặc gặp sự cố, **người mới** vào web vẫn thấy đủ nội dung (giao diện, bài viết, sản phẩm, lịch live…) từ file này, hoàn toàn không tốn lượt đọc. Khi bạn đăng nhiều bài hoặc đổi lịch nhiều, tải và đưa lên lại để file luôn mới.
+- Nếu muốn tăng thêm hạn mức: nâng lên gói Blaze (trả theo mức dùng, hạn mức miễn phí vẫn giữ nguyên) và đặt cảnh báo ngân sách. Chỉ làm khi thấy "Reads" trong Firebase thường xuyên vượt khoảng 30.000/ngày.
