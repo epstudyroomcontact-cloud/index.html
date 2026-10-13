@@ -227,3 +227,9 @@ Một mục mới trong menu, ai cũng xem được (bạn khoá lại được 
 
 ### 12.3. Cần tải lên GitHub
 Thư mục **js**, thư mục **css**, file **index.html** và **SETUP.md**. Luật bảo mật Firestore **không cần đổi**. Đợi 1–2 phút rồi bấm **Ctrl + F5**.
+
+### 12.4. Ô xem stream trong Phòng tập trung
+Ở cột bên phải Phòng tập trung (trên danh sách việc) có ô nhỏ **"Watch the stream"** phát đúng live của bạn, dùng cùng cấu hình YouTube với trang **Xem live** (Admin → Giao diện & Menu → YouTube). Trang **Xem live** vẫn giữ nguyên.
+- Có chữ LIVE khi bạn đang live. Khi chưa live thì hiện thông báo "stream offline".
+- Nút **Ẩn / Hiện** để thu gọn ô này (web nhớ lựa chọn của từng người xem), nút liên kết bên cạnh mở YouTube.
+- Nếu ô báo "Video unavailable": vào YouTube Studio bật **cho phép nhúng** cho live/video đó (xem PHẦN 7).
