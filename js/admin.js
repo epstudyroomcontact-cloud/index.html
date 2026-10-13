@@ -4,8 +4,8 @@
    Quyền admin = có tài liệu admins/<uid> trong Firestore (xem SETUP.md)
    ========================================================= */
 const A_TABS = [
-  ['overview', 'chart', 'Tổng quan'], ['site', 'sliders', 'Giao diện & Menu'], ['schedule', 'calendar', 'Lịch live'], ['blog', 'pen', 'Bài viết'],
-  ['products', 'bag', 'Sản phẩm'], ['orders', 'box', 'Đơn hàng'], ['coupons', 'tag', 'Mã giảm giá'], ['content', 'info', 'Nội dung & FAQ'],
+  ['overview', 'chart', 'Tổng quan'], ['site', 'sliders', 'Giao diện & Menu'], ['schedule', 'calendar', 'Lịch live'], ['blog', 'pen', 'Bài viết'], ['music', 'volume', 'Nhạc'],
+  ['products', 'bag', 'Sản phẩm'], ['gear', 'tag', 'Đồ mình dùng'], ['orders', 'box', 'Đơn hàng'], ['coupons', 'tag', 'Mã giảm giá'], ['content', 'info', 'Nội dung & FAQ'],
   ['reviews', 'star', 'Đánh giá'], ['payments', 'credit', 'Thanh toán & Ủng hộ'], ['members', 'users', 'Thành viên']
 ];
 const A = html => { const b = $('admin-body'); if (b) b.innerHTML = html; };
@@ -36,9 +36,9 @@ PAGES.admin = function(){
       : `<p class="muted small">Chỉ tài khoản <b>${esc(ADMIN_EMAIL)}</b> mới có quyền quản trị. Bạn đang đăng nhập bằng <b>${esc(state.user.email)}</b>.</p><button class="btn secondary" data-act="signout">${ic('logout', 'sm')} Đăng xuất</button>`}</div></div>`);  const tab = A_TABS.some(x => x[0] === route.args[0]) ? route.args[0] : 'overview';
   page(`<div class="page-head"><div><h1>Trang quản trị</h1><p>Tuỳ chỉnh giao diện, nội dung, sản phẩm và đơn hàng của bạn.</p></div><button class="btn primary" data-act="startEdit">${ic('pen', 'sm')} Sửa chữ & ảnh trực tiếp trên trang</button></div>
     <nav class="a-tabs">${A_TABS.map(([k, icn, l]) => `<a href="#/admin/${k}" class="${tab === k ? 'on' : ''}">${ic(icn, 'sm')} ${esc(l)}</a>`).join('')}</nav><div id="admin-body"></div>`);
-  ({ overview:tabOverview, site:tabSite, schedule:tabSchedule, blog:tabBlog, products:tabProducts, orders:tabOrders, coupons:tabCoupons, content:tabContent, reviews:tabReviews, payments:tabPayments, members:tabMembers })[tab]();
+  ({ overview:tabOverview, site:tabSite, schedule:tabSchedule, blog:tabBlog, music:tabMusic, products:tabProducts, gear:tabGear, orders:tabOrders, coupons:tabCoupons, content:tabContent, reviews:tabReviews, payments:tabPayments, members:tabMembers })[tab]();
 };
-const reloadTab = () => { const f = ({ overview:tabOverview, site:tabSite, schedule:tabSchedule, blog:tabBlog, products:tabProducts, orders:tabOrders, coupons:tabCoupons, content:tabContent, reviews:tabReviews, payments:tabPayments, members:tabMembers })[route.args[0] || 'overview']; if (f) f(); };
+const reloadTab = () => { const f = ({ overview:tabOverview, site:tabSite, schedule:tabSchedule, blog:tabBlog, music:tabMusic, products:tabProducts, gear:tabGear, orders:tabOrders, coupons:tabCoupons, content:tabContent, reviews:tabReviews, payments:tabPayments, members:tabMembers })[route.args[0] || 'overview']; if (f) f(); };
 const getAll = (col, order, limit = 200) => DEMO ? Promise.resolve([]) : (order ? db.collection(col).orderBy(order, 'desc').limit(limit) : db.collection(col).limit(limit)).get().then(s => s.docs.map(d => ({ id:d.id, ...d.data() })));
 
 /* ---------------- Tổng quan ---------------- */
@@ -213,6 +213,37 @@ async function prodForm(p){
   $('pr-type').addEventListener('change', e => { $('digital-box').style.display = e.target.value === 'physical' ? 'none' : ''; });
 }
 
+/* ---------------- Nhạc (gợi ý ở Phòng tập trung) ---------------- */
+let adminMusic = { picks:[], recent:[] };
+const muRows = key => adminMusic[key].map((m, i) => `<div class="ad-slot" data-i="${i}"><div class="f2"><input class="input mu-te" placeholder="Title (English)" value="${esc((m.title || {}).en || '')}"><input class="input mu-tv" placeholder="Tên (Tiếng Việt)" value="${esc((m.title || {}).vi || '')}"></div>
+  <div class="mt-s"><input class="input mu-u" placeholder="Link YouTube / Spotify / SoundCloud…" value="${esc(m.url || '')}"></div>
+  <div class="f2 mt-s"><input class="input mu-ne" placeholder="Short note (English, optional)" value="${esc((m.note || {}).en || '')}"><input class="input mu-nv" placeholder="Ghi chú ngắn (Tiếng Việt, tuỳ chọn)" value="${esc((m.note || {}).vi || '')}"></div>
+  <div class="row mt-s"><button type="button" class="btn ghost sm" data-act="muMove" data-k="${key}" data-i="${i}" data-d="-1">${ic('up', 'sm')}</button><button type="button" class="btn ghost sm" data-act="muMove" data-k="${key}" data-i="${i}" data-d="1">${ic('down', 'sm')}</button><button type="button" class="btn danger sm" data-act="muDel" data-k="${key}" data-i="${i}">Xoá</button></div></div>`).join('') || '<div class="hint">Chưa có mục nào.</div>';
+const readMu = key => [...document.querySelectorAll(`#mu-${key} .ad-slot`)].map(r => ({ title:{ en:r.querySelector('.mu-te').value.trim(), vi:r.querySelector('.mu-tv').value.trim() }, url:r.querySelector('.mu-u').value.trim(), note:{ en:r.querySelector('.mu-ne').value.trim(), vi:r.querySelector('.mu-nv').value.trim() } }));
+const syncMu = () => { adminMusic.picks = readMu('picks'); adminMusic.recent = readMu('recent'); };
+const drawMu = () => { $('mu-picks').innerHTML = muRows('picks'); $('mu-recent').innerHTML = muRows('recent'); };
+function tabMusic(){
+  adminMusic = { picks:JSON.parse(JSON.stringify(music.picks || [])), recent:JSON.parse(JSON.stringify(music.recent || [])) };
+  A(`${aCard('Gợi ý nhạc cho Phòng tập trung', `<p class="hint" style="margin-bottom:10px">Dán link <b>YouTube</b> (video, live hoặc playlist), <b>Spotify</b> (playlist, album, bài hát) hoặc <b>SoundCloud</b>: người xem bấm "Phát tại đây" là nghe ngay trong trang. Link khác (Apple Music, Zing…) vẫn hiện, nhưng chỉ có nút "Mở". Ngoài danh sách này, trang luôn có sẵn âm thanh nền (mưa, ồn nâu, ồn trắng) và các gợi ý tìm nhạc trên YouTube.</p><div id="mu-picks">${muRows('picks')}</div><div class="row mt"><button class="btn secondary sm" data-act="muAdd" data-k="picks">${ic('plus', 'sm')} Thêm gợi ý</button></div>`)}
+    ${aCard('Nhạc mình đang nghe gần đây', `<p class="hint" style="margin-bottom:10px">Các danh sách nhạc bạn đang nghe dạo này (hiện riêng một mục ở Phòng tập trung). Cập nhật bất cứ lúc nào, cùng cách dán link như trên.</p><div id="mu-recent">${muRows('recent')}</div><div class="row mt"><button class="btn secondary sm" data-act="muAdd" data-k="recent">${ic('plus', 'sm')} Thêm danh sách</button></div>`)}
+    <div class="row mt"><button class="btn primary" data-act="saveMusic">Lưu nhạc</button><span class="hint">Tên và ghi chú tự dịch sang mọi ngôn ngữ khi lưu.</span></div>`);
+}
+
+/* ---------------- Đồ mình dùng (affiliate) ---------------- */
+let adminGear = [];
+const grRows = () => adminGear.map((g, i) => `<div class="ad-slot" data-i="${i}"><div class="f2"><input class="input gr-ne" placeholder="Name (English)" value="${esc((g.name || {}).en || '')}"><input class="input gr-nv" placeholder="Tên (Tiếng Việt)" value="${esc((g.name || {}).vi || '')}"></div>
+  <div class="f2 mt-s"><textarea class="textarea gr-te" placeholder="Short note (English)">${esc((g.note || {}).en || '')}</textarea><textarea class="textarea gr-tv" placeholder="Ghi chú ngắn (Tiếng Việt)">${esc((g.note || {}).vi || '')}</textarea></div>
+  <div class="f2 mt-s"><input class="input gr-ce" placeholder="Category (English) — VD: Desk, Audio" value="${esc((g.cat || {}).en || '')}"><input class="input gr-cv" placeholder="Mục (Tiếng Việt) — VD: Bàn học, Âm thanh" value="${esc((g.cat || {}).vi || '')}"></div>
+  <div class="f3 mt-s"><input class="input gr-p" placeholder="Giá hiển thị (VD: $25)" value="${esc(g.price || '')}"><input class="input gr-s" placeholder="Nơi bán (VD: Amazon, Shopee)" value="${esc(g.store || '')}"><input class="input gr-u" placeholder="Link sản phẩm / link affiliate (https://…)" value="${esc(g.url || '')}"></div>
+  <div class="row mt-s" style="flex-wrap:nowrap"><input class="input gr-i" id="gr-img-${i}" placeholder="Ảnh (link) hoặc bấm Chọn ảnh — để trống = tranh vẽ sẵn" value="${esc(g.img || '')}"><button type="button" class="btn secondary" data-act="pickInto" data-target="gr-img-${i}">${ic('image', 'sm')} Chọn ảnh</button></div>
+  <div class="row mt-s"><button type="button" class="btn ghost sm" data-act="grMove" data-i="${i}" data-d="-1">${ic('up', 'sm')}</button><button type="button" class="btn ghost sm" data-act="grMove" data-i="${i}" data-d="1">${ic('down', 'sm')}</button><button type="button" class="btn danger sm" data-act="grDel" data-i="${i}">Xoá</button></div></div>`).join('') || '<div class="hint">Chưa có món nào.</div>';
+const readGr = () => [...document.querySelectorAll('#gr-list .ad-slot')].map((r, i) => { const old = adminGear[i] || {}, en = r.querySelector('.gr-ne').value.trim(), vi = r.querySelector('.gr-nv').value.trim(); return { id:old.id || slugify(en || vi) || ('g' + Date.now().toString(36) + i), _o:old._o || null, name:{ en, vi }, note:{ en:r.querySelector('.gr-te').value.trim(), vi:r.querySelector('.gr-tv').value.trim() }, cat:{ en:r.querySelector('.gr-ce').value.trim(), vi:r.querySelector('.gr-cv').value.trim() }, price:r.querySelector('.gr-p').value.trim(), store:r.querySelector('.gr-s').value.trim(), url:r.querySelector('.gr-u').value.trim(), img:r.querySelector('.gr-i').value.trim() }; });
+function tabGear(){
+  adminGear = (gear.items || []).map(g => ({ ...JSON.parse(JSON.stringify(g)), _o:JSON.parse(JSON.stringify(g)) }));
+  A(aCard('Đồ mình dùng (link affiliate)', `<p class="hint" style="margin-bottom:10px">Liệt kê những món bạn dùng khi học: đèn, tai nghe, sổ, bàn phím… Mỗi món có ảnh, ghi chú ngắn và <b>link mua hàng</b>. Khi bạn tham gia chương trình affiliate (Amazon Associates, Shopee Affiliate, Lazada, AccessTrade…), chỉ cần dán link affiliate của bạn vào ô "Link". Khách bấm là sang trang bán hàng và bạn nhận hoa hồng nếu họ mua. Các link tự gắn nhãn <code>sponsored</code> theo khuyến nghị của Google.</p>
+    <p class="hint" style="margin-bottom:10px">Dòng thông báo "link có thể là affiliate" hiện ngay dưới tiêu đề trang. Bạn sửa chữ đó bằng nút ✏️ trên trang <b>Đồ mình dùng</b>. Nên giữ dòng này vì nhiều nền tảng và pháp luật yêu cầu nói rõ.</p>
+    <div id="gr-list">${grRows()}</div><div class="row mt"><button class="btn secondary sm" data-act="grAdd">${ic('plus', 'sm')} Thêm món đồ</button><button class="btn primary" data-act="saveGear">Lưu</button><a class="btn ghost" href="#/gear">Xem trang</a></div><p class="hint">Tên, ghi chú, mục tự dịch sang mọi ngôn ngữ khi lưu.</p>`));
+}
 /* ---------------- Đơn hàng ---------------- */
 async function tabOrders(){
   A('<p class="muted">Đang tải…</p>'); let list = []; try { list = DEMO ? [{ id:'EP-DEMO1', code:'EP-DEMO1', total:79000, currency:'VND', status:'paid', uid:'demo', buyer:{ name:'Linh', email:'linh@mail.com' }, items:[{ id:'planner', name:'30-Day Study Planner (PDF)', qty:1, type:'digital' }], createdAt:Date.now() }] : await getAll('orders', 'createdAt', 100); } catch (e) { return fail(e); }
@@ -496,4 +527,32 @@ Object.assign(ACTIONS, {
   saveFocusLimit: () => { const n = Math.max(0, Math.min(1440, Math.round(+val('py-flimit') || 0))); dbSet('settings', 'branding', { focusLimit:n }).then(() => { branding.focusLimit = n; ok(n ? 'Đã lưu: ' + n + ' phút/ngày' : 'Đã bỏ giới hạn'); }).catch(fail); },
   savePay: () => { const raw = {}; Object.entries(PAY_FIELDS).forEach(([id, k]) => raw[k] = val(id)); const data = fixPayUrls(raw); dbSet('settings', 'payments', data).then(() => { Object.assign(payments, data); Object.entries(PAY_FIELDS).forEach(([id, k]) => { const e = $(id); if (e) e.value = data[k] || ''; }); ok(); }).catch(fail); },
   copyEmails: () => { try { navigator.clipboard.writeText((window._signups || []).map(s => s.email).join(', ')); } catch (e) {} toast('Đã sao chép email'); }
+});
+
+Object.assign(ACTIONS, {
+  /* nhạc */
+  muAdd: el => { syncMu(); adminMusic[el.dataset.k].push({ title:{}, url:'', note:{} }); drawMu(); },
+  muDel: el => { syncMu(); adminMusic[el.dataset.k].splice(+el.dataset.i, 1); drawMu(); },
+  muMove: el => { syncMu(); const a = adminMusic[el.dataset.k], i = +el.dataset.i, j = i + +el.dataset.d; if (j < 0 || j >= a.length) return; [a[i], a[j]] = [a[j], a[i]]; drawMu(); },
+  saveMusic: el => withTranslate(el, async () => {
+    syncMu(); const old = [...(music.picks || []), ...(music.recent || [])], out = {};
+    for (const k of ['picks', 'recent']) {
+      out[k] = [];
+      for (const m of adminMusic[k].filter(m => m.url)) { const o = old.find(x => x.url === m.url) || {}; out[k].push({ url:m.url, title:await TR.fill(o.title, m.title), note:await TR.fill(o.note, m.note) }); }
+    }
+    await dbSet('settings', 'music', out, false); music = out; ok(trMsg('Đã lưu nhạc.')); tabMusic();
+  }).catch(fail),
+  /* đồ mình dùng */
+  grAdd: () => { adminGear = readGr(); adminGear.push({ name:{}, note:{}, cat:{}, price:'', store:'', url:'', img:'', _o:null }); $('gr-list').innerHTML = grRows(); },
+  grDel: el => { adminGear = readGr(); adminGear.splice(+el.dataset.i, 1); $('gr-list').innerHTML = grRows(); },
+  grMove: el => { adminGear = readGr(); const i = +el.dataset.i, j = i + +el.dataset.d; if (j < 0 || j >= adminGear.length) return; [adminGear[i], adminGear[j]] = [adminGear[j], adminGear[i]]; $('gr-list').innerHTML = grRows(); },
+  saveGear: el => withTranslate(el, async () => {
+    adminGear = readGr(); const items = [], catMap = {};
+    for (const g of adminGear.filter(g => g.name.en || g.name.vi || g.url)) {
+      const o = g._o || {}, ck = g.cat.en || g.cat.vi || '';
+      if (ck && !catMap[ck]) catMap[ck] = await TR.fill(o.cat, g.cat);      // cùng một mục thì dùng cùng một bản dịch để bộ lọc không bị tách đôi
+      items.push({ id:g.id, name:await TR.fill(o.name, g.name), note:await TR.fill(o.note, g.note), cat:ck ? catMap[ck] : {}, price:g.price, store:g.store, url:g.url, img:g.img });
+    }
+    await dbSet('settings', 'gear', { items }, false); gear = { items }; ok(trMsg('Đã lưu.')); tabGear();
+  }).catch(fail)
 });

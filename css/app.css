@@ -425,3 +425,13 @@ html[data-font="serif"] h1,html[data-font="serif"] h2,html[data-font="serif"] h3
 .gate-load{display:grid;place-items:center;min-height:60vh}
 .gate-load i{width:34px;height:34px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--accent);animation:gate-spin .8s linear infinite}
 @keyframes gate-spin{to{transform:rotate(360deg)}}
+
+/* ---------- nhạc ở Phòng tập trung + trang Đồ mình dùng ---------- */
+.gear-card{cursor:default}.gear-card:hover{transform:none}
+.gear-card .badge{align-self:flex-start}
+.mrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.mrow:last-of-type{border-bottom:0}
+.mrow .mi{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 220px}
+.mplayer{margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:16px;background:var(--bg-soft,var(--surface))}
+.mplayer iframe{width:100%;border:0;border-radius:12px;margin-top:8px;display:block}
+.music-card input[type=range]{accent-color:var(--accent)}

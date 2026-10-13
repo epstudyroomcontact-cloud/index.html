@@ -52,6 +52,7 @@ let branding = { name:'EP Study Room', themeColor:'#ff3d9a', defaultTheme:'rain'
   ], donate:{} };
 let content = { texts:{}, images:{}, faq:null };
 let payments = {}, posts = [], products = [], reviews = [], library = [], profile = {};
+let music = { picks:[], recent:[] }, gear = { items:[] };           // nhạc gợi ý ở Phòng tập trung; đồ mình dùng (affiliate)
 /* Tự thêm https:// cho các link thanh toán nếu người dùng quên */
 function fixPayUrls(p) { const o = { ...p }; ['stripe', 'paypal', 'kofi', 'companionUrl', 'momoQr'].forEach(k => { const v = (o[k] || '').trim(); o[k] = v && !/^(https?:)?\/\//i.test(v) && !/^data:/i.test(v) ? 'https://' + v : v; }); return o; }
 state.companion = false;
@@ -238,6 +239,8 @@ function listenAll(){
   });
   snap(db.collection('settings').doc('content'), doc => { content = { texts:{}, images:{}, faq:null, ...(doc.exists ? doc.data() : {}) }; render(); });
   snap(db.collection('settings').doc('payments'), d => { payments = fixPayUrls(d.exists ? d.data() : {}); });
+  snap(db.collection('settings').doc('music'), d => { const x = d.exists ? d.data() : {}; music = { picks:x.picks || [], recent:x.recent || [] }; if (['focus'].includes(route.name)) render(); });
+  snap(db.collection('settings').doc('gear'), d => { const x = d.exists ? d.data() : {}; gear = { items:x.items || [] }; if (route.name === 'gear') render(); });
   snap(db.collection('posts').where('published', '==', true), s => { posts = s.docs.map(d => ({ id:d.id, ...d.data() })).sort((a, b) => tsMs(b.createdAt) - tsMs(a.createdAt)); render(); }, () => { posts = []; render(); });
   snap(db.collection('products').where('active', '==', true), s => { products = s.docs.map(d => ({ id:d.id, ...d.data() })).sort((a, b) => tsMs(a.createdAt) - tsMs(b.createdAt)); render(); }, () => { products = []; render(); });
   snap(db.collection('reviews').where('approved', '==', true), s => { reviews = s.docs.map(d => ({ id:d.id, ...d.data() })).sort((a, b) => tsMs(b.createdAt) - tsMs(a.createdAt)); render(); }, () => { reviews = []; });
@@ -247,6 +250,8 @@ function loadDemo(){
   branding = { ...branding, announcement:{ vi:'Chào mừng đến EP Study Room (chế độ xem thử)', en:'Welcome to EP Study Room (demo preview)' }, contacts:{ live:'https://youtube.com' }, socialLinks:{ YouTube:'https://youtube.com', Instagram:'https://instagram.com' }, ytLiveId:'jfKfPfyJRdk',
     videos:[{ url:'https://youtu.be/jfKfPfyJRdk', title:'lofi hip hop radio — beats to relax/study to' },{ url:'https://youtu.be/5qap5aO4i9A', title:'Study with me — 2 hours Pomodoro 50/10' },{ url:'https://youtu.be/lTRiuFIWV54', title:'Rainy night study session' }] };
   payments = { bankBin:'970436', accountNo:'0123456789', accountName:'NGUYEN VAN A', momoPhone:'0900000000', stripe:'https://stripe.com' };
+  music = { picks:[{ title:{ en:'Rain & piano', vi:'Mưa và piano' }, note:{ en:'Soft, no lyrics', vi:'Nhẹ nhàng, không lời' }, url:'https://www.youtube.com/watch?v=jfKfPfyJRdk' }, { title:{ en:'Focus playlist', vi:'Danh sách tập trung' }, note:{}, url:'https://open.spotify.com/playlist/37i9dQZF1DWZeKCadgRdKQ' }], recent:[{ title:{ en:'Late-night study mix', vi:'Mix học khuya' }, note:{ en:'What I have on repeat this week', vi:'Tuần này mình nghe đi nghe lại' }, url:'https://open.spotify.com/playlist/37i9dQZF1DX8Uebhn9wzrS' }] };
+  gear = { items:[{ id:'lamp', name:{ en:'Warm desk lamp', vi:'Đèn bàn ánh vàng' }, note:{ en:'Soft light for late sessions.', vi:'Ánh sáng dịu cho những buổi học khuya.' }, cat:{ en:'Desk', vi:'Bàn học' }, price:'', store:'Amazon', url:'https://example.com/lamp', img:'' }, { id:'headphones', name:{ en:'Noise-cancelling headphones', vi:'Tai nghe chống ồn' }, note:{ en:'Keeps the room quiet.', vi:'Giữ cho căn phòng yên tĩnh.' }, cat:{ en:'Audio', vi:'Âm thanh' }, price:'', store:'Shopee', url:'https://example.com/headphones', img:'' }, { id:'notebook', name:{ en:'Dotted notebook', vi:'Sổ chấm bi' }, note:{ en:'For plans and to-do lists.', vi:'Để ghi kế hoạch và việc cần làm.' }, cat:{ en:'Stationery', vi:'Văn phòng phẩm' }, price:'', store:'', url:'https://example.com/notebook', img:'' }] };
   const now = Date.now(), body = en => `<p>${en}</p><h2>Why Pomodoro?</h2><p>Short, focused sprints with <b>gentle breaks</b> make big tasks feel small.</p><blockquote>Slow progress is still progress.</blockquote><ul><li>25 minutes focus</li><li>5 minutes breathe</li><li>Repeat</li></ul>`;
   posts = [
     { id:'welcome', slug:'welcome', title:{ vi:'Chào mừng đến góc học của mình', en:'Welcome to my study corner' }, excerpt:{ vi:'Vài dòng đầu tiên cho ngôi nhà nhỏ này.', en:'The first few lines for this little home.' }, body:{ vi:body('Xin chào! Đây là bài viết thử nghiệm.'), en:body('Hello! This is a sample post.') }, tags:['life','study'], category:'journal', pinned:true, createdAt:now - 172800000, published:true },
@@ -362,11 +367,12 @@ function readRoute(){
 }
 /* Mục cần đăng nhập: khách chưa đăng nhập vẫn thấy menu và tiêu đề của mọi mục,
    nhưng khi mở các mục "khoá" thì được mời đăng nhập / tạo tài khoản để tham gia (admin chỉnh ở tab Giao diện & Menu). */
-const LOCKABLE = ['home', 'schedule', 'watch', 'focus', 'blog', 'club', 'shop', 'donate', 'about'];
+const LOCKABLE = ['home', 'schedule', 'watch', 'focus', 'blog', 'club', 'shop', 'gear', 'donate', 'about'];
 const loginRequired = () => !DEMO && !CONFIG_MISSING && branding.requireLogin !== false;
 const lockedPages = () => Array.isArray(branding.lockedPages) ? branding.lockedPages : ['schedule', 'watch', 'focus', 'blog', 'club', 'shop'];
 const isLocked = name => loginRequired() && !state.user && lockedPages().includes(name);
 function doRender(){
+  if (!state.booted) return;                      // chưa nạp xong các file (pages.js, admin.js) thì chưa vẽ
   readRoute();
   state.locked = isLocked(route.name);
   if (state.locked && !state.authReady) { renderChrome(); $('page').innerHTML = '<div class="gate-load"><i></i></div>'; return; }   // đợi biết đã đăng nhập hay chưa
@@ -381,7 +387,7 @@ function afterRender(){
 }
 const NAV_DEFAULT = [
   { id:'home', icon:'home', path:'/' }, { id:'schedule', icon:'calendar', path:'/schedule' }, { id:'watch', icon:'play', path:'/watch' },
-  { id:'focus', icon:'timer', path:'/focus' }, { id:'blog', icon:'pen', path:'/blog' }, { id:'club', icon:'moon', path:'/club' }, { id:'shop', icon:'bag', path:'/shop' }, { id:'donate', icon:'heart', path:'/donate' }, { id:'about', icon:'info', path:'/about' }
+  { id:'focus', icon:'timer', path:'/focus' }, { id:'blog', icon:'pen', path:'/blog' }, { id:'club', icon:'moon', path:'/club' }, { id:'shop', icon:'bag', path:'/shop' }, { id:'gear', icon:'tag', path:'/gear' }, { id:'donate', icon:'heart', path:'/donate' }, { id:'about', icon:'info', path:'/about' }
 ];
 function navItems(){
   const saved = branding.nav; if (!Array.isArray(saved) || !saved.length) return NAV_DEFAULT.map(n => ({ ...n, visible:true }));
@@ -406,7 +412,7 @@ function renderChrome(){
     <div class="sb-foot">${state.user
       ? `<a class="sb-user" href="#/account" data-act="closeNav"><span class="avatar">${esc((displayName() || '?').slice(0, 1).toUpperCase())}</span><div><b>${esc(displayName())}</b><small>${esc(state.isAdmin ? 'Admin' : t('nav_account'))}</small></div></a>`
       : `<a class="btn primary" style="width:100%" href="#/account" data-act="closeNav">${ic('user', 'sm')} ${esc(t('nav_signin'))}</a>`}</div>`;
-  const titles = { home:'nav_home', schedule:'nav_schedule', watch:'nav_watch', focus:'nav_focus', blog:'nav_blog', club:'nav_club', shop:'nav_shop', donate:'nav_donate', about:'nav_about', account:'nav_account', admin:'nav_admin' };
+  const titles = { home:'nav_home', schedule:'nav_schedule', watch:'nav_watch', focus:'nav_focus', blog:'nav_blog', club:'nav_club', shop:'nav_shop', gear:'nav_gear', donate:'nav_donate', about:'nav_about', account:'nav_account', admin:'nav_admin' };
   $('tb-title').textContent = t(titles[route.name] || 'nav_home');
   const dot = $('cart-dot'); dot.textContent = cartN; dot.classList.toggle('hidden', !cartN);
   $('btn-edit').classList.toggle('hidden', !state.isAdmin);
@@ -578,6 +584,7 @@ $('chk-calm').addEventListener('change', e => { state.calm = e.target.checked; s
 window.addEventListener('hashchange', () => { document.body.classList.remove('nav-open'); $('cart-drawer').classList.remove('open'); render(true); window.scrollTo({ top:0 }); });
 
 function boot(){
+  state.booted = true;
   applyLook(); renderPrefs(); listenAll(); readRoute(); doRender();
   if ('Notification' in window && Notification.permission === 'granted') $('btn-notif').classList.add('on');
   if (state.user === null && DEMO && DEMO_AS) { render(true); }

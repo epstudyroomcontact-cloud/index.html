@@ -196,3 +196,34 @@ Họ chuyển tiền, báo bạn (nhắn Instagram/email kèm nội dung chuyể
 
 ### 11.4. Cần tải lên GitHub
 Thư mục **js** (có thêm 2 file mới `translate.js` và `i18n-extra.js`), thư mục **css**, file **index.html**, và **SETUP.md**. Sau khi tải xong đợi 1–2 phút rồi bấm **Ctrl + F5**.
+
+## PHẦN 12 — Nhạc ở Phòng tập trung và trang "Đồ mình dùng" (affiliate)
+
+### 12.1. Nhạc ở Phòng tập trung
+Dưới đồng hồ Pomodoro có thẻ **"Music for focus"** gồm:
+- **Âm thanh nền tự tạo** (không cần mạng, không dính bản quyền): Mưa, Ồn nâu, Ồn trắng, có thanh chỉnh âm lượng. Âm thanh vẫn chạy khi khách đổi sang trang khác.
+- **Gợi ý nhạc do bạn chọn**: danh sách bạn tự thêm, khách bấm "Phát tại đây" là nghe ngay trong trang.
+- **Nhạc bạn nghe gần đây**: một danh sách riêng để bạn cập nhật bất cứ lúc nào.
+- **Gợi ý tìm nhạc**: Lo-fi, piano, jazz quán cà phê, mưa & sấm, cổ điển, thiên nhiên (mở YouTube ở tab mới, có sẵn, bạn không cần làm gì).
+
+Cách thêm: **Admin → Nhạc**.
+1. Bấm **Thêm gợi ý** (hoặc **Thêm danh sách** ở mục "đang nghe gần đây").
+2. Điền tên (Tiếng Anh hoặc Tiếng Việt, ô kia và các ngôn ngữ khác tự dịch), dán **link** và ghi chú ngắn nếu muốn.
+3. Bấm **Lưu nhạc**.
+
+Link phát được ngay trong trang: **YouTube** (video, live, playlist), **Spotify** (playlist, album, bài hát), **SoundCloud**. Link khác (Apple Music, Zing…) vẫn hiện nhưng chỉ có nút "Mở".
+
+Lưu ý: nếu video YouTube cài "không cho nhúng" thì trình phát sẽ báo lỗi, khi đó khách vẫn bấm "Mở" để nghe trên YouTube.
+
+### 12.2. Trang "Đồ mình dùng" (My gear)
+Một mục mới trong menu, ai cũng xem được (bạn khoá lại được ở **Giao diện & Menu → Quyền truy cập**). Mỗi món có ảnh, ghi chú, mục, giá, nơi bán và nút **View item** dẫn tới link mua.
+1. **Admin → Đồ mình dùng → Thêm món đồ**.
+2. Điền tên, ghi chú ngắn, mục (VD: Desk, Audio), giá hiển thị (VD: $25), nơi bán, **link**, và ảnh (dán link ảnh hoặc bấm **Chọn ảnh**).
+3. Bấm **Lưu**.
+
+**Làm affiliate:** đăng ký chương trình affiliate của nơi bán (ví dụ Amazon Associates, Shopee Affiliate, Lazada, hoặc các mạng như AccessTrade). Họ sẽ cấp cho bạn link riêng cho từng sản phẩm. Bạn chỉ cần dán link đó vào ô "Link" của món đồ. Khách bấm vào rồi mua thì bạn nhận hoa hồng. Mỗi chương trình có điều kiện riêng (ví dụ phải có đủ lượt xem hoặc đơn hàng trong thời gian đầu), bạn đọc kỹ quy định của họ trước khi đăng ký.
+- Mọi link trên trang tự gắn nhãn `sponsored` (khuyến nghị của Google cho link affiliate).
+- Dòng "Some links on this page are affiliate links…" hiện dưới tiêu đề trang. **Nên giữ**, vì nhiều chương trình và pháp luật yêu cầu nói rõ. Muốn sửa câu chữ: vào trang Đồ mình dùng, bật chế độ sửa (✏️) và gõ lại, các ngôn ngữ khác tự dịch.
+
+### 12.3. Cần tải lên GitHub
+Thư mục **js**, thư mục **css**, file **index.html** và **SETUP.md**. Luật bảo mật Firestore **không cần đổi**. Đợi 1–2 phút rồi bấm **Ctrl + F5**.

@@ -145,21 +145,62 @@ const pomoDefault = () => ({ cfg:{ focus:25, short:5, long:15, every:4, auto:fal
 let pomo = { ...pomoDefault(), ...store.get('pomo', {}) }; pomo.cfg = { ...pomoDefault().cfg, ...(pomo.cfg || {}) };
 const pomoDur = m => (pomo.cfg[m] || 25) * 60e3;
 const pomoSave = () => store.set('pomo', pomo);
-let actx = null, noiseNode = null;
+let actx = null;
 function audio(){ if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (actx && actx.state === 'suspended') actx.resume(); return actx; }
 function beep(){
   const a = audio(); if (!a) return;
   [0, .25, .5].forEach((d, i) => { const o = a.createOscillator(), g = a.createGain(), at = a.currentTime + d; o.type = 'sine'; o.frequency.value = i === 2 ? 988 : 784; g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(.2, at + .02); g.gain.exponentialRampToValueAtTime(.001, at + .22); o.connect(g); g.connect(a.destination); o.start(at); o.stop(at + .25); });
 }
-function setNoise(on){
+/* ---- Âm thanh nền tự tạo (không cần mạng, không bản quyền): mưa / ồn nâu / ồn trắng ---- */
+const AMB = ['off', 'rain', 'brown', 'white'];
+let ambType = 'off', ambVol = store.get('ambvol', .5), ambNode = null;
+const ambGain = type => ambVol * ({ rain:.55, brown:.45, white:.16 }[type] || .3);
+function setAmbient(type){
+  ambType = type;
+  if (ambNode) { try { ambNode.src.stop(); ambNode.g.disconnect(); } catch (e) {} ambNode = null; }
+  document.querySelectorAll('#amb-chips [data-k]').forEach(b => b.classList.toggle('on', b.dataset.k === type));
+  if (type === 'off') return;
   const a = audio(); if (!a) return;
-  if (on && !noiseNode) {
-    const len = a.sampleRate * 2, buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0); let last = 0;
-    for (let i = 0; i < len; i++) { last = (last + .02 * (Math.random() * 2 - 1)) / 1.02; d[i] = last * 3.5; }
-    const s = a.createBufferSource(), g = a.createGain(); s.buffer = buf; s.loop = true; g.gain.value = .22; s.connect(g); g.connect(a.destination); s.start(); noiseNode = { s };
-  } else if (!on && noiseNode) { noiseNode.s.stop(); noiseNode = null; }
+  const len = a.sampleRate * 4, buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
+  if (type === 'brown') { let last = 0; for (let i = 0; i < len; i++) { last = (last + .02 * (Math.random() * 2 - 1)) / 1.02; d[i] = last * 3.5; } }
+  else for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  const src = a.createBufferSource(), g = a.createGain(); src.buffer = buf; src.loop = true;
+  let out = src;
+  if (type === 'rain') { const hp = a.createBiquadFilter(), lp = a.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 450; lp.type = 'lowpass'; lp.frequency.value = 7500; src.connect(hp); hp.connect(lp); out = lp; }
+  g.gain.value = ambGain(type); out.connect(g); g.connect(a.destination); src.start(); ambNode = { src, g };
 }
-function addFocus(min){
+CHANGES.ambVol = el => { ambVol = Math.max(0, Math.min(1, +el.value / 100)); store.set('ambvol', ambVol); if (ambNode) ambNode.g.gain.value = ambGain(ambType); };
+document.addEventListener('input', e => { if (e.target.dataset && e.target.dataset.change === 'ambVol') CHANGES.ambVol(e.target); });
+
+/* ---- Nhạc gợi ý: tự đổi link YouTube / Spotify / SoundCloud thành khung phát ngay trong trang ---- */
+function musicEmbed(u){
+  u = String(u || '').trim(); let m;
+  if ((m = u.match(/youtube\.com\/playlist\?(?:.*&)?list=([\w-]+)/))) return { kind:'youtube', src:`https://www.youtube.com/embed/videoseries?list=${m[1]}&rel=0` };
+  if ((m = u.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([\w-]{11})/))) { const list = (u.match(/[?&]list=([\w-]+)/) || [])[1]; return { kind:'youtube', src:`https://www.youtube.com/embed/${m[1]}?rel=0${list ? '&list=' + list : ''}` }; }
+  if ((m = u.match(/open\.spotify\.com\/(?:intl-[a-z]+\/)?(playlist|album|track|episode|show|artist)\/([A-Za-z0-9]+)/))) return { kind:'spotify', h:/track|episode/.test(m[1]) ? 152 : 352, src:`https://open.spotify.com/embed/${m[1]}/${m[2]}` };
+  if (/soundcloud\.com\//.test(u)) return { kind:'soundcloud', h:300, src:'https://w.soundcloud.com/player/?url=' + encodeURIComponent(u) + '&color=%23ff3d9a&auto_play=false' };
+  return null;
+}
+const MOODS = [['lofi', 'lofi study music'], ['piano', 'soft piano for studying'], ['jazz', 'cafe jazz study music'], ['rain', 'rain and thunder sounds for studying'], ['classical', 'classical music for studying focus'], ['nature', 'nature sounds forest for studying']];
+let musicSel = null;
+const playerHTML = () => !musicSel ? '' : `<div class="mplayer"><div class="row between"><b class="small">${esc(musicSel.title)}</b><button type="button" class="btn ghost sm" data-act="musicClose">${ic('x', 'sm')} ${esc(t('music_close'))}</button></div>
+  <iframe title="${esc(musicSel.title)}" src="${esc(musicSel.src)}" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen style="${musicSel.kind === 'youtube' ? 'aspect-ratio:16/9;height:auto' : 'height:' + musicSel.h + 'px'}"></iframe></div>`;
+const musicRow = (it, kind, i) => { const e = musicEmbed(it.url); return `<div class="mrow"><div class="mi"><b>${esc(L(it.title))}</b>${L(it.note) ? `<span class="small muted">${esc(L(it.note))}</span>` : ''}</div><span class="row">${e ? `<button type="button" class="btn primary sm" data-act="musicPlay" data-k="${kind}" data-i="${i}">${ic('play', 'sm')} ${esc(t('music_play'))}</button>` : ''}<a class="btn secondary sm" target="_blank" rel="noopener" href="${esc(it.url)}">${esc(t('music_open'))}</a></span></div>`; };
+function musicCard(){
+  const picks = (music.picks || []).filter(x => x.url), recent = (music.recent || []).filter(x => x.url);
+  return `<section class="card pad music-card"><div class="card-h"><h2>${ic('volume')} ${esc(t('music_title'))}</h2></div><p class="small muted">${esc(t('music_sub'))}</p>
+    <div class="label mt-s">${esc(t('amb_title'))}</div>
+    <div class="row" id="amb-chips">${AMB.map(k => `<button type="button" class="chip ${ambType === k ? 'on' : ''}" data-act="ambSet" data-k="${k}">${esc(t('amb_' + k))}</button>`).join('')}<label class="row small" style="margin-left:auto;gap:8px">${esc(t('amb_vol'))}<input type="range" min="0" max="100" value="${Math.round(ambVol * 100)}" data-change="ambVol" style="width:120px"></label></div>
+    ${picks.length ? `<div class="label mt">${esc(t('music_picks'))}</div>${picks.map((it, i) => musicRow(it, 'picks', i)).join('')}` : ''}
+    ${recent.length ? `<div class="label mt">${esc(t('music_recent'))}</div>${recent.map((it, i) => musicRow(it, 'recent', i)).join('')}` : ''}
+    <div id="mplayer-box">${playerHTML()}</div>
+    <div class="label mt">${esc(t('music_more'))}</div><div class="row">${MOODS.map(([k, q]) => `<a class="chip" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent(q)}">${esc(t('mood_' + k))}</a>`).join('')}</div></section>`;
+}
+Object.assign(ACTIONS, {
+  ambSet: el => setAmbient(el.dataset.k),
+  musicPlay: el => { const it = (music[el.dataset.k] || [])[+el.dataset.i]; if (!it) return; const e = musicEmbed(it.url); if (!e) return; musicSel = { ...e, title:L(it.title) }; const b = $('mplayer-box'); if (b) { b.innerHTML = playerHTML(); b.scrollIntoView({ block:'nearest', behavior:'smooth' }); } },
+  musicClose: () => { musicSel = null; const b = $('mplayer-box'); if (b) b.innerHTML = ''; }
+});function addFocus(min){
   const k = DT.now().setZone(userTZ).toISODate(), fl = localFocus(), o = fl[k] || { m:0, s:0 };
   fl[k] = { m:o.m + min, s:o.s + 1 }; store.set('focus', fl); saveProfileSoon();
 }
@@ -248,18 +289,17 @@ PAGES.focus = function(){
       <div class="divider" style="width:100%;margin:2px 0"></div>
       <div class="row" style="width:100%"><span class="small muted">${esc(t('presets'))}:</span>${Object.entries(PRESETS).map(([k, p]) => `<button type="button" class="chip" data-act="ppreset" data-p="${k}">${p.focus}/${p.short}/${p.long}</button>`).join('')}</div>
       <div class="cfg-grid">${num('focus', t('cfg_focus'))}${num('short', t('cfg_short'))}${num('long', t('cfg_long'))}${num('every', t('cfg_every'))}</div>
-      <div class="row between" style="width:100%"><label class="row small" style="font-weight:600"><input type="checkbox" data-change="cfgAuto" ${c.auto ? 'checked' : ''}> ${esc(t('auto_start'))}</label><label class="row small" style="font-weight:600"><input type="checkbox" data-change="cfgNoise" ${c.noise ? 'checked' : ''}> ${ic('volume', 'sm')} ${esc(t('sound_noise'))}</label></div>
+      <div class="row between" style="width:100%"><label class="row small" style="font-weight:600"><input type="checkbox" data-change="cfgAuto" ${c.auto ? 'checked' : ''}> ${esc(t('auto_start'))}</label></div>
     </section>
     <div class="stack"><section class="card pad"><div class="card-h"><h2>${esc(t('todo_title'))}</h2></div>
         <form class="row" style="flex-wrap:nowrap" data-form="todo"><input class="input" id="todo-in" placeholder="${esc(t('todo_ph'))}" maxlength="140" autocomplete="off"><button class="btn primary icon" type="submit" aria-label="add">${ic('plus')}</button></form>
         <div id="todo-list" class="mt-s"></div>${!state.user ? `<p class="hint mt-s">${esc(t('sync_note'))} <a class="link" href="#/account">${esc(t('signin'))}</a></p>` : ''}</section>
       <div class="grid g2 keep2"><div class="card tile"><span class="t-l">${esc(t('sessions_today'))}</span><span class="t-v">${td.s}</span></div><div class="card tile"><span class="t-l">${esc(t('minutes_today'))}</span><span class="t-v">${td.m}</span></div></div>
-      <section class="card pad"><div class="card-h"><h2>${esc(t('week_chart'))}</h2></div><div class="bars">${days.map((d, i) => `<div><i style="height:${Math.max(3, vals[i] / mx * 100)}%" title="${vals[i]} ${esc(t('min'))}"></i><small>${esc(d.setLocale(state.lang).toFormat('ccc'))}</small></div>`).join('')}</div></section></div></div>`);
+      <section class="card pad"><div class="card-h"><h2>${esc(t('week_chart'))}</h2></div><div class="bars">${days.map((d, i) => `<div><i style="height:${Math.max(3, vals[i] / mx * 100)}%" title="${vals[i]} ${esc(t('min'))}"></i><small>${esc(d.setLocale(state.lang).toFormat('ccc'))}</small></div>`).join('')}</div></section></div></div><div class="mt">${musicCard()}</div>`);
   renderTodos();
 };
 CHANGES.cfg = el => { const k = el.dataset.k, v = Math.max(1, Math.min(180, parseInt(el.value, 10) || 1)); pomo.cfg[k] = v; if (!pomo.running && (k === pomo.mode)) pomo.remaining = pomoDur(pomo.mode); pomoSave(); updateTimerUI(); };
 CHANGES.cfgAuto = el => { pomo.cfg.auto = el.checked; pomoSave(); };
-CHANGES.cfgNoise = el => { pomo.cfg.noise = el.checked; pomoSave(); setNoise(el.checked); };
 CHANGES.todoToggle = el => { saveTodos(todos().map(x => x.id === el.dataset.id ? { ...x, done:el.checked } : x)); renderTodos(); };
 FORMS.todo = () => { const i = $('todo-in'), v = i.value.trim(); if (!v) return; saveTodos([{ id:Date.now().toString(36), text:v, done:false }, ...todos()]); i.value = ''; renderTodos(); i.focus(); };
 
@@ -425,6 +465,24 @@ FORMS.review = async () => {
 };
 
 /* =========================================================
+   GEAR — những món đồ mình dùng (sẵn sàng gắn link affiliate)
+   Dữ liệu: settings/gear { items:[{ id, name{}, note{}, cat{}, price, store, url, img }] } — admin sửa ở tab "Đồ mình dùng"
+   ========================================================= */
+let gearFilter = '';
+const gearCard = g => `<article class="pcard gear-card"><div class="cv">${g.img ? `<img loading="lazy" alt="" src="${esc(g.img)}">` : paintFor('g' + (g.id || L(g.name)), { lite:true })}</div>
+  <div class="bd"><h3>${esc(L(g.name))}</h3>${L(g.note) ? `<p>${esc(L(g.note))}</p>` : ''}${L(g.cat) ? `<span class="badge">${esc(L(g.cat))}</span>` : ''}
+    <div class="row between" style="margin-top:auto;gap:10px"><span class="small faint">${esc([g.price, g.store].filter(Boolean).join(' · '))}</span><a class="btn primary sm" target="_blank" rel="sponsored nofollow noopener" href="${esc(g.url || '#')}">${esc(t('gear_view'))} ${ic('link', 'sm')}</a></div></div></article>`;
+PAGES.gear = function(){
+  const items = (gear.items || []).filter(g => g.url || g.name), cats = [...new Set(items.map(g => L(g.cat)).filter(Boolean))];
+  if (gearFilter && !cats.includes(gearFilter)) gearFilter = '';
+  const shown = items.filter(g => !gearFilter || L(g.cat) === gearFilter);
+  page(`${head('gear_title', 'gear_sub', '', 'lantern', 6)}
+    <p class="small muted" style="margin-bottom:16px" ${cms('gear_disclose')}>${esc(ctext('gear_disclose'))}</p>
+    ${cats.length > 1 ? `<div class="catbar"><button type="button" class="cat ${!gearFilter ? 'on' : ''}" data-act="gearCat" data-c="">${esc(t('cat_all'))} <small>${items.length}</small></button>${cats.map(c => `<button type="button" class="cat ${gearFilter === c ? 'on' : ''}" data-act="gearCat" data-c="${esc(c)}">${esc(c)} <small>${items.filter(g => L(g.cat) === c).length}</small></button>`).join('')}</div>` : ''}
+    ${shown.length ? `<div class="grid g3 gear-grid">${shown.map(gearCard).join('')}</div>` : emptyBox('tag', t('gear_empty'), '')}`);
+};
+ACTIONS.gearCat = el => { gearFilter = el.dataset.c || ''; render(true); };
+/* =========================================================
    ACCOUNT (đăng nhập / đăng ký / hồ sơ / đơn hàng / thư viện)
    ========================================================= */
 let authTab = 'signin', myOrders = null;
@@ -436,7 +494,7 @@ const authCard = (title, sub, strip = true) => `<div class="card">${strip ? `<di
         <button class="btn primary lg" type="submit">${esc(authTab === 'signin' ? t('signin') : t('signup'))}</button><div class="small" style="color:var(--danger)" id="au-err"></div>
         ${authTab === 'signin' ? `<button type="button" class="link" style="align-self:center" data-act="forgot">${esc(t('forgot'))}</button>` : ''}</form></div></div>`;
 // mục đang bị khoá với khách chưa đăng nhập: vẫn hiện tiêu đề + tranh của mục đó, kèm lời mời đăng nhập / tạo tài khoản
-const LOCK_HEAD = { home:['nav_home', null, 'moonwalk'], schedule:['sch_title', 'sch_sub', 'curl'], watch:['watch_title', 'watch_sub', 'gaze'], focus:['focus_title', 'focus_sub', 'umbrella'], blog:['blog_title', 'blog_sub', 'book'], club:['club_title', 'club_sub', 'gaze'], shop:['shop_title', 'shop_sub', 'lantern'], donate:['donate_title', 'donate_sub', 'lantern'], about:['about_title', null, 'moonwalk'] };
+const LOCK_HEAD = { home:['nav_home', null, 'moonwalk'], schedule:['sch_title', 'sch_sub', 'curl'], watch:['watch_title', 'watch_sub', 'gaze'], focus:['focus_title', 'focus_sub', 'umbrella'], blog:['blog_title', 'blog_sub', 'book'], club:['club_title', 'club_sub', 'gaze'], shop:['shop_title', 'shop_sub', 'lantern'], gear:['gear_title', 'gear_sub', 'lantern'], donate:['donate_title', 'donate_sub', 'lantern'], about:['about_title', null, 'moonwalk'] };
 PAGES.locked = function(){
   const h = LOCK_HEAD[route.name] || LOCK_HEAD.home;
   page(`${head(h[0], h[1], '', h[2], 3)}<div class="auth-wrap lock-wrap"><div class="lock-note">${ic('lock')}<div><b>${esc(t('lock_title'))}</b><p class="small muted">${esc(t('lock_sub'))}</p></div></div>${authCard(authTab === 'signin' ? t('signin') : t('signup'), t('lock_note'), false)}</div>`);
