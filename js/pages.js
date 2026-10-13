@@ -429,19 +429,17 @@ FORMS.review = async () => {
    ========================================================= */
 let authTab = 'signin', myOrders = null;
 // khung đăng nhập / tạo tài khoản — dùng cho trang Tài khoản và cho cổng đăng nhập
-const authCard = (title, sub) => `<div class="card"><div class="art-strip">${paint('moonwalk', { crop:'banner', seed:7 })}</div><div class="stack"><div style="text-align:center"><h2 style="font-size:1.4rem">${esc(title)}</h2><p class="muted small mt-s">${esc(sub)}</p></div>
+const authCard = (title, sub, strip = true) => `<div class="card">${strip ? `<div class="art-strip">${paint('moonwalk', { crop:'banner', seed:7 })}</div>` : ''}<div class="stack"><div style="text-align:center"><h2 style="font-size:1.4rem">${esc(title)}</h2><p class="muted small mt-s">${esc(sub)}</p></div>
       <div class="seg" style="align-self:center"><button type="button" class="${authTab === 'signin' ? 'on' : ''}" data-act="authTab" data-t="signin">${esc(t('signin'))}</button><button type="button" class="${authTab === 'signup' ? 'on' : ''}" data-act="authTab" data-t="signup">${esc(t('signup'))}</button></div>
       <form class="stack" data-form="${authTab}">${authTab === 'signup' ? `<input class="input" id="au-name" placeholder="${esc(t('name_ph'))}" required maxlength="60" autocomplete="nickname">` : ''}
         <input class="input" id="au-email" type="email" placeholder="${esc(t('email'))}" required autocomplete="email"><input class="input" id="au-pass" type="password" placeholder="${esc(t('password'))}" required minlength="6" autocomplete="${authTab === 'signup' ? 'new-password' : 'current-password'}">
         <button class="btn primary lg" type="submit">${esc(authTab === 'signin' ? t('signin') : t('signup'))}</button><div class="small" style="color:var(--danger)" id="au-err"></div>
         ${authTab === 'signin' ? `<button type="button" class="link" style="align-self:center" data-act="forgot">${esc(t('forgot'))}</button>` : ''}</form></div></div>`;
-PAGES.gate = function(){
-  const logo = branding.logoUrl ? `<img src="${esc(branding.logoUrl)}" alt="">` : esc((branding.name || 'E').trim().slice(0, 2).toUpperCase());
-  page(`<div class="auth-wrap gate-wrap"><div class="gate-top"><span class="logo-mark">${logo}</span><b>${esc(branding.name)}</b>
-      <select class="select gate-lang" id="gate-lang" aria-label="${esc(t('language'))}">${LANG_LIST.map(([v, n]) => `<option value="${v}" ${state.lang === v ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
-    ${authCard(t('gate_title'), t('gate_sub'))}
-    <p class="muted small" style="text-align:center;margin-top:14px">${esc(t('gate_note'))}</p></div>`);
-  $('gate-lang').addEventListener('change', e => { state.lang = e.target.value; store.set('lang', state.lang); renderPrefs(); render(true); });
+// mục đang bị khoá với khách chưa đăng nhập: vẫn hiện tiêu đề + tranh của mục đó, kèm lời mời đăng nhập / tạo tài khoản
+const LOCK_HEAD = { home:['nav_home', null, 'moonwalk'], schedule:['sch_title', 'sch_sub', 'curl'], watch:['watch_title', 'watch_sub', 'gaze'], focus:['focus_title', 'focus_sub', 'umbrella'], blog:['blog_title', 'blog_sub', 'book'], club:['club_title', 'club_sub', 'gaze'], shop:['shop_title', 'shop_sub', 'lantern'], donate:['donate_title', 'donate_sub', 'lantern'], about:['about_title', null, 'moonwalk'] };
+PAGES.locked = function(){
+  const h = LOCK_HEAD[route.name] || LOCK_HEAD.home;
+  page(`${head(h[0], h[1], '', h[2], 3)}<div class="auth-wrap lock-wrap"><div class="lock-note">${ic('lock')}<div><b>${esc(t('lock_title'))}</b><p class="small muted">${esc(t('lock_sub'))}</p></div></div>${authCard(authTab === 'signin' ? t('signin') : t('signup'), t('lock_note'), false)}</div>`);
 };
 PAGES.account = function(){
   if (!state.user) return page(`<div class="auth-wrap">${authCard(authTab === 'signin' ? t('signin') : t('signup'), t('sync_note'))}</div>`);
@@ -464,7 +462,7 @@ async function loadMyOrders(){
   try { const s = await db.collection('orders').where('uid', '==', state.user.uid).get(); myOrders = s.docs.map(d => d.data()).sort((a, b) => tsMs(b.createdAt) - tsMs(a.createdAt)); } catch (e) { myOrders = []; }
   if (route.name === 'account') render(true);
 }
-FORMS.signin = async () => { try { const gated = document.body.classList.contains('gated'); await auth.signInWithEmailAndPassword($('au-email').value.trim(), $('au-pass').value); if (!gated) location.hash = '#/account'; } catch (e) { $('au-err').textContent = authErr(e); } };
+FORMS.signin = async () => { try { const stay = state.locked; await auth.signInWithEmailAndPassword($('au-email').value.trim(), $('au-pass').value); if (!stay) location.hash = '#/account'; } catch (e) { $('au-err').textContent = authErr(e); } };
 FORMS.signup = async () => {
   try {
     const c = await auth.createUserWithEmailAndPassword($('au-email').value.trim(), $('au-pass').value), name = $('au-name').value.trim();

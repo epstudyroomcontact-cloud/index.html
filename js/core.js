@@ -360,19 +360,18 @@ function readRoute(){
   route.name = p[0] || 'home'; route.args = p.slice(1);
   if (route.name === 'library') { route.name = 'account'; route.args = ['library']; }
 }
-/* Cổng đăng nhập: chưa đăng nhập thì chỉ thấy màn hình đăng nhập / tạo tài khoản (admin tắt được ở tab Giao diện & Menu) */
+/* Mục cần đăng nhập: khách chưa đăng nhập vẫn thấy menu và tiêu đề của mọi mục,
+   nhưng khi mở các mục "khoá" thì được mời đăng nhập / tạo tài khoản để tham gia (admin chỉnh ở tab Giao diện & Menu). */
+const LOCKABLE = ['home', 'schedule', 'watch', 'focus', 'blog', 'club', 'shop', 'donate', 'about'];
 const loginRequired = () => !DEMO && !CONFIG_MISSING && branding.requireLogin !== false;
+const lockedPages = () => Array.isArray(branding.lockedPages) ? branding.lockedPages : ['schedule', 'watch', 'focus', 'blog', 'club', 'shop'];
+const isLocked = name => loginRequired() && !state.user && lockedPages().includes(name);
 function doRender(){
   readRoute();
-  const gated = loginRequired() && !state.user;
-  document.body.classList.toggle('gated', gated);
-  if (gated) {
-    $('tab-title').textContent = branding.name + ' · Study With Me';
-    if (!state.authReady) { $('page').innerHTML = '<div class="gate-load"><i></i></div>'; return; }
-    PAGES.gate(); return;
-  }
+  state.locked = isLocked(route.name);
+  if (state.locked && !state.authReady) { renderChrome(); $('page').innerHTML = '<div class="gate-load"><i></i></div>'; return; }   // đợi biết đã đăng nhập hay chưa
   if (route.name === 'admin' && !state.isAdmin && !DEMO) { /* trang admin yêu cầu quyền */ }
-  const fn = PAGES[route.name] || PAGES.home;
+  const fn = state.locked ? PAGES.locked : (PAGES[route.name] || PAGES.home);
   renderChrome(); fn(); afterRender();
 }
 function afterRender(){
@@ -400,7 +399,7 @@ function renderChrome(){
     <a class="sb-brand" href="#/"><span class="logo-mark">${logo}</span><span>${esc(branding.name)}</span></a>
     ${items.map(n => n.url
       ? `<a class="sb-item" href="${esc(n.url)}" target="_blank" rel="noopener">${ic('link')}<span>${esc(navLabel(n))}</span></a>`
-      : `<a class="sb-item ${route.name === n.id || (n.id === 'home' && route.name === 'home') ? 'active' : ''}" href="#${n.path}" data-act="closeNav">${ic(n.icon)}<span>${esc(navLabel(n))}</span>${n.id === 'shop' && cartN ? `<span class="count">${cartN}</span>` : ''}</a>`).join('')}
+      : `<a class="sb-item ${route.name === n.id || (n.id === 'home' && route.name === 'home') ? 'active' : ''}" href="#${n.path}" data-act="closeNav">${ic(n.icon)}<span>${esc(navLabel(n))}</span>${n.id === 'shop' && cartN ? `<span class="count">${cartN}</span>` : ''}${isLocked(n.id) ? `<span class="lk" title="${esc(t('lock_title'))}">${ic('lock', 'sm')}</span>` : ''}</a>`).join('')}
     ${state.user ? `<div class="sb-label">${esc(t('nav_account'))}</div>
       <a class="sb-item ${route.name === 'account' && route.args[0] === 'library' ? 'active' : ''}" href="#/account/library" data-act="closeNav">${ic('download')}<span>${esc(t('nav_library'))}</span>${library.length ? `<span class="count">${library.length}</span>` : ''}</a>` : ''}
     ${state.isAdmin ? `<div class="sb-label">Admin</div><a class="sb-item ${route.name === 'admin' ? 'active' : ''}" href="#/admin" data-act="closeNav">${ic('shield')}<span>${esc(t('nav_admin'))}</span></a>` : ''}

@@ -145,3 +145,54 @@ Nếu muốn tải thẳng từ máy:
 | Web vẫn hiện bản cũ sau khi upload | Chờ 1–2 phút rồi bấm `Ctrl + Shift + R` để tải lại. |
 
 Xem thử toàn bộ giao diện không cần cài gì: thêm `?demo=1&as=admin` vào cuối địa chỉ web (ví dụ `…/index.html?demo=1&as=admin`). Chế độ này không lưu gì thật.
+
+---
+
+## PHẦN 10 — Kiếm tiền nhẹ nhàng: "Người đồng hành" mở khoá bằng MÃ HÀNG THÁNG
+
+Cách hoạt động: người xem miễn phí tập trung tối đa **2 tiếng mỗi ngày**. Ai ủng hộ hằng tháng thì nhận **một mã**, gõ vào web là **không còn giới hạn**. Bạn **không phải tick từng người**, chỉ đổi mã mỗi tháng.
+
+### 10.1. Thiết lập Ko-fi (làm 1 lần, để mã tự đến tay người trả)
+1. Vào https://ko-fi.com → **Sign up** (đăng ký) bằng email của bạn → làm theo hướng dẫn tạo trang, ví dụ `ko-fi.com/tenban`.
+2. Cần nhận tiền: vào **Settings** → **Payments** → nối **PayPal** hoặc **Stripe** theo hướng dẫn trên màn hình.
+3. Bật gói hằng tháng: mục **Membership** (hoặc "Memberships") → **Enable** → tạo 1 gói, ví dụ tên **"Companion"**, giá bạn chọn (ví dụ 2–3 USD/tháng).
+4. Ở gói đó, tìm ô **Welcome message** (lời chào gửi ngay khi có người đăng ký) hoặc tạo một **bài đăng chỉ dành cho thành viên**. Ghi: *"Cảm ơn bạn! Mã tháng này: MOON-XXXX-XXXX. Gõ mã ở trang Support hoặc Phòng tập trung trên web."*
+5. Copy link Ko-fi của bạn → vào web **Admin console → Thanh toán & Ủng hộ** → dán vào ô **"Link đăng ký hằng tháng cho Người đồng hành"** và ô **Ko-fi** → **Lưu thanh toán**.
+
+### 10.2. Việc làm MỖI THÁNG (khoảng 2 phút)
+1. Vào **Admin console → Thanh toán & Ủng hộ**, tìm khung **"Mã hàng tháng cho Người đồng hành"**.
+2. Bấm **Tạo mã ngẫu nhiên** (ra dạng `MOON-AB12-CD34`). **Copy mã này lại** (web không lưu mã gốc để bảo mật).
+3. Ô **"Hết vào ngày"**: để mặc định (cuối tháng sau) hoặc chọn ngày khác.
+4. Bấm **Lưu mã**. Mã cũ hết tác dụng ngay.
+5. Sang Ko-fi, sửa **Welcome message** (hoặc đăng bài mới cho thành viên) với mã mới.
+
+### 10.3. Người trả bằng chuyển khoản (VietQR/MoMo) hoặc PayPal
+Họ chuyển tiền, báo bạn (nhắn Instagram/email kèm nội dung chuyển khoản). Bạn **nhắn lại mã của tháng** cho họ. Số người ít thì rất nhẹ; nếu muốn đỡ việc, hãy hướng mọi người sang Ko-fi.
+
+### Lưu ý
+- Mã có thể bị chia sẻ cho người khác; đổi mã mỗi tháng để hạn chế. Giới hạn đếm theo trình duyệt nên người rành kỹ thuật có thể vượt được.
+- Đổi số phút giới hạn hoặc bỏ hẳn giới hạn (điền 0) ở khung **"Giới hạn Phòng tập trung"** cùng tab.
+- Tick **"Người đồng hành"** ở tab Thành viên chỉ dùng khi bạn muốn tặng hoặc làm ngoại lệ.
+
+## PHẦN 11 — Bắt buộc đăng nhập, tiếng Hindi và tự dịch nội dung
+
+### 11.1. Bắt buộc đăng nhập để tham gia
+- Mặc định **bật**. Khách chưa đăng nhập **vẫn thấy tất cả các mục trong menu**, nhưng các mục bị khoá có biểu tượng ổ khoá. Khi mở một mục bị khoá, khách thấy tiêu đề + tranh của mục đó và lời mời "Đăng nhập để tham gia" kèm khung đăng nhập / tạo tài khoản miễn phí ngay trên trang. Đăng nhập xong là vào đúng mục đó luôn.
+- Mặc định khoá: Lịch live, Xem live, Phòng tập trung, Bài viết, Hành trình trăng, Cửa hàng. Mặc định để mở: Tổng quan, Ủng hộ, Giới thiệu.
+- Muốn đổi: **Admin → Giao diện & Menu → khung "Quyền truy cập"**. Tích hoặc bỏ tích từng mục rồi bấm **Lưu**. Bỏ tích ô trên cùng nếu muốn tắt hẳn việc bắt buộc đăng nhập.
+- Lưu ý: đây là "cổng" ở giao diện web, đủ để khách phải tạo tài khoản mới dùng được, nhưng không phải ổ khoá bảo mật tuyệt đối (người rành kỹ thuật vẫn đọc được dữ liệu công khai như bài viết, vì chúng được đọc từ Firebase).
+### 11.2. Tiếng Hindi (हिन्दी)
+- Đã có sẵn trong nút **Tuỳ chọn** (biểu tượng thanh trượt) ở trên cùng và trên màn hình đăng nhập. Người xem dùng trình duyệt tiếng Hindi hoặc múi giờ Ấn Độ sẽ tự được chọn Hindi.
+- Cùng lúc, các ngôn ngữ Nhật / Hàn / Trung / Pháp / Tây Ban Nha cũng được bổ sung đủ chữ (trước đây còn lẫn tiếng Anh).
+
+### 11.3. Tự dịch những gì bạn viết
+- Bạn viết bằng **ngôn ngữ nào cũng được**. Khi lưu, đúng câu bạn viết được **tự dịch sang các ngôn ngữ còn lại** (Anh, Việt, Hindi, Nhật, Hàn, Trung, Pháp, Tây Ban Nha). Khách đổi ngôn ngữ là thấy ngay bản dịch (đã lưu sẵn, nên nhanh).
+- Áp dụng cho: chữ sửa trực tiếp trên trang (ví dụ phần About me), bài viết, sản phẩm, FAQ, thông báo chạy chữ, tên menu, tên các mục bài viết, lý do huỷ live.
+- **Chữ trên trang (✏️ sửa trực tiếp)**: chọn ngôn ngữ bạn muốn viết ở nút **Tuỳ chọn**, bật chế độ sửa, gõ, bấm ra ngoài. Web báo "Đã lưu · đang dịch…" rồi "đã dịch sang mọi ngôn ngữ".
+- **Bài viết / sản phẩm / FAQ**: bấm **Lưu** và đợi vài giây (nút hiện "Đang dịch…"; bài dài thì lâu hơn một chút).
+- Quy tắc: bạn sửa ô nào, các ô còn lại được dịch lại từ ô đó. Nếu bạn sửa **cả hai ô** Tiếng Anh và Tiếng Việt cùng lúc thì giữ nguyên cả hai và dịch phần còn lại từ Tiếng Anh.
+- **Nội dung bạn đã viết từ trước**: vào **Admin → Nội dung & FAQ → "Dịch bù toàn bộ nội dung cũ"** bấm một lần. Nút chỉ dịch các ngôn ngữ còn thiếu, không đụng chữ bạn đã viết. Nếu báo có lần dịch lỗi (mạng yếu) thì bấm lại.
+- Bản dịch do máy dịch (Google Translate miễn phí, dự phòng MyMemory) nên đọc hiểu tốt nhưng không hoàn hảo. Câu nào bạn thấy chưa hay thì mở đúng ngôn ngữ đó, sửa trực tiếp trên trang. Lưu ý: khi bạn sửa một ngôn ngữ, các ngôn ngữ còn lại cũng được dịch lại từ câu vừa sửa.
+
+### 11.4. Cần tải lên GitHub
+Thư mục **js** (có thêm 2 file mới `translate.js` và `i18n-extra.js`), thư mục **css**, file **index.html**, và **SETUP.md**. Sau khi tải xong đợi 1–2 phút rồi bấm **Ctrl + F5**.

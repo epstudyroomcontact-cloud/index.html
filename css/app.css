@@ -414,3 +414,14 @@ html[data-font="serif"] h1,html[data-font="serif"] h2,html[data-font="serif"] h3
 .ad-blocks .blk{display:grid;grid-template-columns:auto 1fr 90px auto;gap:8px;align-items:center;margin-bottom:6px}
 .ad-blocks .blk .dot{width:12px;height:12px;border-radius:4px}
 .limit-box{width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+
+/* ---------- mục cần đăng nhập ---------- */
+.lock-wrap{max-width:520px}
+.lock-note{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;margin-bottom:14px;border-radius:16px;background:var(--surface);border:1px solid var(--line)}
+.lock-note>svg{flex:none;width:22px;height:22px;margin-top:2px;color:var(--accent)}
+.lock-note b{font-family:var(--font-h);font-size:1.05rem}
+.sb-item .lk{margin-left:auto;display:inline-flex;opacity:.5}
+.sb-item .lk .ic{width:14px;height:14px}
+.gate-load{display:grid;place-items:center;min-height:60vh}
+.gate-load i{width:34px;height:34px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--accent);animation:gate-spin .8s linear infinite}
+@keyframes gate-spin{to{transform:rotate(360deg)}}
