@@ -233,3 +233,17 @@ Thư mục **js**, thư mục **css**, file **index.html** và **SETUP.md**. Lu�
 - Có chữ LIVE khi bạn đang live. Khi chưa live thì hiện thông báo "stream offline".
 - Nút **Ẩn / Hiện** để thu gọn ô này (web nhớ lựa chọn của từng người xem), nút liên kết bên cạnh mở YouTube.
 - Nếu ô báo "Video unavailable": vào YouTube Studio bật **cho phép nhúng** cho live/video đó (xem PHẦN 7).
+
+## PHẦN 13 — Mục cảm ơn người đồng hành
+
+Tên những người ủng hộ hằng tháng của bạn hiện ở **mục cảm ơn** ("Thank you, companions", có sẵn 8 ngôn ngữ) ở **trang chủ** và **trang Ủng hộ**. Chỉ hiện tên, **không hiện email**.
+
+Cách làm mỗi khi có người đăng ký (Ko-fi, PayPal hoặc chuyển khoản):
+1. Người đó cần có **tài khoản trên web** của bạn (họ tạo tài khoản bằng email). Bạn nhờ họ cho biết email đã dùng, hoặc đối chiếu với tên họ để lại khi ủng hộ.
+2. Vào **Admin → Thành viên**, tìm đúng người và **tích "Người đồng hành"**. Tên họ tự hiện ở mục cảm ơn ngay (đến ngày hết hạn thì tự ẩn; mặc định 31 ngày, sửa được ở ô "Đến ngày").
+3. Muốn họ ẩn danh thì **bỏ tích "Hiện tên ở mục cảm ơn"**. Muốn dùng biệt danh thì sửa ô **"Tên hiện"**.
+4. Không muốn hiện mục này ở trang chủ: **Admin → Giao diện & Menu → "Các khối ở trang chủ"** bỏ tích "Lời cảm ơn người đồng hành" rồi Lưu.
+
+Lưu ý quan trọng: web **không tự biết** ai vừa đăng ký trên Ko-fi hay PayPal (cần máy chủ riêng mới làm được). Vì vậy bạn tích tay mỗi khi có người mới, mất khoảng 10 giây. Câu chữ của mục cảm ơn sửa được bằng nút ✏️ trên trang. Luật bảo mật Firestore **không cần đổi**.
+
+Cần tải lên GitHub: thư mục **js**, thư mục **css**, và **SETUP.md**.
