@@ -277,3 +277,14 @@ Cần tải lên GitHub: thư mục **js** (các file `core.js`, `pages.js`, `ad
 - Khi Firebase lỗi, các lần thử lại được giãn ra (nghỉ 5 phút), không dồn dập.
 - **File dự phòng cho web (tuỳ chọn, rất nên làm một lần):** vào **Admin → Tổng quan → "Tải file dự phòng cho web"** để tải `site-fallback.json`, rồi đưa file này lên GitHub **cùng chỗ với file index.html** (Add file → Upload files, kéo file vào, Commit). Nếu Firebase hết hạn mức hoặc gặp sự cố, **người mới** vào web vẫn thấy đủ nội dung (giao diện, bài viết, sản phẩm, lịch live…) từ file này, hoàn toàn không tốn lượt đọc. Khi bạn đăng nhiều bài hoặc đổi lịch nhiều, tải và đưa lên lại để file luôn mới.
 - Nếu muốn tăng thêm hạn mức: nâng lên gói Blaze (trả theo mức dùng, hạn mức miễn phí vẫn giữ nguyên) và đặt cảnh báo ngân sách. Chỉ làm khi thấy "Reads" trong Firebase thường xuyên vượt khoảng 30.000/ngày.
+
+## QUY TẮC CẬP NHẬT WEB LÊN GITHUB (đọc cái này khi cần cập nhật)
+Từ bản 8, các file hay thay đổi (`index.html`, `core.js`, `pages.js`, `admin.js`, `i18n-extra.js`, `app.css`) **đều nằm ở trang gốc của repo**, cùng chỗ với `index.html`. Chỉ còn 4 file ít khi đổi nằm trong thư mục `js`: `art.js`, `i18n.js`, `translate.js`, `firebase-config.js`.
+
+Mỗi lần mình đưa bản mới, mình sẽ tạo một thư mục chứa **đúng những file cần upload** (nằm phẳng, không có thư mục con). Bạn làm:
+1. Vào trang chính của repo trên GitHub (thấy danh sách file, **không vào thư mục nào**).
+2. **Add file → Upload files**.
+3. Mở thư mục upload, **Ctrl + A** chọn hết các file rồi kéo vào khung upload.
+4. Đợi danh sách file hiện đủ, kéo xuống bấm **Commit changes**.
+5. Đợi 2–5 phút, **Ctrl + Shift + R**, vào **Admin** xem dòng "Phiên bản web".
+GitHub tự bỏ qua file nào không đổi.
