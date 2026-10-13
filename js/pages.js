@@ -163,15 +163,48 @@ function addFocus(min){
   const k = DT.now().setZone(userTZ).toISODate(), fl = localFocus(), o = fl[k] || { m:0, s:0 };
   fl[k] = { m:o.m + min, s:o.s + 1 }; store.set('focus', fl); saveProfileSoon();
 }
-function pomoStart(){ if (pomo.running) return; audio(); pomo.endAt = Date.now() + pomo.remaining; pomo.running = true; pomoSave(); updateTimerUI(); }
+/* Giới hạn thời gian tập trung mỗi ngày cho người xem miễn phí. Người đồng hành (Companions) và admin không bị giới hạn.
+   Đếm bằng bộ nhớ trình duyệt nên đây là giới hạn "nhẹ nhàng" (có thể vượt bằng cách xoá dữ liệu trình duyệt). */
+const focusUnlimited = () => !!(state.companion || state.isAdmin || unlockValid());
+const focusLimit = () => focusUnlimited() ? 0 : Math.max(0, Math.round(+branding.focusLimit || 0));
+const focusUsed = () => (localFocus()[DT.now().setZone(userTZ).toISODate()] || { m:0 }).m;
+/* ô nhập mã đồng hành (dùng ở Focus room, hộp thoại hết giờ và trang Support) */
+const unlockBox = () => `<form class="stack" data-form="unlock" style="gap:8px"><label class="label" style="margin:0">${esc(t('unlock_title'))}</label><div class="row" style="flex-wrap:nowrap"><input class="input" autocomplete="off" spellcheck="false" placeholder="${esc(t('unlock_ph'))}" maxlength="60"><button class="btn secondary" type="submit">${ic('check', 'sm')} ${esc(t('unlock_btn'))}</button></div></form>`;
+FORMS.unlock = async form => {
+  const code = normCode(form.querySelector('input').value); if (!code) return;
+  const h = await sha256(code), today = DT.now().toISODate();
+  if (!branding.focusCodeHash || h !== branding.focusCodeHash) return toast(t('unlock_bad'));
+  if (branding.focusCodeUntil && branding.focusCodeUntil < today) return toast(t('unlock_expired'));
+  const u = { hash:h, until:branding.focusCodeUntil || '' };
+  store.set('unlock', u); profile.unlock = u;
+  if (state.user && !DEMO) db.collection('users').doc(state.user.uid).set({ unlock:u }, { merge:true }).catch(() => {});
+  closeModal(); toast(t('unlock_ok')); render(true);
+};
+function limitModal(){
+  const L0 = focusLimit();
+  openModal(`<h2>${esc(t('focus_limit_title'))}</h2><p class="muted mt-s">${esc(t('focus_limit_text', { l:L0 }))}</p>
+    <div class="mt">${unlockBox()}</div>
+    <div class="row mt"><a class="btn primary" href="#/donate" data-act="closeModal">${ic('heart', 'sm')} ${esc(t('focus_limit_cta'))}</a>${state.user ? '' : `<a class="btn secondary" href="#/account" data-act="closeModal">${esc(t('signin'))}</a>`}<button class="btn ghost" data-act="closeModal">${esc(t('close'))}</button></div>`, true);
+}
+function pomoStart(){
+  if (pomo.running) return;
+  const lim = focusLimit();
+  if (pomo.mode === 'focus' && lim) {
+    const allow = lim - focusUsed();
+    if (allow <= 0) { limitModal(); return; }
+    if (pomo.remaining / 60000 > allow) { pomo.remaining = allow * 60e3; pomo.blockMin = allow; toast(t('focus_last_block', { m:allow })); }
+  }
+  audio(); pomo.endAt = Date.now() + pomo.remaining; pomo.running = true; pomoSave(); updateTimerUI();
+}
 function pomoPause(){ if (!pomo.running) return; pomo.remaining = Math.max(0, pomo.endAt - Date.now()); pomo.running = false; pomoSave(); updateTimerUI(); }
-function pomoReset(){ pomo.running = false; pomo.remaining = pomoDur(pomo.mode); pomoSave(); updateTimerUI(); }
-function pomoMode(m){ pomo.mode = m; pomo.running = false; pomo.remaining = pomoDur(m); pomoSave(); updateTimerUI(); }
+function pomoReset(){ pomo.running = false; pomo.blockMin = 0; pomo.remaining = pomoDur(pomo.mode); pomoSave(); updateTimerUI(); }
+function pomoMode(m){ pomo.mode = m; pomo.running = false; pomo.blockMin = 0; pomo.remaining = pomoDur(m); pomoSave(); updateTimerUI(); }
 function pomoComplete(natural, silent){
   const wasFocus = pomo.mode === 'focus';
-  if (wasFocus && natural) { addFocus(pomo.cfg.focus); pomo.cycle++; }
+  if (wasFocus && natural) { addFocus(pomo.blockMin || pomo.cfg.focus); pomo.cycle++; }
+  pomo.blockMin = 0;
   pomo.mode = wasFocus ? ((pomo.cycle % pomo.cfg.every === 0 && natural) ? 'long' : 'short') : 'focus';
-  pomo.remaining = pomoDur(pomo.mode); pomo.running = !!(pomo.cfg.auto && natural); if (pomo.running) pomo.endAt = Date.now() + pomo.remaining;
+  pomo.remaining = pomoDur(pomo.mode); pomo.running = !!(pomo.cfg.auto && natural) && !(pomo.mode === 'focus' && focusLimit() && focusUsed() >= focusLimit()); if (pomo.running) pomo.endAt = Date.now() + pomo.remaining;
   pomoSave();
   if (natural && !silent) {
     beep(); toast(t(wasFocus ? 'notify_done_focus' : 'notify_done_break'));
@@ -210,6 +243,7 @@ PAGES.focus = function(){
       <div class="seg"><button type="button" data-seg="focus" data-act="pmode" data-m="focus">${esc(t('mode_focus'))}</button><button type="button" data-seg="short" data-act="pmode" data-m="short">${esc(t('mode_short'))}</button><button type="button" data-seg="long" data-act="pmode" data-m="long">${esc(t('mode_long'))}</button></div>
       <div class="ring" id="tm-ring"><svg viewBox="0 0 120 120"><circle class="bg" cx="60" cy="60" r="54" stroke-width="7"/><circle class="fg" id="tm-fg" cx="60" cy="60" r="54" stroke-width="7" stroke-dasharray="${RING_C.toFixed(2)}" stroke-dashoffset="0"/></svg><div class="center"><div class="tt" data-pomo-time>25:00</div><div class="md" data-pomo-mode></div></div></div>
       <div class="cycle" id="tm-cycle"></div>
+      ${focusLimit() ? `<div class="limit-box"><div class="row between small"><b>${esc(t('focus_limit_used', { u:Math.min(focusUsed(), focusLimit()), l:focusLimit() }))}</b><span class="faint">${esc(t('focus_limit_note', { l:focusLimit() }))}</span></div><div class="progress mt-s"><i style="width:${Math.min(100, focusUsed() / focusLimit() * 100)}%"></i></div><div class="mt-s">${unlockBox()}</div></div>` : (state.companion ? `<div class="limit-box"><span class="badge">${ic('heart', 'sm')} ${esc(t('comp_badge'))} · ${esc(t('focus_nolimit'))}</span></div>` : '')}
       <div class="row"><button class="btn primary lg" id="tm-main" data-act="pstart"></button><button class="btn secondary icon" style="width:48px;height:48px" data-act="preset-reset" title="${esc(t('reset'))}">${ic('reset')}</button><button class="btn secondary icon" style="width:48px;height:48px" data-act="pskip" title="${esc(t('skip'))}">${ic('skip')}</button></div>
       <div class="divider" style="width:100%;margin:2px 0"></div>
       <div class="row" style="width:100%"><span class="small muted">${esc(t('presets'))}:</span>${Object.entries(PRESETS).map(([k, p]) => `<button type="button" class="chip" data-act="ppreset" data-p="${k}">${p.focus}/${p.short}/${p.long}</button>`).join('')}</div>
@@ -257,7 +291,7 @@ function renderPost(slug){
   const lp = livePosts(), i = lp.findIndex(p => (p.slug || p.id) === slug), p = lp[i];
   if (!p) return page(`<a class="btn secondary sm" href="#/blog">${ic('chev-l', 'sm')} ${esc(t('back'))}</a>${emptyBox('pen', posts.length ? t('not_found') : t('loading'), '')}`);
   const same = lp.filter(x => x.category === p.category && x.id !== p.id).slice(0, 3), prev = lp[i + 1], next = lp[i - 1];
-  const tr = !isNativeContent() ? `<a class="badge" target="_blank" rel="noopener" href="https://translate.google.com/translate?sl=auto&tl=${state.lang}&u=${encodeURIComponent(location.href.split('#')[0] + '#/blog/' + encodeURIComponent(slug))}">${ic('globe', 'sm')} ${esc(t('translate'))}</a>` : '';
+  const tr = (!isNativeContent() && !(p.body && p.body[state.lang])) ? `<a class="badge" target="_blank" rel="noopener" href="https://translate.google.com/translate?sl=auto&tl=${state.lang}&u=${encodeURIComponent(location.href.split('#')[0] + '#/blog/' + encodeURIComponent(slug))}">${ic('globe', 'sm')} ${esc(t('translate'))}</a>` : '';
   page(`<article class="post"><a class="btn secondary sm" href="#/blog${p.category ? '/c/' + esc(p.category) : ''}">${ic('chev-l', 'sm')} ${esc(p.category ? catLabel(p.category) : t('back'))}</a><h1>${esc(L(p.title))}</h1>
     <div class="meta"><span>${esc(fmtDate(p.createdAt))}</span><span>${esc(t('min_read', { m:readMins(L(p.body)) }))}</span>${tr}</div>
     <div class="tags mt-s">${p.category ? `<a class="badge" href="#/blog/c/${esc(p.category)}">${esc(catLabel(p.category))}</a>` : ''}${(p.tags || []).map(g => `<span class="badge muted">#${esc(g)}</span>`).join('')}</div>
@@ -394,15 +428,23 @@ FORMS.review = async () => {
    ACCOUNT (đăng nhập / đăng ký / hồ sơ / đơn hàng / thư viện)
    ========================================================= */
 let authTab = 'signin', myOrders = null;
-PAGES.account = function(){
-  if (!state.user) {
-    return page(`<div class="auth-wrap"><div class="card"><div class="art-strip">${paint('moonwalk', { crop:'banner', seed:7 })}</div><div class="stack"><div style="text-align:center"><h2 style="font-size:1.4rem">${esc(authTab === 'signin' ? t('signin') : t('signup'))}</h2><p class="muted small mt-s">${esc(t('sync_note'))}</p></div>
+// khung đăng nhập / tạo tài khoản — dùng cho trang Tài khoản và cho cổng đăng nhập
+const authCard = (title, sub) => `<div class="card"><div class="art-strip">${paint('moonwalk', { crop:'banner', seed:7 })}</div><div class="stack"><div style="text-align:center"><h2 style="font-size:1.4rem">${esc(title)}</h2><p class="muted small mt-s">${esc(sub)}</p></div>
       <div class="seg" style="align-self:center"><button type="button" class="${authTab === 'signin' ? 'on' : ''}" data-act="authTab" data-t="signin">${esc(t('signin'))}</button><button type="button" class="${authTab === 'signup' ? 'on' : ''}" data-act="authTab" data-t="signup">${esc(t('signup'))}</button></div>
       <form class="stack" data-form="${authTab}">${authTab === 'signup' ? `<input class="input" id="au-name" placeholder="${esc(t('name_ph'))}" required maxlength="60" autocomplete="nickname">` : ''}
         <input class="input" id="au-email" type="email" placeholder="${esc(t('email'))}" required autocomplete="email"><input class="input" id="au-pass" type="password" placeholder="${esc(t('password'))}" required minlength="6" autocomplete="${authTab === 'signup' ? 'new-password' : 'current-password'}">
         <button class="btn primary lg" type="submit">${esc(authTab === 'signin' ? t('signin') : t('signup'))}</button><div class="small" style="color:var(--danger)" id="au-err"></div>
-        ${authTab === 'signin' ? `<button type="button" class="link" style="align-self:center" data-act="forgot">${esc(t('forgot'))}</button>` : ''}</form></div></div></div>`);
-  }
+        ${authTab === 'signin' ? `<button type="button" class="link" style="align-self:center" data-act="forgot">${esc(t('forgot'))}</button>` : ''}</form></div></div>`;
+PAGES.gate = function(){
+  const logo = branding.logoUrl ? `<img src="${esc(branding.logoUrl)}" alt="">` : esc((branding.name || 'E').trim().slice(0, 2).toUpperCase());
+  page(`<div class="auth-wrap gate-wrap"><div class="gate-top"><span class="logo-mark">${logo}</span><b>${esc(branding.name)}</b>
+      <select class="select gate-lang" id="gate-lang" aria-label="${esc(t('language'))}">${LANG_LIST.map(([v, n]) => `<option value="${v}" ${state.lang === v ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
+    ${authCard(t('gate_title'), t('gate_sub'))}
+    <p class="muted small" style="text-align:center;margin-top:14px">${esc(t('gate_note'))}</p></div>`);
+  $('gate-lang').addEventListener('change', e => { state.lang = e.target.value; store.set('lang', state.lang); renderPrefs(); render(true); });
+};
+PAGES.account = function(){
+  if (!state.user) return page(`<div class="auth-wrap">${authCard(authTab === 'signin' ? t('signin') : t('signup'), t('sync_note'))}</div>`);
   const tab = route.args[0] || 'profile', u = state.user;
   const tabs = [['profile', 'user', t('profile')], ['orders', 'box', t('my_orders')], ['library', 'download', t('my_library')]];
   let body = '';
@@ -422,7 +464,7 @@ async function loadMyOrders(){
   try { const s = await db.collection('orders').where('uid', '==', state.user.uid).get(); myOrders = s.docs.map(d => d.data()).sort((a, b) => tsMs(b.createdAt) - tsMs(a.createdAt)); } catch (e) { myOrders = []; }
   if (route.name === 'account') render(true);
 }
-FORMS.signin = async () => { try { await auth.signInWithEmailAndPassword($('au-email').value.trim(), $('au-pass').value); location.hash = '#/account'; } catch (e) { $('au-err').textContent = authErr(e); } };
+FORMS.signin = async () => { try { const gated = document.body.classList.contains('gated'); await auth.signInWithEmailAndPassword($('au-email').value.trim(), $('au-pass').value); if (!gated) location.hash = '#/account'; } catch (e) { $('au-err').textContent = authErr(e); } };
 FORMS.signup = async () => {
   try {
     const c = await auth.createUserWithEmailAndPassword($('au-email').value.trim(), $('au-pass').value), name = $('au-name').value.trim();
@@ -546,7 +588,7 @@ PAGES.donate = function(){
         ${pay || `<p class="muted">${esc(t('donate_none'))}</p>`}<p class="small faint">${esc(t('donate_thanks'))}</p></section>
       <section class="card pad stack"><div class="row between"><h2 style="font-size:1.2rem" ${cms('comp_title')}>${esc(ctext('comp_title'))}</h2>${state.companion ? `<span class="badge">${ic('heart', 'sm')} ${esc(t('comp_badge'))}</span>` : ''}</div>
         <p class="muted" ${cms('comp_text')}>${esc(ctext('comp_text'))}</p><div><div class="label">${esc(t('comp_perks'))}</div><ul class="perks"><li ${cms('comp_perk1')}>${esc(ctext('comp_perk1'))}</li><li ${cms('comp_perk2')}>${esc(ctext('comp_perk2'))}</li><li ${cms('comp_perk3')}>${esc(ctext('comp_perk3'))}</li></ul></div>
-        ${state.companion ? `<p class="small" style="color:var(--live)">${esc(t('comp_active'))}</p>` : ''}${payments.companionUrl ? `<a class="btn primary lg" target="_blank" rel="noopener" href="${esc(payments.companionUrl)}">${ic('heart', 'sm')} ${esc(t('comp_cta'))}</a>` : ''}</section></div>`);
+        ${branding.focusCodeHash ? `<div><div class="label">${esc(t('comp_steps_title'))}</div><ol class="steps"><li>${esc(t('comp_step1'))}</li><li>${esc(t('comp_step2'))}</li><li>${esc(t('comp_step3'))}</li></ol></div>${unlockBox()}` : ''}${state.companion || unlockValid() ? `<p class="small" style="color:var(--live)">${esc(t('comp_active'))}</p>` : ''}${payments.companionUrl ? `<a class="btn primary lg" target="_blank" rel="noopener" href="${esc(payments.companionUrl)}">${ic('heart', 'sm')} ${esc(t('comp_cta'))}</a>` : ''}</section></div>`);
 };
 CHANGES.donCustom = el => { const v = Math.round(+el.value); if (v > 0) { donAmt = { cur:donCur || effCurrency(), v }; render(true); } };
 Object.assign(ACTIONS, {

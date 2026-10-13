@@ -42,7 +42,7 @@ const state = {
 };
 if (!['rain', 'pop', 'violet', 'teal'].includes(state.theme)) state.theme = null;   // bỏ giá trị theme cũ của các bản trước
 let userTZ = state.tz === 'auto' ? DT.local().zoneName : state.tz;
-let branding = { name:'EP Study Room', themeColor:'#ff3d9a', defaultTheme:'rain', font:'baloo', logoUrl:'', mascotUrl:'', ytChannelId:'', ytLiveId:'', videos:[], contacts:{}, socialLinks:{}, announcement:{}, nav:null, homeSections:{},
+let branding = { name:'EP Study Room', themeColor:'#ff3d9a', defaultTheme:'rain', font:'baloo', logoUrl:'', mascotUrl:'', ytChannelId:'', ytLiveId:'', videos:[], contacts:{}, socialLinks:{}, announcement:{}, nav:null, homeSections:{}, focusLimit:120, focusCodeHash:'', focusCodeUntil:'',
   blogCats:[
     { id:'journal', label:{ en:'Journal', vi:'Nhật ký' }, desc:{ en:'Personal notes and updates.', vi:'Ghi chép và cập nhật cá nhân.' } },
     { id:'study', label:{ en:'Study notes', vi:'Ghi chép học tập' }, desc:{ en:'Methods, routines and what works.', vi:'Phương pháp, thói quen và điều hiệu quả.' } },
@@ -52,12 +52,15 @@ let branding = { name:'EP Study Room', themeColor:'#ff3d9a', defaultTheme:'rain'
   ], donate:{} };
 let content = { texts:{}, images:{}, faq:null };
 let payments = {}, posts = [], products = [], reviews = [], library = [], profile = {};
+/* Tự thêm https:// cho các link thanh toán nếu người dùng quên */
+function fixPayUrls(p) { const o = { ...p }; ['stripe', 'paypal', 'kofi', 'companionUrl', 'momoQr'].forEach(k => { const v = (o[k] || '').trim(); o[k] = v && !/^(https?:)?\/\//i.test(v) && !/^data:/i.test(v) ? 'https://' + v : v; }); return o; }
 state.companion = false;
 let weekDocs = {}, weekOffset = 0;
 const unsubs = {};
 const route = { name:'home', args:[] };
 
 /* ---------- i18n helpers ---------- */
+const LANG_LIST = [['en','English'],['vi','Tiếng Việt'],['hi','हिन्दी'],['ja','日本語'],['ko','한국어'],['zh','中文'],['fr','Français'],['es','Español']];
 function t(k, vars){
   let s = (I18N[state.lang] && I18N[state.lang][k]) ?? I18N.en[k] ?? k;
   if (vars) for (const v in vars) s = s.split('{' + v + '}').join(vars[v]);
@@ -70,7 +73,13 @@ function L(o){
 }
 const isNativeContent = () => state.lang === 'vi' || state.lang === 'en';
 // Chữ có thể sửa trực tiếp: nội dung admin đã sửa (theo ngôn ngữ) → mặc định trong I18N
-const ctext = k => { const v = content.texts && content.texts[k] && content.texts[k][state.lang]; return (v != null && v !== '') ? v : t(k); };
+const ctext = k => {
+  const o = content.texts && content.texts[k], v = o && o[state.lang];
+  if (v != null && v !== '') return v;
+  // admin đã viết bằng một ngôn ngữ khác nhưng bản dịch chưa kịp lưu → hiện chính chữ admin viết, không hiện câu mặc định không liên quan
+  if (o) { const alt = (state.lang === 'vi' ? (o.vi || o.en) : (o.en || o.vi)) || Object.values(o).find(Boolean); if (alt) return alt; }
+  return t(k);
+};
 const cms = k => `data-cms="${k}"`;
 const cimg = (k, def) => (content.images && content.images[k]) || def || '';
 const effTheme = () => state.theme || branding.defaultTheme || 'rain';
@@ -107,7 +116,7 @@ function applyLook(){
   } else ['--accent','--accent-rgb','--accent-strong'].forEach(p => root.style.removeProperty(p));
   const f = FONTS[branding.font] || FONTS.baloo;
   root.dataset.font = branding.font || 'baloo';
-  root.style.setProperty('--font-h', f.h + ",'Nunito',system-ui,sans-serif"); root.style.setProperty('--font-b', f.b + ",system-ui,sans-serif");
+  root.style.setProperty('--font-h', f.h + ",'Nunito','Noto Sans Devanagari',system-ui,sans-serif"); root.style.setProperty('--font-b', f.b + ",'Noto Sans Devanagari',system-ui,sans-serif");
   if (f.q) { let l = $('font-extra'); if (!l) { l = document.createElement('link'); l.id = 'font-extra'; l.rel = 'stylesheet'; document.head.appendChild(l); } const href = `https://fonts.googleapis.com/css2?family=${f.q}&display=swap`; if (l.href !== href) l.href = href; }
   const meta = document.querySelector('meta[name=theme-color]'); if (meta) meta.content = th === 'pop' ? '#f3f1fb' : '#080b13';
   const cm = $('chk-calm'); if (cm) cm.checked = !!state.calm;
@@ -228,7 +237,7 @@ function listenAll(){
     applyLook(); render(); loadVideos();
   });
   snap(db.collection('settings').doc('content'), doc => { content = { texts:{}, images:{}, faq:null, ...(doc.exists ? doc.data() : {}) }; render(); });
-  snap(db.collection('settings').doc('payments'), d => { payments = d.exists ? d.data() : {}; });
+  snap(db.collection('settings').doc('payments'), d => { payments = fixPayUrls(d.exists ? d.data() : {}); });
   snap(db.collection('posts').where('published', '==', true), s => { posts = s.docs.map(d => ({ id:d.id, ...d.data() })).sort((a, b) => tsMs(b.createdAt) - tsMs(a.createdAt)); render(); }, () => { posts = []; render(); });
   snap(db.collection('products').where('active', '==', true), s => { products = s.docs.map(d => ({ id:d.id, ...d.data() })).sort((a, b) => tsMs(a.createdAt) - tsMs(b.createdAt)); render(); }, () => { products = []; render(); });
   snap(db.collection('reviews').where('approved', '==', true), s => { reviews = s.docs.map(d => ({ id:d.id, ...d.data() })).sort((a, b) => tsMs(b.createdAt) - tsMs(a.createdAt)); render(); }, () => { reviews = []; });
@@ -285,10 +294,22 @@ let unsubLib = null;
 const ADMIN_EMAIL = 'epstudyroom.contact@gmail.com';
 const isAdminUser = u => !!u && (u.email || '').toLowerCase() === ADMIN_EMAIL && u.emailVerified === true;
 const isAdminEmail = u => !!u && (u.email || '').toLowerCase() === ADMIN_EMAIL;
+/* Mã hàng tháng của "Người đồng hành": chỉ lưu SHA-256 của mã trong settings/branding (không lưu mã gốc). */
+async function sha256(text){
+  try { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
+  catch (e) { let h = 5381; for (const c of text) h = ((h << 5) + h + c.charCodeAt(0)) >>> 0; return 'f' + h.toString(16); }
+}
+const normCode = s => String(s || '').trim().toLowerCase();
+function unlockValid(){
+  const u = store.get('unlock', null) || (profile && profile.unlock) || null, today = DT.now().toISODate();
+  if (!u || !branding.focusCodeHash) return false;
+  return u.hash === branding.focusCodeHash && (!u.until || u.until >= today) && (!branding.focusCodeUntil || branding.focusCodeUntil >= today);
+}
 const localTodos = () => store.get('todos', []);
 const localFocus = () => store.get('focus', {});
 auth.onAuthStateChanged(async u => {
   if (DEMO) { render(true); return; }
+  state.authReady = true;
   state.user = u; state.isAdmin = false; state.companion = false; library = []; profile = {};
   if (unsubLib) { unsubLib(); unsubLib = null; }
   if (u) {
@@ -299,10 +320,11 @@ auth.onAuthStateChanged(async u => {
       const todos = [...(profile.todos || [])]; localTodos().forEach(x => { if (!todos.find(y => y.id === x.id)) todos.push(x); });
       const fl = { ...(profile.focusLog || {}) }; Object.entries(localFocus()).forEach(([k, v]) => { const o = fl[k] || { m:0, s:0 }; fl[k] = { m:Math.max(o.m, v.m), s:Math.max(o.s, v.s) }; });
       store.set('todos', todos); store.set('focus', fl); profile.todos = todos; profile.focusLog = fl;
+      if (profile.unlock && !store.get('unlock', null)) store.set('unlock', profile.unlock);
       if (!d.exists || !profile.displayName) { profile.displayName = profile.displayName || u.displayName || (u.email || '').split('@')[0]; }
       saveProfileNow();
     } catch (e) { console.warn('profile', e.code); }
-    try { state.companion = (await db.collection('companions').doc(u.uid).get()).exists; } catch (e) {}
+    try { const cd = await db.collection('companions').doc(u.uid).get(); state.companion = cd.exists && !(cd.data().until && cd.data().until < DT.now().toISODate()); } catch (e) {}
     unsubLib = db.collection('users').doc(u.uid).collection('library').onSnapshot(s => { library = s.docs.map(d => ({ id:d.id, ...d.data() })); if (route.name === 'account') render(true); }, () => {});
   }
   render(true);
@@ -338,8 +360,17 @@ function readRoute(){
   route.name = p[0] || 'home'; route.args = p.slice(1);
   if (route.name === 'library') { route.name = 'account'; route.args = ['library']; }
 }
+/* Cổng đăng nhập: chưa đăng nhập thì chỉ thấy màn hình đăng nhập / tạo tài khoản (admin tắt được ở tab Giao diện & Menu) */
+const loginRequired = () => !DEMO && !CONFIG_MISSING && branding.requireLogin !== false;
 function doRender(){
   readRoute();
+  const gated = loginRequired() && !state.user;
+  document.body.classList.toggle('gated', gated);
+  if (gated) {
+    $('tab-title').textContent = branding.name + ' · Study With Me';
+    if (!state.authReady) { $('page').innerHTML = '<div class="gate-load"><i></i></div>'; return; }
+    PAGES.gate(); return;
+  }
   if (route.name === 'admin' && !state.isAdmin && !DEMO) { /* trang admin yêu cầu quyền */ }
   const fn = PAGES[route.name] || PAGES.home;
   renderChrome(); fn(); afterRender();
@@ -385,8 +416,8 @@ function renderChrome(){
   const a = (CONFIG_MISSING && !DEMO) ? 'Firebase chưa được cấu hình — mở file SETUP.md, PHẦN 2, rồi điền js/firebase-config.js' : L(branding.announcement), bar = $('ann-bar'); bar.classList.toggle('hidden', !a); $('ann-text').textContent = a;
 }
 function renderPrefs(){
-  $('sel-lang').innerHTML = [['vi','Tiếng Việt'],['en','English'],['ja','日本語'],['ko','한국어'],['zh','中文'],['fr','Français'],['es','Español']].map(([v, n]) => `<option value="${v}" ${state.lang === v ? 'selected' : ''}>${n}</option>`).join('');
-  const zones = [['auto', t('auto')],['Asia/Ho_Chi_Minh','Vietnam (GMT+7)'],['Asia/Bangkok','Bangkok'],['Asia/Singapore','Singapore'],['Asia/Tokyo','Tokyo'],['Asia/Seoul','Seoul'],['Asia/Shanghai','Shanghai'],['Australia/Sydney','Sydney'],['Asia/Dubai','Dubai'],['Europe/London','London'],['Europe/Paris','Paris'],['Europe/Berlin','Berlin'],['America/New_York','New York'],['America/Chicago','Chicago'],['America/Los_Angeles','Los Angeles']];
+  $('sel-lang').innerHTML = LANG_LIST.map(([v, n]) => `<option value="${v}" ${state.lang === v ? 'selected' : ''}>${n}</option>`).join('');
+  const zones = [['auto', t('auto')],['Asia/Ho_Chi_Minh','Vietnam (GMT+7)'],['Asia/Kolkata','India (GMT+5:30)'],['Asia/Bangkok','Bangkok'],['Asia/Singapore','Singapore'],['Asia/Tokyo','Tokyo'],['Asia/Seoul','Seoul'],['Asia/Shanghai','Shanghai'],['Australia/Sydney','Sydney'],['Asia/Dubai','Dubai'],['Europe/London','London'],['Europe/Paris','Paris'],['Europe/Berlin','Berlin'],['America/New_York','New York'],['America/Chicago','Chicago'],['America/Los_Angeles','Los Angeles']];
   if (!zones.some(z => z[0] === state.tz)) zones.push([state.tz, state.tz]);
   $('sel-tz').innerHTML = zones.map(([v, n]) => `<option value="${esc(v)}" ${state.tz === v ? 'selected' : ''}>${esc(n)}</option>`).join('');
   $('theme-grid').innerHTML = Object.keys(THEMES).map(k => `<button type="button" class="theme-chip ${effTheme() === k ? 'on' : ''}" data-act="theme" data-th="${k}"><i style="background:${THEMES[k]}"></i>${esc(t('th_' + k))}</button>`).join('');
@@ -449,12 +480,29 @@ function toggleEditMode(){
 function applyEditable(){
   document.querySelectorAll('[data-cms]').forEach(el => { el.contentEditable = 'plaintext-only'; if (el.contentEditable !== 'plaintext-only') el.contentEditable = 'true'; });
 }
-function saveCmsText(key, val){
-  const def = t(key); content.texts = content.texts || {}; content.texts[key] = content.texts[key] || {};
-  const reset = val === '' || val === def;
-  if (reset) delete content.texts[key][state.lang]; else content.texts[key][state.lang] = val;
+/* Lưu chữ sửa trực tiếp. Bạn viết ở ngôn ngữ nào cũng được: chữ đó được giữ y nguyên,
+   các ngôn ngữ còn lại được tự dịch từ chính câu đó (xem js/translate.js). */
+async function saveCmsText(key, val){
+  const def = t(key); content.texts = content.texts || {};
+  const prev = content.texts[key] || {}, reset = val === '' || val === def;
+  if (reset) {                                           // trả về chữ mặc định ở mọi ngôn ngữ
+    delete content.texts[key];
+    if (DEMO) { toast(t('saved')); return; }
+    return db.collection('settings').doc('content').set({ texts:{ [key]: DEL() } }, { merge:true }).then(() => toast(t('saved'))).catch(e => alert('Lỗi lưu: ' + e.message));
+  }
+  if (prev[state.lang] === val) return;                  // không đổi gì
+  content.texts[key] = { ...prev, [state.lang]: val };   // hiện ngay
   if (DEMO) { toast(t('saved')); return; }
-  db.collection('settings').doc('content').set({ texts:{ [key]:{ [state.lang]: reset ? DEL() : val } } }, { merge:true }).then(() => toast(t('saved'))).catch(e => alert('Lỗi lưu: ' + e.message));
+  const save = obj => db.collection('settings').doc('content').set({ texts:{ [key]: obj } }, { merge:true });
+  try {
+    await save({ [state.lang]: val });                   // lưu ngay chữ bạn vừa viết
+    toast(t('saved') + ' · ' + t('translating'));
+    TR.reset();
+    const full = await TR.fill(prev, { [state.lang]: val });
+    content.texts[key] = full;
+    await save(full);
+    toast(TR.failed ? t('translate_partial', { n:TR.failed }) : t('saved') + ' · ' + t('translated_all'));
+  } catch (e) { alert('Lỗi lưu: ' + e.message); }
 }
 function saveCmsImage(key, url){
   content.images = content.images || {}; if (url) content.images[key] = url; else delete content.images[key];
@@ -519,9 +567,10 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { closeModal(); $('prefs').classList.remove('open'); document.body.classList.remove('nav-open'); const d = $('cart-drawer'); d && d.classList.remove('open'); }
   if (e.key === 'Enter' && state.editMode && e.target.dataset && e.target.dataset.cms && !e.shiftKey) { e.preventDefault(); e.target.blur(); }
 });
+document.addEventListener('focusin', e => { const el = e.target; if (state.editMode && el.dataset && el.dataset.cms) el.dataset.orig = el.textContent.trim(); });
 document.addEventListener('focusout', e => {
   const el = e.target;
-  if (state.editMode && el.dataset && el.dataset.cms) saveCmsText(el.dataset.cms, el.textContent.trim());
+  if (state.editMode && el.dataset && el.dataset.cms && el.textContent.trim() !== el.dataset.orig) saveCmsText(el.dataset.cms, el.textContent.trim());   // chỉ lưu khi chữ thật sự đổi
   setTimeout(() => { if (pendingRender && !typingInPage()) render(); }, 50);
 });
 $('sel-lang').addEventListener('change', e => { state.lang = e.target.value; store.set('lang', state.lang); renderPrefs(); render(true); });

@@ -11,6 +11,14 @@ const A_TABS = [
 const A = html => { const b = $('admin-body'); if (b) b.innerHTML = html; };
 const fail = e => alert('Lỗi: ' + (e && e.message || e));
 const ok = m => toast(m || 'Đã lưu ✔');
+/* Lưu có dịch tự động: khoá nút + hiện "Đang dịch…" trong lúc dịch (xem js/translate.js) */
+async function withTranslate(btn, work){
+  TR.reset(); const old = btn && btn.textContent;
+  if (btn) { btn.disabled = true; btn.textContent = 'Đang dịch…'; }
+  try { return await work(); } finally { if (btn) { btn.disabled = false; btn.textContent = old; } }
+}
+const trMsg = base => TR.failed ? `${base} Có ${TR.failed} lần dịch lỗi (mạng?) — bấm Lưu lại để dịch tiếp.` : `${base} Đã dịch sang mọi ngôn ngữ ✔`;
+const normHtml = h => { const d = document.createElement('div'); d.innerHTML = sanitizeHtml(h || ''); return sanitizeHtml(d.innerHTML); };
 const dbSet = (col, id, data, merge = true) => DEMO ? (toast('Chế độ xem thử: chưa lưu thật'), Promise.resolve()) : db.collection(col).doc(id).set(data, { merge });
 const val = id => { const e = $(id); return e ? e.value.trim() : ''; };
 const fld = (label, id, v = '', attrs = '', hint = '') => `<div class="field"><label class="label" for="${id}">${label}</label><input class="input" id="${id}" value="${esc(v)}" ${attrs}>${hint ? `<div class="hint">${hint}</div>` : ''}</div>`;
@@ -60,7 +68,8 @@ function tabSite(){
       <div class="row mt"><button class="btn primary" data-act="saveBrand">Lưu thương hiệu</button></div>`)}
     ${aCard('Menu điều hướng (thanh bên)', `<div id="nav-list">${navRows()}</div><div class="row mt"><button class="btn secondary sm" data-act="navAddLink">${ic('plus', 'sm')} Thêm liên kết ngoài</button><button class="btn primary" data-act="saveNav">Lưu menu</button></div><p class="hint">Bỏ tích để ẩn mục. Ô tên để trống = dùng tên mặc định theo ngôn ngữ của khách.</p>`)}
     ${aCard('Các khối ở trang chủ', `<div class="grid g2">${HOME_SECTIONS.map(([k, l]) => `<label class="row small" style="font-weight:600"><input type="checkbox" data-hs="${k}" ${(branding.homeSections || {})[k] !== false ? 'checked' : ''}> ${l}</label>`).join('')}</div><div class="row mt"><button class="btn primary" data-act="saveHome">Lưu</button></div>`)}
-    ${aCard('Thông báo chạy chữ & Mạng xã hội', `<div class="f2">${fld('Thông báo (Tiếng Việt)', 'ad-ann-vi', (branding.announcement || {}).vi || '', '', 'Để trống = ẩn')}${fld('Announcement (English)', 'ad-ann-en', (branding.announcement || {}).en || '')}</div>
+    ${aCard('Quyền truy cập', `<label class="row" style="font-weight:700;align-items:flex-start"><input type="checkbox" id="ad-reqlogin" style="margin-top:4px" ${branding.requireLogin !== false ? 'checked' : ''}> <span>Bắt buộc đăng nhập để dùng trang web<br><span class="hint">Khi bật: ai chưa đăng nhập chỉ thấy màn hình đăng nhập / tạo tài khoản, không xem được trang nào khác. Bỏ tích nếu bạn muốn ai cũng xem được mà không cần tài khoản.</span></span></label><div class="row mt"><button class="btn primary" data-act="saveAccess">Lưu</button></div>`)}
+    ${aCard('Thông báo chạy chữ & Mạng xã hội', `<div class="f2">${fld('Thông báo (Tiếng Việt)', 'ad-ann-vi', (branding.announcement || {}).vi || '', '', 'Để trống = ẩn. Viết ở ô nào cũng được, ô kia và mọi ngôn ngữ khác tự dịch khi bấm Lưu')}${fld('Announcement (English)', 'ad-ann-en', (branding.announcement || {}).en || '')}</div>
       <label class="label mt">Mạng xã hội (hiện ở trang Giới thiệu)</label><div id="social-list">${socialRows()}</div><div class="row mt"><button class="btn secondary sm" data-act="socialAdd">${ic('plus', 'sm')} Thêm</button><button class="btn primary" data-act="saveSocial">Lưu</button></div>`)}
     ${aCard('YouTube', `<div class="f2">${fld('Channel ID (UC…)', 'ad-ytch', branding.ytChannelId || '', '', 'Dùng để nhúng live hiện tại và tự lấy video mới nhất')}${fld('Link / ID video live cụ thể', 'ad-ytlive', branding.ytLiveId || '', '', 'Tuỳ chọn — nếu điền sẽ ưu tiên hơn Channel ID')}</div>
       ${fld('Link kênh / link live (nút "Mở trên YouTube")', 'ad-liveurl', (branding.contacts || {}).live || '')}
@@ -156,7 +165,7 @@ function postForm(p){
     <div class="mt-s">${imgField('Ảnh bìa (để trống = tranh vẽ sẵn)', 'pb-cover', p.cover)}</div>
     <label class="label mt">Nội dung <span class="faint" id="pb-wc"></span></label><div class="seg"><button type="button" class="on" id="bl-en" data-act="bodyLang" data-l="en">English</button><button type="button" id="bl-vi" data-act="bodyLang" data-l="vi">Tiếng Việt</button></div>
     <div class="rte-bar">${[['bold', 'B'], ['italic', 'I'], ['underline', 'U'], ['h2', 'H2'], ['h3', 'H3'], ['ul', '• Danh sách'], ['ol', '1. Danh sách'], ['quote', '❝'], ['link', 'Link'], ['img', 'Ảnh'], ['hr', '―'], ['clean', 'Tx']].map(([c, l]) => `<button type="button" data-act="fmt" data-c="${c}" onmousedown="event.preventDefault()">${l}</button>`).join('')}</div>
-    <div class="rte" id="pb-rte" contenteditable="true"></div><p class="hint" id="pb-draft">Tiếng Anh là ngôn ngữ chính của trang. Viết thêm bản Tiếng Việt nếu bạn muốn; ngôn ngữ khác sẽ hiện bản English kèm nút dịch. Bản nháp tự lưu trong trình duyệt khi bạn gõ.</p>
+    <div class="rte" id="pb-rte" contenteditable="true"></div><p class="hint" id="pb-draft">Bạn viết bằng ngôn ngữ nào cũng được. Khi bấm Lưu, bài được tự dịch sang mọi ngôn ngữ còn lại (Hindi, Nhật, Hàn, Trung, Pháp, Tây Ban Nha…). Bạn sửa ô nào, các ô còn lại được dịch lại từ ô đó; nếu bạn sửa cả Tiếng Anh và Tiếng Việt cùng lúc thì giữ nguyên cả hai và dịch phần còn lại từ Tiếng Anh. Bản nháp tự lưu trong trình duyệt khi bạn gõ.</p>
     <div class="f2 mt-s"><label class="row small" style="font-weight:700"><input type="checkbox" id="pb-pub" ${p.published ? 'checked' : ''}> Xuất bản (bỏ chọn = bản nháp)</label><label class="row small" style="font-weight:700"><input type="checkbox" id="pb-pin" ${p.pinned ? 'checked' : ''}> Ghim lên đầu</label></div>
     ${fld('Hẹn giờ đăng (tuỳ chọn)', 'pb-at', pa, 'type="datetime-local"', 'Để trống = hiện ngay khi xuất bản. Có thể chọn giờ trong tương lai.')}
     <div class="row mt"><button class="btn primary" data-act="savePost">Lưu bài</button><a class="btn ghost" href="#/admin/blog" data-act="reloadBlog">Huỷ</a></div>`)}`);
@@ -239,8 +248,10 @@ async function tabCoupons(){
 let adminFaq = [];
 function tabContent(){
   adminFaq = (Array.isArray(content.faq) && content.faq.length ? content.faq : [1, 2, 3, 4].map(i => ({ q:{ vi:I18N.vi['faq' + i + 'q'], en:I18N.en['faq' + i + 'q'] }, a:{ vi:I18N.vi['faq' + i + 'a'], en:I18N.en['faq' + i + 'a'] } }))).map(f => JSON.parse(JSON.stringify(f)));
-  A(`${aCard('Sửa chữ & ảnh trực tiếp trên trang', `<p class="muted small">Bật chế độ sửa, rồi bấm vào bất kỳ chữ nào có viền nét đứt (tiêu đề, mô tả, phần Giới thiệu…) để gõ lại — tự lưu khi bạn bấm ra ngoài. Bấm vào ảnh để thay. Mỗi ngôn ngữ được sửa riêng: đổi ngôn ngữ ở nút <b>Tuỳ chọn</b> trên thanh trên cùng.</p>
+  A(`${aCard('Sửa chữ & ảnh trực tiếp trên trang', `<p class="muted small">Bật chế độ sửa, rồi bấm vào bất kỳ chữ nào có viền nét đứt (tiêu đề, mô tả, phần Giới thiệu…) để gõ lại — tự lưu khi bạn bấm ra ngoài. Bấm vào ảnh để thay. Bạn viết bằng ngôn ngữ nào cũng được (đổi ngôn ngữ ở nút <b>Tuỳ chọn</b> trên thanh trên cùng): đúng câu bạn viết sẽ được <b>tự dịch sang mọi ngôn ngữ còn lại</b> ngay khi bạn bấm ra ngoài.</p>
       <div class="row mt-s"><button class="btn primary" data-act="startEdit">${ic('pen', 'sm')} Bật chế độ sửa (trang chủ)</button><button class="btn secondary" data-act="startEditAbout">Sửa trang Giới thiệu</button><button class="btn danger" data-act="resetTexts">Khôi phục toàn bộ chữ về mặc định</button></div>`)}
+    ${aCard('Dịch tự động', `<p class="muted small">Từ giờ, mọi thứ bạn viết (chữ trên trang, bài viết, sản phẩm, FAQ, thông báo, lý do huỷ live…) đều tự dịch sang Tiếng Anh, Việt, Hindi, Nhật, Hàn, Trung, Pháp, Tây Ban Nha khi bạn bấm Lưu. Nội dung bạn viết <b>trước đây</b> thì bấm nút dưới để dịch bù một lần (chỉ dịch các ngôn ngữ còn thiếu, không đụng chữ bạn đã viết).</p>
+      <div class="row mt-s"><button class="btn primary" data-act="translateAll">Dịch bù toàn bộ nội dung cũ</button></div><p class="hint" id="tr-status"></p>`)}
     ${aCard('Câu hỏi thường gặp (FAQ)', `<div id="faq-list">${faqRows()}</div><div class="row mt"><button class="btn secondary sm" data-act="faqAdd">${ic('plus', 'sm')} Thêm câu hỏi</button><button class="btn primary" data-act="saveFaq">Lưu FAQ</button></div>`)}`);
 }
 const faqRows = () => adminFaq.map((f, i) => `<div class="ad-slot" data-i="${i}"><div class="f2"><input class="input fq-qv" placeholder="Câu hỏi (VI)" value="${esc(f.q.vi || '')}"><input class="input fq-qe" placeholder="Question (EN)" value="${esc(f.q.en || '')}"></div><div class="f2 mt-s"><textarea class="textarea fq-av" placeholder="Trả lời (VI)">${esc(f.a.vi || '')}</textarea><textarea class="textarea fq-ae" placeholder="Answer (EN)">${esc(f.a.en || '')}</textarea></div><div class="row mt-s"><button class="btn ghost sm" data-act="faqMove" data-i="${i}" data-d="-1">${ic('up', 'sm')}</button><button class="btn ghost sm" data-act="faqMove" data-i="${i}" data-d="1">${ic('down', 'sm')}</button><button class="btn danger sm" data-act="faqDel" data-i="${i}">Xoá</button></div></div>`).join('');
@@ -262,6 +273,12 @@ function tabPayments(){
     ${aCard('Ủng hộ & Người đồng hành (trang "Support")', `<p class="hint" style="margin-bottom:10px">Trang Support dùng chính thông tin VietQR (khách Việt Nam) và PayPal / Ko-fi / Stripe (khách nước ngoài) ở trên. Chỉ cần thêm các mục dưới đây.</p>
       <div class="f2">${fld('Các mức tiền gợi ý — VND (cách nhau dấu phẩy)', 'py-dvnd', p.donateVND, '', 'VD: 20000, 50000, 100000, 200000')}${fld('Các mức tiền gợi ý — USD', 'py-dusd', p.donateUSD, '', 'VD: 3, 5, 10, 25')}</div>
       ${fld('Link đăng ký hằng tháng cho "Người đồng hành"', 'py-comp', p.companionUrl, '', 'VD: link Ko-fi Membership hoặc Patreon. Để trống = ẩn nút. PayPal.me nên có dạng https://paypal.me/tencuaban')}`)}
+    ${aCard('Giới hạn Phòng tập trung (cho người xem miễn phí)', `<p class="hint" style="margin-bottom:10px">Người xem miễn phí chỉ tập trung được tối đa số phút này mỗi ngày. <b>Người đồng hành và bạn (admin) không bị giới hạn.</b> Điền <b>0</b> để bỏ giới hạn cho mọi người. Mặc định 120 phút (2 tiếng).</p>
+      <div class="f2">${fld('Số phút tối đa mỗi ngày', 'py-flimit', branding.focusLimit ?? 120, 'type="number" min="0" max="1440"')}<div class="field" style="justify-content:flex-end"><button class="btn primary" data-act="saveFocusLimit">Lưu giới hạn</button></div></div>`)}
+    ${aCard('Mã hàng tháng cho Người đồng hành', `<p class="hint" style="margin-bottom:10px">Mỗi tháng bạn tạo <b>một mã</b>. Người ủng hộ hằng tháng nhận mã này (Ko-fi: dán vào lời chào/bài dành cho thành viên; chuyển khoản hoặc PayPal: bạn nhắn mã cho họ). Họ gõ mã vào web để <b>bỏ giới hạn Phòng tập trung</b>. Đổi mã mới thì mã cũ hết tác dụng ngay. Bạn không cần tick từng người.</p>
+      <div class="small" style="margin-bottom:10px">${branding.focusCodeHash ? `<span class="badge live">Đang có mã</span> · hạn đến <b>${esc(branding.focusCodeUntil || 'không giới hạn')}</b> · mã gốc không được lưu lại, hãy giữ mã bạn đã gửi cho thành viên.` : '<span class="badge muted">Chưa có mã</span>'}</div>
+      <div class="f2">${fld('Mã tháng này', 'py-code', '', 'autocomplete="off" spellcheck="false" placeholder="Bấm Tạo mã ngẫu nhiên, hoặc tự gõ"', 'Không phân biệt chữ hoa/thường')}${fld('Hết hạn vào ngày', 'py-until', branding.focusCodeUntil || DT.now().plus({ months:1 }).endOf('month').toISODate(), 'type="date"', 'Mặc định: cuối tháng sau')}</div>
+      <div class="row mt-s"><button class="btn secondary" data-act="genCode">${ic('sliders', 'sm')} Tạo mã ngẫu nhiên</button><button class="btn primary" data-act="saveCode">Lưu mã</button>${branding.focusCodeHash ? `<button class="btn danger" data-act="clearCode">Tắt mã</button>` : ''}</div>`)}
     ${aCard('Email xác nhận đơn (EmailJS)', `${fld('Template ID', 'py-tpl', p.orderTemplate, '', 'Biến: {{user_name}} {{user_email}} {{order_code}} {{items}} {{total}}')}`)}
     <button class="btn primary" data-act="savePay">Lưu thanh toán</button>`);
 }
@@ -272,17 +289,18 @@ async function tabMembers(){
   if (DEMO) { users = [{ id:'u1', displayName:'Linh', email:'linh@mail.com', moon:{ days:new Array(30).fill('x'), rounds:1 } }, { id:'u2', displayName:'Daniel', email:'d@mail.com', moon:{ days:new Array(11).fill('x') } }]; comps = [{ id:'u1' }]; }
   const isC = id => comps.some(c => c.id === id);
   A(`<div class="grid g2">${aCard(`Thành viên (${users.length})`, users.length ? users.map(u => { const d = u.moon && u.moon.days ? u.moon.days.length : 0; return `<div class="ord-row"><div><b>${esc(u.displayName || '—')}</b> ${isC(u.id) ? `<span class="badge">${ic('heart', 'sm')} Đồng hành</span>` : ''}<div class="small muted">${esc(u.email || '')}</div><div class="small faint">${u.moon ? `Hành trình trăng: ${d}/30${u.moon.rounds ? ' · ' + u.moon.rounds + ' lần trăng tròn' : ''}` : 'Chưa bắt đầu hành trình trăng'}</div></div>
-        <label class="row small" style="font-weight:700"><input type="checkbox" data-change="companion" data-id="${esc(u.id)}" data-name="${esc(u.displayName || u.email || '')}" ${isC(u.id) ? 'checked' : ''}> Người đồng hành</label></div>`; }).join('') : '<p class="muted">Chưa có.</p>', '')}
+        <span class="stack" style="gap:6px;align-items:flex-end"><label class="row small" style="font-weight:700"><input type="checkbox" data-change="companion" data-id="${esc(u.id)}" data-name="${esc(u.displayName || u.email || '')}" ${isC(u.id) ? 'checked' : ''}> Người đồng hành</label>${isC(u.id) ? `<label class="small faint">Đến ngày <input class="input" type="date" style="width:150px;padding:4px 8px" data-change="compUntil" data-id="${esc(u.id)}" value="${esc((comps.find(c => c.id === u.id) || {}).until || '')}"></label>` : ''}</span></div>`; }).join('') : '<p class="muted">Chưa có.</p>', '')}
     ${aCard(`Đăng ký email nhắc lịch (${signups.length})`, signups.length ? signups.map(s => `<div class="ord-row"><div><b>${esc(s.codename || '')}</b><div class="small muted">${esc(s.email || '')}</div></div><span class="small faint">${esc(dateStr(s.timestamp))}</span></div>`).join('') : '<p class="muted">Chưa có.</p>', `<button class="btn secondary sm" data-act="copyEmails">Sao chép email</button>`)}</div>
-    <p class="hint mt">"Người đồng hành" là những người ủng hộ hằng tháng của bạn. Khi bạn tích chọn, họ sẽ có huy hiệu nhỏ trên tài khoản. Bạn tự đối chiếu với nơi nhận ủng hộ (Ko-fi, Patreon…).</p>`);
+    <p class="hint mt">"Người đồng hành" là những người ủng hộ hằng tháng của bạn. Ô tích này chỉ dùng khi bạn muốn <b>tặng</b> hoặc làm ngoại lệ (họ có huy hiệu nhỏ và không bị giới hạn). Người ủng hộ bình thường chỉ cần nhập <b>mã hàng tháng</b> (tab Thanh toán & Ủng hộ), bạn không phải tick.</p>`);
   window._signups = signups;
 }
+CHANGES.compUntil = async el => { try { if (DEMO) return toast('Chế độ xem thử'); await db.collection('companions').doc(el.dataset.id).update({ until:el.value || null }); ok('Đã cập nhật ngày hết hạn'); } catch (e) { fail(e); } };
 CHANGES.companion = async el => {
   try {
     if (DEMO) return toast('Chế độ xem thử');
     const ref = db.collection('companions').doc(el.dataset.id);
-    if (el.checked) await ref.set({ name:el.dataset.name, since:TS() }); else await ref.delete();
-    ok(el.checked ? 'Đã đánh dấu người đồng hành' : 'Đã bỏ đánh dấu');
+    if (el.checked) await ref.set({ name:el.dataset.name, since:TS(), until:DT.now().plus({ days:31 }).toISODate() }); else await ref.delete();
+    ok(el.checked ? 'Đã đánh dấu người đồng hành (hết hạn sau 31 ngày — có thể sửa ngày)' : 'Đã bỏ đánh dấu'); tabMembers();
   } catch (e) { fail(e); el.checked = !el.checked; }
 };
 
@@ -308,21 +326,27 @@ Object.assign(ACTIONS, {
   navMove: el => { adminNav = readNav(); const i = +el.dataset.i, j = i + +el.dataset.d; if (j < 0 || j >= adminNav.length) return; [adminNav[i], adminNav[j]] = [adminNav[j], adminNav[i]]; $('nav-list').innerHTML = navRows(); },
   navDel: el => { adminNav = readNav(); adminNav.splice(+el.dataset.i, 1); $('nav-list').innerHTML = navRows(); },
   navAddLink: () => { adminNav = readNav(); adminNav.push({ id:'link-' + Date.now().toString(36), custom:true, visible:true, url:'', label:{ vi:'', en:'' } }); $('nav-list').innerHTML = navRows(); },
-  saveNav: () => {
-    const nav = readNav().filter(n => !n.custom || n.url).map(n => { const o = { id:n.id, visible:n.visible !== false }; if (n.label) o.label = n.label; if (n.custom) { o.url = n.url; o.custom = true; } return o; });
-    dbSet('settings', 'branding', { nav }).then(() => { branding.nav = nav; renderChrome(); ok('Đã lưu menu ✔'); }).catch(fail);
-  },
+  saveNav: el => withTranslate(el, async () => {
+    const old = branding.nav || [], nav = [];
+    for (const n of readNav().filter(n => !n.custom || n.url)) {
+      const o = { id:n.id, visible:n.visible !== false };
+      if (n.label) o.label = await TR.fill((old.find(x => x.id === n.id) || {}).label, n.label);
+      if (n.custom) { o.url = n.url; o.custom = true; }
+      nav.push(o);
+    }
+    await dbSet('settings', 'branding', { nav }); branding.nav = nav; renderChrome(); ok(trMsg('Đã lưu menu.'));
+  }).catch(fail),
+  saveAccess: () => { const requireLogin = $('ad-reqlogin').checked; dbSet('settings', 'branding', { requireLogin }).then(() => { branding.requireLogin = requireLogin; ok(requireLogin ? 'Đã bật: phải đăng nhập mới dùng được web ✔' : 'Đã tắt: ai cũng xem được web ✔'); }).catch(fail); },
   saveHome: () => { const hs = {}; document.querySelectorAll('[data-hs]').forEach(c => hs[c.dataset.hs] = c.checked); dbSet('settings', 'branding', { homeSections:hs }).then(() => { branding.homeSections = hs; ok(); }).catch(fail); },
   socialAdd: () => { adminSocial = readSocial(); adminSocial.push(['', '']); $('social-list').innerHTML = socialRows(); },
   socialDel: el => { adminSocial = readSocial(); adminSocial.splice(+el.dataset.i, 1); $('social-list').innerHTML = socialRows(); },
-  saveSocial: async () => {
-    const sl = {}; readSocial().forEach(([n, u]) => { if (n && u) sl[n] = u; }); const announcement = { vi:val('ad-ann-vi'), en:val('ad-ann-en') };
-    try {
-      if (DEMO) toast('Chế độ xem thử: chưa lưu thật');
-      else { const ref = db.collection('settings').doc('branding'); await ref.set({ announcement }, { merge:true }); await ref.update({ socialLinks:sl }); }   // update = thay hẳn danh sách (xoá được mục đã bỏ)
-      branding.socialLinks = sl; branding.announcement = announcement; renderChrome(); ok();
-    } catch (e) { fail(e); }
-  },
+  saveSocial: el => withTranslate(el, async () => {
+    const sl = {}; readSocial().forEach(([n, u]) => { if (n && u) sl[n] = u; });
+    const announcement = await TR.fill(branding.announcement, { vi:val('ad-ann-vi'), en:val('ad-ann-en') });
+    if (DEMO) toast('Chế độ xem thử: chưa lưu thật');
+    else { const ref = db.collection('settings').doc('branding'); await ref.set({}, { merge:true }); await ref.update({ announcement, socialLinks:sl }); }   // update = thay hẳn (xoá được mục / bản dịch đã bỏ)
+    branding.socialLinks = sl; branding.announcement = announcement; renderChrome(); ok(trMsg('Đã lưu.'));
+  }).catch(fail),
   videoAdd: () => { adminVideos = readVideos(); adminVideos.push({ url:'', title:'' }); $('video-list').innerHTML = videoRows(); },
   videoDel: el => { adminVideos = readVideos(); adminVideos.splice(+el.dataset.i, 1); $('video-list').innerHTML = videoRows(); },
   saveYT: () => {
@@ -337,10 +361,17 @@ Object.assign(ACTIONS, {
   blkAdd: el => { const s = adminDays[+el.dataset.d].slots[+el.dataset.s], k = el.dataset.t; s.plan.push({ t:k, m:BLK[k][2] }); drawSchedule(); },
   blkDel: el => { const s = adminDays[+el.dataset.d].slots[+el.dataset.s]; s.plan.splice(+el.dataset.b, 1); if (!s.plan.length) s.plan = null; drawSchedule(); },
   blkMove: el => { const s = adminDays[+el.dataset.d].slots[+el.dataset.s], i = +el.dataset.b, j = i + +el.dataset.dir; if (j < 0 || j >= s.plan.length) return; [s.plan[i], s.plan[j]] = [s.plan[j], s.plan[i]]; drawSchedule(); },
-  saveSched: () => {
-    const days = adminDays.map(d => ({ cancelled:d.cancelled, cancelNote:{ vi:d.cancelNote.vi || '', en:d.cancelNote.en || '' }, slots:d.slots.filter(s => s.time).map(s => ({ time:s.time, icon:s.icon || '', title:s.title || '', pomo:cleanPomo(s.pomo), plan: s.plan && s.plan.length ? s.plan.map(b => ({ t:b.t, m:Math.max(1, Math.round(+b.m || 1)) })) : [], cancelled:s.cancelled, cancelNote:{ vi:s.cancelNote.vi || '', en:s.cancelNote.en || '' } })) }));
-    dbSet('weekly_schedules', weekKeyFor(weekOffset), { days }, false).then(() => ok('Đã lưu lịch ✔')).catch(fail);
-  },
+  saveSched: el => withTranslate(el, async () => {
+    // lý do huỷ: chỉ dịch những buổi / ngày đang bị huỷ (các ghi chú khác giữ nguyên)
+    const note = async (n, on) => { const cur = { vi:(n && n.vi) || '', en:(n && n.en) || '' }; return on && (cur.vi || cur.en) ? TR.fill({}, cur) : cur; };
+    const days = [];
+    for (const d of adminDays) {
+      const slots = [];
+      for (const s of d.slots.filter(s => s.time)) slots.push({ time:s.time, icon:s.icon || '', title:s.title || '', pomo:cleanPomo(s.pomo), plan: s.plan && s.plan.length ? s.plan.map(b => ({ t:b.t, m:Math.max(1, Math.round(+b.m || 1)) })) : [], cancelled:s.cancelled, cancelNote:await note(s.cancelNote, s.cancelled) });
+      days.push({ cancelled:d.cancelled, cancelNote:await note(d.cancelNote, d.cancelled), slots });
+    }
+    await dbSet('weekly_schedules', weekKeyFor(weekOffset), { days }, false); ok(trMsg('Đã lưu lịch.'));
+  }).catch(fail),
   copyPrev: async () => {
     if (DEMO) return toast('Chế độ xem thử');
     try { const d = await db.collection('weekly_schedules').doc(weekKeyFor(weekOffset - 1)).get(); if (!d.exists) return alert('Tuần trước chưa có lịch');
@@ -356,16 +387,25 @@ Object.assign(ACTIONS, {
   catAdd: () => { adminCats = readCats(); adminCats.push({ id:'', label:{ en:'', vi:'' }, desc:{ en:'', vi:'' } }); $('cat-list').innerHTML = catRows(); },
   catDel: el => { adminCats = readCats(); adminCats.splice(+el.dataset.i, 1); $('cat-list').innerHTML = catRows(); },
   catMove: el => { adminCats = readCats(); const i = +el.dataset.i, j = i + +el.dataset.d; if (j < 0 || j >= adminCats.length) return; [adminCats[i], adminCats[j]] = [adminCats[j], adminCats[i]]; $('cat-list').innerHTML = catRows(); },
-  saveCats: () => { const cats = readCats().filter(c => c.label.en || c.label.vi); dbSet('settings', 'branding', { blogCats:cats }).then(() => { branding.blogCats = cats; ok('Đã lưu các mục'); tabBlog(); }).catch(fail); },
+  saveCats: el => withTranslate(el, async () => {
+    const old = blogCats(), cats = [];
+    for (const c of readCats().filter(c => c.label.en || c.label.vi)) { const o = old.find(x => x.id === c.id) || {}; cats.push({ id:c.id, label:await TR.fill(o.label, c.label), desc:await TR.fill(o.desc, c.desc) }); }
+    await dbSet('settings', 'branding', { blogCats:cats }); branding.blogCats = cats; ok(trMsg('Đã lưu các mục.')); tabBlog();
+  }).catch(fail),
   fmt: el => fmtCmd(el.dataset.c),
-  savePost: () => {
+  savePost: el => withTranslate(el, async () => {
     editBody[editLang] = $('pb-rte').innerHTML;
-    const title = { vi:val('pb-t-vi'), en:val('pb-t-en') }, slug = val('pb-slug') || slugify(title.en || title.vi), at = val('pb-at') ? new Date(val('pb-at')).getTime() : 0; if (!slug || !(title.vi || title.en)) return alert('Cần có tiêu đề');
-    const data = { slug, title, excerpt:{ vi:val('pb-e-vi'), en:val('pb-e-en') }, body:{ vi:sanitizeHtml(editBody.vi), en:sanitizeHtml(editBody.en) }, cover:val('pb-cover'), category:val('pb-cat'), pinned:$('pb-pin').checked, publishAt: at || null, tags:val('pb-tags').split(',').map(s => s.trim()).filter(Boolean), published:$('pb-pub').checked, updatedAt:TS() };
+    const typedTitle = { vi:val('pb-t-vi'), en:val('pb-t-en') }, slug = val('pb-slug') || slugify(typedTitle.en || typedTitle.vi), at = val('pb-at') ? new Date(val('pb-at')).getTime() : 0; if (!slug || !(typedTitle.vi || typedTitle.en)) return alert('Cần có tiêu đề');
+    const o = editPost || {}, ob = o.body || {};
+    // viết bằng ngôn ngữ nào cũng được: phần bạn vừa viết giữ nguyên, các ngôn ngữ còn lại tự dịch từ đó
+    const title = await TR.fill(o.title, typedTitle);
+    const excerpt = await TR.fill(o.excerpt, { vi:val('pb-e-vi'), en:val('pb-e-en') });
+    const body = await TR.fill({ ...ob, vi:normHtml(ob.vi), en:normHtml(ob.en) }, { vi:normHtml(editBody.vi), en:normHtml(editBody.en) }, { html:true });
+    const data = { slug, title, excerpt, body, cover:val('pb-cover'), category:val('pb-cat'), pinned:$('pb-pin').checked, publishAt: at || null, tags:val('pb-tags').split(',').map(s => s.trim()).filter(Boolean), published:$('pb-pub').checked, updatedAt:TS() };
     if (!editPost.slug) data.createdAt = at ? firebase.firestore.Timestamp.fromMillis(at) : TS();
     store.set('draft_' + (editPost.slug || 'new'), null);
-    dbSet('posts', slug, data).then(() => { ok(); tabBlog(); }).catch(fail);
-  },
+    await dbSet('posts', slug, data); ok(trMsg('Đã lưu bài.')); tabBlog();
+  }).catch(fail),
   /* sản phẩm */
   newProd: () => prodForm({ active:true, type:'digital' }),
   editProd: async el => { try { const p = DEMO ? products.find(x => x.id === el.dataset.id) : { id:el.dataset.id, ...(await db.collection('products').doc(el.dataset.id).get()).data() }; prodForm(p); } catch (e) { fail(e); } },
@@ -382,18 +422,17 @@ Object.assign(ACTIONS, {
     const name = val('pr-n-en') || val('pr-n-vi'), id = editProd.id || slugify(name); if (!id) return alert('Hãy nhập tên sản phẩm trước.');
     try { st.textContent = 'Đang tải lên…'; const path = `files/${id}/${safeName(f.name)}`; await uploadFile(f, path, p => st.textContent = `Đang tải lên… ${Math.round(p * 100)}%`); prodFile = { storagePath:path, fileName:f.name, fileUrl:'' }; st.textContent = 'Đã tải lên ✔ ' + f.name; } catch (e) { st.textContent = 'Lỗi: ' + e.message; }
   },
-  saveProd: async () => {
-    const name = { vi:val('pr-n-vi'), en:val('pr-n-en') }, id = editProd.id || slugify(name.en || name.vi); if (!id) return alert('Cần có tên sản phẩm');
+  saveProd: el => withTranslate(el, async () => {
+    const typedName = { vi:val('pr-n-vi'), en:val('pr-n-en') }, id = editProd.id || slugify(typedName.en || typedName.vi); if (!id) return alert('Cần có tên sản phẩm');
     const type = val('pr-type'), stock = val('pr-stock'), fileUrl = val('pr-fileurl');
     const hasFile = type !== 'physical' && !!(fileUrl || (prodFile && (prodFile.storagePath || prodFile.fileUrl)));
-    const data = { name, desc:{ vi:val('pr-d-vi'), en:val('pr-d-en') }, priceVND:+val('pr-vnd') || 0, priceUSD:+val('pr-usd') || 0, type, stock: stock === '' ? null : +stock, images:prodImages, payLinks:{ stripe:val('pr-stripe'), paypal:val('pr-paypal'), kofi:val('pr-kofi') }, active:$('pr-active').checked, hasFile, updatedAt:TS() };
+    const name = await TR.fill(editProd.name, typedName), desc = await TR.fill(editProd.desc, { vi:val('pr-d-vi'), en:val('pr-d-en') });
+    const data = { name, desc, priceVND:+val('pr-vnd') || 0, priceUSD:+val('pr-usd') || 0, type, stock: stock === '' ? null : +stock, images:prodImages, payLinks:{ stripe:val('pr-stripe'), paypal:val('pr-paypal'), kofi:val('pr-kofi') }, active:$('pr-active').checked, hasFile, updatedAt:TS() };
     if (!editProd.id) data.createdAt = TS();
-    try {
-      await dbSet('products', id, data);
-      if (type !== 'physical') await dbSet('products_private', id, { fileUrl, storagePath: (prodFile && prodFile.storagePath) || '', fileName: (prodFile && prodFile.fileName) || '', updatedAt:TS() });
-      ok('Đã lưu sản phẩm ✔'); tabProducts();
-    } catch (e) { fail(e); }
-  },
+    await dbSet('products', id, data);
+    if (type !== 'physical') await dbSet('products_private', id, { fileUrl, storagePath: (prodFile && prodFile.storagePath) || '', fileName: (prodFile && prodFile.fileName) || '', updatedAt:TS() });
+    ok(trMsg('Đã lưu sản phẩm.')); tabProducts();
+  }).catch(fail),
   grant: async el => { try { await grantLibrary(window._orders[el.dataset.id]); } catch (e) { fail(e); } },
   /* mã giảm giá */
   saveCoupon: () => {
@@ -408,12 +447,48 @@ Object.assign(ACTIONS, {
   faqAdd: () => { adminFaq = readFaq(); adminFaq.push({ q:{ vi:'', en:'' }, a:{ vi:'', en:'' } }); $('faq-list').innerHTML = faqRows(); },
   faqDel: el => { adminFaq = readFaq(); adminFaq.splice(+el.dataset.i, 1); $('faq-list').innerHTML = faqRows(); },
   faqMove: el => { adminFaq = readFaq(); const i = +el.dataset.i, j = i + +el.dataset.d; if (j < 0 || j >= adminFaq.length) return; [adminFaq[i], adminFaq[j]] = [adminFaq[j], adminFaq[i]]; $('faq-list').innerHTML = faqRows(); },
-  saveFaq: () => { const faq = readFaq().filter(f => f.q.vi || f.q.en); dbSet('settings', 'content', { faq }).then(() => { content.faq = faq; ok(); }).catch(fail); },
+  saveFaq: el => withTranslate(el, async () => {
+    const old = Array.isArray(content.faq) ? content.faq : [], faq = [];
+    for (const f of readFaq().filter(f => f.q.vi || f.q.en)) {
+      const o = old.find(x => x.q && ((f.q.en && x.q.en === f.q.en) || (f.q.vi && x.q.vi === f.q.vi))) || {};
+      faq.push({ q:await TR.fill(o.q, f.q), a:await TR.fill(o.a, f.a) });
+    }
+    await dbSet('settings', 'content', { faq }); content.faq = faq; ok(trMsg('Đã lưu FAQ.'));
+  }).catch(fail),
+  translateAll: el => withTranslate(el, async () => {
+    const say = m => { const s = $('tr-status'); if (s) s.textContent = m; };
+    const n = o => Object.keys(o || {}).length, ref = db && !DEMO ? db.collection('settings') : null;
+    let changed = 0;
+    // 1) chữ sửa trực tiếp trên trang
+    const texts = {}; for (const [i, k] of Object.keys(content.texts || {}).entries()) { say(`Chữ trên trang… ${i + 1}/${n(content.texts)}`); const full = await TR.fill(content.texts[k], {}); if (n(full) > n(content.texts[k])) { texts[k] = full; content.texts[k] = full; changed++; } }
+    if (n(texts) && ref) await ref.doc('content').set({ texts }, { merge:true });
+    // 2) FAQ
+    if (Array.isArray(content.faq) && content.faq.length) { say('Câu hỏi thường gặp…'); const faq = []; for (const f of content.faq) faq.push({ q:await TR.fill(f.q, {}), a:await TR.fill(f.a, {}) }); content.faq = faq; if (ref) await ref.doc('content').set({ faq }, { merge:true }); changed++; }
+    // 3) thông báo, menu, các mục bài viết
+    say('Thông báo, menu, mục bài viết…');
+    const bd = {}; if (n(branding.announcement)) bd.announcement = await TR.fill(branding.announcement, {});
+    if (Array.isArray(branding.nav)) bd.nav = await Promise.all(branding.nav.map(async x => x.label ? { ...x, label:await TR.fill(x.label, {}) } : x));
+    if (Array.isArray(branding.blogCats)) { bd.blogCats = []; for (const c of branding.blogCats) bd.blogCats.push({ ...c, label:await TR.fill(c.label, {}), desc:await TR.fill(c.desc, {}) }); }
+    if (n(bd)) { Object.assign(branding, bd); if (ref) await ref.doc('branding').set(bd, { merge:true }); renderChrome(); changed++; }
+    // 4) bài viết và sản phẩm
+    if (!DEMO) {
+      const ps = await getAll('posts'); for (const [i, p] of ps.entries()) { say(`Bài viết… ${i + 1}/${ps.length}`); await db.collection('posts').doc(p.id).set({ title:await TR.fill(p.title, {}), excerpt:await TR.fill(p.excerpt, {}), body:await TR.fill(p.body, {}, { html:true }) }, { merge:true }); changed++; }
+      const pr = await getAll('products'); for (const [i, p] of pr.entries()) { say(`Sản phẩm… ${i + 1}/${pr.length}`); await db.collection('products').doc(p.id).set({ name:await TR.fill(p.name, {}), desc:await TR.fill(p.desc, {}) }, { merge:true }); changed++; }
+    }
+    say(TR.failed ? `Xong, nhưng có ${TR.failed} lần dịch lỗi (mạng?). Bấm nút lần nữa để dịch tiếp phần còn thiếu.` : 'Xong ✔ Mọi nội dung đã có đủ các ngôn ngữ.'); ok(TR.failed ? 'Dịch bù chưa trọn vẹn — bấm lại lần nữa' : 'Đã dịch bù xong ✔');
+  }).catch(fail),
   resetTexts: () => { if (!confirm('Khôi phục TOÀN BỘ chữ đã sửa về mặc định? (ảnh giữ nguyên)')) return; if (DEMO) { content.texts = {}; return toast('Đã khôi phục (xem thử)'); } db.collection('settings').doc('content').update({ texts:DEL() }).then(() => { content.texts = {}; ok('Đã khôi phục'); }).catch(fail); },
   /* đánh giá */
   reviewSet: el => dbSet('reviews', el.dataset.id, { approved: el.dataset.v === '1' }).then(tabReviews).catch(fail),
   reviewDel: el => confirm('Xoá đánh giá này?') && (DEMO ? toast('Chế độ xem thử') : db.collection('reviews').doc(el.dataset.id).delete().then(tabReviews).catch(fail)),
   /* thanh toán */
-  savePay: () => { const data = {}; Object.entries(PAY_FIELDS).forEach(([id, k]) => data[k] = val(id)); dbSet('settings', 'payments', data).then(() => { Object.assign(payments, data); ok(); }).catch(fail); },
+  genCode: () => { const ch = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', a = new Uint32Array(8); crypto.getRandomValues(a); const s = [...a].map(n => ch[n % ch.length]).join(''); $('py-code').value = 'MOON-' + s.slice(0, 4) + '-' + s.slice(4); toast('Đã tạo mã. Nhớ Lưu mã và copy mã để gửi cho thành viên.'); },
+  saveCode: async () => {
+    const code = normCode(val('py-code')), until = val('py-until'); if (!code) return alert('Hãy bấm "Tạo mã ngẫu nhiên" hoặc tự gõ một mã.');
+    const hash = await sha256(code); dbSet('settings', 'branding', { focusCodeHash:hash, focusCodeUntil:until }).then(() => { branding.focusCodeHash = hash; branding.focusCodeUntil = until; ok('Đã lưu mã. Mã cũ (nếu có) hết tác dụng.'); tabPayments(); }).catch(fail);
+  },
+  clearCode: () => confirm('Tắt mã hiện tại? Người đang dùng mã sẽ bị giới hạn lại.') && dbSet('settings', 'branding', { focusCodeHash:'', focusCodeUntil:'' }).then(() => { branding.focusCodeHash = ''; branding.focusCodeUntil = ''; ok('Đã tắt mã'); tabPayments(); }).catch(fail),
+  saveFocusLimit: () => { const n = Math.max(0, Math.min(1440, Math.round(+val('py-flimit') || 0))); dbSet('settings', 'branding', { focusLimit:n }).then(() => { branding.focusLimit = n; ok(n ? 'Đã lưu: ' + n + ' phút/ngày' : 'Đã bỏ giới hạn'); }).catch(fail); },
+  savePay: () => { const raw = {}; Object.entries(PAY_FIELDS).forEach(([id, k]) => raw[k] = val(id)); const data = fixPayUrls(raw); dbSet('settings', 'payments', data).then(() => { Object.assign(payments, data); Object.entries(PAY_FIELDS).forEach(([id, k]) => { const e = $(id); if (e) e.value = data[k] || ''; }); ok(); }).catch(fail); },
   copyEmails: () => { try { navigator.clipboard.writeText((window._signups || []).map(s => s.email).join(', ')); } catch (e) {} toast('Đã sao chép email'); }
 });
