@@ -59,23 +59,46 @@ function plClean(x){                                              // chuẩn ho�
   return { id:String(x.id || plId()), title:String(x.title || '').trim().slice(0, 80), day, start:day === null ? '' : start, dur, c:Math.max(0, Math.min(5, x.c | 0)), done:!!x.done, ...(x.carried ? { carried:true } : {}) };
 }
 /* ---------- tải / lưu ---------- */
+/* Đọc nhanh: lần mở sau hiện ngay bản nhớ trong máy (xoá khi đăng xuất / đổi tài khoản, xem core.js), rồi cập nhật từ máy chủ ở nền */
+const plFetch = key => plRef(key).get().then(d => d.exists && Array.isArray(d.data().tasks) ? d.data().tasks : []);
+const plCK = key => 'plw_' + state.user.uid + '_' + key;
+const plCache = (key, tasks) => { if (!DEMO && state.user) store.set(plCK(key), { tasks }); };
+function plPrefetch(){                                            // gọi sớm lúc đăng nhập: lấy sẵn tuần này để mở Planner là có ngay
+  if (DEMO || !state.user || !plAccess() || (PL.pre && PL.pre.uid === state.user.uid && Date.now() - PL.pre.at < 60000)) return;
+  const key = plKey(0), pre = PL.pre = { uid:state.user.uid, key, at:Date.now(), p:plFetch(key) };
+  pre.p.then(tasks => plCache(key, tasks)).catch(() => { if (PL.pre === pre) PL.pre = null; });
+}
 async function plLoad(){
   const key = plKey(PL.off); if ((PL.key === key && PL.tasks) || PL.state === 'loading' || PL.state === 'error') return;
-  const seq = ++PL.seq; PL.state = 'loading'; PL.key = key; PL.tasks = null; PL.prev = null; PL.slow = false;
-  setTimeout(() => { if (PL.seq === seq && PL.state === 'loading') { PL.slow = true; render(true); } }, 8000);      // quá 8 giây: báo mạng chậm và cho bấm thử lại
+  const seq = ++PL.seq, t0 = Date.now(); PL.state = 'loading'; PL.key = key; PL.tasks = null; PL.prev = null; PL.slow = false; PL.save = '';
+  const hit = DEMO ? null : store.get(plCK(key), null);
+  if (hit && Array.isArray(hit.tasks)) { PL.tasks = hit.tasks.map(plClean); PL.state = 'ready'; }      // có bản nhớ: hiện ngay, không bắt chờ mạng
+  else setTimeout(() => { if (PL.seq === seq && PL.state === 'loading') { PL.slow = true; render(true); } }, 8000);   // quá 8 giây: báo mạng chậm và cho bấm thử lại
   try {
     let tasks = [];
-    if (!DEMO) { const d = await plRef(key).get(); tasks = d.exists && Array.isArray(d.data().tasks) ? d.data().tasks : []; }
+    const pre = PL.pre; PL.pre = null;                             // bản lấy sẵn chỉ dùng một lần và chỉ khi còn mới
+    if (!DEMO) tasks = await (pre && pre.uid === state.user.uid && pre.key === key && Date.now() - pre.at < 60000 ? pre.p : plFetch(key));
     if (PL.seq !== seq) return;                                   // đã đổi tuần / bấm thử lại trong lúc tải
-    PL.tasks = tasks.map(plClean); PL.state = 'ready'; PL.slow = false;
+    console.info('planner load', Date.now() - t0, 'ms', hit ? '(có bản nhớ)' : '');
+    if (!PL.save) { PL.tasks = tasks.map(plClean); plCache(key, tasks); }      // bạn đã sửa trong lúc chờ thì giữ bản của bạn
+    PL.state = 'ready'; PL.slow = false;
     if (!DEMO) plRef(plKey(PL.off - 1)).get().then(d => { if (PL.key === key && d.exists) { PL.prev = plStats((d.data().tasks || []).map(plClean)); render(true); } }).catch(() => {});
-  } catch (e) { if (PL.seq !== seq) return; console.warn('planner load', e.code); PL.state = 'error'; PL.key = ''; }
+  } catch (e) {
+    if (PL.seq !== seq) return; console.warn('planner load', e.code, Date.now() - t0, 'ms');
+    if (!PL.tasks) { PL.state = 'error'; PL.key = ''; PL.err = e.code || ''; }     // có bản nhớ thì cứ để người dùng xem tiếp
+  }
   render(true);
+}
+function plFlush(){                                                // lưu ngay việc đang chờ lưu (trước khi đổi tuần), để không mất thay đổi
+  if (PL.save !== 'saving' || !PL.tasks) return;
+  clearTimeout(PL.timer); const key = PL.key, tasks = PL.tasks.map(plClean); plCache(key, tasks);
+  if (!DEMO) plRef(key).set({ tasks, updatedAt:TS() }).catch(e => { console.warn('planner save', e.code); toast(t('pl_err')); });
+  PL.save = '';
 }
 function plSave(){
   PL.save = 'saving'; clearTimeout(PL.timer);
   PL.timer = setTimeout(async () => {
-    const key = PL.key, tasks = PL.tasks.map(plClean);
+    if (!PL.tasks) return; const key = PL.key, tasks = PL.tasks.map(plClean); plCache(key, tasks);
     try { if (!DEMO) await plRef(key).set({ tasks, updatedAt:TS() }); if (PL.key === key) PL.save = 'saved'; }
     catch (e) { console.warn('planner save', e.code); PL.save = 'error'; toast(t('pl_err')); }
     const n = $('pl-status'); if (n) n.textContent = PL.save === 'saved' ? '✓ ' + t('pl_saved') : PL.save === 'error' ? t('pl_err') : t('pl_saving');
@@ -156,7 +179,7 @@ PAGES.planner = function(){
   const ws = plWeekStart(PL.off), nav = `<div class="row between" style="margin-bottom:16px;flex-wrap:wrap;gap:10px"><div class="week-nav"><button class="btn secondary icon" data-act="plWeek" data-d="-1">${ic('chev-l')}</button><span class="lbl">${ws.toFormat('dd/MM')} – ${ws.plus({ days:6 }).toFormat('dd/MM/yyyy')}</span><button class="btn secondary icon" data-act="plWeek" data-d="1">${ic('chev-r')}</button>${PL.off ? `<button class="btn ghost sm" data-act="plWeek" data-d="0">${esc(t('pl_this'))}</button>` : ''}</div>
     <div class="row"><span class="small faint" id="pl-status">${PL.save === 'saved' ? '✓ ' + esc(t('pl_saved')) : PL.save === 'saving' ? esc(t('pl_saving')) : ''}</span><button class="btn primary" data-act="plNew">${ic('plus', 'sm')} ${esc(t('pl_add'))}</button></div></div>`;
   let body;
-  if (PL.state === 'error') body = `<p class="muted">${esc(t('pl_load_err'))}</p><button class="btn primary" data-act="plRetry">${esc(t('club_retry'))}</button>`;
+  if (PL.state === 'error') body = `<p class="muted">${esc(t('pl_load_err'))}</p><button class="btn primary" data-act="plRetry">${esc(t('club_retry'))}</button>${PL.err ? `<p class="small faint">${esc(PL.err)}</p>` : ''}`;
   else if (!PL.tasks) body = `<p class="muted">${esc(t(PL.slow ? 'pl_slow' : 'pl_loading'))}</p>${PL.slow ? `<button class="btn primary" data-act="plRetry">${esc(t('club_retry'))}</button>` : ''}`;
   else body = `<p class="small faint" style="margin-bottom:10px">${esc(t('pl_hint'))}</p><div class="pl-layout"><div class="card pad" style="padding:12px">${plGrid()}</div>${plReview()}</div>`;
   page(`${head('pl_title', 'pl_sub', '', 'moonwalk', 4)}${state.companionUntil && !state.isAdmin ? (plDaysLeft() <= 5 ? `<div class="card pad stack" style="margin-bottom:14px"><p class="small">${esc(t('pl_soon', { d:state.companionUntil }))}</p>${compClaimHTML()}</div>` : `<p class="small muted" style="margin:-6px 0 12px">${esc(t('pl_until', { d:state.companionUntil }))}</p>`) : ''}${nav}${body}`);
@@ -178,7 +201,7 @@ function plForm(x, isNew, day, start){
   setTimeout(() => { const el = $('pl-title'); if (el && isNew) el.focus(); }, 30);
 }
 Object.assign(ACTIONS, {
-  plWeek: el => { const d = +el.dataset.d; PL.off = d ? PL.off + d : 0; PL.seq++; PL.tasks = null; PL.key = ''; PL.state = 'idle'; render(true); },
+  plWeek: el => { plFlush(); const d = +el.dataset.d; PL.off = d ? PL.off + d : 0; PL.seq++; PL.tasks = null; PL.key = ''; PL.state = 'idle'; render(true); },
   plRetry: () => { PL.seq++; PL.state = 'idle'; PL.key = ''; PL.tasks = null; PL.slow = false; render(true); },
   plNew: (el, e) => {
     if (!PL.tasks) return; let day = el.dataset.day !== undefined ? +el.dataset.day : (PL.off === 0 ? DT.now().setZone(userTZ).weekday - 1 : 0), start = '';
