@@ -175,7 +175,7 @@ function buildPlan(p){            // focus → nghỉ (nghỉ dài sau mỗi N p
   return segs;
 }
 const planMins = segs => segs.reduce((a, s) => a + s.min, 0);
-function normSlot(s){ return { time:s.time || '', icon:s.icon || '', title:s.title || '', plan: Array.isArray(s.plan) && s.plan.length ? s.plan.map(x => ({ t:['f', 's', 'l'].includes(x.t) ? x.t : 'f', m:Math.max(1, Math.round(+x.m || 0)) })) : null, pomo: s.pomo ? cleanPomo(s.pomo) : null, manualH: parseFloat(s.manualH) || 2, cancelled: !!s.cancelled, cancelNote: s.cancelNote || {} }; }
+function normSlot(s){ return { time:s.time || '', icon:s.icon || '', title:s.title || '', plan: Array.isArray(s.plan) && s.plan.length ? s.plan.map(x => { const b = { t:['f', 's', 'l', 'p'].includes(x.t) ? x.t : 'f', m:Math.max(1, Math.round(+x.m || 0)) }; const nm = String(x.nm || '').trim().slice(0, 40); if (nm) b.nm = nm; return b; }) : null, pomo: s.pomo ? cleanPomo(s.pomo) : null, manualH: parseFloat(s.manualH) || 2, cancelled: !!s.cancelled, cancelNote: s.cancelNote || {} }; }
 function normDay(d){        // hỗ trợ cả định dạng mới {slots:[…]} lẫn định dạng cũ {m,a,e,m_h,…}
   d = d || {};
   if (Array.isArray(d.slots)) return { cancelled: !!d.cancelled, cancelNote: d.cancelNote || {}, slots: d.slots.map(normSlot) };
@@ -184,9 +184,9 @@ function normDay(d){        // hỗ trợ cả định dạng mới {slots:[…]
   return { cancelled:false, cancelNote:{}, slots };
 }
 // Danh sách các đoạn của một buổi: dãy tuỳ chỉnh (plan) nếu có, nếu không thì tự sinh từ mẫu Pomodoro
-const SEG_TYPE = { f:'focus', s:'short', l:'long' };
+const SEG_TYPE = { f:'focus', s:'short', l:'long', p:'prep' };      // p = chuẩn bị & chào (không tính là tập trung hay nghỉ)
 function slotSegs(slot){
-  if (slot.plan && slot.plan.length) { let n = 0; return slot.plan.map(x => { const type = SEG_TYPE[x.t] || 'focus'; return type === 'focus' ? { type, min:x.m, n:++n } : { type, min:x.m }; }); }
+  if (slot.plan && slot.plan.length) { let n = 0; return slot.plan.map(x => { const type = SEG_TYPE[x.t] || 'focus'; const seg = type === 'focus' ? { type, min:x.m, n:++n } : { type, min:x.m }; if (x.nm) seg.name = x.nm; return seg; }); }
   return slot.pomo ? buildPlan(slot.pomo) : null;
 }
 const slotMins = s => { const g = slotSegs(s); return g ? planMins(g) : Math.round((s.manualH || 2) * 60); };

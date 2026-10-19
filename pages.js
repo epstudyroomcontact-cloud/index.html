@@ -9,7 +9,7 @@ const emptyBox = (icon, title, sub) => `<div class="empty"><div class="ico">${ic
 /* tranh: ảnh do admin đặt (cimg) hoặc tranh vẽ sẵn bằng paint(cảnh, {crop, seed}) */
 const artOr = (key, scene, opt) => { const u = cimg(key); return u ? `<img class="art" alt="" src="${esc(u)}">` : paint(scene, opt); };
 const head = (titleKey, subKey, right = '', scene = 'moonwalk', seed = 1) => `<section class="art-head" data-cms-img="banner_${titleKey}">${artOr('banner_' + titleKey, scene, { crop:'banner', seed })}<div class="glass"><h1 ${cms(titleKey)}>${esc(ctext(titleKey))}</h1>${subKey ? `<p ${cms(subKey)}>${esc(ctext(subKey))}</p>` : ''}</div></section>${right ? `<div class="row between" style="margin-bottom:18px">${right}</div>` : ''}`;
-const labelOf = s => s.type === 'focus' ? `${t('focus')} ${s.n}` : s.type === 'short' ? t('short_break') : t('long_break');
+const labelOf = s => s.name || (s.type === 'focus' ? `${t('focus')} ${s.n}` : s.type === 'short' ? t('short_break') : s.type === 'prep' ? t('prep_break') : t('long_break'));
 const segBar = (segs, total) => `<div class="pomo-bar">${segs.map(s => `<i class="${s.type[0]}" style="width:${(s.min / total * 100).toFixed(2)}%" title="${esc(labelOf(s))} · ${s.min}′"></i>`).join('')}</div>`;
 const expanded = new Set();
 
@@ -19,7 +19,7 @@ const expanded = new Set();
 // dòng tóm tắt một buổi: dãy tuỳ chỉnh, mẫu Pomodoro, hoặc số giờ
 function slotChip(s, mins){
   const segs = slotSegs(s);
-  if (s.plan && s.plan.length) { const f = segs.filter(g => g.type === 'focus'), fm = f.reduce((a, g) => a + g.min, 0), tot = planMins(segs); return t('plan_chip', { n:f.length, f:fm, b:tot - fm }); }
+  if (s.plan && s.plan.length) { const f = segs.filter(g => g.type === 'focus'), fm = f.reduce((a, g) => a + g.min, 0), bm = segs.filter(g => g.type === 'short' || g.type === 'long').reduce((a, g) => a + g.min, 0); return t('plan_chip', { n:f.length, f:fm, b:bm }); }
   if (s.pomo) return t('pomo_chip', { n:s.pomo.rounds, f:s.pomo.focus, s:s.pomo.short, l:s.pomo.long });
   return t('session_h', { h:+(mins / 60).toFixed(2) });
 }
@@ -47,7 +47,7 @@ function slotCard(x){
     ${live && url ? `<a class="btn primary sm mt-s" style="width:100%" href="#/watch">${ic('play', 'sm')} ${esc(t('watch'))}</a>` : ''}
     ${s.cancelled ? `<div class="ribbon">${esc(t('cancelled'))}${reason}</div>` : ''}</div>`;
 }
-const legendHTML = () => `<div class="legend"><span><i style="background:var(--seg-focus)"></i>${esc(t('focus'))}</span><span><i style="background:var(--seg-short)"></i>${esc(t('short_break'))}</span><span><i style="background:var(--seg-long)"></i>${esc(t('long_break'))}</span></div>`;
+const legendHTML = () => `<div class="legend"><span><i style="background:var(--seg-focus)"></i>${esc(t('focus'))}</span><span><i style="background:var(--seg-short)"></i>${esc(t('short_break'))}</span><span><i style="background:var(--seg-long)"></i>${esc(t('long_break'))}</span><span><i style="background:var(--seg-prep)"></i>${esc(t('prep_break'))}</span></div>`;
 
 PAGES.schedule = function(){
   const ws = weekStart(weekOffset), we = ws.plus({ days:6 }), items = getItems(weekOffset, weekDocs[weekOffset]), todayVN = DT.now().setZone(VN).toISODate();

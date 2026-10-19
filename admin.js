@@ -175,12 +175,13 @@ async function tabSchedule(){
   drawSchedule();
 }
 const slotTotal = s => planMins(slotSegs({ plan:s.plan, pomo:cleanPomo(s.pomo) }));
-const BLK = { f:['Tập trung', 'var(--seg-focus)', 25], s:['Nghỉ ngắn', 'var(--seg-short)', 5], l:['Nghỉ dài', 'var(--seg-long)', 15] };
+const BLK = { f:['Tập trung', 'var(--seg-focus)', 25], s:['Nghỉ ngắn', 'var(--seg-short)', 5], l:['Nghỉ dài', 'var(--seg-long)', 15], p:['Chuẩn bị & chào', 'var(--seg-prep)', 20] };
 function planEditor(di, si, s){
   return `<div class="ad-blocks mt-s"><div class="hint">Mỗi dòng là một đoạn của buổi live, theo thứ tự. Bạn thêm bao nhiêu đoạn tập trung / nghỉ ngắn / nghỉ dài tuỳ ý, độ dài mỗi đoạn khác nhau.</div>
-    ${s.plan.map((b, bi) => `<div class="blk"><i class="dot" style="background:${BLK[b.t][1]}"></i><select class="select" data-d="${di}" data-s="${si}" data-b="${bi}" data-f="bt">${['f', 's', 'l'].map(k => `<option value="${k}" ${b.t === k ? 'selected' : ''}>${BLK[k][0]}</option>`).join('')}</select>
+    ${s.plan.map((b, bi) => `<div class="blk"><i class="dot" style="background:${BLK[b.t][1]}"></i><select class="select" data-d="${di}" data-s="${si}" data-b="${bi}" data-f="bt">${['f', 's', 'l', 'p'].map(k => `<option value="${k}" ${b.t === k ? 'selected' : ''}>${BLK[k][0]}</option>`).join('')}</select>
+      <input class="input" maxlength="40" placeholder="Tên đoạn (tuỳ chọn)" data-d="${di}" data-s="${si}" data-b="${bi}" data-f="bn" value="${esc(b.nm || '')}">
       <input class="input" type="number" min="1" data-d="${di}" data-s="${si}" data-b="${bi}" data-f="bm" value="${b.m}" title="phút"><span class="row" style="gap:2px;flex-wrap:nowrap"><button type="button" class="btn ghost icon sm" data-act="blkMove" data-d="${di}" data-s="${si}" data-b="${bi}" data-dir="-1">${ic('up', 'sm')}</button><button type="button" class="btn ghost icon sm" data-act="blkMove" data-d="${di}" data-s="${si}" data-b="${bi}" data-dir="1">${ic('down', 'sm')}</button><button type="button" class="btn danger icon sm" data-act="blkDel" data-d="${di}" data-s="${si}" data-b="${bi}">${ic('trash', 'sm')}</button></span></div>`).join('')}
-    <div class="row mt-s"><button type="button" class="btn secondary sm" data-act="blkAdd" data-d="${di}" data-s="${si}" data-t="f">+ Tập trung</button><button type="button" class="btn secondary sm" data-act="blkAdd" data-d="${di}" data-s="${si}" data-t="s">+ Nghỉ ngắn</button><button type="button" class="btn secondary sm" data-act="blkAdd" data-d="${di}" data-s="${si}" data-t="l">+ Nghỉ dài</button></div></div>`;
+    <div class="row mt-s"><button type="button" class="btn secondary sm" data-act="blkAdd" data-d="${di}" data-s="${si}" data-t="f">+ Tập trung</button><button type="button" class="btn secondary sm" data-act="blkAdd" data-d="${di}" data-s="${si}" data-t="s">+ Nghỉ ngắn</button><button type="button" class="btn secondary sm" data-act="blkAdd" data-d="${di}" data-s="${si}" data-t="l">+ Nghỉ dài</button><button type="button" class="btn secondary sm" data-act="blkAdd" data-d="${di}" data-s="${si}" data-t="p">+ Chuẩn bị & chào</button></div></div>`;
 }
 const presetOf = p => Object.keys(PRESETS).find(k => Object.keys(PRESETS[k]).every(f => PRESETS[k][f] === p[f])) || 'custom';
 function drawSchedule(){
@@ -204,6 +205,7 @@ function onSchedField(el){
   const s = day.slots[+el.dataset.s];
   if (f === 'mode') { if (v === 'plan') { s.plan = buildPlan(cleanPomo(s.pomo)).map(g => ({ t:g.type[0], m:g.min })); } else s.plan = null; drawSchedule(); return; }
   if (f === 'bt') { s.plan[+el.dataset.b].t = v; drawSchedule(); return; }
+  if (f === 'bn') { s.plan[+el.dataset.b].nm = v; return; }
   if (f === 'bm') { s.plan[+el.dataset.b].m = Math.max(1, Math.round(+v || 1)); const n = $(`tot-${d}-${el.dataset.s}`); if (n) n.textContent = `⏱ ${slotTotal(s)} phút ≈ ${(slotTotal(s) / 60).toFixed(2)} giờ`; return; }
   if (f === 'preset') { if (v !== 'custom') { s.pomo = { ...PRESETS[v] }; drawSchedule(); } return; }
   if (f.startsWith('p_')) { s.pomo[f.slice(2)] = +v; const n = $(`tot-${d}-${el.dataset.s}`); if (n) n.textContent = `⏱ ${slotTotal(s)} phút ≈ ${(slotTotal(s) / 60).toFixed(2)} giờ`; return; }
@@ -220,10 +222,11 @@ const qeTotal = () => slotTotal(QE.s.plan ? { ...QE.s, plan:QE.s.plan } : { ...Q
 function qeDraw(){
   const s = QE.s, ws = weekStart(QE.off).plus({ days:QE.di });
   const blocks = s.plan ? `<div class="ad-blocks mt-s">${s.plan.map((b, bi) => `<div class="blk"><i class="dot" style="background:${BLK[b.t][1]}"></i>
-      <select class="select" data-qe="bt" data-b="${bi}">${['f', 's', 'l'].map(k => `<option value="${k}" ${b.t === k ? 'selected' : ''}>${BLK[k][0]}</option>`).join('')}</select>
+      <select class="select" data-qe="bt" data-b="${bi}">${['f', 's', 'l', 'p'].map(k => `<option value="${k}" ${b.t === k ? 'selected' : ''}>${BLK[k][0]}</option>`).join('')}</select>
+      <input class="input" maxlength="40" placeholder="Tên đoạn (tuỳ chọn)" data-qe="bn" data-b="${bi}" value="${esc(b.nm || '')}">
       <input class="input" type="number" min="1" data-qe="bm" data-b="${bi}" value="${b.m}" title="phút">
       <span class="row" style="gap:2px;flex-wrap:nowrap"><button type="button" class="btn ghost icon sm" data-act="qeBlk" data-op="up" data-b="${bi}">${ic('up', 'sm')}</button><button type="button" class="btn ghost icon sm" data-act="qeBlk" data-op="down" data-b="${bi}">${ic('down', 'sm')}</button><button type="button" class="btn danger icon sm" data-act="qeBlk" data-op="del" data-b="${bi}">${ic('trash', 'sm')}</button></span></div>`).join('')}
-    <div class="row mt-s"><button type="button" class="btn secondary sm" data-act="qeBlk" data-op="add" data-t="f">+ Tập trung</button><button type="button" class="btn secondary sm" data-act="qeBlk" data-op="add" data-t="s">+ Nghỉ ngắn</button><button type="button" class="btn secondary sm" data-act="qeBlk" data-op="add" data-t="l">+ Nghỉ dài</button></div></div>`
+    <div class="row mt-s"><button type="button" class="btn secondary sm" data-act="qeBlk" data-op="add" data-t="f">+ Tập trung</button><button type="button" class="btn secondary sm" data-act="qeBlk" data-op="add" data-t="s">+ Nghỉ ngắn</button><button type="button" class="btn secondary sm" data-act="qeBlk" data-op="add" data-t="l">+ Nghỉ dài</button><button type="button" class="btn secondary sm" data-act="qeBlk" data-op="add" data-t="p">+ Chuẩn bị & chào</button><button type="button" class="btn secondary sm" data-act="qeBlk" data-op="prep">+ 20 phút chào ở đầu</button></div></div>`
     : `<div class="hint mt-s">Buổi này dùng mẫu Pomodoro tự tính. Muốn chỉnh từng đoạn (thêm, bớt, đổi độ dài) thì bấm nút bên dưới.</div><button type="button" class="btn secondary sm mt-s" data-act="qePlanOn">Tự sắp xếp từng đoạn</button>`;
   openModal(`<h3 style="margin-bottom:4px">Sửa buổi live</h3><p class="small faint" style="margin-bottom:12px">${esc(DAYS.vi[QE.di])} · ${ws.toFormat('dd/MM')} (giờ Việt Nam). Chỉ lưu buổi này, khách sẽ thấy sau vài giây.</p>
     <div class="f3"><input class="input" type="time" data-qe="time" value="${esc(s.time)}"><input class="input" placeholder="Tiêu đề (tuỳ chọn)" data-qe="title" value="${esc(s.title)}"><span></span></div>
@@ -239,6 +242,7 @@ function onQeField(el){
   if (f === 'time') s.time = v; else if (f === 'title') s.title = v; else if (f === 'cancelled') s.cancelled = v;
   else if (f === 'noteVi') s.cancelNote.vi = v; else if (f === 'noteEn') s.cancelNote.en = v;
   else if (f === 'bt') { s.plan[+el.dataset.b].t = v; qeDraw(); return; }
+  else if (f === 'bn') s.plan[+el.dataset.b].nm = v;
   else if (f === 'bm') { s.plan[+el.dataset.b].m = Math.max(1, Math.round(+v || 1)); const n = $('qe-total'); if (n) n.textContent = `⏱ ${qeTotal()} phút ≈ ${(qeTotal() / 60).toFixed(2)} giờ`; }
 }
 document.addEventListener('input', e => { if (e.target.dataset && e.target.dataset.qe && e.target.tagName !== 'SELECT' && e.target.type !== 'checkbox') onQeField(e.target); });
@@ -256,6 +260,7 @@ Object.assign(ACTIONS, {
   qeBlk: el => {
     const p = QE.s.plan, i = +el.dataset.b, op = el.dataset.op;
     if (op === 'add') p.push({ t:el.dataset.t, m:BLK[el.dataset.t][2] });
+    else if (op === 'prep') p.unshift({ t:'p', m:BLK.p[2], nm:'Setup & chào' });
     else if (op === 'del') { p.splice(i, 1); if (!p.length) QE.s.plan = null; }
     else { const j = i + (op === 'up' ? -1 : 1); if (j < 0 || j >= p.length) return; [p[i], p[j]] = [p[j], p[i]]; }
     qeDraw();
@@ -267,7 +272,7 @@ Object.assign(ACTIONS, {
     const days = d.exists ? d.data().days : null, day = days && days[q.di];
     if (!day || !Array.isArray(day.slots) || !day.slots[q.si] || day.slots[q.si].time !== q.orig) return alert('Lịch này vừa được sửa ở nơi khác. Hãy tải lại trang rồi sửa lại.');
     const s = q.s, cur = { vi:s.cancelNote.vi || '', en:s.cancelNote.en || '' };
-    day.slots[q.si] = { time:s.time, icon:s.icon || '', title:s.title || '', pomo:cleanPomo(s.pomo), plan: s.plan && s.plan.length ? s.plan.map(b => ({ t:b.t, m:Math.max(1, Math.round(+b.m || 1)) })) : [], cancelled:!!s.cancelled, cancelNote: s.cancelled && (cur.vi || cur.en) ? await TR.fill({}, cur) : cur };
+    day.slots[q.si] = { time:s.time, icon:s.icon || '', title:s.title || '', pomo:cleanPomo(s.pomo), plan: s.plan && s.plan.length ? s.plan.map(b => ({ t:b.t, m:Math.max(1, Math.round(+b.m || 1)), ...(String(b.nm || '').trim() ? { nm:String(b.nm).trim().slice(0, 40) } : {}) })) : [], cancelled:!!s.cancelled, cancelNote: s.cancelled && (cur.vi || cur.en) ? await TR.fill({}, cur) : cur };
     await dbSet('weekly_schedules', key, { days }, false);
     weekDocs[q.off] = days; QE = null; closeModal(); render(true);
     clearTimeout(pubTimer); publishSite(true);                              // xuất bản ngay, không chờ 4 giây như các thay đổi khác
@@ -549,7 +554,7 @@ Object.assign(ACTIONS, {
     const days = [];
     for (const d of adminDays) {
       const slots = [];
-      for (const s of d.slots.filter(s => s.time)) slots.push({ time:s.time, icon:s.icon || '', title:s.title || '', pomo:cleanPomo(s.pomo), plan: s.plan && s.plan.length ? s.plan.map(b => ({ t:b.t, m:Math.max(1, Math.round(+b.m || 1)) })) : [], cancelled:s.cancelled, cancelNote:await note(s.cancelNote, s.cancelled) });
+      for (const s of d.slots.filter(s => s.time)) slots.push({ time:s.time, icon:s.icon || '', title:s.title || '', pomo:cleanPomo(s.pomo), plan: s.plan && s.plan.length ? s.plan.map(b => ({ t:b.t, m:Math.max(1, Math.round(+b.m || 1)), ...(String(b.nm || '').trim() ? { nm:String(b.nm).trim().slice(0, 40) } : {}) })) : [], cancelled:s.cancelled, cancelNote:await note(s.cancelNote, s.cancelled) });
       days.push({ cancelled:d.cancelled, cancelNote:await note(d.cancelNote, d.cancelled), slots });
     }
     await dbSet('weekly_schedules', weekKeyFor(weekOffset), { days }, false); ok(trMsg('Đã lưu lịch.'));
