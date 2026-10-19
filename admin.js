@@ -35,7 +35,7 @@ PAGES.admin = function(){
          <div class="row"><button class="btn primary" data-act="recheckAdmin">${ic('check', 'sm')} Tôi đã xác minh rồi</button><button class="btn secondary" data-act="resendVerify">${ic('mail', 'sm')} Gửi lại email xác minh</button></div>`
       : `<p class="muted small">Chỉ tài khoản <b>${esc(ADMIN_EMAIL)}</b> mới có quyền quản trị. Bạn đang đăng nhập bằng <b>${esc(state.user.email)}</b>.</p><button class="btn secondary" data-act="signout">${ic('logout', 'sm')} Đăng xuất</button>`}</div></div>`);  const tab = A_TABS.some(x => x[0] === route.args[0]) ? route.args[0] : 'overview';
   page(`<div class="page-head"><div><h1>Trang quản trị</h1><p>Tuỳ chỉnh giao diện, nội dung, sản phẩm và đơn hàng của bạn.</p><p class="faint small">Phiên bản web: ${esc(BUILD)}</p></div><button class="btn primary" data-act="startEdit">${ic('pen', 'sm')} Sửa chữ & ảnh trực tiếp trên trang</button></div>
-    <nav class="a-tabs">${A_TABS.map(([k, icn, l]) => `<a href="#/admin/${k}" class="${tab === k ? 'on' : ''}">${ic(icn, 'sm')} ${esc(l)}</a>`).join('')}</nav><div id="admin-body"></div>`);
+    <nav class="a-tabs">${A_TABS.map(([k, icn, l]) => `<a href="#/admin/${k}" class="${tab === k ? 'on' : ''}">${ic(icn, 'sm')} ${esc(l)}${k === 'members' && state.compPending ? ` <span class="count">${state.compPending}</span>` : ''}</a>`).join('')}</nav><div id="admin-body"></div>`);
   ({ overview:tabOverview, site:tabSite, schedule:tabSchedule, blog:tabBlog, music:tabMusic, products:tabProducts, gear:tabGear, orders:tabOrders, coupons:tabCoupons, content:tabContent, reviews:tabReviews, payments:tabPayments, members:tabMembers })[tab]();
 };
 const reloadTab = () => { const f = ({ overview:tabOverview, site:tabSite, schedule:tabSchedule, blog:tabBlog, music:tabMusic, products:tabProducts, gear:tabGear, orders:tabOrders, coupons:tabCoupons, content:tabContent, reviews:tabReviews, payments:tabPayments, members:tabMembers })[route.args[0] || 'overview']; if (f) f(); };
@@ -484,11 +484,36 @@ const supItem = id => (supporters.items || []).find(x => x.id === id);
 async function supSave(items){ if (!DEMO) await db.collection('settings').doc('supporters').set({ items }); supporters = { items }; }
 async function supUpsert(id, patch){ const items = [...(supporters.items || [])], i = items.findIndex(x => x.id === id); if (i >= 0) items[i] = { ...items[i], ...patch }; else items.push({ id, name:'', show:true, since:DT.now().toISODate(), ...patch }); await supSave(items); }
 const supRemove = id => supSave((supporters.items || []).filter(x => x.id !== id));
+/* Yêu cầu Companions: người dùng bấm "Tôi đã thanh toán" → companion_requests/<uid>. Admin nghe realtime để hiện số chờ duyệt ở menu. */
+let reqUnsub = null;
+function adminWatchRequests(){
+  if (reqUnsub || DEMO || !state.isAdmin) return;
+  reqUnsub = db.collection('companion_requests').where('status', '==', 'pending').onSnapshot(sn => { const n = sn.size; if (n !== state.compPending) { state.compPending = n; render(true); } }, e => console.warn('requests', e.code));
+}
+function stopAdminWatch(){ if (reqUnsub) { reqUnsub(); reqUnsub = null; } state.compPending = 0; }
+const METHOD_VI = { kofi:'Ko-fi', bank:'Chuyển khoản', paypal:'PayPal', momo:'MoMo', other:'Khác' };
+async function approveCompanion(id, name){
+  const ref = db.collection('companions').doc(id), cur = await ref.get(), today = DT.now().toISODate(), old = cur.exists ? cur.data().until : '';
+  const base = old && old > today ? DT.fromISO(old) : DT.now(), until = base.plus({ days:31 }).toISODate();           // gia hạn thì cộng tiếp từ ngày hết hạn cũ
+  await ref.set({ name:name || (cur.exists ? cur.data().name : '') || '', since:cur.exists && cur.data().since || TS(), until });
+  if (supItem(id)) await supUpsert(id, { until }); else await supUpsert(id, { name:name || '', show:true, until });
+  return until;
+}
+Object.assign(ACTIONS, {
+  compApprove: async el => {
+    try { if (DEMO) return toast('Chế độ xem thử'); const until = await approveCompanion(el.dataset.id, el.dataset.name); await db.collection('companion_requests').doc(el.dataset.id).delete(); ok('Đã duyệt. Planner mở cho họ đến ' + until); tabMembers(); } catch (e) { fail(e); }
+  },
+  compReject: async el => {
+    try { if (DEMO) return toast('Chế độ xem thử'); await db.collection('companion_requests').doc(el.dataset.id).update({ status:'rejected', rejectedAt:TS() }); ok('Đã từ chối'); tabMembers(); } catch (e) { fail(e); }
+  }
+});
 async function tabMembers(){
-  A('<p class="muted">Đang tải…</p>'); let users = [], signups = [], comps = []; try { [users, signups, comps] = await Promise.all([getAll('users'), getAll('challenge_signups', 'timestamp', 500), getAll('companions')]); } catch (e) { return fail(e); }
+  A('<p class="muted">Đang tải…</p>'); let users = [], signups = [], comps = [], reqs = []; try { [users, signups, comps] = await Promise.all([getAll('users'), getAll('challenge_signups', 'timestamp', 500), getAll('companions')]); } catch (e) { return fail(e); }
+  try { reqs = (await getAll('companion_requests', 'createdAt', 100)).filter(r => r.status === 'pending'); } catch (e) { console.warn('requests', e.code); }
   if (DEMO) { users = [{ id:'u1', displayName:'Linh', email:'linh@mail.com', moon:{ days:new Array(30).fill('x'), rounds:1 } }, { id:'u2', displayName:'Daniel', email:'d@mail.com', moon:{ days:new Array(11).fill('x') } }]; comps = [{ id:'u1' }]; }
   const isC = id => comps.some(c => c.id === id);
-  A(`<div class="grid g2">${aCard(`Thành viên (${users.length})`, users.length ? users.map(u => { const d = u.moon && u.moon.days ? u.moon.days.length : 0; return `<div class="ord-row"><div><b>${esc(u.displayName || '—')}</b> ${isC(u.id) ? `<span class="badge">${ic('heart', 'sm')} Đồng hành</span>` : ''}<div class="small muted">${esc(u.email || '')}</div><div class="small faint">${u.moon ? `Hành trình trăng: ${d}/30${u.moon.rounds ? ' · ' + u.moon.rounds + ' lần trăng tròn' : ''}` : 'Chưa bắt đầu hành trình trăng'}</div></div>
+  A(`${reqs.length ? aCard(`Yêu cầu Companions chờ duyệt (${reqs.length})`, reqs.map(r => `<div class="ord-row"><div><b>${esc(r.name || '—')}</b> <span class="badge">${esc(METHOD_VI[r.method] || r.method || '')}</span><div class="small muted">${esc(r.email || '')}</div>${r.note ? `<div class="small faint">“${esc(r.note)}”</div>` : ''}<div class="small faint">${esc(dateStr(r.createdAt))}${isC(r.id) ? ' · đang là Companion (gia hạn)' : ''}</div></div>
+      <span class="row"><button class="btn primary sm" data-act="compApprove" data-id="${esc(r.id)}" data-name="${esc(r.name || '')}">Duyệt +31 ngày</button><button class="btn ghost sm" data-act="compReject" data-id="${esc(r.id)}">Từ chối</button></span></div>`).join(''), '') + '<p class="hint" style="margin:-4px 0 14px">Kiểm tra khoản thanh toán trong Ko-fi / ngân hàng / PayPal rồi bấm <b>Duyệt</b>: tài khoản đó thành Companion, mở Planner ngay (không cần tải lại trang) và tên hiện ở mục cảm ơn. Nếu không thấy tiền, bấm <b>Từ chối</b> — họ sẽ thấy thông báo và có thể gửi lại.</p>' : ''}<div class="grid g2">${aCard(`Thành viên (${users.length})`, users.length ? users.map(u => { const d = u.moon && u.moon.days ? u.moon.days.length : 0; return `<div class="ord-row"><div><b>${esc(u.displayName || '—')}</b> ${isC(u.id) ? `<span class="badge">${ic('heart', 'sm')} Đồng hành</span>` : ''}<div class="small muted">${esc(u.email || '')}</div><div class="small faint">${u.moon ? `Hành trình trăng: ${d}/30${u.moon.rounds ? ' · ' + u.moon.rounds + ' lần trăng tròn' : ''}` : 'Chưa bắt đầu hành trình trăng'}</div></div>
         <span class="stack" style="gap:6px;align-items:flex-end"><label class="row small" style="font-weight:700"><input type="checkbox" data-change="companion" data-id="${esc(u.id)}" data-name="${esc(u.displayName || u.email || '')}" ${isC(u.id) ? 'checked' : ''}> Người đồng hành</label>${isC(u.id) ? `<label class="small faint">Đến ngày <input class="input" type="date" style="width:150px;padding:4px 8px" data-change="compUntil" data-id="${esc(u.id)}" value="${esc((comps.find(c => c.id === u.id) || {}).until || '')}"></label>
           <label class="row small" style="font-weight:700"><input type="checkbox" data-change="supShow" data-id="${esc(u.id)}" data-name="${esc(u.displayName || '')}" data-until="${esc((comps.find(c => c.id === u.id) || {}).until || '')}" ${supItem(u.id) ? 'checked' : ''}> Hiện tên ở mục cảm ơn</label>${supItem(u.id) ? `<label class="small faint">Tên hiện <input class="input" style="width:150px;padding:4px 8px" maxlength="40" data-change="supName" data-id="${esc(u.id)}" value="${esc(supItem(u.id).name || '')}"></label>` : ''}` : ''}</span></div>`; }).join('') : '<p class="muted">Chưa có.</p>', '')}
     ${aCard(`Đăng ký email nhắc lịch (${signups.length})`, signups.length ? signups.map(s => `<div class="ord-row"><div><b>${esc(s.codename || '')}</b><div class="small muted">${esc(s.email || '')}</div></div><span class="small faint">${esc(dateStr(s.timestamp))}</span></div>`).join('') : '<p class="muted">Chưa có.</p>', `<button class="btn secondary sm" data-act="copyEmails">Sao chép email</button>`)}</div>

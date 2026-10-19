@@ -75,6 +75,24 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Báo đã thanh toán Companions: người dùng chỉ ghi được yêu cầu "pending" của chính mình; admin xem và duyệt/từ chối
+    match /companion_requests/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create, update: if isAdmin()
+        || (signedIn() && request.auth.uid == uid
+            && request.resource.data.uid == uid
+            && request.resource.data.status == 'pending'
+            && request.resource.data.method is string && request.resource.data.method.size() <= 20
+            && request.resource.data.note is string && request.resource.data.note.size() <= 200);
+      allow delete: if isAdmin() || (signedIn() && request.auth.uid == uid);
+    }
+
+    // Planner tuần riêng tư của Companions: chỉ chính chủ đọc/ghi, và chỉ khi có tài liệu trong companions (admin dùng thử được). Admin không đọc được của người khác.
+    match /users/{uid}/planner/{wk} {
+      allow read, write: if signedIn() && request.auth.uid == uid
+        && (isAdmin() || exists(/databases/$(database)/documents/companions/$(request.auth.uid)));
+    }
+
     // Email nhắc lịch (trước đây là Challenge 30 ngày): id = email → tạo lần 2 bị từ chối (chống trùng)
     match /challenge_signups/{id} {
       allow create: if request.resource.data.email is string && request.resource.data.email.size() < 200
