@@ -10,7 +10,7 @@ Object.assign(I18N.en, {
   pl_up_login:'Sign in to use the Planner.', pl_up_cta:'See how to become a companion',
   pl_d0:'Mon', pl_d1:'Tue', pl_d2:'Wed', pl_d3:'Thu', pl_d4:'Fri', pl_d5:'Sat', pl_d6:'Sun',
   pl_c0:'Study', pl_c1:'Work', pl_c2:'Health', pl_c3:'Personal', pl_c4:'Fun', pl_c5:'Other',
-  pl_this:'This week', pl_add:'Add task', pl_edit:'Edit task', pl_new:'New task', pl_saving:'Saving…', pl_saved:'Saved', pl_err:'Could not save. Check your connection and try again.', pl_loading:'Loading your week…', pl_load_err:'Could not load your planner. Reload the page to try again.',
+  pl_this:'This week', pl_add:'Add task', pl_edit:'Edit task', pl_new:'New task', pl_saving:'Saving…', pl_saved:'Saved', pl_err:'Could not save. Check your connection and try again.', pl_loading:'Loading your week…', pl_slow:'Still loading. Your connection to the database is slow right now. You can wait a little longer or try again.', pl_load_err:'Could not load your planner. Reload the page to try again.',
   pl_f_title:'What do you want to do?', pl_f_day:'Day', pl_f_days:'Days', pl_f_noday:'No specific day', pl_f_start:'Start time (optional)', pl_f_dur:'Minutes', pl_f_cat:'Category', pl_f_done:'Done', pl_save:'Save', pl_delete:'Delete',
   pl_allday:'No time', pl_week_list:'To do this week (no day)', pl_empty_list:'Nothing here. Tasks without a day show up in this list.', pl_hint:'Tap an empty spot in a day to add a task there. Tap a task to edit it, tap the circle to tick it off.',
   pl_review:'This week in numbers', pl_done_tasks:'Tasks done', pl_done_min:'Time done', pl_plan_min:'Time planned', pl_by_day:'By day', pl_by_cat:'By category', pl_left:'Still to do', pl_left_none:'Everything is ticked off. Nice.', pl_carry:'Move the unfinished tasks to next week', pl_carried:'Moved to next week', pl_carried_n:'{n} tasks moved to next week.',
@@ -27,7 +27,7 @@ Object.assign(I18N.vi, {
   pl_up_login:'Hãy đăng nhập để dùng Planner.', pl_up_cta:'Xem cách trở thành Companion',
   pl_d0:'T2', pl_d1:'T3', pl_d2:'T4', pl_d3:'T5', pl_d4:'T6', pl_d5:'T7', pl_d6:'CN',
   pl_c0:'Học tập', pl_c1:'Công việc', pl_c2:'Sức khoẻ', pl_c3:'Cá nhân', pl_c4:'Giải trí', pl_c5:'Khác',
-  pl_this:'Tuần này', pl_add:'Thêm việc', pl_edit:'Sửa việc', pl_new:'Việc mới', pl_saving:'Đang lưu…', pl_saved:'Đã lưu', pl_err:'Chưa lưu được. Bạn kiểm tra mạng rồi thử lại nhé.', pl_loading:'Đang tải tuần của bạn…', pl_load_err:'Chưa tải được planner. Bạn tải lại trang để thử lại nhé.',
+  pl_this:'Tuần này', pl_add:'Thêm việc', pl_edit:'Sửa việc', pl_new:'Việc mới', pl_saving:'Đang lưu…', pl_saved:'Đã lưu', pl_err:'Chưa lưu được. Bạn kiểm tra mạng rồi thử lại nhé.', pl_loading:'Đang tải tuần của bạn…', pl_slow:'Vẫn đang tải. Kết nối tới cơ sở dữ liệu của bạn đang chậm. Bạn có thể chờ thêm hoặc bấm thử lại.', pl_load_err:'Chưa tải được planner. Bạn tải lại trang để thử lại nhé.',
   pl_f_title:'Bạn muốn làm gì?', pl_f_day:'Ngày', pl_f_days:'Các ngày', pl_f_noday:'Không gắn ngày', pl_f_start:'Giờ bắt đầu (không bắt buộc)', pl_f_dur:'Số phút', pl_f_cat:'Nhóm', pl_f_done:'Đã xong', pl_save:'Lưu', pl_delete:'Xoá',
   pl_allday:'Chưa có giờ', pl_week_list:'Việc cả tuần (chưa gắn ngày)', pl_empty_list:'Chưa có gì. Việc không gắn ngày sẽ hiện ở danh sách này.', pl_hint:'Bấm vào chỗ trống trong một ngày để thêm việc ở đó. Bấm vào việc để sửa, bấm vào vòng tròn để tick xong.',
   pl_review:'Tuần này qua các con số', pl_done_tasks:'Việc đã xong', pl_done_min:'Thời gian đã làm', pl_plan_min:'Thời gian dự định', pl_by_day:'Theo ngày', pl_by_cat:'Theo nhóm', pl_left:'Việc còn lại', pl_left_none:'Tất cả đã được tick xong. Giỏi quá.', pl_carry:'Chuyển các việc chưa xong sang tuần sau', pl_carried:'Đã chuyển sang tuần sau', pl_carried_n:'Đã chuyển {n} việc sang tuần sau.',
@@ -42,7 +42,7 @@ Object.assign(I18N.vi, {
 const PL_MAX = 300;                                              // số việc tối đa mỗi tuần (giữ tài liệu nhỏ, tránh lỗi quá cỡ)
 const PL_HOUR = 48;                                              // px cho mỗi giờ trong lưới
 const PL_COLORS = ['#f2b8c6', '#c9b8ec', '#f6c9a0', '#f4e08c', '#a9dcc6', '#a8cdee'];   // 6 nhóm: màu pastel, chữ tối cho mọi giao diện
-const PL = { off:0, key:'', tasks:null, state:'idle', save:'', prev:null, timer:0, sel:null };
+const PL = { off:0, key:'', tasks:null, state:'idle', save:'', prev:null, timer:0, sel:null, seq:0, slow:false };
 const plWeekStart = off => DT.now().setZone(userTZ).plus({ weeks:off }).startOf('week');
 const plKey = off => { const d = plWeekStart(off); return `${d.weekYear}-W${d.weekNumber}`; };
 const plDaysLeft = () => Math.ceil(DT.fromISO(state.companionUntil, { zone:userTZ }).endOf('day').diff(DT.now().setZone(userTZ), 'days').days);
@@ -61,14 +61,15 @@ function plClean(x){                                              // chuẩn ho�
 /* ---------- tải / lưu ---------- */
 async function plLoad(){
   const key = plKey(PL.off); if ((PL.key === key && PL.tasks) || PL.state === 'loading' || PL.state === 'error') return;
-  PL.state = 'loading'; PL.key = key; PL.tasks = null; PL.prev = null;
+  const seq = ++PL.seq; PL.state = 'loading'; PL.key = key; PL.tasks = null; PL.prev = null; PL.slow = false;
+  setTimeout(() => { if (PL.seq === seq && PL.state === 'loading') { PL.slow = true; render(true); } }, 8000);      // quá 8 giây: báo mạng chậm và cho bấm thử lại
   try {
     let tasks = [];
     if (!DEMO) { const d = await plRef(key).get(); tasks = d.exists && Array.isArray(d.data().tasks) ? d.data().tasks : []; }
-    if (PL.key !== key) return;                                   // đã đổi tuần trong lúc tải
-    PL.tasks = tasks.map(plClean); PL.state = 'ready';
+    if (PL.seq !== seq) return;                                   // đã đổi tuần / bấm thử lại trong lúc tải
+    PL.tasks = tasks.map(plClean); PL.state = 'ready'; PL.slow = false;
     if (!DEMO) plRef(plKey(PL.off - 1)).get().then(d => { if (PL.key === key && d.exists) { PL.prev = plStats((d.data().tasks || []).map(plClean)); render(true); } }).catch(() => {});
-  } catch (e) { console.warn('planner load', e.code); PL.state = 'error'; PL.key = ''; }
+  } catch (e) { if (PL.seq !== seq) return; console.warn('planner load', e.code); PL.state = 'error'; PL.key = ''; }
   render(true);
 }
 function plSave(){
@@ -149,14 +150,14 @@ PAGES.planner = function(){
   if (!state.user && !state.authReady && !DEMO) return page('<div class="gate-load"><i></i></div>');
   if (!state.user && !DEMO) return page(plUpsell());
   if (!plAccess()) { refreshCompanion().then(ch => ch && render(true)); return page(plUpsell()); }
-  if (PL.uid !== state.user.uid) { clearTimeout(PL.timer); Object.assign(PL, { uid:state.user.uid, off:0, key:'', tasks:null, state:'idle', save:'', prev:null, sel:null }); }   // đổi tài khoản trên cùng trình duyệt: không để lộ planner của người trước
+  if (PL.uid !== state.user.uid) { clearTimeout(PL.timer); PL.seq++; Object.assign(PL, { uid:state.user.uid, off:0, key:'', tasks:null, state:'idle', save:'', prev:null, sel:null, slow:false }); }   // đổi tài khoản trên cùng trình duyệt: không để lộ planner của người trước
   if (!state.companionUntil && !state.isAdmin && !DEMO) refreshCompanion().then(ch => ch && render(true));       // lấy ngày hết hạn để hiện nhắc gia hạn
   plLoad();
   const ws = plWeekStart(PL.off), nav = `<div class="row between" style="margin-bottom:16px;flex-wrap:wrap;gap:10px"><div class="week-nav"><button class="btn secondary icon" data-act="plWeek" data-d="-1">${ic('chev-l')}</button><span class="lbl">${ws.toFormat('dd/MM')} – ${ws.plus({ days:6 }).toFormat('dd/MM/yyyy')}</span><button class="btn secondary icon" data-act="plWeek" data-d="1">${ic('chev-r')}</button>${PL.off ? `<button class="btn ghost sm" data-act="plWeek" data-d="0">${esc(t('pl_this'))}</button>` : ''}</div>
     <div class="row"><span class="small faint" id="pl-status">${PL.save === 'saved' ? '✓ ' + esc(t('pl_saved')) : PL.save === 'saving' ? esc(t('pl_saving')) : ''}</span><button class="btn primary" data-act="plNew">${ic('plus', 'sm')} ${esc(t('pl_add'))}</button></div></div>`;
   let body;
   if (PL.state === 'error') body = `<p class="muted">${esc(t('pl_load_err'))}</p><button class="btn primary" data-act="plRetry">${esc(t('club_retry'))}</button>`;
-  else if (!PL.tasks) body = `<p class="muted">${esc(t('pl_loading'))}</p>`;
+  else if (!PL.tasks) body = `<p class="muted">${esc(t(PL.slow ? 'pl_slow' : 'pl_loading'))}</p>${PL.slow ? `<button class="btn primary" data-act="plRetry">${esc(t('club_retry'))}</button>` : ''}`;
   else body = `<p class="small faint" style="margin-bottom:10px">${esc(t('pl_hint'))}</p><div class="pl-layout"><div class="card pad" style="padding:12px">${plGrid()}</div>${plReview()}</div>`;
   page(`${head('pl_title', 'pl_sub', '', 'moonwalk', 4)}${state.companionUntil && !state.isAdmin ? (plDaysLeft() <= 5 ? `<div class="card pad stack" style="margin-bottom:14px"><p class="small">${esc(t('pl_soon', { d:state.companionUntil }))}</p>${compClaimHTML()}</div>` : `<p class="small muted" style="margin:-6px 0 12px">${esc(t('pl_until', { d:state.companionUntil }))}</p>`) : ''}${nav}${body}`);
 };
@@ -177,8 +178,8 @@ function plForm(x, isNew, day, start){
   setTimeout(() => { const el = $('pl-title'); if (el && isNew) el.focus(); }, 30);
 }
 Object.assign(ACTIONS, {
-  plWeek: el => { const d = +el.dataset.d; PL.off = d ? PL.off + d : 0; PL.tasks = null; PL.key = ''; PL.state = 'idle'; render(true); },
-  plRetry: () => { PL.state = 'idle'; PL.key = ''; render(true); },
+  plWeek: el => { const d = +el.dataset.d; PL.off = d ? PL.off + d : 0; PL.seq++; PL.tasks = null; PL.key = ''; PL.state = 'idle'; render(true); },
+  plRetry: () => { PL.seq++; PL.state = 'idle'; PL.key = ''; PL.tasks = null; PL.slow = false; render(true); },
   plNew: (el, e) => {
     if (!PL.tasks) return; let day = el.dataset.day !== undefined ? +el.dataset.day : (PL.off === 0 ? DT.now().setZone(userTZ).weekday - 1 : 0), start = '';
     if (day !== null && e && e.clientY !== undefined) { const r = el.getBoundingClientRect(), mins = Math.round((e.clientY - r.top) / PL_HOUR * 2) * 30 + (+el.dataset.g0) * 60; start = hmStr(Math.max(0, Math.min(1410, mins))); }
