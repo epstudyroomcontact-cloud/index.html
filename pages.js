@@ -2,7 +2,9 @@
 /* =========================================================
    PAGES — Tổng quan, Lịch, Xem live, Phòng tập trung, Blog, Shop + giỏ hàng, Giới thiệu, Tài khoản
    ========================================================= */
-const page = html => { $('page').innerHTML = html; };
+const isPhone = () => window.matchMedia && window.matchMedia('(max-width:760px)').matches;
+const phoneNote = () => isPhone() && !store.get('phone_note_off', false) ? `<aside class="phone-note" role="note"><div><b>${esc(t('phone_note_title'))}</b><p>${esc(t('phone_note_text'))}</p></div><button type="button" class="btn secondary sm" data-act="phoneNoteOff">${esc(t('phone_note_ok'))}</button></aside>` : '';   // giải thích vì sao web ưu tiên máy tính, chỉ hiện trên điện thoại và bấm "Đã hiểu" là không hiện nữa
+const page = html => { $('page').innerHTML = phoneNote() + html; };
 const fmtDate = ts => DT.fromMillis(tsMs(ts)).setLocale(state.lang).toLocaleString(DT.DATE_MED);
 const stars = n => `<span class="stars" aria-label="${n}/5">${[1,2,3,4,5].map(i => `<svg class="ic ${i <= n ? '' : 'off'}"><use href="#i-star"/></svg>`).join('')}</span>`;
 const emptyBox = (icon, title, sub) => `<div class="empty"><div class="ico">${ic(icon, 'lg')}</div><h3>${esc(title)}</h3><p>${esc(sub || '')}</p></div>`;
@@ -201,6 +203,7 @@ function musicCard(){
     <div class="label mt">${esc(t('music_more'))}</div><div class="row">${MOODS.map(([k, q]) => `<a class="chip" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent(q)}">${esc(t('mood_' + k))}</a>`).join('')}</div></section>`;
 }
 Object.assign(ACTIONS, {
+  phoneNoteOff: el => { store.set('phone_note_off', true); const n = el.closest('.phone-note'); if (n) n.remove(); },
   ambSet: el => setAmbient(el.dataset.k),
   musicPlay: el => { const it = (music[el.dataset.k] || [])[+el.dataset.i]; if (!it) return; const e = musicEmbed(it.url); if (!e) return; musicSel = { ...e, title:L(it.title) }; const b = $('mplayer-box'); if (b) { b.innerHTML = playerHTML(); b.scrollIntoView({ block:'nearest', behavior:'smooth' }); } },
   musicClose: () => { musicSel = null; const b = $('mplayer-box'); if (b) b.innerHTML = ''; }
