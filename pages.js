@@ -43,6 +43,7 @@ function slotCard(x){
   return `<div class="slot ${live ? 'is-live' : ''} ${x.cancelled ? 'is-cancel' : ''}">
     <div class="slot-top"><span class="s-time">${su.toFormat('HH:mm')} – ${eu.toFormat('HH:mm')}</span>${mark}${live ? `<span class="badge live">${esc(t('live_now'))}</span>` : ''}</div>
     ${s.title ? `<div class="s-title">${esc(s.title)}</div>` : ''}${bar}${chip}${plan}${toggle}
+    ${state.isAdmin ? `<button type="button" class="btn secondary sm mt-s" style="width:100%" data-act="qeOpen" data-o="${x.off}" data-d="${x.di}" data-s="${x.si}">${ic('pen', 'sm')} Sửa buổi này</button>` : ''}
     ${live && url ? `<a class="btn primary sm mt-s" style="width:100%" href="#/watch">${ic('play', 'sm')} ${esc(t('watch'))}</a>` : ''}
     ${s.cancelled ? `<div class="ribbon">${esc(t('cancelled'))}${reason}</div>` : ''}</div>`;
 }
