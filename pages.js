@@ -699,15 +699,24 @@ let compPay = null, compMonths = 1;
 /* Gói VND: 1 tháng = giá gốc; 3 tháng giảm 10%, 12 tháng giảm 25% (làm tròn nghìn) để người dùng trả dài hạn có lợi hơn, còn mình có tiền ổn định */
 const COMP_DISC = { 1:1, 3:.9, 12:.75 };
 const compBase = () => Math.round(+payments.companionVND) || 59000;
-const compPrice = m => m === 1 ? compBase() : Math.round(compBase() * m * COMP_DISC[m] / 1000) * 1000;                                                // 'vnd' | 'kofi': cách trả đang chọn ở thẻ Người đồng hành
+const compPrice = m => m === 1 ? compBase() : Math.round(compBase() * m * COMP_DISC[m] / 1000) * 1000;
+const compBaseUSD = () => +payments.companionUSD || 3;
+const compPriceUSD = m => m === 1 ? compBaseUSD() : Math.round(compBaseUSD() * m * COMP_DISC[m]);
+const compUsdUrl = m => {                                          // 1 tháng: Ko-fi Membership (tự gia hạn); 3/12 tháng: trả một lần qua PayPal.me (hoặc Ko-fi nếu chưa có PayPal)
+  const pp = payments.paypal || '', amt = compPriceUSD(m);
+  if (m > 1 && pp) return /paypal\.me\//i.test(pp) ? pp.replace(/\/+$/, '') + '/' + amt + 'USD' : pp;
+  return m > 1 && payments.kofi ? payments.kofi : payments.companionUrl || pp;
+};                                                // 'vnd' | 'kofi': cách trả đang chọn ở thẻ Người đồng hành
 const compCode = () => 'EPCP' + (state.user ? state.user.uid.slice(0, 6).toUpperCase() : '');     // nội dung chuyển khoản riêng của từng người, để admin đối chiếu
-const compPayMode = () => { const bank = payments.bankBin && payments.accountNo, kofi = payments.companionUrl; return compPay === 'vnd' && bank || compPay === 'kofi' && kofi ? compPay : (bank && (effCurrency() === 'VND' || !kofi) ? 'vnd' : kofi ? 'kofi' : ''); };
+const compPayMode = () => { const bank = payments.bankBin && payments.accountNo, kofi = payments.companionUrl || payments.paypal; return compPay === 'vnd' && bank || compPay === 'kofi' && kofi ? compPay : (bank && (effCurrency() === 'VND' || !kofi) ? 'vnd' : kofi ? 'kofi' : ''); };
 function compPayHTML(){
-  const bank = payments.bankBin && payments.accountNo, kofi = payments.companionUrl, mode = compPayMode(); if (!mode) return '';
+  const bank = payments.bankBin && payments.accountNo, kofi = payments.companionUrl || payments.paypal, mode = compPayMode(); if (!mode) return '';
   const amt = compPrice(compMonths), code = compCode(), cp = v => `<button type="button" class="btn secondary sm" data-act="copy" data-v="${esc(v)}">${esc(t('copy'))}</button>`;
   const seg = bank && kofi ? `<div class="seg"><button type="button" class="${mode === 'vnd' ? 'on' : ''}" data-act="compPay" data-m="vnd">${esc(t('comp_pay_vn'))}</button><button type="button" class="${mode === 'kofi' ? 'on' : ''}" data-act="compPay" data-m="kofi">${esc(t('comp_pay_kofi'))}</button></div>` : '';
   let body;
-  if (mode === 'kofi') body = `<a class="btn primary lg" target="_blank" rel="noopener" href="${esc(kofi)}">${ic('heart', 'sm')} ${esc(t('comp_cta'))}</a>`;
+  if (mode === 'kofi') { const um = payments.paypal ? compMonths : 1; body = `<div class="row">${(payments.paypal ? [1, 3, 12] : [1]).map(m => `<button type="button" class="chip ${m === um ? 'on' : ''}" data-act="compMonths" data-m="${m}">${esc(t('comp_plan_' + m))} · ${money(compPriceUSD(m), 'USD')}${m > 1 ? ` <small>${esc(t('comp_save', { p:Math.round((1 - compPriceUSD(m) / (compBaseUSD() * m)) * 100) }))}</small>` : ''}</button>`).join('')}</div>
+    <a class="btn primary lg" target="_blank" rel="noopener" href="${esc(compUsdUrl(um))}">${ic('heart', 'sm')} ${esc(t(um === 1 ? 'comp_cta' : 'comp_pay_prepaid', { a:money(compPriceUSD(um), 'USD') }))}</a>
+    <p class="small faint">${esc(t(um === 1 ? 'comp_usd_note1' : 'comp_usd_note'))}</p>`; }
   else if (!state.user) body = `<p class="small muted">${esc(t('comp_vnd_login'))}</p><a class="btn secondary" href="#/account">${esc(t('signin'))}</a>`;
   else body = `<div class="row">${[1, 3, 12].map(m => `<button type="button" class="chip ${m === compMonths ? 'on' : ''}" data-act="compMonths" data-m="${m}">${esc(t('comp_plan_' + m))} · ${money(compPrice(m), 'VND')}${m > 1 ? ` <small>${esc(t('comp_save', { p:Math.round((1 - compPrice(m) / (compBase() * m)) * 100) }))}</small>` : ''}</button>`).join('')}</div><img class="qr" alt="VietQR" src="https://img.vietqr.io/image/${encodeURIComponent(payments.bankBin)}-${encodeURIComponent(payments.accountNo)}-compact2.png?amount=${amt}&addInfo=${encodeURIComponent(code)}&accountName=${encodeURIComponent(payments.accountName || '')}"><p class="small muted" style="text-align:center">${esc(t('donate_scan'))}</p>
     <div class="kv"><div class="kvr"><span>${esc(t('acc_no'))}</span><b>${esc(payments.accountNo)}</b>${cp(payments.accountNo)}</div><div class="kvr"><span>${esc(t('comp_vnd_sum'))}</span><b>${esc(String(amt))}</b>${cp(String(amt))}</div><div class="kvr"><span>${esc(t('donate_note'))}</span><b>${esc(code)}</b>${cp(code)}</div></div>${payments.momoPhone ? `<div class="small muted">MoMo: <b>${esc(payments.momoPhone)}</b></div>` : ''}<p class="small faint">${esc(t('comp_vnd_hint'))}</p>`;
@@ -751,8 +760,8 @@ Object.assign(ACTIONS, {
   compClaim: () => {
     if (!state.user) return;
     openModal(`<h3 style="margin-bottom:12px">${esc(t('cc_title'))}</h3><p class="small muted" style="margin-bottom:12px">${esc(t('cc_sub'))}</p>
-      <div class="field"><label class="label">${esc(t('cc_method'))}</label><select class="select" id="cc-method">${['kofi', 'bank', 'paypal', 'momo', 'other'].map(k => `<option value="${k}" ${k === (compPayMode() === 'vnd' ? 'bank' : 'kofi') ? 'selected' : ''}>${esc(t('cc_m_' + k))}</option>`).join('')}</select></div>
-      <div class="field mt-s"><label class="label">${esc(t('cc_months'))}</label><select class="select" id="cc-months">${[1, 3, 12].map(m => `<option value="${m}" ${m === (compPayMode() === 'vnd' ? compMonths : 1) ? 'selected' : ''}>${esc(t('comp_plan_' + m))}</option>`).join('')}</select></div>
+      <div class="field"><label class="label">${esc(t('cc_method'))}</label><select class="select" id="cc-method">${['kofi', 'bank', 'paypal', 'momo', 'other'].map(k => `<option value="${k}" ${k === (compPayMode() === 'vnd' ? 'bank' : compMonths > 1 && payments.paypal ? 'paypal' : 'kofi') ? 'selected' : ''}>${esc(t('cc_m_' + k))}</option>`).join('')}</select></div>
+      <div class="field mt-s"><label class="label">${esc(t('cc_months'))}</label><select class="select" id="cc-months">${[1, 3, 12].map(m => `<option value="${m}" ${m === compMonths ? 'selected' : ''}>${esc(t('comp_plan_' + m))}</option>`).join('')}</select></div>
       <div class="field mt-s"><label class="label">${esc(t('cc_note_label'))} *</label><input class="input" id="cc-note" maxlength="200" value="${compPayMode() === 'vnd' && state.user ? esc(compCode()) : ''}" placeholder="${esc(t('cc_note_ph'))}"><p class="small" id="cc-err" style="color:var(--danger);margin-top:4px"></p></div>
       <div class="row mt" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="closeModal">${esc(t('cancel'))}</button><button type="button" class="btn primary" data-act="compClaimSend">${esc(t('cc_send'))}</button></div>`, true);
   },
