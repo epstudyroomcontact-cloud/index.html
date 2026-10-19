@@ -454,7 +454,7 @@ FORMS.order = async () => {
   const order = { code, uid: state.user ? state.user.uid : null, items: T.lines.map(l => ({ id:l.p.id, name:L(l.p.name), qty:l.qty, unit:l.unit, type:l.p.type || 'digital' })), subtotal:T.sub, discount:T.disc, coupon: coupon ? coupon.code : '', total:T.total, currency:T.cur,
     buyer:{ name:$('b-name').value.trim(), email:$('b-email').value.trim(), address: phys ? $('b-addr').value.trim() : '', note:$('b-note').value.trim() }, method: T.cur === 'VND' ? 'vietqr' : 'link', status:'pending', lang:state.lang };
   try { if (!DEMO) await db.collection('orders').doc(code).set({ ...order, createdAt:TS() }); } catch (err) { $('b-err').textContent = t('order_err') + (err.message || err); return; }
-  if (payments.orderTemplate && !DEMO) emailjs.send(EMAILJS_SERVICE, payments.orderTemplate, { user_name:order.buyer.name, user_email:order.buyer.email, order_code:code, items:order.items.map(i => `${i.name} × ${i.qty}`).join(', '), total:money(order.total, order.currency) }).catch(() => {});
+  if (payments.orderTemplate && !DEMO) loadEmailJS().then(() => emailjs.send(EMAILJS_SERVICE, payments.orderTemplate, { user_name:order.buyer.name, user_email:order.buyer.email, order_code:code, items:order.items.map(i => `${i.name} × ${i.qty}`).join(', '), total:money(order.total, order.currency) })).catch(() => {});
   cart = []; coupon = null; saveCart(); paymentStep(order);
 };
 function paymentStep(o){
@@ -578,7 +578,7 @@ FORMS.challenge = async () => {
   const btn = $('ch-btn'), codename = $('ch-name').value.trim(), email = $('ch-email').value.trim().toLowerCase();
   btn.disabled = true; btn.textContent = t('ch_sending');
   try {
-    if (!DEMO) { await db.collection('challenge_signups').doc(email).set({ codename, email, timestamp:TS() }); await emailjs.send(EMAILJS_SERVICE, EMAILJS_CHALLENGE_TPL, { user_name:codename, user_email:email }); }
+    if (!DEMO) { await db.collection('challenge_signups').doc(email).set({ codename, email, timestamp:TS() }); await loadEmailJS(); await emailjs.send(EMAILJS_SERVICE, EMAILJS_CHALLENGE_TPL, { user_name:codename, user_email:email }); }
     alert(t('ch_ok'));
   } catch (err) { console.error(err); alert(err && err.code === 'permission-denied' ? t('ch_dup') : t('ch_err') + (err.text || err.message || err)); }
   finally { btn.disabled = false; btn.textContent = t('ch_btn'); }
