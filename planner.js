@@ -117,6 +117,22 @@ async function plUncarry(list){
     list.forEach(x => { delete x.carried; }); plSave(); return true;
   } catch (e) { console.warn('uncarry', e.code); toast(t('pl_err')); return false; }
 }
+/* ---------- cầu nối với Phòng tập trung (Focus): xem / tick / thêm việc hôm nay mà không cần mở Planner ---------- */
+const plToday0 = () => DT.now().setZone(userTZ).weekday - 1;
+async function plWeek0(){                                         // việc của tuần này; dùng chung mảng với PL khi Planner đang giữ đúng tuần này
+  if (PL.tasks && PL.key === plKey(0)) return PL.tasks;
+  if (DEMO) return null;
+  return (await plFetch(plKey(0))).map(plClean);
+}
+async function plTodayList(){ const l = await plWeek0(); return l ? l.filter(x => x.day === plToday0()).sort((a, b) => (a.start || '99').localeCompare(b.start || '99')) : []; }
+async function plFocusEdit(fn){                                   // fn(tasks) sửa mảng và trả true nếu có đổi; trả true khi đã lưu xong
+  try {
+    const key = plKey(0), live = !!(PL.tasks && PL.key === key), tasks = await plWeek0(); if (!tasks || !fn(tasks)) return false;
+    if (live) plSave();
+    else { PL.pre = null; plCache(key, tasks); if (state.user) PL.remTasks = { uid:state.user.uid, tasks }; if (!DEMO) await plRef(key).set({ tasks:tasks.map(plClean), updatedAt:TS() }); }
+    return true;
+  } catch (e) { console.warn('focus-planner', e.code); return false; }
+}
 /* ---------- tải / lưu ---------- */
 /* Đọc nhanh: lần mở sau hiện ngay bản nhớ trong máy (xoá khi đăng xuất / đổi tài khoản, xem core.js), rồi cập nhật từ máy chủ ở nền */
 async function plFetch(key){                                      // 'unavailable' = kết nối Firebase chưa kịp lên: thử lại vài lần trước khi báo lỗi
