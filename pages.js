@@ -631,8 +631,20 @@ renderCart();
    Dữ liệu lưu trong users/<uid>.moon = { startedAt, days:['YYYY-MM-DD',…], rounds }
    ========================================================= */
 const MOON_TOTAL = 30;
-const moonData = () => { const m = profile && profile.moon; return m ? { startedAt:m.startedAt || Date.now(), days:Array.isArray(m.days) ? m.days : [], rounds:m.rounds || 0 } : null; };
 const todayKey = () => DT.now().setZone(userTZ).toISODate();
+const dayShift = (k, n) => DT.fromISO(k, { zone:userTZ }).plus({ days:n }).toISODate();
+/* Chuỗi điểm danh kiểu Duolingo: chỉ tính các ngày liên tiếp kết thúc ở hôm nay hoặc hôm qua.
+   Bỏ lỡ một ngày thì chuỗi đứt và về ngày 1 (broken = true, lost = độ dài chuỗi đã mất). Đủ 30 ngày thì giữ trăng tròn cho đến khi bắt đầu vòng mới. */
+const moonData = () => {
+  const m = profile && profile.moon; if (!m) return null;
+  let days = [...new Set(Array.isArray(m.days) ? m.days : [])].filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort(), broken = false, lost = 0;
+  if (days.length && days.length < MOON_TOTAL) {
+    let i = days.length - 1; while (i > 0 && dayShift(days[i - 1], 1) === days[i]) i--;
+    const run = days.slice(i), last = run[run.length - 1], today = todayKey();
+    if (last === today || last === dayShift(today, -1)) days = run; else { lost = run.length; days = []; broken = true; }
+  }
+  return { startedAt:m.startedAt || Date.now(), days, rounds:m.rounds || 0, best:Math.max(m.best || 0, days.length, lost), broken, lost };
+};
 async function moonSave(m){
   const prev = profile.moon;
   profile.moon = m;
@@ -660,7 +672,8 @@ PAGES.club = function(){
   else main = `<div class="card pad stack" style="align-items:center;text-align:center"><div class="moon-big ${full ? 'full' : ''}">${moonSVG(d, MOON_TOTAL)}</div>
       <h2 style="font-size:1.5rem">${esc(full ? t('club_full') : t('club_day', { d, t:MOON_TOTAL }))}</h2>
       ${full ? `<p class="muted">${esc(t('club_full_sub'))}</p><button class="btn primary" data-act="moonAgain">${esc(t('club_again'))}</button>` : `<div class="progress" style="width:100%;max-width:300px"><i style="width:${d / MOON_TOTAL * 100}%"></i></div><button class="btn primary lg" data-act="moonCheckin" ${doneToday ? 'disabled' : ''}>${ic('check', 'sm')} ${esc(doneToday ? t('club_done_today') : t('club_checkin'))}</button>`}
-      ${m.rounds ? `<div class="small faint">${esc(t('club_rounds', { n:m.rounds }))}</div>` : ''}${state.companion ? `<span class="badge">${ic('heart', 'sm')} ${esc(t('comp_badge'))}</span>` : ''}</div>`;
+      ${!full && !doneToday ? `<p class="small" style="color:${m.broken ? 'var(--danger)' : 'var(--ink3)'}">${esc(m.broken ? t('club_broken', { n:m.lost }) : d ? t('club_keep') : '')}</p>` : ''}
+      ${m.best > 1 ? `<div class="small faint">${esc(t('club_best', { n:m.best }))}</div>` : ''}${m.rounds ? `<div class="small faint">${esc(t('club_rounds', { n:m.rounds }))}</div>` : ''}${state.companion ? `<span class="badge">${ic('heart', 'sm')} ${esc(t('comp_badge'))}</span>` : ''}</div>`;
   const cells = Array.from({ length:MOON_TOTAL }, (_, i) => { const on = m && i < d, next = m && !full && i === d && !doneToday; return `<div class="day-cell ${on ? 'on' : ''} ${next ? 'next' : ''}" title="${on && m.days[i] ? esc(m.days[i]) : ''}">${on ? ic('check', 'sm') : i + 1}</div>`; }).join('');
   page(`${head('club_title', 'club_sub', '', 'gaze', 9)}
     <div class="grid g2" style="align-items:start">${main}
@@ -708,7 +721,8 @@ Object.assign(ACTIONS, {
   moonAgain: () => { const m = moonData(); moonSave({ startedAt:Date.now(), days:[], rounds:(m ? m.rounds : 0) + 1 }); },
   moonCheckin: () => {
     const m = moonData(); if (!m) return; const k = todayKey(); if (m.days.includes(k)) return toast(t('club_done_today'));
-    m.days = [...m.days, k];                                          // mảng mới, để lưu lỗi thì dữ liệu cũ vẫn nguyên
-    moonSave(m).then(ok => { if (ok && m.days.length >= MOON_TOTAL) toast(t('club_full')); });
+    const { broken, lost, ...keep } = m;                              // chuỗi đã đứt thì moonData() trả days rỗng nên bắt đầu lại từ ngày 1
+    keep.days = [...m.days, k]; keep.best = Math.max(keep.best || 0, keep.days.length);     // mảng mới, để lưu lỗi thì dữ liệu cũ vẫn nguyên
+    moonSave(keep).then(ok => { if (ok && keep.days.length >= MOON_TOTAL) toast(t('club_full')); });
   }
 });
