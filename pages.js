@@ -737,7 +737,7 @@ const compUsdUrl = m => {                                          // 1 tháng: 
   if (m > 1 && pp) return /paypal\.me\/|paypal\.com\/paypalme\//i.test(pp) ? pp.replace(/\/+$/, '') + '/' + amt + 'USD' : pp;
   return m > 1 && payments.kofi ? payments.kofi : payments.companionUrl || pp;
 };                                                // 'vnd' | 'kofi': cách trả đang chọn ở thẻ Người đồng hành
-const compCode = () => 'EPCP' + (state.user ? state.user.uid.slice(0, 6).toUpperCase() : '');     // nội dung chuyển khoản riêng của từng người, để admin đối chiếu
+const compCode = () => state.user && state.user.email ? state.user.email.trim().toLowerCase().slice(0, 50) : 'EPCP' + (state.user ? state.user.uid.slice(0, 6).toUpperCase() : '');     // nội dung chuyển khoản = email đăng ký tài khoản (mỗi người một khác, admin đối chiếu theo email); tài khoản không có email thì dùng mã EPCP + 6 ký tự uid
 const compPayMode = () => { const bank = payments.bankBin && payments.accountNo, kofi = payments.companionUrl || payments.paypal; return compPay === 'vnd' && bank || compPay === 'kofi' && kofi ? compPay : (bank && (effCurrency() === 'VND' || !kofi) ? 'vnd' : kofi ? 'kofi' : ''); };
 function compPayHTML(){
   const bank = payments.bankBin && payments.accountNo, kofi = payments.companionUrl || payments.paypal, mode = compPayMode(); if (!mode) return '';
@@ -749,7 +749,7 @@ function compPayHTML(){
     <p class="small faint">${esc(t(um === 1 ? 'comp_usd_note1' : 'comp_usd_note'))}</p>`; }
   else if (!state.user) body = `<p class="small muted">${esc(t('comp_vnd_login'))}</p><a class="btn secondary" href="#/account">${esc(t('signin'))}</a>`;
   else body = `<div class="row">${[1, 3, 12].map(m => `<button type="button" class="chip ${m === compMonths ? 'on' : ''}" data-act="compMonths" data-m="${m}">${esc(t('comp_plan_' + m))} · ${money(compPrice(m), 'VND')}${m > 1 ? ` <small>${esc(t('comp_save', { p:Math.round((1 - compPrice(m) / (compBase() * m)) * 100) }))}</small>` : ''}</button>`).join('')}</div><img class="qr" alt="VietQR" src="https://img.vietqr.io/image/${encodeURIComponent(payments.bankBin)}-${encodeURIComponent(payments.accountNo)}-compact2.png?amount=${amt}&addInfo=${encodeURIComponent(code)}&accountName=${encodeURIComponent(payments.accountName || '')}"><p class="small muted" style="text-align:center">${esc(t('donate_scan'))}</p>
-    <div class="kv"><div class="kvr"><span>${esc(t('acc_no'))}</span><b>${esc(payments.accountNo)}</b>${cp(payments.accountNo)}</div><div class="kvr"><span>${esc(t('comp_vnd_sum'))}</span><b>${esc(String(amt))}</b>${cp(String(amt))}</div><div class="kvr"><span>${esc(t('donate_note'))}</span><b>${esc(code)}</b>${cp(code)}</div></div>${payments.momoPhone ? `<div class="small muted">MoMo: <b>${esc(payments.momoPhone)}</b></div>` : ''}<p class="small faint">${esc(t('comp_vnd_hint'))}</p>`;
+    <div class="kv"><div class="kvr"><span>${esc(t('acc_no'))}</span><b>${esc(payments.accountNo)}</b>${cp(payments.accountNo)}</div><div class="kvr"><span>${esc(t('comp_vnd_sum'))}</span><b>${esc(String(amt))}</b>${cp(String(amt))}</div><div class="kvr"><span>${esc(t('donate_note'))}</span><b>${esc(code)}</b>${cp(code)}</div></div>${payments.momoPhone ? `<div class="small muted">MoMo: <b>${esc(payments.momoPhone)}</b></div>` : ''}<p class="small faint">${esc(t(state.user.email ? 'comp_vnd_mail' : 'comp_vnd_hint'))}</p>`;
   return `<div class="stack">${seg}${body}</div>`;
 }
 let donAmt = null, donCur = null;
