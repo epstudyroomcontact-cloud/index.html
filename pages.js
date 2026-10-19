@@ -4,6 +4,8 @@
    ========================================================= */
 const isPhone = () => window.matchMedia && window.matchMedia('(max-width:760px)').matches;
 const phoneNote = () => isPhone() && !store.get('phone_note_off', false) ? `<aside class="phone-note" role="note"><div><b>${esc(t('phone_note_title'))}</b><p>${esc(t('phone_note_text'))}</p></div><button type="button" class="btn secondary sm" data-act="phoneNoteOff">${esc(t('phone_note_ok'))}</button></aside>` : '';   // giải thích vì sao web ưu tiên máy tính, chỉ hiện trên điện thoại và bấm "Đã hiểu" là không hiện nữa
+/* ghi chú "có gì mới" đóng được (nhớ trong máy): key = new_focus / new_tease / new_pl; có href thì thêm nút dẫn tới trang đó */
+const hintNote = (key, href) => store.get('hint_' + key, false) ? '' : `<aside class="phone-note hint-note" role="note"><div><b>${esc(t(key + '_title'))}</b><p>${esc(t(key + '_text'))}</p></div><span class="row" style="flex:none;gap:6px">${href ? `<a class="btn primary sm" href="${esc(href)}" data-act="hintOff" data-key="${key}">${esc(t(key + '_link'))}</a>` : ''}<button type="button" class="btn secondary sm" data-act="hintOff" data-key="${key}">${esc(t('phone_note_ok'))}</button></span></aside>`;
 const page = html => { $('page').innerHTML = phoneNote() + html; };
 const fmtDate = ts => DT.fromMillis(tsMs(ts)).setLocale(state.lang).toLocaleString(DT.DATE_MED);
 const stars = n => `<span class="stars" aria-label="${n}/5">${[1,2,3,4,5].map(i => `<svg class="ic ${i <= n ? '' : 'off'}"><use href="#i-star"/></svg>`).join('')}</span>`;
@@ -203,6 +205,7 @@ function musicCard(){
     <div class="label mt">${esc(t('music_more'))}</div><div class="row">${MOODS.map(([k, q]) => `<a class="chip" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent(q)}">${esc(t('mood_' + k))}</a>`).join('')}</div></section>`;
 }
 Object.assign(ACTIONS, {
+  hintOff: el => { store.set('hint_' + el.dataset.key, true); const n = el.closest('.hint-note'); if (n && !el.href) n.remove(); },
   phoneNoteOff: el => { store.set('phone_note_off', true); const n = el.closest('.phone-note'); if (n) n.remove(); },
   ambSet: el => setAmbient(el.dataset.k),
   musicPlay: el => { const it = (music[el.dataset.k] || [])[+el.dataset.i]; if (!it) return; const e = musicEmbed(it.url); if (!e) return; musicSel = { ...e, title:L(it.title) }; const b = $('mplayer-box'); if (b) { b.innerHTML = playerHTML(); b.scrollIntoView({ block:'nearest', behavior:'smooth' }); } },
@@ -315,7 +318,7 @@ CHANGES.fsPick = el => { fsPick = el.value; render(true); };ACTIONS.fsToggle = (
 PAGES.focus = function(){
   const fl = localFocus(), today = DT.now().setZone(userTZ), days = Array.from({ length:7 }, (_, i) => today.minus({ days:6 - i })), vals = days.map(d => (fl[d.toISODate()] || { m:0 }).m), mx = Math.max(30, ...vals), td = fl[today.toISODate()] || { m:0, s:0 };
   const c = pomo.cfg, num = (k, lab) => `<div class="field"><label class="label">${esc(lab)}</label><input class="input" type="number" min="1" max="180" value="${c[k]}" data-change="cfg" data-k="${k}"></div>`;
-  page(`${head('focus_title', 'focus_sub', '', 'umbrella', 4)}
+  page(`${head('focus_title', 'focus_sub', '', 'umbrella', 4)}${state.user ? (plLinked() ? hintNote('new_focus') : hintNote('new_tease', '#/planner')) : ''}
     <div class="grid g-main"><section class="card timer-card">
       <div class="seg"><button type="button" data-seg="focus" data-act="pmode" data-m="focus">${esc(t('mode_focus'))}</button><button type="button" data-seg="short" data-act="pmode" data-m="short">${esc(t('mode_short'))}</button><button type="button" data-seg="long" data-act="pmode" data-m="long">${esc(t('mode_long'))}</button></div>
       <div class="ring" id="tm-ring"><svg viewBox="0 0 120 120"><circle class="bg" cx="60" cy="60" r="54" stroke-width="7"/><circle class="fg" id="tm-fg" cx="60" cy="60" r="54" stroke-width="7" stroke-dasharray="${RING_C.toFixed(2)}" stroke-dashoffset="0"/></svg><div class="center"><div class="tt" data-pomo-time>25:00</div><div class="md" data-pomo-mode></div></div></div>
