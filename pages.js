@@ -116,9 +116,9 @@ PAGES.home = function(){
   }
   if (on('blog') && livePosts().length) html += secHead('sec_blog', '#/blog') + `<div class="pgrid">${livePosts().slice(0, 3).map(blogCard).join('')}</div>`;
   if (on('shop') && products.length) html += secHead('sec_shop', '#/shop') + `<div class="pgrid">${products.slice(0, 3).map(prodCard).join('')}</div>`;
-  if (on('reviews') && reviews.length) html += secHead('sec_reviews', '#/about') + `<div class="grid g3">${reviews.slice(0, 3).map(reviewCard).join('')}</div>`;
   if (on('thanks') && thanksList().length) html += thanksCard();
   if (on('challenge')) html += clubPromo();
+  if (on('about')) html += `<div style="margin-top:44px">${aboutHTML()}</div>`;   // giới thiệu + FAQ + đánh giá (trước đây là trang About)
   page(html);
 };
 
@@ -312,7 +312,8 @@ PAGES.focus = function(){
         <form class="row" style="flex-wrap:nowrap" data-form="todo"><input class="input" id="todo-in" placeholder="${esc(t('todo_ph'))}" maxlength="140" autocomplete="off"><button class="btn primary icon" type="submit" aria-label="add">${ic('plus')}</button></form>
         <div id="todo-list" class="mt-s"></div>${!state.user ? `<p class="hint mt-s">${esc(t('sync_note'))} <a class="link" href="#/account">${esc(t('signin'))}</a></p>` : ''}</section>
       <div class="grid g2 keep2"><div class="card tile"><span class="t-l">${esc(t('sessions_today'))}</span><span class="t-v">${td.s}</span></div><div class="card tile"><span class="t-l">${esc(t('minutes_today'))}</span><span class="t-v">${td.m}</span></div></div>
-      <section class="card pad"><div class="card-h"><h2>${esc(t('week_chart'))}</h2></div><div class="bars">${days.map((d, i) => `<div><i style="height:${Math.max(3, vals[i] / mx * 100)}%" title="${vals[i]} ${esc(t('min'))}"></i><small>${esc(d.setLocale(state.lang).toFormat('ccc'))}</small></div>`).join('')}</div></section></div></div><div class="mt">${musicCard()}</div>`);
+      <section class="card pad"><div class="card-h"><h2>${esc(t('week_chart'))}</h2></div><div class="bars">${days.map((d, i) => `<div><i style="height:${Math.max(3, vals[i] / mx * 100)}%" title="${vals[i]} ${esc(t('min'))}"></i><small>${esc(d.setLocale(state.lang).toFormat('ccc'))}</small></div>`).join('')}</div></section></div></div><div class="mt">${musicCard()}</div>
+    <h2 class="mt" style="font-size:1.3rem;margin:40px 0 14px">${ic('heart', 'sm')} ${esc(t('nav_donate'))}</h2>${donateHTML()}`);   // phần Support nằm ngay trong Focus room
   renderTodos();
 };
 CHANGES.cfg = el => { const k = el.dataset.k, v = Math.max(1, Math.min(180, parseInt(el.value, 10) || 1)); pomo.cfg[k] = v; if (!pomo.running && (k === pomo.mode)) pomo.remaining = pomoDur(pomo.mode); pomoSave(); updateTimerUI(); };
@@ -477,9 +478,9 @@ FORMS.coupon = () => applyCoupon($('coupon-in').value);
    ========================================================= */
 const faqList = () => Array.isArray(content.faq) && content.faq.length ? content.faq.map(f => ({ q:L(f.q), a:L(f.a) })) : [1, 2, 3, 4].map(i => ({ q:ctext('faq' + i + 'q'), a:ctext('faq' + i + 'a'), k:i }));
 let reviewRating = 5;
-PAGES.about = function(){
+const aboutHTML = function(){
   const avg = ratingAvg();
-  page(`<section class="about-hero"><div><span class="badge" ${cms('about_badge')}>${esc(ctext('about_badge'))}</span><h1 style="font-size:clamp(1.8rem,4vw,2.6rem);margin:12px 0" ${cms('about_h')}>${esc(ctext('about_h'))}</h1><p class="muted" style="font-size:1.05rem;white-space:pre-line" ${cms('about_text')}>${esc(ctext('about_text'))}</p>
+  return `<section class="about-hero"><div><span class="badge" ${cms('about_badge')}>${esc(ctext('about_badge'))}</span><h1 style="font-size:clamp(1.8rem,4vw,2.6rem);margin:12px 0" ${cms('about_h')}>${esc(ctext('about_h'))}</h1><p class="muted" style="font-size:1.05rem;white-space:pre-line" ${cms('about_text')}>${esc(ctext('about_text'))}</p>
       <div class="row mt"><a class="btn primary" href="#/watch">${ic('play', 'sm')} ${esc(t('btn_watch_live'))}</a>${Object.entries(branding.socialLinks || {}).filter(([, u]) => u).map(([n, u]) => `<a class="btn secondary" target="_blank" rel="noopener" href="${esc(u)}">${esc(n)}</a>`).join('')}</div></div>
       <div class="about-img" data-cms-img="about_img">${artOr('about_img', 'moonwalk', { crop:'tall', seed:2 })}</div></section>
     <div class="grid g3 mt" style="margin-top:34px">${[['timer', 1], ['globe', 2], ['sliders', 3]].map(([icn, i]) => `<div class="card pad feat"><div class="tile" style="padding:0"><span class="t-ic">${ic(icn)}</span></div><h3 style="font-size:1.05rem;margin:10px 0 4px" ${cms('about_c' + i + '_t')}>${esc(ctext('about_c' + i + '_t'))}</h3><p class="muted small" ${cms('about_c' + i + '_d')}>${esc(ctext('about_c' + i + '_d'))}</p></div>`).join('')}</div>
@@ -487,8 +488,9 @@ PAGES.about = function(){
     <div>${faqList().map(f => `<details class="faq"><summary>${esc(f.q)}</summary><div class="a">${esc(f.a)}</div></details>`).join('')}</div>
     <div class="row between" style="margin:40px 0 14px"><h2 style="font-size:1.3rem" ${cms('reviews_title')}>${esc(ctext('reviews_title'))}</h2>${avg ? `<div class="row">${stars(Math.round(avg))}<b>${avg.toFixed(1)}</b><span class="small faint">(${reviews.length})</span></div>` : ''}</div>
     <div class="grid g-main" style="align-items:start"><div class="grid g2">${reviews.length ? reviews.map(reviewCard).join('') : `<div style="grid-column:1/-1">${emptyBox('star', t('no_reviews'), '')}</div>`}</div>
-    <section class="card pad"><h3 style="margin-bottom:10px">${esc(t('review_write'))}</h3>${state.user ? `<form class="stack" data-form="review"><div><label class="label">${esc(t('rating_label'))}</label><div class="seg" id="rev-stars">${[1, 2, 3, 4, 5].map(i => `<button type="button" class="${i === reviewRating ? 'on' : ''}" data-act="rate" data-n="${i}">${i}★</button>`).join('')}</div></div><textarea class="textarea" id="rev-text" required maxlength="600" placeholder="${esc(t('review_ph'))}"></textarea><button class="btn primary" type="submit">${esc(t('review_submit'))}</button></form>` : `<p class="muted small">${esc(t('review_login'))}</p><a class="btn primary mt-s" href="#/account">${esc(t('signin'))}</a>`}</section></div>`);
+    <section class="card pad"><h3 style="margin-bottom:10px">${esc(t('review_write'))}</h3>${state.user ? `<form class="stack" data-form="review"><div><label class="label">${esc(t('rating_label'))}</label><div class="seg" id="rev-stars">${[1, 2, 3, 4, 5].map(i => `<button type="button" class="${i === reviewRating ? 'on' : ''}" data-act="rate" data-n="${i}">${i}★</button>`).join('')}</div></div><textarea class="textarea" id="rev-text" required maxlength="600" placeholder="${esc(t('review_ph'))}"></textarea><button class="btn primary" type="submit">${esc(t('review_submit'))}</button></form>` : `<p class="muted small">${esc(t('review_login'))}</p><a class="btn primary mt-s" href="#/account">${esc(t('signin'))}</a>`}</section></div>`;
 };
+PAGES.about = function(){ page(aboutHTML()); };   // trang About đã gộp vào Overview; giữ lại để phần chỉnh sửa vẫn dùng được
 FORMS.review = async () => {
   const text = $('rev-text').value.trim(); if (!text) return;
   try {
@@ -664,7 +666,7 @@ let donAmt = null, donCur = null;
 const parseAmts = (s, d) => { const a = String(s || '').split(/[,\s]+/).map(Number).filter(n => n > 0); return a.length ? a : d; };
 /* mục cảm ơn những người đồng hành (tên do admin chọn hiện, xem tab Thành viên) */
 const thanksCard = () => { const l = thanksList(); return l.length ? `<section class="card pad thanks mt"><div class="card-h"><h2 ${cms('thanks_title')}>${ic('heart', 'sm')} ${esc(ctext('thanks_title'))}</h2></div><p class="muted small" ${cms('thanks_text')}>${esc(ctext('thanks_text'))}</p><div class="thanks-list">${l.map(x => `<span class="thanks-chip">${ic('heart', 'sm')} ${esc(x.name)}</span>`).join('')}</div></section>` : ''; };
-PAGES.donate = function(){
+const donateHTML = function(){
   const cur = donCur || effCurrency(), amts = cur === 'VND' ? parseAmts(payments.donateVND, [20000, 50000, 100000, 200000]) : parseAmts(payments.donateUSD, [3, 5, 10, 25]);
   const amt = donAmt && donAmt.cur === cur ? donAmt.v : amts[1] || amts[0], hasBank = payments.bankBin && payments.accountNo;
   let pay = '';
@@ -676,16 +678,17 @@ PAGES.donate = function(){
     pay = [pp && `<a class="btn primary lg" target="_blank" rel="noopener" href="${esc(pp)}">PayPal · $${amt}</a>`, payments.kofi && `<a class="btn secondary lg" target="_blank" rel="noopener" href="${esc(payments.kofi)}">Ko-fi</a>`, payments.stripe && `<a class="btn secondary lg" target="_blank" rel="noopener" href="${esc(payments.stripe)}">${ic('credit', 'sm')} Card</a>`].filter(Boolean).join(' ');
     pay = pay ? `<div class="row">${pay}</div>` : '';
   }
-  page(`${head('donate_title', 'donate_sub', '', 'lantern', 3)}
-    <div class="grid g2" style="align-items:start">
+  const body = `<div class="grid g2" style="align-items:start">
       <section class="card pad stack"><div class="row between"><h2 style="font-size:1.2rem">${esc(t('donate_once'))}</h2><div class="seg"><button type="button" class="${cur === 'VND' ? 'on' : ''}" data-act="donCur" data-c="VND">VND</button><button type="button" class="${cur === 'USD' ? 'on' : ''}" data-act="donCur" data-c="USD">USD</button></div></div>
         <div class="row">${amts.map(a => `<button type="button" class="chip ${a === amt ? 'on' : ''}" data-act="donAmt" data-v="${a}">${money(a, cur)}</button>`).join('')}</div>
         <div class="field"><label class="label">${esc(t('donate_custom'))}</label><input class="input" type="number" min="1" id="don-custom" data-change="donCustom" placeholder="${cur === 'VND' ? '30000' : '7'}"></div>
         ${pay || `<p class="muted">${esc(t('donate_none'))}</p>`}<p class="small faint">${esc(t('donate_thanks'))}</p></section>
       <section class="card pad stack"><div class="row between"><h2 style="font-size:1.2rem" ${cms('comp_title')}>${esc(ctext('comp_title'))}</h2>${state.companion ? `<span class="badge">${ic('heart', 'sm')} ${esc(t('comp_badge'))}</span>` : ''}</div>
         <p class="muted" ${cms('comp_text')}>${esc(ctext('comp_text'))}</p><div><div class="label">${esc(t('comp_perks'))}</div><ul class="perks"><li ${cms('comp_perk1')}>${esc(ctext('comp_perk1'))}</li><li ${cms('comp_perk2')}>${esc(ctext('comp_perk2'))}</li><li ${cms('comp_perk3')}>${esc(ctext('comp_perk3'))}</li></ul></div>
-        ${branding.focusCodeHash ? `<div><div class="label">${esc(t('comp_steps_title'))}</div><ol class="steps"><li>${esc(t('comp_step1'))}</li><li>${esc(t('comp_step2'))}</li><li>${esc(t('comp_step3'))}</li></ol></div>${unlockBox()}` : ''}${state.companion || unlockValid() ? `<p class="small" style="color:var(--live)">${esc(t('comp_active'))}</p>` : ''}${payments.companionUrl ? `<a class="btn primary lg" target="_blank" rel="noopener" href="${esc(payments.companionUrl)}">${ic('heart', 'sm')} ${esc(t('comp_cta'))}</a>` : ''}</section></div>${thanksCard()}`);
+        ${branding.focusCodeHash ? `<div><div class="label">${esc(t('comp_steps_title'))}</div><ol class="steps"><li>${esc(t('comp_step1'))}</li><li>${esc(t('comp_step2'))}</li><li>${esc(t('comp_step3'))}</li></ol></div>${unlockBox()}` : ''}${state.companion || unlockValid() ? `<p class="small" style="color:var(--live)">${esc(t('comp_active'))}</p>` : ''}${payments.companionUrl ? `<a class="btn primary lg" target="_blank" rel="noopener" href="${esc(payments.companionUrl)}">${ic('heart', 'sm')} ${esc(t('comp_cta'))}</a>` : ''}</section></div>`;
+  return body;
 };
+PAGES.donate = function(){ page(`${head('donate_title', 'donate_sub', '', 'lantern', 3)}${donateHTML()}${thanksCard()}`); };
 CHANGES.donCustom = el => { const v = Math.round(+el.value); if (v > 0) { donAmt = { cur:donCur || effCurrency(), v }; render(true); } };
 Object.assign(ACTIONS, {
   donCur: el => { donCur = el.dataset.c; donAmt = null; render(true); },
