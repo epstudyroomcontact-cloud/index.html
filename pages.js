@@ -636,7 +636,7 @@ async function moonSave(m){
   const prev = profile.moon;
   profile.moon = m;
   let ok = true;
-  if (!DEMO) try { await db.collection('users').doc(state.user.uid).set({ moon:m }, { merge:true }); }
+  if (!DEMO) try { await db.collection('users').doc(state.user.uid).set({ moon:m }, { merge:true }); store.set('moon_' + state.user.uid, m); }
   catch (e) { ok = false; profile.moon = prev; console.warn('moon save', e.code); toast(t('err_generic') + (e.code || e.message)); }   // lưu lỗi thì trả lại như cũ và báo cho người dùng
   render(true);
   return ok;
@@ -651,7 +651,10 @@ PAGES.club = function(){
   const m = moonData(), d = m ? Math.min(m.days.length, MOON_TOTAL) : 0, full = d >= MOON_TOTAL, doneToday = m && m.days.includes(todayKey());
   let main = '';
   if (!state.user) main = `<div class="card pad stack" style="align-items:center;text-align:center"><div class="moon-big">${moonSVG(6, MOON_TOTAL)}</div><p class="muted">${esc(t('club_login'))}</p><a class="btn primary" href="#/account">${esc(t('club_login_btn'))}</a></div>`;
-  else if (!DEMO && !state.profileReady) main = `<div class="card pad stack" style="align-items:center;text-align:center"><div class="moon-big">${moonSVG(0, MOON_TOTAL)}</div><p class="muted">${esc(t('loading'))}</p></div>`;   // chưa tải xong hồ sơ: không hiện nút Bắt đầu (bấm nhầm sẽ xoá các ngày đã điểm danh)
+  else if (!DEMO && !state.profileReady) {                       // chưa tải xong hồ sơ: hiện bản đã nhớ (chỉ xem), không cho bấm
+    const cm = store.get('moon_' + state.user.uid, null), cd = cm && Array.isArray(cm.days) ? Math.min(cm.days.length, MOON_TOTAL) : 0;
+    main = `<div class="card pad stack" style="align-items:center;text-align:center"><div class="moon-big">${moonSVG(cd, MOON_TOTAL)}</div>${state.profileFailed ? `<p class="muted">${esc(t('club_load_fail'))}</p><button class="btn primary" data-act="moonRetry">${esc(t('club_retry'))}</button>` : `<p class="muted">${cm ? esc(t('club_day', { d:cd, t:MOON_TOTAL })) + ' · ' : ''}${esc(t('loading'))}</p>`}</div>`;
+  }   // chưa tải xong hồ sơ: không hiện nút Bắt đầu (bấm nhầm sẽ xoá các ngày đã điểm danh)
   else if (!m) main = `<div class="card pad stack" style="align-items:center;text-align:center"><div class="moon-big">${moonSVG(0, MOON_TOTAL)}</div><button class="btn primary lg" data-act="moonStart">${esc(t('club_start'))}</button></div>`;
   else main = `<div class="card pad stack" style="align-items:center;text-align:center"><div class="moon-big ${full ? 'full' : ''}">${moonSVG(d, MOON_TOTAL)}</div>
       <h2 style="font-size:1.5rem">${esc(full ? t('club_full') : t('club_day', { d, t:MOON_TOTAL }))}</h2>
@@ -699,6 +702,7 @@ CHANGES.donCustom = el => { const v = Math.round(+el.value); if (v > 0) { donAmt
 Object.assign(ACTIONS, {
   donCur: el => { donCur = el.dataset.c; donAmt = null; render(true); },
   donAmt: el => { donAmt = { cur:donCur || effCurrency(), v:+el.dataset.v }; render(true); },
+  moonRetry: () => location.reload(),
   moonStart: () => { if (!DEMO && !state.profileReady) return; if (moonData()) return render(true); moonSave({ startedAt:Date.now(), days:[], rounds:0 }); },
   moonAgain: () => { const m = moonData(); moonSave({ startedAt:Date.now(), days:[], rounds:(m ? m.rounds : 0) + 1 }); },
   moonCheckin: () => {
