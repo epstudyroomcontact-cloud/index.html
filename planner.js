@@ -5,7 +5,7 @@
    Quy tắc Firestore: chỉ chính chủ đọc/ghi và chỉ khi có companions/<uid> (xem firestore.rules). Admin không đọc được planner của người khác.
    ========================================================= */
 Object.assign(I18N.en, {
-  pl_title:'Weekly planner', pl_sub:'Plan your week, tick things off, and see how productive the week really was. Only you can see this page.',
+  pl_title:'My weekly planner', pl_sub:'Your own private planner: plan your week, tick things off, and see how productive the week really was. Only your account can open it on this website.',
   pl_up_title:'The Planner is for companions', pl_up_text:'Companions get a private weekly planner: a time grid for your week, a to-do list for things without a time, and an automatic review of how much you finished. Support the channel monthly and I will unlock it for your account.',
   pl_up_login:'Sign in to use the Planner.', pl_up_cta:'See how to become a companion',
   pl_d0:'Mon', pl_d1:'Tue', pl_d2:'Wed', pl_d3:'Thu', pl_d4:'Fri', pl_d5:'Sat', pl_d6:'Sun',
@@ -19,10 +19,10 @@ Object.assign(I18N.en, {
   pl_i_best:'Your most productive day was {d}, with {t} done.', pl_i_part_0:'You get the most done in the morning.', pl_i_part_1:'You get the most done in the afternoon.', pl_i_part_2:'You get the most done in the evening.',
   pl_i_over:'{d} was planned for {t}. That is a lot; leave some room to rest.', pl_i_left:'{n} tasks (about {t}) are still open. You can move them to next week with one tap.',
   pl_i_vs_up:'That is {n} points better than last week ({p}%).', pl_i_vs_down:'That is {n} points lower than last week ({p}%).', pl_i_vs_same:'About the same as last week ({p}%).',
-  pl_min:'{m} min', pl_h:'{h} h', pl_hm:'{h} h {m} min', pl_untimed:'(no time set)', pl_until:'You are a companion until {d}.'
+  pl_min:'{m} min', pl_h:'{h} h', pl_hm:'{h} h {m} min', pl_untimed:'(no time set)', pl_until:'You are a companion until {d}.', pl_max:'A week can hold up to {n} tasks.', pl_soon:'Your companion access ends on {d}. Renew to keep using the planner.'
 });
 Object.assign(I18N.vi, {
-  pl_title:'Planner hằng tuần', pl_sub:'Lên kế hoạch cho tuần, tick những việc đã xong và xem tuần này bạn thật sự làm được bao nhiêu. Chỉ mình bạn thấy trang này.',
+  pl_title:'Planner riêng của bạn', pl_sub:'Planner riêng của chính bạn: lên kế hoạch cho tuần, tick những việc đã xong và xem tuần này bạn thật sự làm được bao nhiêu. Chỉ tài khoản của bạn mở được trên trang web này.',
   pl_up_title:'Planner dành cho Companions', pl_up_text:'Companions có một planner tuần riêng tư: lưới giờ cho cả tuần, danh sách việc chưa có giờ và bản tổng kết tự động bạn đã làm xong bao nhiêu. Ủng hộ kênh hằng tháng là mình mở nó cho tài khoản của bạn.',
   pl_up_login:'Hãy đăng nhập để dùng Planner.', pl_up_cta:'Xem cách trở thành Companion',
   pl_d0:'T2', pl_d1:'T3', pl_d2:'T4', pl_d3:'T5', pl_d4:'T6', pl_d5:'T7', pl_d6:'CN',
@@ -36,14 +36,16 @@ Object.assign(I18N.vi, {
   pl_i_best:'Ngày làm được nhiều nhất là {d}, xong {t}.', pl_i_part_0:'Bạn làm xong nhiều việc nhất vào buổi sáng.', pl_i_part_1:'Bạn làm xong nhiều việc nhất vào buổi chiều.', pl_i_part_2:'Bạn làm xong nhiều việc nhất vào buổi tối.',
   pl_i_over:'{d} xếp tới {t}. Hơi nhiều, nhớ chừa chỗ để nghỉ.', pl_i_left:'Còn {n} việc (khoảng {t}) chưa xong. Bạn chuyển sang tuần sau chỉ với một cú bấm.',
   pl_i_vs_up:'Cao hơn tuần trước {n} điểm ({p}%).', pl_i_vs_down:'Thấp hơn tuần trước {n} điểm ({p}%).', pl_i_vs_same:'Gần bằng tuần trước ({p}%).',
-  pl_min:'{m} phút', pl_h:'{h} giờ', pl_hm:'{h} giờ {m} phút', pl_untimed:'(chưa đặt giờ)', pl_until:'Bạn là Companion đến ngày {d}.'
+  pl_min:'{m} phút', pl_h:'{h} giờ', pl_hm:'{h} giờ {m} phút', pl_untimed:'(chưa đặt giờ)', pl_until:'Bạn là Companion đến ngày {d}.', pl_max:'Mỗi tuần chứa tối đa {n} việc.', pl_soon:'Quyền Companion của bạn hết hạn ngày {d}. Gia hạn để tiếp tục dùng planner.'
 });
 
+const PL_MAX = 300;                                              // số việc tối đa mỗi tuần (giữ tài liệu nhỏ, tránh lỗi quá cỡ)
 const PL_HOUR = 48;                                              // px cho mỗi giờ trong lưới
 const PL_COLORS = ['#f2b8c6', '#c9b8ec', '#f6c9a0', '#f4e08c', '#a9dcc6', '#a8cdee'];   // 6 nhóm: màu pastel, chữ tối cho mọi giao diện
 const PL = { off:0, key:'', tasks:null, state:'idle', save:'', prev:null, timer:0, sel:null };
 const plWeekStart = off => DT.now().setZone(userTZ).plus({ weeks:off }).startOf('week');
 const plKey = off => { const d = plWeekStart(off); return `${d.weekYear}-W${d.weekNumber}`; };
+const plDaysLeft = () => Math.ceil(DT.fromISO(state.companionUntil, { zone:userTZ }).endOf('day').diff(DT.now().setZone(userTZ), 'days').days);
 const plAccess = () => DEMO || state.companion || state.isAdmin;
 const plRef = key => db.collection('users').doc(state.user.uid).collection('planner').doc(key);
 const plId = () => Math.random().toString(36).slice(2, 9);
@@ -147,6 +149,8 @@ PAGES.planner = function(){
   if (!state.user && !state.authReady && !DEMO) return page('<div class="gate-load"><i></i></div>');
   if (!state.user && !DEMO) return page(plUpsell());
   if (!plAccess()) { refreshCompanion().then(ch => ch && render(true)); return page(plUpsell()); }
+  if (PL.uid !== state.user.uid) { clearTimeout(PL.timer); Object.assign(PL, { uid:state.user.uid, off:0, key:'', tasks:null, state:'idle', save:'', prev:null, sel:null }); }   // đổi tài khoản trên cùng trình duyệt: không để lộ planner của người trước
+  if (!state.companionUntil && !state.isAdmin && !DEMO) refreshCompanion().then(ch => ch && render(true));       // lấy ngày hết hạn để hiện nhắc gia hạn
   plLoad();
   const ws = plWeekStart(PL.off), nav = `<div class="row between" style="margin-bottom:16px;flex-wrap:wrap;gap:10px"><div class="week-nav"><button class="btn secondary icon" data-act="plWeek" data-d="-1">${ic('chev-l')}</button><span class="lbl">${ws.toFormat('dd/MM')} – ${ws.plus({ days:6 }).toFormat('dd/MM/yyyy')}</span><button class="btn secondary icon" data-act="plWeek" data-d="1">${ic('chev-r')}</button>${PL.off ? `<button class="btn ghost sm" data-act="plWeek" data-d="0">${esc(t('pl_this'))}</button>` : ''}</div>
     <div class="row"><span class="small faint" id="pl-status">${PL.save === 'saved' ? '✓ ' + esc(t('pl_saved')) : PL.save === 'saving' ? esc(t('pl_saving')) : ''}</span><button class="btn primary" data-act="plNew">${ic('plus', 'sm')} ${esc(t('pl_add'))}</button></div></div>`;
@@ -154,7 +158,7 @@ PAGES.planner = function(){
   if (PL.state === 'error') body = `<p class="muted">${esc(t('pl_load_err'))}</p><button class="btn primary" data-act="plRetry">${esc(t('club_retry'))}</button>`;
   else if (!PL.tasks) body = `<p class="muted">${esc(t('pl_loading'))}</p>`;
   else body = `<p class="small faint" style="margin-bottom:10px">${esc(t('pl_hint'))}</p><div class="pl-layout"><div class="card pad" style="padding:12px">${plGrid()}</div>${plReview()}</div>`;
-  page(`${head('pl_title', 'pl_sub', '', 'moonwalk', 4)}${state.companionUntil ? `<p class="small muted" style="margin:-6px 0 12px">${esc(t('pl_until', { d:state.companionUntil }))}</p>` : ''}${nav}${body}`);
+  page(`${head('pl_title', 'pl_sub', '', 'moonwalk', 4)}${state.companionUntil && !state.isAdmin ? (plDaysLeft() <= 5 ? `<div class="card pad stack" style="margin-bottom:14px"><p class="small">${esc(t('pl_soon', { d:state.companionUntil }))}</p>${compClaimHTML()}</div>` : `<p class="small muted" style="margin:-6px 0 12px">${esc(t('pl_until', { d:state.companionUntil }))}</p>`) : ''}${nav}${body}`);
 };
 /* ---------- hộp thoại thêm / sửa ---------- */
 function plForm(x, isNew, day, start){
@@ -191,6 +195,7 @@ Object.assign(ACTIONS, {
     if (PL.sel) { const x = PL.tasks.find(v => v.id === PL.sel); if (x) { const d1 = $('pl-day1').value; Object.assign(x, plClean({ ...x, ...base, day:d1 === '' ? null : +d1, done:$('pl-done').checked })); } }
     else {
       const days = [...document.querySelectorAll('.pl-day:checked')].map(b => +b.value);
+      if (PL.tasks.length + Math.max(1, days.length) > PL_MAX) { toast(t('pl_max', { n:PL_MAX })); return; }
       (days.length ? days : [null]).forEach(day => PL.tasks.push(plClean({ ...base, day })));
     }
     PL.sel = null; closeModal(); plSave(); render(true);
