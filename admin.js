@@ -459,7 +459,7 @@ async function tabReviews(){
 }
 
 /* ---------------- Thanh toán ---------------- */
-const PAY_FIELDS = { 'py-bin':'bankBin', 'py-acc':'accountNo', 'py-name':'accountName', 'py-momo':'momoPhone', 'py-momoqr':'momoQr', 'py-stripe':'stripe', 'py-paypal':'paypal', 'py-kofi':'kofi', 'py-tpl':'orderTemplate', 'py-dvnd':'donateVND', 'py-dusd':'donateUSD', 'py-comp':'companionUrl' };
+const PAY_FIELDS = { 'py-bin':'bankBin', 'py-acc':'accountNo', 'py-name':'accountName', 'py-momo':'momoPhone', 'py-momoqr':'momoQr', 'py-stripe':'stripe', 'py-paypal':'paypal', 'py-kofi':'kofi', 'py-tpl':'orderTemplate', 'py-dvnd':'donateVND', 'py-dusd':'donateUSD', 'py-comp':'companionUrl', 'py-cvnd':'companionVND' };
 function tabPayments(){
   const p = payments;
   A(`${aCard('Chuyển khoản VietQR (khách Việt Nam)', `<div class="f3">${fld('Mã ngân hàng / BIN', 'py-bin', p.bankBin, '', 'VD: 970436 (Vietcombank), 970422 (MB)…')}${fld('Số tài khoản', 'py-acc', p.accountNo)}${fld('Tên chủ tài khoản', 'py-name', p.accountName, '', 'IN HOA, không dấu')}</div><p class="hint">Mã QR tự điền số tiền + mã đơn. Quét được bằng mọi app ngân hàng và bằng MoMo (Chuyển tiền → Quét mã).</p>
@@ -467,6 +467,7 @@ function tabPayments(){
     ${aCard('Thanh toán quốc tế (mặc định cho mọi sản phẩm)', `<div class="f3">${fld('Stripe Payment Link (Visa/Mastercard)', 'py-stripe', p.stripe)}${fld('PayPal.me', 'py-paypal', p.paypal)}${fld('Ko-fi', 'py-kofi', p.kofi)}</div>`)}
     ${aCard('Ủng hộ & Người đồng hành (trang "Support")', `<p class="hint" style="margin-bottom:10px">Trang Support dùng chính thông tin VietQR (khách Việt Nam) và PayPal / Ko-fi / Stripe (khách nước ngoài) ở trên. Chỉ cần thêm các mục dưới đây.</p>
       <div class="f2">${fld('Các mức tiền gợi ý — VND (cách nhau dấu phẩy)', 'py-dvnd', p.donateVND, '', 'VD: 20000, 50000, 100000, 200000')}${fld('Các mức tiền gợi ý — USD', 'py-dusd', p.donateUSD, '', 'VD: 3, 5, 10, 25')}</div>
+      ${fld('Giá "Người đồng hành" mỗi tháng — VND (khách Việt Nam chuyển khoản)', 'py-cvnd', p.companionVND, '', 'VD: 125000. Để trống = 125000. Nội dung chuyển khoản tự sinh cho từng người (dạng EPCPxxxxxx).')}
       ${fld('Link đăng ký hằng tháng cho "Người đồng hành"', 'py-comp', p.companionUrl, '', 'VD: link Ko-fi Membership hoặc Patreon. Để trống = ẩn nút. PayPal.me nên có dạng https://paypal.me/tencuaban')}`)}
     ${aCard('Giới hạn Phòng tập trung (cho người xem miễn phí)', `<p class="hint" style="margin-bottom:10px">Người xem miễn phí chỉ tập trung được tối đa số phút này mỗi ngày. <b>Người đồng hành và bạn (admin) không bị giới hạn.</b> Điền <b>0</b> để bỏ giới hạn cho mọi người. Mặc định 120 phút (2 tiếng).</p>
       <div class="f2">${fld('Số phút tối đa mỗi ngày', 'py-flimit', branding.focusLimit ?? 120, 'type="number" min="0" max="1440"')}<div class="field" style="justify-content:flex-end"><button class="btn primary" data-act="saveFocusLimit">Lưu giới hạn</button></div></div>`)}
