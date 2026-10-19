@@ -9,6 +9,14 @@ service cloud.firestore {
         && request.auth.token.email == 'epstudyroom.contact@gmail.com';
     }
     function signedIn() { return request.auth != null; }
+    // Người đồng hành còn hạn: có tài liệu companions/<uid> và (không có ngày hết hạn HOẶC ngày hết hạn YYYY-MM-DD chưa qua; so theo giờ UTC nên lệch tối đa 1 ngày)
+    function compActive(uid) {
+      let c = get(/databases/$(database)/documents/companions/$(uid)).data;
+      let u = c.get('until', '');
+      return u == null || u == ''
+        || (int(u.split('-')[0]) * 10000 + int(u.split('-')[1]) * 100 + int(u.split('-')[2])
+            >= request.time.year() * 10000 + request.time.month() * 100 + request.time.day());
+    }
     // Giao diện, nội dung chữ/ảnh, thông tin thanh toán hiển thị cho khách, lịch live: ai cũng xem, chỉ admin sửa
     match /settings/{id}         { allow read: if true; allow write: if isAdmin(); }
     match /weekly_schedules/{id} { allow read: if true; allow write: if isAdmin(); }
@@ -87,10 +95,10 @@ service cloud.firestore {
       allow delete: if isAdmin() || (signedIn() && request.auth.uid == uid);
     }
 
-    // Planner tuần riêng tư của Companions: chỉ chính chủ đọc/ghi, và chỉ khi có tài liệu trong companions (admin dùng thử được). Admin không đọc được của người khác.
+    // Planner tuần riêng tư của Companions: chỉ chính chủ đọc/ghi, và chỉ khi là Companion còn hạn (admin dùng thử được). Admin không đọc được của người khác.
     match /users/{uid}/planner/{wk} {
       allow read, write: if signedIn() && request.auth.uid == uid
-        && (isAdmin() || exists(/databases/$(database)/documents/companions/$(request.auth.uid)));
+        && (isAdmin() || (exists(/databases/$(database)/documents/companions/$(request.auth.uid)) && compActive(request.auth.uid)));
     }
 
     // Email nhắc lịch (trước đây là Challenge 30 ngày): id = email → tạo lần 2 bị từ chối (chống trùng)
