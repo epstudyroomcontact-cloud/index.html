@@ -469,3 +469,9 @@ html[data-font="serif"] h1,html[data-font="serif"] h2,html[data-font="serif"] h3
 .pl-ins{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:.9rem}
 .pl-cat{border:2px solid transparent;border-radius:10px;padding:6px 10px;font-size:.78rem;font-weight:700;color:#2a2433;cursor:pointer}.pl-cat.on{border-color:var(--ink)}
 .pl-dchip{display:inline-flex;gap:4px;align-items:center;cursor:pointer}
+
+.pl-trend{display:flex;gap:8px;align-items:flex-end;height:96px;margin-top:6px}
+.pl-trend>div{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;height:100%}
+.pl-trend i{display:block;width:100%;max-width:34px;border-radius:8px 8px 3px 3px;background:var(--accent);opacity:.45}
+.pl-trend .cur i{opacity:1}.pl-trend i.none{background:var(--line2);opacity:1}
+.pl-trend b{font-size:.72rem}.pl-trend small{font-size:.66rem;color:var(--ink3)}
