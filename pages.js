@@ -704,7 +704,7 @@ const compBaseUSD = () => +payments.companionUSD || 3;
 const compPriceUSD = m => m === 1 ? compBaseUSD() : Math.round(compBaseUSD() * m * COMP_DISC[m]);
 const compUsdUrl = m => {                                          // 1 tháng: Ko-fi Membership (tự gia hạn); 3/12 tháng: trả một lần qua PayPal.me (hoặc Ko-fi nếu chưa có PayPal)
   const pp = payments.paypal || '', amt = compPriceUSD(m);
-  if (m > 1 && pp) return /paypal\.me\//i.test(pp) ? pp.replace(/\/+$/, '') + '/' + amt + 'USD' : pp;
+  if (m > 1 && pp) return /paypal\.me\/|paypal\.com\/paypalme\//i.test(pp) ? pp.replace(/\/+$/, '') + '/' + amt + 'USD' : pp;
   return m > 1 && payments.kofi ? payments.kofi : payments.companionUrl || pp;
 };                                                // 'vnd' | 'kofi': cách trả đang chọn ở thẻ Người đồng hành
 const compCode = () => 'EPCP' + (state.user ? state.user.uid.slice(0, 6).toUpperCase() : '');     // nội dung chuyển khoản riêng của từng người, để admin đối chiếu

@@ -65,6 +65,7 @@ Object.assign(I18N.en, {
   pl_dgoal:'Daily goal', pl_dlv_0:'Not started', pl_dlv_1:'Warming up', pl_dlv_2:'Steady', pl_dlv_3:'Great', pl_dlv_4:'Complete',
   pl_dv_empty:'Nothing planned for today. Pick 1 to 3 small tasks, that is enough.', pl_dv_all:'Everything for today is done. You are keeping a great rhythm.', pl_dv_goal:'Daily goal reached. Anything else is a bonus.', pl_dv_start:'Not started yet is fine. Pick the smallest task and do just 10 minutes.', pl_dv_none:'No task ticked today, and that is okay. Do not pile everything onto tomorrow: move only the 1 or 2 that matter most.', pl_dv_some:'{n} of {m} done. Every finished task counts.',
   pl_tip_overdue:'{n} tasks from earlier days are still open. Bring them to today, or delete what you no longer need.', pl_tip_over:'Today is planned for {t}. Pick the 3 most important tasks and do them first; the rest is a bonus.', pl_tip_tm:'Tasks you did not get to can move to tomorrow with one tap.', pl_mv_today:'Move them to today', pl_mv_tm:'Move unfinished to tomorrow', pl_moved:'Moved {n} tasks.',
+  pl_up_expired:'Your companion access ended on {d}. Your planner data is kept safely and comes back as soon as you renew.',
   pl_quick_ph:'Quick add: type a task and press Enter (try "19:30 Review vocab")', pl_quick_btn:'Add', pl_tpl_menu:'Weekly template', pl_streak_l:'Streak', pl_streak_u:'weeks at 70% or more', pl_streak_start:'Finish 70% of a week to start one', pl_ana:'Details', pl_still:'Still to do', pl_goal_set:'Goal', pl_now:'Now',
 });
 Object.assign(I18N.vi, {
@@ -73,6 +74,7 @@ Object.assign(I18N.vi, {
   pl_dgoal:'Mục tiêu ngày', pl_dlv_0:'Chưa bắt đầu', pl_dlv_1:'Khởi động', pl_dlv_2:'Ổn định', pl_dlv_3:'Rất tốt', pl_dlv_4:'Trọn vẹn',
   pl_dv_empty:'Hôm nay chưa có việc. Chọn 1 đến 3 việc nhỏ là đủ rồi.', pl_dv_all:'Xong hết việc hôm nay. Bạn đang giữ nhịp rất tốt.', pl_dv_goal:'Đã đạt mục tiêu ngày. Phần làm thêm là cộng thêm.', pl_dv_start:'Chưa bắt đầu cũng không sao. Chọn việc nhỏ nhất và làm 10 phút thôi.', pl_dv_none:'Hôm nay chưa tick được việc nào, không sao cả. Đừng dồn hết sang ngày mai: chỉ dời 1 đến 2 việc quan trọng nhất.', pl_dv_some:'Đã xong {n}/{m} việc. Việc nào xong cũng được tính.',
   pl_tip_overdue:'Còn {n} việc của những ngày trước chưa xong. Đưa về hôm nay, hoặc xoá bớt việc không còn cần.', pl_tip_over:'Hôm nay xếp tới {t}. Chọn 3 việc quan trọng nhất làm trước, phần còn lại là cộng thêm.', pl_tip_tm:'Việc chưa kịp làm có thể dời sang ngày mai chỉ với một cú bấm.', pl_mv_today:'Dời về hôm nay', pl_mv_tm:'Dời việc chưa xong sang mai', pl_moved:'Đã dời {n} việc.',
+  pl_up_expired:'Quyền Companion của bạn đã hết hạn ngày {d}. Dữ liệu Planner vẫn được giữ nguyên và sẽ hiện lại ngay khi bạn gia hạn.',
   pl_quick_ph:'Thêm nhanh: gõ việc rồi bấm Enter (ví dụ "19:30 Ôn từ vựng")', pl_quick_btn:'Thêm', pl_tpl_menu:'Tuần mẫu', pl_streak_l:'Chuỗi tuần', pl_streak_u:'tuần liên tiếp xong từ 70%', pl_streak_start:'Xong 70% việc của một tuần để bắt đầu', pl_ana:'Chi tiết', pl_still:'Việc chưa xong', pl_goal_set:'Mục tiêu', pl_now:'Bây giờ',
 });
 
@@ -237,7 +239,7 @@ const plRemStart = () => { if (!PL.remT && plRemOn()) PL.remT = setInterval(plRe
 function plUpsell(){
   const login = !state.user;
   return `${head('pl_title', '', '', 'moonwalk', 4)}<section class="card pad stack" style="max-width:640px"><div class="row"><span class="badge">${ic('heart', 'sm')} ${esc(t('comp_badge'))}</span></div>
-    <h2 style="font-size:1.3rem">${esc(t('pl_up_title'))}</h2><p class="muted">${esc(login ? t('pl_up_login') : t('pl_up_text'))}</p>
+    <h2 style="font-size:1.3rem">${esc(t('pl_up_title'))}</h2><p class="muted">${esc(login ? t('pl_up_login') : state.companionUntil ? t('pl_up_expired', { d:state.companionUntil }) : t('pl_up_text'))}</p>
     ${login ? `<a class="btn primary" href="#/account">${esc(t('club_login_btn'))}</a>` : `${compClaimHTML()}<a class="btn secondary" href="#/donate">${esc(t('pl_up_cta'))}</a>`}</section>`;
 }
 function plGrid(){
