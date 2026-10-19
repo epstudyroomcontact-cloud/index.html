@@ -66,6 +66,8 @@ Object.assign(I18N.en, {
   pl_dv_empty:'Nothing planned for today. Pick 1 to 3 small tasks, that is enough.', pl_dv_all:'Everything for today is done. You are keeping a great rhythm.', pl_dv_goal:'Daily goal reached. Anything else is a bonus.', pl_dv_start:'Not started yet is fine. Pick the smallest task and do just 10 minutes.', pl_dv_none:'No task ticked today, and that is okay. Do not pile everything onto tomorrow: move only the 1 or 2 that matter most.', pl_dv_some:'{n} of {m} done. Every finished task counts.',
   pl_tip_overdue:'{n} tasks from earlier days are still open. Bring them to today, or delete what you no longer need.', pl_tip_over:'Today is planned for {t}. Pick the 3 most important tasks and do them first; the rest is a bonus.', pl_tip_tm:'Tasks you did not get to can move to tomorrow with one tap.', pl_mv_today:'Move them to today', pl_mv_tm:'Move unfinished to tomorrow', pl_moved:'Moved {n} tasks.',
   pl_up_expired:'Your companion access ended on {d}. Your planner data is kept safely and comes back as soon as you renew.',
+  pl_s_vocab:'Review vocabulary', pl_s_listen:'Listening practice', pl_s_read:'Reading task', pl_s_gym:'Workout', pl_s_essay:'Write an essay', pl_s_book:'Read a book', pl_s_meet:'Team meeting', pl_s_speak:'Speaking practice', pl_s_movie:'Watch a movie', pl_s_clean:'Tidy up', pl_s_review:'Weekly review',
+  pl_chime_on:'Chime on', pl_chime_off:'Chime off', pl_rem_inpage:'Your browser blocks notifications, so I will remind you inside this page, with a chime. Keep the tab open.', pl_preview:'Preview with sample data', pl_preview_note:'This is how the Planner looks for companions. It is locked until you become a companion.',
   pl_quick_ph:'Quick add: type a task and press Enter (try "19:30 Review vocab")', pl_quick_btn:'Add', pl_tpl_menu:'Weekly template', pl_streak_l:'Streak', pl_streak_u:'weeks at 70% or more', pl_streak_start:'Finish 70% of a week to start one', pl_ana:'Details', pl_still:'Still to do', pl_goal_set:'Goal', pl_now:'Now',
 });
 Object.assign(I18N.vi, {
@@ -75,6 +77,8 @@ Object.assign(I18N.vi, {
   pl_dv_empty:'Hôm nay chưa có việc. Chọn 1 đến 3 việc nhỏ là đủ rồi.', pl_dv_all:'Xong hết việc hôm nay. Bạn đang giữ nhịp rất tốt.', pl_dv_goal:'Đã đạt mục tiêu ngày. Phần làm thêm là cộng thêm.', pl_dv_start:'Chưa bắt đầu cũng không sao. Chọn việc nhỏ nhất và làm 10 phút thôi.', pl_dv_none:'Hôm nay chưa tick được việc nào, không sao cả. Đừng dồn hết sang ngày mai: chỉ dời 1 đến 2 việc quan trọng nhất.', pl_dv_some:'Đã xong {n}/{m} việc. Việc nào xong cũng được tính.',
   pl_tip_overdue:'Còn {n} việc của những ngày trước chưa xong. Đưa về hôm nay, hoặc xoá bớt việc không còn cần.', pl_tip_over:'Hôm nay xếp tới {t}. Chọn 3 việc quan trọng nhất làm trước, phần còn lại là cộng thêm.', pl_tip_tm:'Việc chưa kịp làm có thể dời sang ngày mai chỉ với một cú bấm.', pl_mv_today:'Dời về hôm nay', pl_mv_tm:'Dời việc chưa xong sang mai', pl_moved:'Đã dời {n} việc.',
   pl_up_expired:'Quyền Companion của bạn đã hết hạn ngày {d}. Dữ liệu Planner vẫn được giữ nguyên và sẽ hiện lại ngay khi bạn gia hạn.',
+  pl_s_vocab:'Ôn từ vựng', pl_s_listen:'Luyện nghe', pl_s_read:'Làm bài đọc', pl_s_gym:'Tập thể dục', pl_s_essay:'Viết bài luận', pl_s_book:'Đọc sách', pl_s_meet:'Họp nhóm', pl_s_speak:'Luyện nói', pl_s_movie:'Xem phim', pl_s_clean:'Dọn dẹp', pl_s_review:'Tổng kết tuần',
+  pl_chime_on:'Chuông: bật', pl_chime_off:'Chuông: tắt', pl_rem_inpage:'Trình duyệt đang chặn thông báo, nên mình sẽ nhắc ngay trong trang và có chuông. Bạn để tab này mở nhé.', pl_preview:'Xem trước với dữ liệu mẫu', pl_preview_note:'Đây là giao diện Planner dành cho Companions. Planner bị khoá cho đến khi bạn trở thành Companion.',
   pl_quick_ph:'Thêm nhanh: gõ việc rồi bấm Enter (ví dụ "19:30 Ôn từ vựng")', pl_quick_btn:'Thêm', pl_tpl_menu:'Tuần mẫu', pl_streak_l:'Chuỗi tuần', pl_streak_u:'tuần liên tiếp xong từ 70%', pl_streak_start:'Xong 70% việc của một tuần để bắt đầu', pl_ana:'Chi tiết', pl_still:'Việc chưa xong', pl_goal_set:'Mục tiêu', pl_now:'Bây giờ',
 });
 
@@ -225,22 +229,41 @@ function plTrend(){
   return `<div class="pl-trend">${bars.map(b => `<div class="${b.cur ? 'cur' : ''}"><i style="height:${b.r === null ? 3 : Math.max(6, b.r)}%" class="${b.r === null ? 'none' : ''}"></i><b>${b.r === null ? '–' : b.r + '%'}</b><small>${b.w}</small></div>`).join('')}</div>`;
 }
 /* ---------- nhắc việc (Notification của trình duyệt, chỉ chạy khi trang đang mở) ---------- */
-const plRemOn = () => typeof Notification !== 'undefined' && Notification.permission === 'granted' && store.get('pl_rem', false);
+const plRemOn = () => !!store.get('pl_rem', false);                 // nhắc ngay trong trang (toast + chuông); thông báo của trình duyệt chỉ thêm vào khi đã cho phép
+const plChimeOn = () => store.get('pl_chime', true) !== false;
+function plChime(){                                                 // chuông 2 tiếng tự tạo bằng Web Audio (không cần file âm thanh)
+  if (!plChimeOn() || typeof audio !== 'function') return;
+  const a = audio(); if (!a) return;
+  [0, .55].forEach(d => [[880, .22], [1318, .09], [1760, .04]].forEach(([f, v]) => { const o = a.createOscillator(), g = a.createGain(), at = a.currentTime + d; o.type = 'sine'; o.frequency.value = f; g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(v, at + .01); g.gain.exponentialRampToValueAtTime(.0008, at + 1.1); o.connect(g); g.connect(a.destination); o.start(at); o.stop(at + 1.2); }));
+}
 function plRemTick(){
   const u = state.user; if (!u || !plAccess() || !plRemOn()) return;
   const tasks = PL.key === plKey(0) && PL.tasks && PL.uid === u.uid ? PL.tasks : (PL.remTasks && PL.remTasks.uid === u.uid ? PL.remTasks.tasks : null); if (!tasks) return;
-  const now = DT.now().setZone(userTZ), di = now.weekday - 1, mins = now.hour * 60 + now.minute, day = now.toISODate(), say = (title, body) => { try { new Notification(title, { body }); } catch (e) {} toast(body); };
+  const now = DT.now().setZone(userTZ), di = now.weekday - 1, mins = now.hour * 60 + now.minute, day = now.toISODate(), say = (title, body) => { try { if (typeof Notification !== 'undefined' && Notification.permission === 'granted') new Notification(title, { body, silent:true }); } catch (e) {} toast(body); plChime(); };
   tasks.forEach(x => { if (x.done || x.day !== di || !x.start) return; const st = hm(x.start), k = x.id + day; if (mins >= st - 10 && mins < st + 5 && !PL.sent[k]) { PL.sent[k] = 1; say(t('pl_rem_title'), t('pl_rem_soon', { t:x.title || '—', s:x.start })); } });
   const left = tasks.filter(x => !x.done && x.day === di).length;
   if (mins >= 1200 && mins < 1260 && left && !PL.sent['eve' + day]) { PL.sent['eve' + day] = 1; say(t('pl_rem_title'), t('pl_rem_eve', { n:left })); }
 }
 const plRemStart = () => { if (!PL.remT && plRemOn()) PL.remT = setInterval(plRemTick, 30000); };
 /* ---------- giao diện ---------- */
+function plPreview(){                                              // giao diện thật với dữ liệu mẫu, chỉ để xem (dùng cho người chưa là Companion)
+  const sample = [[0, '07:30', 45, 'vocab', 0], [0, '19:30', 60, 'listen', 0], [1, '09:00', 90, 'read', 0], [1, '18:00', 45, 'gym', 2], [2, '08:00', 120, 'essay', 1], [2, '20:00', 40, 'book', 3], [3, '07:30', 45, 'vocab', 0], [3, '14:00', 60, 'meet', 1], [4, '09:00', 60, 'speak', 0], [4, '19:00', 90, 'movie', 4], [5, '10:00', 60, 'clean', 5], [5, '15:00', 90, 'read', 0], [6, '09:00', 45, 'review', 0]];
+  const di = DT.now().setZone(userTZ).weekday - 1, bak = { ...PL };
+  try {
+    PL.off = 0; PL.prefs = { goalMin:600, dayGoalMin:120 }; PL.prev = null; PL.hist = {};
+    PL.tasks = sample.map(([day, start, dur, k, c], i) => ({ id:'s' + i, title:t('pl_s_' + k), day, start, dur, c, done:day < 4 && i !== 3 }));
+    [8, 7, 9, 6, 7].forEach((r, i) => { PL.hist[plKey(-1 - i)] = plStats(Array.from({ length:10 }, (_, j) => ({ id:'h' + j, title:'x', day:j % 5, start:'09:00', dur:60, c:j % 4, done:j < r })), -1); });
+    const S = plStats(PL.tasks, -1);
+    return `${plKpis(S)}<div class="pl-main"><div class="card pad pl-gridcard">${plGrid()}</div>${plSide()}</div>${plAnalysis(S)}`;
+  } finally { Object.keys(PL).forEach(k => delete PL[k]); Object.assign(PL, bak); }
+}
 function plUpsell(){
   const login = !state.user;
   return `${head('pl_title', '', '', 'moonwalk', 4)}<section class="card pad stack" style="max-width:640px"><div class="row"><span class="badge">${ic('heart', 'sm')} ${esc(t('comp_badge'))}</span></div>
     <h2 style="font-size:1.3rem">${esc(t('pl_up_title'))}</h2><p class="muted">${esc(login ? t('pl_up_login') : state.companionUntil ? t('pl_up_expired', { d:state.companionUntil }) : t('pl_up_text'))}</p>
-    ${login ? `<a class="btn primary" href="#/account">${esc(t('club_login_btn'))}</a>` : `${compClaimHTML()}<a class="btn secondary" href="#/donate">${esc(t('pl_up_cta'))}</a>`}</section>`;
+    ${login ? `<a class="btn primary" href="#/account">${esc(t('club_login_btn'))}</a>` : `${compClaimHTML()}<a class="btn secondary" href="#/donate">${esc(t('pl_up_cta'))}</a>`}</section>
+    <div class="pl-previewhead"><span class="badge">${ic('lock', 'sm')} ${esc(t('pl_preview'))}</span><small class="faint">${esc(t('pl_preview_note'))}</small></div>
+    <div class="pl-locked" inert aria-hidden="true">${plPreview()}</div>`;
 }
 function plGrid(){
   const tasks = PL.tasks, ws = plWeekStart(PL.off), nowDT = DT.now().setZone(userTZ), today = nowDT.toISODate(), nowM = nowDT.hour * 60 + nowDT.minute;
@@ -273,8 +296,7 @@ function plToday(){
   const verdict = !list.length ? t('pl_dv_empty') : nd === list.length ? t('pl_dv_all') : goal && doneMin >= goal ? t('pl_dv_goal') : nd === 0 ? t(now.hour < 17 ? 'pl_dv_start' : 'pl_dv_none') : t('pl_dv_some', { n:nd, m:list.length });
   const over = plOverdue(), tip = over.length ? { k:t('pl_tip_overdue', { n:over.length }), act:'plMoveToday', btn:t('pl_mv_today') } : planMin > 360 && undone.length ? { k:t('pl_tip_over', { t:fmtMin(planMin) }) } : undone.length && now.hour >= 18 && di < 6 ? { k:t('pl_tip_tm'), act:'plMoveTomorrow', btn:t('pl_mv_tm') } : null;
   const row = x => `<div class="pl-li ${x.done ? 'done' : ''}"><button type="button" class="pl-ck sm" style="border-color:${PL_COLORS[x.c]}" data-act="plToggle" data-id="${esc(x.id)}">${x.done ? ic('check', 'sm') : ''}</button><span data-act="plEdit" data-id="${esc(x.id)}">${esc(x.title || '—')}${x.start ? ` <small class="faint">${esc(x.start)}</small>` : ''}</span></div>`;
-  const sup = typeof Notification !== 'undefined', denied = sup && Notification.permission === 'denied';
-  const rem = plRemOn() ? `<button type="button" class="btn ghost sm" data-act="plRem">${ic('bell', 'sm')} ${esc(t('pl_rem_on'))}</button>` : sup && !denied ? `<button type="button" class="btn secondary sm" data-act="plRem">${ic('bell', 'sm')} ${esc(t('pl_rem_btn'))}</button><p class="small faint" style="margin-top:6px">${esc(t('pl_rem_hint'))}</p>` : '';
+  const rem = plRemOn() ? `<div class="row" style="gap:8px;flex-wrap:wrap"><button type="button" class="btn ghost sm" data-act="plRem">${ic('bell', 'sm')} ${esc(t('pl_rem_on'))}</button><button type="button" class="btn ghost sm" data-act="plChimeTog">${ic('volume', 'sm')} ${esc(t(plChimeOn() ? 'pl_chime_on' : 'pl_chime_off'))}</button></div>` : `<button type="button" class="btn secondary sm" data-act="plRem">${ic('bell', 'sm')} ${esc(t('pl_rem_btn'))}</button><p class="small faint" style="margin-top:6px">${esc(t('pl_rem_hint'))}</p>`;
   const goalSel = `<select class="select" data-change="plDayGoal" aria-label="${esc(t('pl_dgoal'))}" style="width:auto;padding:3px 8px;font-size:.8rem">${[0, 30, 60, 90, 120, 180, 240].map(m => `<option value="${m}" ${goal === m ? 'selected' : ''}>${m ? fmtMin(m) : t('pl_goal_none')}</option>`).join('')}</select>`;
   return `<section class="card pad"><div class="row between"><h3>${esc(t('pl_today'))}</h3>${list.length ? `<span class="badge">${esc(t('pl_dlv_' + (frac >= 1 ? 4 : frac >= .6 ? 3 : frac >= .3 ? 2 : frac > 0 ? 1 : 0)))}</span>` : ''}</div>
     <div class="row between" style="margin:8px 0 6px"><small class="faint">${nd}/${list.length}${goal ? ' · ' + esc(fmtMin(doneMin)) + ' / ' + esc(fmtMin(goal)) : ''}</small></div>${plBar(goal ? doneMin : nd, goal || list.length)}
@@ -356,12 +378,13 @@ Object.assign(ACTIONS, {
   plWeek: el => { plFlush(); const d = +el.dataset.d; PL.off = d ? PL.off + d : 0; PL.seq++; PL.tasks = null; PL.key = ''; PL.state = 'idle'; render(true); },
   plRetry: () => { PL.seq++; PL.state = 'idle'; PL.key = ''; PL.tasks = null; PL.slow = false; render(true); },
   plRem: async () => {
-    if (typeof Notification === 'undefined') return toast(t('pl_rem_unsup'));
     if (plRemOn()) { store.set('pl_rem', false); clearInterval(PL.remT); PL.remT = 0; toast(t('pl_rem_off')); return render(true); }
-    let perm = Notification.permission; if (perm === 'default') { try { perm = await Notification.requestPermission(); } catch (e) { perm = 'denied'; } }
-    if (perm !== 'granted') { toast(t('pl_rem_denied')); return render(true); }
-    store.set('pl_rem', true); plRemStart(); try { new Notification(t('pl_rem_title'), { body:t('pl_rem_test') }); } catch (e) {} render(true);
+    let perm = typeof Notification === 'undefined' ? 'denied' : Notification.permission; if (perm === 'default') { try { perm = await Notification.requestPermission(); } catch (e) { perm = 'denied'; } }
+    store.set('pl_rem', true); plRemStart(); plChime();
+    if (perm === 'granted') { try { new Notification(t('pl_rem_title'), { body:t('pl_rem_test'), silent:true }); } catch (e) {} } else toast(t('pl_rem_inpage'));
+    render(true);
   },
+  plChimeTog: () => { store.set('pl_chime', !plChimeOn()); if (plChimeOn()) plChime(); render(true); },
   plTplSave: () => {
     const tpl = PL.tasks.filter(x => x.title).slice(0, 100).map(x => ({ ...plClean(x), done:false, carried:false }));
     plSavePrefs({ template:tpl }); toast(t('pl_tpl_saved', { n:tpl.length })); render(true);
