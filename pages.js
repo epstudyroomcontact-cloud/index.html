@@ -469,7 +469,7 @@ function startCheckout(){
   const hasDigital = T.lines.some(l => l.p.type !== 'physical'), phys = T.lines.some(l => l.p.type === 'physical');
   if (hasDigital && !state.user) return openModal(`<h2>${esc(t('signin'))}</h2><p class="muted">${esc(t('login_to_buy'))}</p><div class="row mt"><a class="btn primary" href="#/account" data-act="closeModal">${esc(t('signin'))} / ${esc(t('signup'))}</a></div>`, true);
   openModal(`<h2>${esc(t('checkout'))}</h2><form class="stack mt-s" data-form="order">
-    <div class="f2"><div class="field"><label class="label">${esc(t('your_name'))}</label><input class="input" id="b-name" required maxlength="80" value="${esc(state.user ? displayName() : '')}"></div><div class="field"><label class="label">${esc(t('your_email'))}</label><input class="input" id="b-email" type="email" required maxlength="160" value="${esc(state.user ? state.user.email : '')}"></div></div>
+    <div class="f2"><div class="field"><label class="label">${esc(t('your_name'))}</label><input class="input" id="b-name" required maxlength="80" value="${esc(state.user ? displayName() : '')}"></div><div class="field"><label class="label">${esc(t('your_email'))}</label><input class="input" id="b-email" type="email" required maxlength="160" ${state.user && state.user.email ? 'readonly' : ''} value="${esc(state.user ? state.user.email : '')}"></div></div>
     ${phys ? `<div class="field"><label class="label">${esc(t('address'))}</label><textarea class="textarea" id="b-addr" required maxlength="400"></textarea><div class="hint">${esc(t('ship_note'))}</div></div>` : ''}
     <div class="field"><label class="label">${esc(t('note'))}</label><textarea class="textarea" id="b-note" maxlength="400" style="min-height:60px"></textarea></div>
     <div class="card pad" style="background:var(--surface2)">${T.lines.map(l => `<div class="sumrow"><span>${esc(L(l.p.name))} × ${l.qty}</span><span>${money(l.line, T.cur)}</span></div>`).join('')}${T.disc ? `<div class="sumrow" style="color:var(--live)"><span>${esc(t('discount'))}</span><span>−${money(T.disc, T.cur)}</span></div>` : ''}<div class="sumrow total"><span>${esc(t('total'))}</span><span>${money(T.total, T.cur)}</span></div></div>
@@ -490,8 +490,8 @@ function paymentStep(o){
   let body = '';
   if (o.currency === 'VND') {
     if (payments.bankBin && payments.accountNo) {
-      const qr = `https://img.vietqr.io/image/${encodeURIComponent(payments.bankBin)}-${encodeURIComponent(payments.accountNo)}-compact2.png?amount=${o.total}&addInfo=${encodeURIComponent(o.code)}&accountName=${encodeURIComponent(payments.accountName || '')}`;
-      body = `<p class="muted">${esc(t('scan_qr'))}</p><img class="qr" alt="VietQR" src="${esc(qr)}"><div class="kv">${row(t('bank'), payments.bankBin)}${row(t('acc_no'), payments.accountNo, payments.accountNo)}${row(t('acc_name'), payments.accountName || '')}${row(t('amount'), money(o.total, 'VND'), String(o.total))}${row(t('content'), o.code, o.code)}</div>
+      const note = mailNote(state.user && state.user.email || o.buyer && o.buyer.email) || o.code, qr = `https://img.vietqr.io/image/${encodeURIComponent(payments.bankBin)}-${encodeURIComponent(payments.accountNo)}-compact2.png?amount=${o.total}&addInfo=${encodeURIComponent(note)}&accountName=${encodeURIComponent(payments.accountName || '')}`;
+      body = `<p class="muted">${esc(t('scan_qr'))}</p><img class="qr" alt="VietQR" src="${esc(qr)}"><div class="kv">${row(t('bank'), payments.bankBin)}${row(t('acc_no'), payments.accountNo, payments.accountNo)}${row(t('acc_name'), payments.accountName || '')}${row(t('amount'), money(o.total, 'VND'), String(o.total))}${row(t('content'), note, note)}</div><p class="small faint">${esc(t('pay_mail_hint'))}</p>
         ${payments.momoPhone ? `<div class="kv">${row(t('momo'), payments.momoPhone, payments.momoPhone)}</div>${payments.momoQr ? `<img class="qr" style="max-width:200px" alt="MoMo" src="${esc(payments.momoQr)}">` : ''}` : ''}`;
     } else body = `<p>${esc(t('pay_none'))}</p>`;
   } else body = linkBtns ? `<div class="row mt">${linkBtns}</div>` : `<p>${esc(t('pay_none'))}</p>`;
@@ -737,7 +737,8 @@ const compUsdUrl = m => {                                          // 1 tháng: 
   if (m > 1 && pp) return /paypal\.me\/|paypal\.com\/paypalme\//i.test(pp) ? pp.replace(/\/+$/, '') + '/' + amt + 'USD' : pp;
   return m > 1 && payments.kofi ? payments.kofi : payments.companionUrl || pp;
 };                                                // 'vnd' | 'kofi': cách trả đang chọn ở thẻ Người đồng hành
-const compCode = () => state.user && state.user.email ? state.user.email.trim().toLowerCase().slice(0, 50) : 'EPCP' + (state.user ? state.user.uid.slice(0, 6).toUpperCase() : '');     // nội dung chuyển khoản = email đăng ký tài khoản (mỗi người một khác, admin đối chiếu theo email); tài khoản không có email thì dùng mã EPCP + 6 ký tự uid
+const mailNote = e => String(e || '').trim().toLowerCase().slice(0, 50);                 // nội dung chuyển khoản = email (ngân hàng thường giới hạn 25-50 ký tự)
+const compCode = () => state.user && state.user.email ? mailNote(state.user.email) : 'EPCP' + (state.user ? state.user.uid.slice(0, 6).toUpperCase() : '');     // nội dung chuyển khoản = email đăng ký tài khoản (mỗi người một khác, admin đối chiếu theo email); tài khoản không có email thì dùng mã EPCP + 6 ký tự uid
 const compPayMode = () => { const bank = payments.bankBin && payments.accountNo, kofi = payments.companionUrl || payments.paypal; return compPay === 'vnd' && bank || compPay === 'kofi' && kofi ? compPay : (bank && (effCurrency() === 'VND' || !kofi) ? 'vnd' : kofi ? 'kofi' : ''); };
 function compPayHTML(){
   const bank = payments.bankBin && payments.accountNo, kofi = payments.companionUrl || payments.paypal, mode = compPayMode(); if (!mode) return '';
@@ -752,18 +753,19 @@ function compPayHTML(){
     <div class="kv"><div class="kvr"><span>${esc(t('acc_no'))}</span><b>${esc(payments.accountNo)}</b>${cp(payments.accountNo)}</div><div class="kvr"><span>${esc(t('comp_vnd_sum'))}</span><b>${esc(String(amt))}</b>${cp(String(amt))}</div><div class="kvr"><span>${esc(t('donate_note'))}</span><b>${esc(code)}</b>${cp(code)}</div></div>${payments.momoPhone ? `<div class="small muted">MoMo: <b>${esc(payments.momoPhone)}</b></div>` : ''}<p class="small faint">${esc(t(state.user.email ? 'comp_vnd_mail' : 'comp_vnd_hint'))}</p>`;
   return `<div class="stack">${seg}${body}</div>`;
 }
-let donAmt = null, donCur = null;
+let donAmt = null, donCur = null, donMail = '';
+const donNote = () => state.user && state.user.email ? mailNote(state.user.email) : (/^\S+@\S+\.\S+$/.test(donMail.trim()) ? mailNote(donMail) : 'EP DONATE');
 const parseAmts = (s, d) => { const a = String(s || '').split(/[,\s]+/).map(Number).filter(n => n > 0); return a.length ? a : d; };
 /* mục cảm ơn những người đồng hành (tên do admin chọn hiện, xem tab Thành viên) */
 const thanksCard = () => { const l = thanksList(); return l.length ? `<section class="card pad thanks mt"><div class="card-h"><h2 ${cms('thanks_title')}>${ic('heart', 'sm')} ${esc(ctext('thanks_title'))}</h2></div><p class="muted small" ${cms('thanks_text')}>${esc(ctext('thanks_text'))}</p><div class="thanks-list">${l.map(x => `<span class="thanks-chip">${ic('heart', 'sm')} ${esc(x.name)}</span>`).join('')}</div></section>` : ''; };
 const donateHTML = function(){
   if (state.user) refreshCompanion().then(ch => ch && render(true));
   const cur = donCur || effCurrency(), amts = cur === 'VND' ? parseAmts(payments.donateVND, [20000, 50000, 100000, 200000]) : parseAmts(payments.donateUSD, [3, 5, 10, 25]);
-  const amt = donAmt && donAmt.cur === cur ? donAmt.v : amts[1] || amts[0], hasBank = payments.bankBin && payments.accountNo;
+  const amt = donAmt && donAmt.cur === cur ? donAmt.v : amts[1] || amts[0], hasBank = payments.bankBin && payments.accountNo, note = donNote();
   let pay = '';
   if (cur === 'VND') {
-    pay = hasBank ? `<img class="qr" alt="VietQR" src="https://img.vietqr.io/image/${encodeURIComponent(payments.bankBin)}-${encodeURIComponent(payments.accountNo)}-compact2.png?amount=${amt}&addInfo=${encodeURIComponent('EP DONATE')}&accountName=${encodeURIComponent(payments.accountName || '')}"><p class="small muted" style="text-align:center">${esc(t('donate_scan'))}</p>
-      <div class="kv"><div class="kvr"><span>${esc(t('acc_no'))}</span><b>${esc(payments.accountNo)}</b><button type="button" class="btn secondary sm" data-act="copy" data-v="${esc(payments.accountNo)}">${esc(t('copy'))}</button></div><div class="kvr"><span>${esc(t('donate_note'))}</span><b>EP DONATE</b><button type="button" class="btn secondary sm" data-act="copy" data-v="EP DONATE">${esc(t('copy'))}</button></div></div>${payments.momoPhone ? `<div class="small muted">MoMo: <b>${esc(payments.momoPhone)}</b></div>` : ''}` : '';
+    pay = hasBank ? `${state.user && state.user.email ? '' : `<div class="field"><label class="label">${esc(t('don_mail_label'))}</label><input class="input" type="email" id="don-mail" data-change="donMail" maxlength="120" autocomplete="email" value="${esc(donMail)}"></div>`}<img class="qr" alt="VietQR" src="https://img.vietqr.io/image/${encodeURIComponent(payments.bankBin)}-${encodeURIComponent(payments.accountNo)}-compact2.png?amount=${amt}&addInfo=${encodeURIComponent(note)}&accountName=${encodeURIComponent(payments.accountName || '')}"><p class="small muted" style="text-align:center">${esc(t('donate_scan'))}</p>
+      <div class="kv"><div class="kvr"><span>${esc(t('acc_no'))}</span><b>${esc(payments.accountNo)}</b><button type="button" class="btn secondary sm" data-act="copy" data-v="${esc(payments.accountNo)}">${esc(t('copy'))}</button></div><div class="kvr"><span>${esc(t('donate_note'))}</span><b>${esc(note)}</b><button type="button" class="btn secondary sm" data-act="copy" data-v="${esc(note)}">${esc(t('copy'))}</button></div></div>${payments.momoPhone ? `<div class="small muted">MoMo: <b>${esc(payments.momoPhone)}</b></div>` : ''}<p class="small faint">${esc(t('pay_mail_hint'))}</p>` : '';
   } else {
     const pp = payments.paypal ? (/paypal\.me\//i.test(payments.paypal) ? payments.paypal.replace(/\/+$/, '') + '/' + amt + 'USD' : payments.paypal) : '';
     pay = [pp && `<a class="btn primary lg" target="_blank" rel="noopener" href="${esc(pp)}">PayPal · $${amt}</a>`, payments.kofi && `<a class="btn secondary lg" target="_blank" rel="noopener" href="${esc(payments.kofi)}">Ko-fi</a>`, payments.stripe && `<a class="btn secondary lg" target="_blank" rel="noopener" href="${esc(payments.stripe)}">${ic('credit', 'sm')} Card</a>`].filter(Boolean).join(' ');
@@ -781,6 +783,7 @@ const donateHTML = function(){
   return body;
 };
 PAGES.donate = function(){ page(`${head('donate_title', 'donate_sub', '', 'lantern', 3)}${donateHTML()}${thanksCard()}`); };
+CHANGES.donMail = el => { donMail = el.value; render(true); };
 CHANGES.donCustom = el => { const v = Math.round(+el.value); if (v > 0) { donAmt = { cur:donCur || effCurrency(), v }; render(true); } };
 Object.assign(ACTIONS, {
   compPay: el => { compPay = el.dataset.m; render(true); },
