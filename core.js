@@ -163,10 +163,10 @@ const PRESETS = {
 };
 function cleanPomo(p){
   p = p || {}; const n = (v, d, min = 1) => Math.max(min, Math.round(+v || d));
-  return { focus:n(p.focus,25), short:n(p.short,5,0), long:n(p.long,15,0), rounds:n(p.rounds,4), longEvery:n(p.longEvery,4) };
+  return { focus:n(p.focus,25), short:n(p.short,5,0), long:n(p.long,15,0), rounds:n(p.rounds,4), longEvery:n(p.longEvery,4), prep:n(p.prep,0,0) };
 }
 function buildPlan(p){            // focus → nghỉ (nghỉ dài sau mỗi N phiên); không có nghỉ ngắn ở cuối buổi
-  const segs = [];
+  const segs = []; if (p.prep > 0) segs.push({ type:'prep', min:p.prep });      // phút chào & chuẩn bị ở đầu buổi (tuỳ chọn)
   for (let i = 1; i <= p.rounds; i++) {
     segs.push({ type:'focus', min:p.focus, n:i });
     if (i % p.longEvery === 0) { if (p.long) segs.push({ type:'long', min:p.long }); }
