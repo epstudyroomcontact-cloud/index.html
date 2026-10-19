@@ -13,7 +13,7 @@ Object.assign(I18N.en, {
   pl_this:'This week', pl_add:'Add task', pl_edit:'Edit task', pl_new:'New task', pl_saving:'Saving…', pl_saved:'Saved', pl_err:'Could not save. Check your connection and try again.', pl_loading:'Loading your week…', pl_slow:'Still loading. Your connection to the database is slow right now. You can wait a little longer or try again.', pl_load_err:'Could not load your planner. Reload the page to try again.',
   pl_f_title:'What do you want to do?', pl_f_day:'Day', pl_f_days:'Days', pl_f_noday:'No specific day', pl_f_start:'Start time (optional)', pl_f_dur:'Minutes', pl_f_cat:'Category', pl_f_done:'Done', pl_save:'Save', pl_delete:'Delete',
   pl_allday:'No time', pl_week_list:'To do this week (no day)', pl_empty_list:'Nothing here. Tasks without a day show up in this list.', pl_hint:'Tap an empty spot in a day to add a task there. Tap a task to edit it, tap the circle to tick it off.',
-  pl_review:'This week in numbers', pl_done_tasks:'Tasks done', pl_done_min:'Time done', pl_plan_min:'Time planned', pl_by_day:'By day', pl_by_cat:'By category', pl_left:'Still to do', pl_left_none:'Everything is ticked off. Nice.', pl_carry:'Move the unfinished tasks to next week', pl_carried:'Moved to next week', pl_carried_n:'{n} tasks moved to next week.',
+  pl_review:'This week in numbers', pl_done_tasks:'Tasks done', pl_done_min:'Time done', pl_plan_min:'Time planned', pl_by_day:'By day', pl_by_cat:'By category', pl_left:'Still to do', pl_left_none:'Everything is ticked off. Nice.', pl_carry:'Move the unfinished tasks to next week', pl_carried:'Moved to next week', pl_carried_n:'{n} tasks moved to next week.', pl_uncarry:'Bring back', pl_uncarry_all:'Bring them all back to this week', pl_uncarried_n:'{n} tasks brought back to this week.',
   pl_insights:'What this says about your week', pl_i_none:'Add a few tasks and tick them off to get your weekly review.',
   pl_i_rate_hi:'You finished {p}% of the tasks that were due. That is a strong week.', pl_i_rate_mid:'You finished {p}% of the tasks that were due. A solid base to build on.', pl_i_rate_lo:'You finished {p}% of the tasks that were due. That is okay, every week has slow stretches. Next week, try fewer tasks per day so it is easier to keep the rhythm.',
   pl_i_best:'Your most productive day was {d}, with {t} done.', pl_i_part_0:'You get the most done in the morning.', pl_i_part_1:'You get the most done in the afternoon.', pl_i_part_2:'You get the most done in the evening.',
@@ -30,7 +30,7 @@ Object.assign(I18N.vi, {
   pl_this:'Tuần này', pl_add:'Thêm việc', pl_edit:'Sửa việc', pl_new:'Việc mới', pl_saving:'Đang lưu…', pl_saved:'Đã lưu', pl_err:'Chưa lưu được. Bạn kiểm tra mạng rồi thử lại nhé.', pl_loading:'Đang tải tuần của bạn…', pl_slow:'Vẫn đang tải. Kết nối tới cơ sở dữ liệu của bạn đang chậm. Bạn có thể chờ thêm hoặc bấm thử lại.', pl_load_err:'Chưa tải được planner. Bạn tải lại trang để thử lại nhé.',
   pl_f_title:'Bạn muốn làm gì?', pl_f_day:'Ngày', pl_f_days:'Các ngày', pl_f_noday:'Không gắn ngày', pl_f_start:'Giờ bắt đầu (không bắt buộc)', pl_f_dur:'Số phút', pl_f_cat:'Nhóm', pl_f_done:'Đã xong', pl_save:'Lưu', pl_delete:'Xoá',
   pl_allday:'Chưa có giờ', pl_week_list:'Việc cả tuần (chưa gắn ngày)', pl_empty_list:'Chưa có gì. Việc không gắn ngày sẽ hiện ở danh sách này.', pl_hint:'Bấm vào chỗ trống trong một ngày để thêm việc ở đó. Bấm vào việc để sửa, bấm vào vòng tròn để tick xong.',
-  pl_review:'Tuần này qua các con số', pl_done_tasks:'Việc đã xong', pl_done_min:'Thời gian đã làm', pl_plan_min:'Thời gian dự định', pl_by_day:'Theo ngày', pl_by_cat:'Theo nhóm', pl_left:'Việc còn lại', pl_left_none:'Tất cả đã được tick xong. Giỏi quá.', pl_carry:'Chuyển các việc chưa xong sang tuần sau', pl_carried:'Đã chuyển sang tuần sau', pl_carried_n:'Đã chuyển {n} việc sang tuần sau.',
+  pl_review:'Tuần này qua các con số', pl_done_tasks:'Việc đã xong', pl_done_min:'Thời gian đã làm', pl_plan_min:'Thời gian dự định', pl_by_day:'Theo ngày', pl_by_cat:'Theo nhóm', pl_left:'Việc còn lại', pl_left_none:'Tất cả đã được tick xong. Giỏi quá.', pl_carry:'Chuyển các việc chưa xong sang tuần sau', pl_carried:'Đã chuyển sang tuần sau', pl_carried_n:'Đã chuyển {n} việc sang tuần sau.', pl_uncarry:'Đưa về lại', pl_uncarry_all:'Đưa tất cả về lại tuần này', pl_uncarried_n:'Đã đưa {n} việc về lại tuần này.',
   pl_insights:'Tuần này nói gì về bạn', pl_i_none:'Hãy thêm vài việc và tick xong để nhận bản tổng kết tuần.',
   pl_i_rate_hi:'Bạn xong {p}% số việc đã đến hạn. Đây là một tuần rất tốt.', pl_i_rate_mid:'Bạn xong {p}% số việc đã đến hạn. Một nền tảng vững để làm tiếp.', pl_i_rate_lo:'Bạn xong {p}% số việc đã đến hạn. Không sao, tuần nào cũng có lúc chậm. Tuần sau thử xếp ít việc hơn mỗi ngày để dễ giữ nhịp.',
   pl_i_best:'Ngày làm được nhiều nhất là {d}, xong {t}.', pl_i_part_0:'Bạn làm xong nhiều việc nhất vào buổi sáng.', pl_i_part_1:'Bạn làm xong nhiều việc nhất vào buổi chiều.', pl_i_part_2:'Bạn làm xong nhiều việc nhất vào buổi tối.',
@@ -101,7 +101,21 @@ function plClean(x){                                              // chuẩn ho�
   const start = /^\d{1,2}:\d{2}$/.test(x.start || '') ? hmStr(Math.min(1439, hm(x.start))) : '';
   let dur = Math.max(0, Math.min(1440, Math.round(+x.dur || 0))); if (start && !dur) dur = 30; if (start) dur = Math.min(dur, 1440 - hm(start));
   const day = Number.isInteger(x.day) && x.day >= 0 && x.day <= 6 ? x.day : null;
-  return { id:String(x.id || plId()), title:String(x.title || '').trim().slice(0, 80), day, start:day === null ? '' : start, dur, c:Math.max(0, Math.min(5, x.c | 0)), done:!!x.done, ...(x.carried ? { carried:true } : {}) };
+  return { id:String(x.id || plId()), title:String(x.title || '').trim().slice(0, 80), day, start:day === null ? '' : start, dur, c:Math.max(0, Math.min(5, x.c | 0)), done:!!x.done, ...(x.carried ? { carried:typeof x.carried === 'string' ? x.carried : true } : {}) };
+}
+/* đưa việc đã dời sang tuần sau về lại tuần này (và gỡ bản sao bên tuần sau nếu chưa làm) */
+async function plUncarry(list){
+  try {
+    if (!DEMO) {
+      const nk = plKey(PL.off + 1), d = await plRef(nk).get(), next = d.exists && Array.isArray(d.data().tasks) ? d.data().tasks.map(plClean) : [];
+      list.forEach(x => {
+        let i = typeof x.carried === 'string' ? next.findIndex(v => v.id === x.carried) : next.findIndex(v => !v.done && v.title === x.title && v.day === x.day && v.start === x.start && v.dur === x.dur);
+        if (i >= 0) { if (next[i].done) x.done = true; next.splice(i, 1); }
+      });
+      await plRef(nk).set({ tasks:next, updatedAt:TS() });
+    }
+    list.forEach(x => { delete x.carried; }); plSave(); return true;
+  } catch (e) { console.warn('uncarry', e.code); toast(t('pl_err')); return false; }
 }
 /* ---------- tải / lưu ---------- */
 /* Đọc nhanh: lần mở sau hiện ngay bản nhớ trong máy (xoá khi đăng xuất / đổi tài khoản, xem core.js), rồi cập nhật từ máy chủ ở nền */
@@ -332,9 +346,9 @@ function plQuickBar(){
 }
 function plSide(){
   const left = PL.tasks.filter(x => !x.done), open = left.filter(x => !x.carried), noDay = PL.tasks.filter(x => x.day === null);
-  const row = x => `<div class="pl-li ${x.carried ? 'done' : ''}"><button type="button" class="pl-ck sm" style="border-color:${PL_COLORS[x.c]}" data-act="plToggle" data-id="${esc(x.id)}">${x.done ? ic('check', 'sm') : ''}</button><span data-act="plEdit" data-id="${esc(x.id)}">${esc(x.title || '—')}${x.day !== null ? ` <small class="faint">${esc(t('pl_d' + x.day))}${x.start ? ' ' + esc(x.start) : ''}</small>` : ''}</span>${x.carried ? `<small class="faint">${esc(t('pl_carried'))}</small>` : ''}</div>`;
+  const row = x => `<div class="pl-li ${x.carried ? 'done' : ''}"><button type="button" class="pl-ck sm" style="border-color:${PL_COLORS[x.c]}" data-act="plToggle" data-id="${esc(x.id)}">${x.done ? ic('check', 'sm') : ''}</button><span data-act="plEdit" data-id="${esc(x.id)}">${esc(x.title || '—')}${x.day !== null ? ` <small class="faint">${esc(t('pl_d' + x.day))}${x.start ? ' ' + esc(x.start) : ''}</small>` : ''}</span>${x.carried ? `<div class="pl-li-x"><small class="faint">${esc(t('pl_carried'))}</small><button type="button" class="btn ghost sm" data-act="plUncarry" data-id="${esc(x.id)}">${esc(t('pl_uncarry'))}</button></div>` : ''}</div>`;
   return `<div class="pl-side">${plToday()}
-    <section class="card pad"><h3>${esc(t('pl_still'))}</h3><div class="pl-list">${left.length ? left.map(row).join('') : `<p class="muted small">${esc(t('pl_left_none'))}</p>`}</div>${open.length ? `<button class="btn secondary sm mt-s" data-act="plCarry">${esc(t('pl_carry'))}</button>` : ''}</section>
+    <section class="card pad"><h3>${esc(t('pl_still'))}</h3><div class="pl-list">${left.length ? left.map(row).join('') : `<p class="muted small">${esc(t('pl_left_none'))}</p>`}</div>${open.length ? `<button class="btn secondary sm mt-s" data-act="plCarry">${esc(t('pl_carry'))}</button>` : ''}${left.length - open.length > 1 ? `<button class="btn ghost sm mt-s" data-act="plUncarry">${esc(t('pl_uncarry_all'))}</button>` : ''}</section>
     ${noDay.length ? `<section class="card pad"><h3>${esc(t('pl_week_list'))}</h3><div class="pl-list">${noDay.map(row).join('')}</div></section>` : ''}</div>`;
 }
 function plAnalysis(S){
@@ -422,10 +436,10 @@ Object.assign(ACTIONS, {
   plCat: el => { PL.cat = +el.dataset.c; document.querySelectorAll('#pl-cats .pl-cat').forEach(b => b.classList.toggle('on', +b.dataset.c === PL.cat)); },
   plToggle: el => { const x = PL.tasks.find(v => v.id === el.dataset.id); if (!x) return; x.done = !x.done; plSave(); render(true); },
   plDel: () => { PL.tasks = PL.tasks.filter(x => x.id !== PL.sel); PL.sel = null; closeModal(); plSave(); render(true); },
-  plSaveTask: () => {
+  plSaveTask: async () => {
     const title = $('pl-title').value.trim(); if (!title) { $('pl-title').focus(); return; }
     const start = $('pl-start').value, dur = +$('pl-dur').value || 0, base = { title, start, dur, c:PL.cat || 0 };
-    if (PL.sel) { const x = PL.tasks.find(v => v.id === PL.sel); if (x) { const d1 = $('pl-day1').value; Object.assign(x, plClean({ ...x, ...base, day:d1 === '' ? null : +d1, done:$('pl-done').checked })); } }
+    if (PL.sel) { const x = PL.tasks.find(v => v.id === PL.sel); if (x) { const d1 = $('pl-day1').value, dn = $('pl-done').checked; if (x.carried) await plUncarry([x]); Object.assign(x, plClean({ ...x, ...base, day:d1 === '' ? null : +d1, done:dn })); } }
     else {
       const days = [...document.querySelectorAll('.pl-day:checked')].map(b => +b.value);
       if (PL.tasks.length + Math.max(1, days.length) > PL_MAX) { toast(t('pl_max', { n:PL_MAX })); return; }
@@ -433,14 +447,15 @@ Object.assign(ACTIONS, {
     }
     PL.sel = null; closeModal(); plSave(); render(true);
   },
+  plUncarry: async el => { const list = el && el.dataset.id ? PL.tasks.filter(x => x.id === el.dataset.id && x.carried) : PL.tasks.filter(x => x.carried); if (list.length && await plUncarry(list)) { render(true); toast(t('pl_uncarried_n', { n:list.length })); } },
   plCarry: async () => {
     const open = PL.tasks.filter(x => !x.done && !x.carried); if (!open.length) return;
     try {
       const nk = plKey(PL.off + 1); let next = [];
       if (!DEMO) { const d = await plRef(nk).get(); next = d.exists && Array.isArray(d.data().tasks) ? d.data().tasks.map(plClean) : []; }
-      open.forEach(x => next.push(plClean({ ...x, id:plId(), done:false, carried:false })));
+      open.forEach(x => { const c = plClean({ ...x, id:plId(), done:false, carried:false }); next.push(c); x.carried = c.id; });
       if (!DEMO) await plRef(nk).set({ tasks:next, updatedAt:TS() });
-      open.forEach(x => { x.carried = true; }); plSave(); render(true); toast(t('pl_carried_n', { n:open.length }));
+      plSave(); render(true); toast(t('pl_carried_n', { n:open.length }));
     } catch (e) { console.warn('carry', e.code); toast(t('pl_err')); }
   }
 });
