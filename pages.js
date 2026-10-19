@@ -718,7 +718,7 @@ const donateHTML = function(){
         <div class="field"><label class="label">${esc(t('donate_custom'))}</label><input class="input" type="number" min="1" id="don-custom" data-change="donCustom" placeholder="${cur === 'VND' ? '30000' : '7'}"></div>
         ${pay || `<p class="muted">${esc(t('donate_none'))}</p>`}<p class="small faint">${esc(t('donate_thanks'))}</p></section>
       <section class="card pad stack"><div class="row between"><h2 style="font-size:1.2rem" ${cms('comp_title')}>${esc(ctext('comp_title'))}</h2>${state.companion ? `<span class="badge">${ic('heart', 'sm')} ${esc(t('comp_badge'))}</span>` : ''}</div>
-        <p class="muted" ${cms('comp_text')}>${esc(ctext('comp_text'))}</p><div><div class="label">${esc(t('comp_perks'))}</div><ul class="perks"><li ${cms('comp_perk1')}>${esc(ctext('comp_perk1'))}</li><li ${cms('comp_perk2')}>${esc(ctext('comp_perk2'))}</li><li ${cms('comp_perk3')}>${esc(ctext('comp_perk3'))}</li></ul></div>
+        <p class="muted" ${cms('comp_text')}>${esc(ctext('comp_text'))}</p><div><div class="label">${esc(t('comp_perks'))}</div><ul class="perks"><li ${cms('comp_perk4')}>${esc(ctext('comp_perk4'))}</li><li ${cms('comp_perk1')}>${esc(ctext('comp_perk1'))}</li><li ${cms('comp_perk2')}>${esc(ctext('comp_perk2'))}</li><li ${cms('comp_perk3')}>${esc(ctext('comp_perk3'))}</li></ul></div>
         ${branding.focusCodeHash ? `<div><div class="label">${esc(t('comp_steps_title'))}</div><ol class="steps"><li>${esc(t('comp_step1'))}</li><li>${esc(t('comp_step2'))}</li><li>${esc(t('comp_step3'))}</li></ol></div>${unlockBox()}` : ''}${state.companion || unlockValid() ? `<p class="small" style="color:var(--live)">${esc(t('comp_active'))}</p>` : ''}${payments.companionUrl ? `<a class="btn primary lg" target="_blank" rel="noopener" href="${esc(payments.companionUrl)}">${ic('heart', 'sm')} ${esc(t('comp_cta'))}</a>` : ''}${compClaimHTML()}</section></div>`;
   return body;
 };
@@ -731,12 +731,14 @@ Object.assign(ACTIONS, {
     if (!state.user) return;
     openModal(`<h3 style="margin-bottom:12px">${esc(t('cc_title'))}</h3><p class="small muted" style="margin-bottom:12px">${esc(t('cc_sub'))}</p>
       <div class="field"><label class="label">${esc(t('cc_method'))}</label><select class="select" id="cc-method">${['kofi', 'bank', 'paypal', 'momo', 'other'].map(k => `<option value="${k}">${esc(t('cc_m_' + k))}</option>`).join('')}</select></div>
-      <div class="field mt-s"><input class="input" id="cc-note" maxlength="200" placeholder="${esc(t('cc_note_ph'))}"></div>
+      <div class="field mt-s"><label class="label">${esc(t('cc_note_label'))} *</label><input class="input" id="cc-note" maxlength="200" placeholder="${esc(t('cc_note_ph'))}"><p class="small" id="cc-err" style="color:var(--danger);margin-top:4px"></p></div>
       <div class="row mt" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="closeModal">${esc(t('cancel'))}</button><button type="button" class="btn primary" data-act="compClaimSend">${esc(t('cc_send'))}</button></div>`, true);
   },
   compClaimSend: async el => {
-    const u = state.user; if (!u) return; el.disabled = true;
-    const rq = { uid:u.uid, email:u.email || '', name:displayName() || '', method:$('cc-method').value, note:$('cc-note').value.trim().slice(0, 200), status:'pending' };
+    const u = state.user; if (!u) return;
+    const note = $('cc-note').value.trim().slice(0, 200); if (note.length < 2) { $('cc-err').textContent = t('cc_note_req'); $('cc-note').focus(); return; }   // bắt buộc: để admin đối chiếu khoản thanh toán
+    el.disabled = true;
+    const rq = { uid:u.uid, email:u.email || '', name:displayName() || '', method:$('cc-method').value, note, status:'pending' };
     try { if (!DEMO) await db.collection('companion_requests').doc(u.uid).set({ ...rq, createdAt:TS() }); state.compReq = { ...rq, createdAt:Date.now() }; closeModal(); toast(t('cc_sent')); render(true); }
     catch (e) { el.disabled = false; console.warn('claim', e.code); toast(t('cc_err') + ' ' + (e.code || '')); }
   },

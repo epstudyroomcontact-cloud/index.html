@@ -1,5 +1,5 @@
 'use strict';
-const BUILD = '2026-10-19 · bản 9 (Planner cho Companions, chuỗi điểm danh, sửa buổi live linh hoạt)';   // hiện ở Admin để biết web đang chạy bản nào
+const BUILD = '2026-10-19 · bản 10 (đổi tên menu, báo thanh toán bắt buộc ghi tên, kiểm tra lỗi)';   // hiện ở Admin để biết web đang chạy bản nào
 /* =========================================================
    CORE — cấu hình, trạng thái, dữ liệu realtime, đăng nhập, router, sự kiện
    ========================================================= */
@@ -8,9 +8,10 @@ const loadScript = src => new Promise((res, rej) => { const s = document.createE
 let emailP = null;
 const loadEmailJS = () => emailP || (emailP = loadScript('https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js').then(() => { emailjs.init("JKo4tonk0gQMwrHFZ"); }).catch(e => { emailP = null; console.warn('EmailJS chưa tải được', e); throw e; }));
 let adminP = null;
-const loadAdmin = () => typeof PAGES.admin === 'function' ? Promise.resolve() : (adminP || (adminP = loadScript('admin.js').catch(e => { adminP = null; throw e; })));
+const ASSET_V = '10';                                                // đổi cùng số ?v= trong index.html mỗi lần cập nhật, để trình duyệt không trộn file cũ với file mới
+const loadAdmin = () => typeof PAGES.admin === 'function' ? Promise.resolve() : (adminP || (adminP = loadScript('admin.js?v=' + ASSET_V).catch(e => { adminP = null; throw e; })));
 let plannerP = null;
-const loadPlanner = () => typeof PAGES.planner === 'function' ? Promise.resolve() : (plannerP || (plannerP = loadScript('planner.js').catch(e => { plannerP = null; throw e; })));
+const loadPlanner = () => typeof PAGES.planner === 'function' ? Promise.resolve() : (plannerP || (plannerP = loadScript('planner.js?v=' + ASSET_V).catch(e => { plannerP = null; throw e; })));
 const EMAILJS_SERVICE = 'service_a098n5f', EMAILJS_CHALLENGE_TPL = 'template_lhv0y0n';
 // Cấu hình Firebase nằm trong js/firebase-config.js (file duy nhất bạn cần sửa để nối web với Firebase)
 const CONFIG_MISSING = !window.FIREBASE_CONFIG || /PASTE_|PLACEHOLDER/.test(JSON.stringify(window.FIREBASE_CONFIG));
@@ -471,15 +472,15 @@ const lockedPages = () => Array.isArray(branding.lockedPages) ? branding.lockedP
 const isLocked = name => loginRequired() && !state.user && lockedPages().includes(name);
 /* Hỏi lại Firestore xem người dùng đã là Companion chưa (bỏ qua bản nhớ 30 phút) — gọi khi mở Planner / trang Ủng hộ, để vừa được duyệt là mở khoá ngay */
 async function refreshCompanion(force){
-  const u = state.user; if (!u || DEMO || (!force && Date.now() - state.compCheckedAt < 20000)) return false;
-  state.compCheckedAt = Date.now(); const before = state.companion + '|' + (state.compReq && state.compReq.status);
+  const u = state.user; if (!u || DEMO || (!force && Date.now() - state.compCheckedAt < 45000)) return false;
+  state.compCheckedAt = Date.now(); const sig = () => state.companion + '|' + state.companionUntil + '|' + (state.compReq && state.compReq.status), before = sig();
   try {
     const cd = await db.collection('companions').doc(u.uid).get(), d = cd.exists ? cd.data() : null;
     state.companion = !!d && !(d.until && d.until < DT.now().toISODate()); state.companionUntil = d && d.until || '';
     store.set('comp_' + u.uid, { t:Date.now(), v:state.companion });
     if (!state.companion) { try { const r = await db.collection('companion_requests').doc(u.uid).get(); state.compReq = r.exists ? r.data() : null; } catch (e) {} } else state.compReq = null;
   } catch (e) { console.warn('companion check', e.code); }
-  return before !== state.companion + '|' + (state.compReq && state.compReq.status);
+  return before !== sig();
 }
 function doRender(){
   if (!state.booted) return;                      // chưa nạp xong các file (pages.js, admin.js) thì chưa vẽ
@@ -513,7 +514,7 @@ function navItems(){
   const saved = branding.nav; if (!Array.isArray(saved) || !saved.length) return NAV_DEFAULT.map(n => ({ ...n, visible:true }));
   const out = [];
   saved.forEach(s => { const d = NAV_DEFAULT.find(n => n.id === s.id); if (d) out.push({ ...d, ...s }); else if (s.url) out.push({ id:s.id, icon:'link', url:s.url, label:s.label, visible:s.visible !== false, custom:true }); });
-  NAV_DEFAULT.forEach(d => { if (!out.find(o => o.id === d.id)) out.push({ ...d, visible:true }); });
+  NAV_DEFAULT.forEach((d, i) => { if (out.find(o => o.id === d.id)) return; const prev = NAV_DEFAULT.slice(0, i).reverse().find(p => out.find(o => o.id === p.id)), at = prev ? out.findIndex(o => o.id === prev.id) + 1 : out.length; out.splice(at, 0, { ...d, visible:true }); });   // mục mới (VD Planner) nằm cạnh mục đứng trước nó trong thứ tự mặc định, không bị đẩy xuống cuối
   return out;
 }
 const navLabel = n => (n.label && (n.label[state.lang] || (isNativeContent() ? '' : n.label.en) || n.label.en || n.label.vi)) || t('nav_' + n.id);
