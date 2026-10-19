@@ -60,7 +60,12 @@ function plClean(x){                                              // chuẩn ho�
 }
 /* ---------- tải / lưu ---------- */
 /* Đọc nhanh: lần mở sau hiện ngay bản nhớ trong máy (xoá khi đăng xuất / đổi tài khoản, xem core.js), rồi cập nhật từ máy chủ ở nền */
-const plFetch = key => plRef(key).get().then(d => d.exists && Array.isArray(d.data().tasks) ? d.data().tasks : []);
+async function plFetch(key){                                      // 'unavailable' = kết nối Firebase chưa kịp lên: thử lại vài lần trước khi báo lỗi
+  for (let i = 0; ; i++) {
+    try { const d = await plRef(key).get(); return d.exists && Array.isArray(d.data().tasks) ? d.data().tasks : []; }
+    catch (e) { if (e.code !== 'unavailable' || i >= 2) throw e; await new Promise(r => setTimeout(r, 1500 * (i + 1))); }
+  }
+}
 const plCK = key => 'plw_' + state.user.uid + '_' + key;
 const plCache = (key, tasks) => { if (!DEMO && state.user) store.set(plCK(key), { tasks }); };
 function plPrefetch(){                                            // gọi sớm lúc đăng nhập: lấy sẵn tuần này để mở Planner là có ngay
