@@ -8,7 +8,7 @@ const loadScript = src => new Promise((res, rej) => { const s = document.createE
 let emailP = null;
 const loadEmailJS = () => emailP || (emailP = loadScript('https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js').then(() => { emailjs.init("JKo4tonk0gQMwrHFZ"); }).catch(e => { emailP = null; console.warn('EmailJS chưa tải được', e); throw e; }));
 let adminP = null;
-const ASSET_V = '11';                                                // đổi cùng số ?v= trong index.html mỗi lần cập nhật, để trình duyệt không trộn file cũ với file mới
+const ASSET_V = '12';                                                // đổi cùng số ?v= trong index.html mỗi lần cập nhật, để trình duyệt không trộn file cũ với file mới
 const loadAdmin = () => typeof PAGES.admin === 'function' ? Promise.resolve() : (adminP || (adminP = loadScript('admin.js?v=' + ASSET_V).catch(e => { adminP = null; throw e; })));
 let plannerP = null;
 const loadPlanner = () => typeof PAGES.planner === 'function' ? Promise.resolve() : (plannerP || (plannerP = loadScript('planner.js?v=' + ASSET_V).catch(e => { plannerP = null; throw e; })));
@@ -404,6 +404,7 @@ auth.onAuthStateChanged(async u => {
   if (DEMO) { render(true); return; }
   state.authReady = true;
   if (typeof stopAdminWatch === 'function') stopAdminWatch();
+  try { Object.keys(localStorage).filter(k => k.startsWith('ep_plw_') && !(u && k.startsWith('ep_plw_' + u.uid + '_'))).forEach(k => localStorage.removeItem(k)); } catch (e) {}   // bản nhớ planner chỉ giữ cho tài khoản đang đăng nhập
   state.user = u; state.isAdmin = false; state.companion = false; state.compReq = null; state.compCheckedAt = 0; state.profileReady = false; state.profileFailed = false; library = []; profile = {};
   if (unsubLib) { unsubLib(); unsubLib = null; }
   if (u) {
@@ -427,7 +428,7 @@ auth.onAuthStateChanged(async u => {
     if (cc && Date.now() - cc.t < 30 * 60e3) state.companion = !!cc.v;
     else { try { const cd = await db.collection('companions').doc(u.uid).get(); state.companion = cd.exists && !(cd.data().until && cd.data().until < DT.now().toISODate()); store.set('comp_' + u.uid, { t:Date.now(), v:state.companion }); } catch (e) {} }
     startLibrary();
-    if (state.companion || state.isAdmin) setTimeout(() => loadPlanner().catch(() => {}), 2000);     // tải sẵn planner.js lúc rảnh để mở Planner không phải chờ tải file
+    if (state.companion || state.isAdmin) loadPlanner().then(() => plPrefetch()).catch(() => {});     // tải sẵn planner.js lúc rảnh để mở Planner không phải chờ tải file
   }
   render(true);
 });
