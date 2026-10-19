@@ -275,6 +275,18 @@ function applySite(s){
   SITE.weeks = s.weeks || {};
   applyLook(); render(); loadVideos();
 }
+/* Tín hiệu "vừa xuất bản": admin ghi settings/live = { t: giờ xuất bản }. Người xem nghe tài liệu nhỏ này (chỉ tốn 1 lượt đọc khi có thay đổi)
+   và tự tải lại bản gộp ngay khi nó mới hơn bản đang giữ, thay vì chờ hết SITE_TTL. */
+let liveUnsub = null;
+function listenLive(){
+  if (liveUnsub || DEMO || LEGACY.on) return;
+  try {
+    liveUnsub = db.collection('settings').doc('live').onSnapshot(d => {
+      const t = d.exists ? +d.data().t || 0 : 0, c = store.get('site', null), have = (c && c.d && +c.d.updatedAt) || 0;
+      if (t && t > have && !LEGACY.on) refreshSite(true);
+    }, () => {});
+  } catch (e) {}
+}
 async function refreshSite(force){
   if (LEGACY.on) return true;
   const c = store.get('site', null);
@@ -288,13 +300,13 @@ async function refreshSite(force){
     return true;
   } catch (e) { console.warn('site', e.code || e); SITE.failT = Date.now(); if (!SITE.on) await loadFallback(); return SITE.on; }   // lỗi / hết hạn mức: giữ bản đã lưu, hoặc dùng file dự phòng
 }
-function goLegacy(){ if (LEGACY.on || DEMO) return; LEGACY.on = true; SITE.on = false; listenLegacy(); }       // admin: xem thay đổi ngay
+function goLegacy(){ if (LEGACY.on || DEMO) return; LEGACY.on = true; SITE.on = false; if (liveUnsub) { liveUnsub(); liveUnsub = null; } listenLegacy(); }       // admin: xem thay đổi ngay
 async function listenAll(){
   if (DEMO) { loadDemo(); listenWeeks(); return; }
   const c = store.get('site', null);
   if (c && c.d && c.d.v >= SITE_V) { SITE.on = true; applySite(c.d); listenWeeks(); }                          // hiện ngay bản đã lưu
   const got = await refreshSite(false);
-  if (!got && !SITE.on) listenLegacy();
+  if (!got && !SITE.on) listenLegacy(); else listenLive();
   setInterval(() => { if (!document.hidden && SITE.on && !LEGACY.on) refreshSite(false); }, 60e3);              // tự làm mới (chỉ đọc khi bản lưu đã quá 10 phút)
 }
 function listenLegacy(){

@@ -79,6 +79,7 @@ async function publishSite(quiet){
     while (size() > 900000 && site.posts.length > 20) { site.posts.pop(); note = ' (đã bớt bài cũ khỏi trang người xem vì dữ liệu quá lớn)'; }
     await db.collection('settings').doc('site').set(site);
     store.set('site', { t:Date.now(), d:site });
+    try { await db.collection('settings').doc('live').set({ t:site.updatedAt }); } catch (e) { console.warn('live signal', e); }   // báo cho người xem tải lại ngay
     if (quiet) toast('Đã cập nhật cho người xem ✔'); else ok('Đã xuất bản dữ liệu cho người xem ✔' + note);
     const st = $('pub-status'); if (st) st.textContent = 'Lần xuất bản gần nhất: ' + DT.fromMillis(site.updatedAt).toFormat('dd/MM/yyyy HH:mm') + ' · dung lượng ' + Math.round(size() / 1024) + ' KB';
   } catch (e) { console.warn('publish', e); if (!quiet) fail(e); }
@@ -93,7 +94,7 @@ async function ensureSitePublished(){        // lần đầu (hoặc khi nâng c
     const DR = firebase.firestore.DocumentReference.prototype;
     ['set', 'update', 'delete'].forEach(m => { const o = DR[m]; DR[m] = function (...a) {
       const p = o.apply(this, a);
-      try { if (state.isAdmin && PUBLIC_COLS.includes(this.parent.id) && !(this.parent.id === 'settings' && this.id === 'site')) p.then(schedulePublish, () => {}); } catch (e) {}
+      try { if (state.isAdmin && PUBLIC_COLS.includes(this.parent.id) && !(this.parent.id === 'settings' && (this.id === 'site' || this.id === 'live'))) p.then(schedulePublish, () => {}); } catch (e) {}
       return p; }; });
   } catch (e) { console.warn('hookWrites', e); }
 })();
@@ -210,6 +211,69 @@ function onSchedField(el){
 }
 document.addEventListener('input', e => { if (e.target.closest && e.target.closest('#admin-body') && e.target.tagName !== 'SELECT') onSchedField(e.target); });
 document.addEventListener('change', e => { if (e.target.closest && e.target.closest('#admin-body') && (e.target.tagName === 'SELECT' || e.target.type === 'checkbox')) onSchedField(e.target); });
+
+/* ---------------- Sửa nhanh một buổi live (ngay trên trang Schedule) ---------------- */
+let QE = null;
+const hm2min = v => { const p = String(v || '').split(':'); return (parseInt(p[0], 10) || 0) * 60 + (parseInt(p[1], 10) || 0); };
+const min2hm = m => { m = Math.max(0, Math.min(1439, m)); return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
+const qeTotal = () => slotTotal(QE.s.plan ? { ...QE.s, plan:QE.s.plan } : { ...QE.s, plan:null });
+function qeDraw(){
+  const s = QE.s, ws = weekStart(QE.off).plus({ days:QE.di });
+  const blocks = s.plan ? `<div class="ad-blocks mt-s">${s.plan.map((b, bi) => `<div class="blk"><i class="dot" style="background:${BLK[b.t][1]}"></i>
+      <select class="select" data-qe="bt" data-b="${bi}">${['f', 's', 'l'].map(k => `<option value="${k}" ${b.t === k ? 'selected' : ''}>${BLK[k][0]}</option>`).join('')}</select>
+      <input class="input" type="number" min="1" data-qe="bm" data-b="${bi}" value="${b.m}" title="phút">
+      <span class="row" style="gap:2px;flex-wrap:nowrap"><button type="button" class="btn ghost icon sm" data-act="qeBlk" data-op="up" data-b="${bi}">${ic('up', 'sm')}</button><button type="button" class="btn ghost icon sm" data-act="qeBlk" data-op="down" data-b="${bi}">${ic('down', 'sm')}</button><button type="button" class="btn danger icon sm" data-act="qeBlk" data-op="del" data-b="${bi}">${ic('trash', 'sm')}</button></span></div>`).join('')}
+    <div class="row mt-s"><button type="button" class="btn secondary sm" data-act="qeBlk" data-op="add" data-t="f">+ Tập trung</button><button type="button" class="btn secondary sm" data-act="qeBlk" data-op="add" data-t="s">+ Nghỉ ngắn</button><button type="button" class="btn secondary sm" data-act="qeBlk" data-op="add" data-t="l">+ Nghỉ dài</button></div></div>`
+    : `<div class="hint mt-s">Buổi này dùng mẫu Pomodoro tự tính. Muốn chỉnh từng đoạn (thêm, bớt, đổi độ dài) thì bấm nút bên dưới.</div><button type="button" class="btn secondary sm mt-s" data-act="qePlanOn">Tự sắp xếp từng đoạn</button>`;
+  openModal(`<h3 style="margin-bottom:4px">Sửa buổi live</h3><p class="small faint" style="margin-bottom:12px">${esc(DAYS.vi[QE.di])} · ${ws.toFormat('dd/MM')} (giờ Việt Nam). Chỉ lưu buổi này, khách sẽ thấy sau vài giây.</p>
+    <div class="f3"><input class="input" type="time" data-qe="time" value="${esc(s.time)}"><input class="input" placeholder="Tiêu đề (tuỳ chọn)" data-qe="title" value="${esc(s.title)}"><span></span></div>
+    <div class="row mt-s"><span class="small muted">Dời giờ:</span>${[[-60, '−1 giờ'], [-15, '−15 phút'], [15, '+15 phút'], [60, '+1 giờ']].map(([m, l]) => `<button type="button" class="btn secondary sm" data-act="qeShift" data-m="${m}">${l}</button>`).join('')}</div>
+    ${blocks}
+    <div class="small faint mono mt-s" id="qe-total">⏱ ${qeTotal()} phút ≈ ${(qeTotal() / 60).toFixed(2)} giờ</div>
+    <div class="mt-s"><label class="chk row small" style="font-weight:700"><input type="checkbox" data-qe="cancelled" ${s.cancelled ? 'checked' : ''}> Huỷ buổi này</label>
+      <div class="f2 mt-s"><input class="input" placeholder="Lý do huỷ (VI)" data-qe="noteVi" value="${esc(s.cancelNote.vi || '')}"><input class="input" placeholder="Cancel reason (EN)" data-qe="noteEn" value="${esc(s.cancelNote.en || '')}"></div></div>
+    <div class="row mt" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="closeModal">Đóng</button><button type="button" class="btn primary" data-act="qeSave">Lưu thay đổi</button></div>`);
+}
+function onQeField(el){
+  if (!QE) return; const f = el.dataset.qe, s = QE.s, v = el.type === 'checkbox' ? el.checked : el.value;
+  if (f === 'time') s.time = v; else if (f === 'title') s.title = v; else if (f === 'cancelled') s.cancelled = v;
+  else if (f === 'noteVi') s.cancelNote.vi = v; else if (f === 'noteEn') s.cancelNote.en = v;
+  else if (f === 'bt') { s.plan[+el.dataset.b].t = v; qeDraw(); return; }
+  else if (f === 'bm') { s.plan[+el.dataset.b].m = Math.max(1, Math.round(+v || 1)); const n = $('qe-total'); if (n) n.textContent = `⏱ ${qeTotal()} phút ≈ ${(qeTotal() / 60).toFixed(2)} giờ`; }
+}
+document.addEventListener('input', e => { if (e.target.dataset && e.target.dataset.qe && e.target.tagName !== 'SELECT' && e.target.type !== 'checkbox') onQeField(e.target); });
+document.addEventListener('change', e => { if (e.target.dataset && e.target.dataset.qe && (e.target.tagName === 'SELECT' || e.target.type === 'checkbox')) onQeField(e.target); });
+Object.assign(ACTIONS, {
+  qeOpen: el => {
+    const off = +el.dataset.o, di = +el.dataset.d, si = +el.dataset.s, raw = (weekDocs[off] || [])[di];
+    if (!raw || !Array.isArray(raw.slots)) return alert('Ngày này đang ở định dạng cũ. Hãy sửa trong Admin, tab Lịch live, rồi lưu một lần.');
+    const slot = normDay(raw).slots[si]; if (!slot) return;
+    QE = { off, di, si, orig:slot.time, s:{ ...slot, plan: slot.plan ? slot.plan.map(b => ({ ...b })) : null, pomo: slot.pomo ? { ...slot.pomo } : cleanPomo(PRESETS.classic), cancelNote:{ ...(slot.cancelNote || {}) } } };
+    qeDraw();
+  },
+  qeShift: el => { QE.s.time = min2hm(hm2min(QE.s.time) + +el.dataset.m); qeDraw(); },
+  qePlanOn: () => { QE.s.plan = buildPlan(cleanPomo(QE.s.pomo)).map(g => ({ t:g.type[0], m:g.min })); qeDraw(); },
+  qeBlk: el => {
+    const p = QE.s.plan, i = +el.dataset.b, op = el.dataset.op;
+    if (op === 'add') p.push({ t:el.dataset.t, m:BLK[el.dataset.t][2] });
+    else if (op === 'del') { p.splice(i, 1); if (!p.length) QE.s.plan = null; }
+    else { const j = i + (op === 'up' ? -1 : 1); if (j < 0 || j >= p.length) return; [p[i], p[j]] = [p[j], p[i]]; }
+    qeDraw();
+  },
+  qeSave: el => withTranslate(el, async () => {
+    const q = QE; if (!q) return; if (DEMO) return toast('Chế độ xem thử: chưa lưu thật');
+    if (!/^\d{2}:\d{2}$/.test(q.s.time || '')) return alert('Hãy chọn giờ bắt đầu cho buổi live.');
+    const key = weekKeyFor(q.off), d = await db.collection('weekly_schedules').doc(key).get();
+    const days = d.exists ? d.data().days : null, day = days && days[q.di];
+    if (!day || !Array.isArray(day.slots) || !day.slots[q.si] || day.slots[q.si].time !== q.orig) return alert('Lịch này vừa được sửa ở nơi khác. Hãy tải lại trang rồi sửa lại.');
+    const s = q.s, cur = { vi:s.cancelNote.vi || '', en:s.cancelNote.en || '' };
+    day.slots[q.si] = { time:s.time, icon:s.icon || '', title:s.title || '', pomo:cleanPomo(s.pomo), plan: s.plan && s.plan.length ? s.plan.map(b => ({ t:b.t, m:Math.max(1, Math.round(+b.m || 1)) })) : [], cancelled:!!s.cancelled, cancelNote: s.cancelled && (cur.vi || cur.en) ? await TR.fill({}, cur) : cur };
+    await dbSet('weekly_schedules', key, { days }, false);
+    weekDocs[q.off] = days; QE = null; closeModal(); render(true);
+    clearTimeout(pubTimer); publishSite(true);                              // xuất bản ngay, không chờ 4 giây như các thay đổi khác
+    ok(trMsg('Đã lưu buổi live. Khách sẽ thấy sau vài giây.'));
+  }).catch(fail)
+});
 
 /* ---------------- Bài viết ---------------- */
 let editPost = null, editBody = { vi:'', en:'' }, editLang = 'en', adminCats = [];
