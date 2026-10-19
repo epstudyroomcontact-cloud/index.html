@@ -382,7 +382,7 @@ const localFocus = () => store.get('focus', {});
 auth.onAuthStateChanged(async u => {
   if (DEMO) { render(true); return; }
   state.authReady = true;
-  state.user = u; state.isAdmin = false; state.companion = false; library = []; profile = {};
+  state.user = u; state.isAdmin = false; state.companion = false; state.profileReady = false; library = []; profile = {};
   if (unsubLib) { unsubLib(); unsubLib = null; }
   if (u) {
     try { await u.reload(); await u.getIdToken(true); } catch (e) {}
@@ -395,6 +395,7 @@ auth.onAuthStateChanged(async u => {
       store.set('todos', todos); store.set('focus', fl); profile.todos = todos; profile.focusLog = fl;
       if (profile.unlock && !store.get('unlock', null)) store.set('unlock', profile.unlock);
       if (!d.exists || !profile.displayName) { profile.displayName = profile.displayName || u.displayName || (u.email || '').split('@')[0]; }
+      state.profileReady = true;                                      // hồ sơ đã tải xong → mới được hiện/ghi Moon Journey
       saveProfileNow();
     } catch (e) { console.warn('profile', e.code); }
     const cc = store.get('comp_' + u.uid, null);                       // tiết kiệm lượt đọc: nhớ kết quả 30 phút
