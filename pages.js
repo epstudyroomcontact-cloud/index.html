@@ -695,17 +695,21 @@ function compClaimHTML(){
   const sent = !state.companion && r && r.status === 'pending';
   return `<div class="limit-box stack"><b>${esc(t('cc_title'))}</b>${state.companion ? '' : `<p class="small muted">${esc(t('cc_sub'))}</p>`}${status}${sent ? '' : `<button class="btn secondary" data-act="compClaim">${ic('check', 'sm')} ${esc(state.companion ? t('cc_renew') : t('cc_btn'))}</button>`}</div>`;
 }
-let compPay = null;                                                // 'vnd' | 'kofi': cách trả đang chọn ở thẻ Người đồng hành
+let compPay = null, compMonths = 1;
+/* Gói VND: 1 tháng = giá gốc; 3 tháng giảm 10%, 12 tháng giảm 25% (làm tròn nghìn) để người dùng trả dài hạn có lợi hơn, còn mình có tiền ổn định */
+const COMP_DISC = { 1:1, 3:.9, 12:.75 };
+const compBase = () => Math.round(+payments.companionVND) || 59000;
+const compPrice = m => m === 1 ? compBase() : Math.round(compBase() * m * COMP_DISC[m] / 1000) * 1000;                                                // 'vnd' | 'kofi': cách trả đang chọn ở thẻ Người đồng hành
 const compCode = () => 'EPCP' + (state.user ? state.user.uid.slice(0, 6).toUpperCase() : '');     // nội dung chuyển khoản riêng của từng người, để admin đối chiếu
 const compPayMode = () => { const bank = payments.bankBin && payments.accountNo, kofi = payments.companionUrl; return compPay === 'vnd' && bank || compPay === 'kofi' && kofi ? compPay : (bank && (effCurrency() === 'VND' || !kofi) ? 'vnd' : kofi ? 'kofi' : ''); };
 function compPayHTML(){
   const bank = payments.bankBin && payments.accountNo, kofi = payments.companionUrl, mode = compPayMode(); if (!mode) return '';
-  const amt = Math.round(+payments.companionVND) || 125000, code = compCode(), cp = v => `<button type="button" class="btn secondary sm" data-act="copy" data-v="${esc(v)}">${esc(t('copy'))}</button>`;
+  const amt = compPrice(compMonths), code = compCode(), cp = v => `<button type="button" class="btn secondary sm" data-act="copy" data-v="${esc(v)}">${esc(t('copy'))}</button>`;
   const seg = bank && kofi ? `<div class="seg"><button type="button" class="${mode === 'vnd' ? 'on' : ''}" data-act="compPay" data-m="vnd">${esc(t('comp_pay_vn'))}</button><button type="button" class="${mode === 'kofi' ? 'on' : ''}" data-act="compPay" data-m="kofi">${esc(t('comp_pay_kofi'))}</button></div>` : '';
   let body;
   if (mode === 'kofi') body = `<a class="btn primary lg" target="_blank" rel="noopener" href="${esc(kofi)}">${ic('heart', 'sm')} ${esc(t('comp_cta'))}</a>`;
   else if (!state.user) body = `<p class="small muted">${esc(t('comp_vnd_login'))}</p><a class="btn secondary" href="#/account">${esc(t('signin'))}</a>`;
-  else body = `<p class="small"><b>${esc(t('comp_vnd_amt', { a:money(amt, 'VND') }))}</b></p><img class="qr" alt="VietQR" src="https://img.vietqr.io/image/${encodeURIComponent(payments.bankBin)}-${encodeURIComponent(payments.accountNo)}-compact2.png?amount=${amt}&addInfo=${encodeURIComponent(code)}&accountName=${encodeURIComponent(payments.accountName || '')}"><p class="small muted" style="text-align:center">${esc(t('donate_scan'))}</p>
+  else body = `<div class="row">${[1, 3, 12].map(m => `<button type="button" class="chip ${m === compMonths ? 'on' : ''}" data-act="compMonths" data-m="${m}">${esc(t('comp_plan_' + m))} · ${money(compPrice(m), 'VND')}${m > 1 ? ` <small>${esc(t('comp_save', { p:Math.round((1 - compPrice(m) / (compBase() * m)) * 100) }))}</small>` : ''}</button>`).join('')}</div><img class="qr" alt="VietQR" src="https://img.vietqr.io/image/${encodeURIComponent(payments.bankBin)}-${encodeURIComponent(payments.accountNo)}-compact2.png?amount=${amt}&addInfo=${encodeURIComponent(code)}&accountName=${encodeURIComponent(payments.accountName || '')}"><p class="small muted" style="text-align:center">${esc(t('donate_scan'))}</p>
     <div class="kv"><div class="kvr"><span>${esc(t('acc_no'))}</span><b>${esc(payments.accountNo)}</b>${cp(payments.accountNo)}</div><div class="kvr"><span>${esc(t('comp_vnd_sum'))}</span><b>${esc(String(amt))}</b>${cp(String(amt))}</div><div class="kvr"><span>${esc(t('donate_note'))}</span><b>${esc(code)}</b>${cp(code)}</div></div>${payments.momoPhone ? `<div class="small muted">MoMo: <b>${esc(payments.momoPhone)}</b></div>` : ''}<p class="small faint">${esc(t('comp_vnd_hint'))}</p>`;
   return `<div class="stack">${seg}${body}</div>`;
 }
@@ -729,6 +733,7 @@ const donateHTML = function(){
   const body = `<div class="grid g2" style="align-items:start">
       <section class="card pad stack"><div class="row between"><h2 style="font-size:1.2rem">${esc(t('donate_once'))}</h2><div class="seg"><button type="button" class="${cur === 'VND' ? 'on' : ''}" data-act="donCur" data-c="VND">VND</button><button type="button" class="${cur === 'USD' ? 'on' : ''}" data-act="donCur" data-c="USD">USD</button></div></div>
         <div class="row">${amts.map(a => `<button type="button" class="chip ${a === amt ? 'on' : ''}" data-act="donAmt" data-v="${a}">${money(a, cur)}</button>`).join('')}</div>
+        <p class="small" style="color:var(--accent-strong)">${esc(t('don_bonus', { p:cur === 'VND' ? money(compBase(), 'VND') : money(+payments.companionUSD || 3, 'USD') }))}</p>
         <div class="field"><label class="label">${esc(t('donate_custom'))}</label><input class="input" type="number" min="1" id="don-custom" data-change="donCustom" placeholder="${cur === 'VND' ? '30000' : '7'}"></div>
         ${pay || `<p class="muted">${esc(t('donate_none'))}</p>`}<p class="small faint">${esc(t('donate_thanks'))}</p></section>
       <section class="card pad stack"><div class="row between"><h2 style="font-size:1.2rem" ${cms('comp_title')}>${esc(ctext('comp_title'))}</h2>${state.companion ? `<span class="badge">${ic('heart', 'sm')} ${esc(t('comp_badge'))}</span>` : ''}</div>
@@ -740,12 +745,14 @@ PAGES.donate = function(){ page(`${head('donate_title', 'donate_sub', '', 'lante
 CHANGES.donCustom = el => { const v = Math.round(+el.value); if (v > 0) { donAmt = { cur:donCur || effCurrency(), v }; render(true); } };
 Object.assign(ACTIONS, {
   compPay: el => { compPay = el.dataset.m; render(true); },
+  compMonths: el => { compMonths = +el.dataset.m; render(true); },
   donCur: el => { donCur = el.dataset.c; donAmt = null; render(true); },
   donAmt: el => { donAmt = { cur:donCur || effCurrency(), v:+el.dataset.v }; render(true); },
   compClaim: () => {
     if (!state.user) return;
     openModal(`<h3 style="margin-bottom:12px">${esc(t('cc_title'))}</h3><p class="small muted" style="margin-bottom:12px">${esc(t('cc_sub'))}</p>
       <div class="field"><label class="label">${esc(t('cc_method'))}</label><select class="select" id="cc-method">${['kofi', 'bank', 'paypal', 'momo', 'other'].map(k => `<option value="${k}" ${k === (compPayMode() === 'vnd' ? 'bank' : 'kofi') ? 'selected' : ''}>${esc(t('cc_m_' + k))}</option>`).join('')}</select></div>
+      <div class="field mt-s"><label class="label">${esc(t('cc_months'))}</label><select class="select" id="cc-months">${[1, 3, 12].map(m => `<option value="${m}" ${m === (compPayMode() === 'vnd' ? compMonths : 1) ? 'selected' : ''}>${esc(t('comp_plan_' + m))}</option>`).join('')}</select></div>
       <div class="field mt-s"><label class="label">${esc(t('cc_note_label'))} *</label><input class="input" id="cc-note" maxlength="200" value="${compPayMode() === 'vnd' && state.user ? esc(compCode()) : ''}" placeholder="${esc(t('cc_note_ph'))}"><p class="small" id="cc-err" style="color:var(--danger);margin-top:4px"></p></div>
       <div class="row mt" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="closeModal">${esc(t('cancel'))}</button><button type="button" class="btn primary" data-act="compClaimSend">${esc(t('cc_send'))}</button></div>`, true);
   },
@@ -753,7 +760,7 @@ Object.assign(ACTIONS, {
     const u = state.user; if (!u) return;
     const note = $('cc-note').value.trim().slice(0, 200); if (note.length < 2) { $('cc-err').textContent = t('cc_note_req'); $('cc-note').focus(); return; }   // bắt buộc: để admin đối chiếu khoản thanh toán
     el.disabled = true;
-    const rq = { uid:u.uid, email:u.email || '', name:displayName() || '', method:$('cc-method').value, note, status:'pending' };
+    const rq = { uid:u.uid, email:u.email || '', name:displayName() || '', method:$('cc-method').value, months:+$('cc-months').value || 1, note, status:'pending' };
     try { if (!DEMO) await db.collection('companion_requests').doc(u.uid).set({ ...rq, createdAt:TS() }); state.compReq = { ...rq, createdAt:Date.now() }; closeModal(); toast(t('cc_sent')); render(true); }
     catch (e) { el.disabled = false; console.warn('claim', e.code); toast(t('cc_err') + ' ' + (e.code || '')); }
   },
