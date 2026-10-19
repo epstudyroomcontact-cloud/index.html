@@ -437,6 +437,7 @@ function render(force){
 function readRoute(){
   const p = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean).map(decodeURIComponent);
   route.name = p[0] || 'home'; route.args = p.slice(1);
+  if (route.name === 'about') { route.name = 'home'; route.args = []; try { history.replaceState(null, '', '#/'); } catch (e) {} }   // link cũ /about → Overview
   if (route.name === 'library') { route.name = 'account'; route.args = ['library']; }
 }
 /* Mục cần đăng nhập: khách chưa đăng nhập vẫn thấy menu và tiêu đề của mọi mục,
@@ -473,7 +474,7 @@ function navItems(){
 }
 const navLabel = n => (n.label && (n.label[state.lang] || (isNativeContent() ? '' : n.label.en) || n.label.en || n.label.vi)) || t('nav_' + n.id);
 function renderChrome(){
-  const items = navItems().filter(n => n.visible !== false);
+  const items = navItems().filter(n => n.visible !== false && n.id !== 'about');   // About đã gộp vào Overview
   const cartN = cartCount();
   const logo = branding.logoUrl ? `<img src="${esc(branding.logoUrl)}" alt="">` : esc((branding.name || 'E').trim().slice(0, 2).toUpperCase());
   $('sidebar').innerHTML = `
