@@ -494,3 +494,4 @@ html[data-font="serif"] h1,html[data-font="serif"] h2,html[data-font="serif"] h3
 @media(max-width:1100px){.pl-ana{grid-template-columns:repeat(2,minmax(0,1fr))}.pl-main{grid-template-columns:minmax(0,1fr)}.pl-side{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));align-items:start}}
 @media(max-width:700px){.pl-ana{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:820px){.pl-kpis4{grid-template-columns:repeat(2,minmax(0,1fr))}.pl-kpi b{font-size:1.45rem}}
+.pl-tip{margin-top:12px;padding:10px 12px;border-radius:14px;background:rgba(var(--accent-rgb),.1);display:flex;flex-direction:column;gap:8px;align-items:flex-start}
