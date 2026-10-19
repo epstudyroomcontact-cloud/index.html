@@ -1,5 +1,5 @@
 'use strict';
-const BUILD = '2026-10-13 · bản 8 (khung stream xem được video đã live)';   // hiện ở Admin để biết web đang chạy bản nào
+const BUILD = '2026-10-19 · bản 9 (Planner cho Companions, chuỗi điểm danh, sửa buổi live linh hoạt)';   // hiện ở Admin để biết web đang chạy bản nào
 /* =========================================================
    CORE — cấu hình, trạng thái, dữ liệu realtime, đăng nhập, router, sự kiện
    ========================================================= */
@@ -9,6 +9,8 @@ let emailP = null;
 const loadEmailJS = () => emailP || (emailP = loadScript('https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js').then(() => { emailjs.init("JKo4tonk0gQMwrHFZ"); }).catch(e => { emailP = null; console.warn('EmailJS chưa tải được', e); throw e; }));
 let adminP = null;
 const loadAdmin = () => typeof PAGES.admin === 'function' ? Promise.resolve() : (adminP || (adminP = loadScript('admin.js').catch(e => { adminP = null; throw e; })));
+let plannerP = null;
+const loadPlanner = () => typeof PAGES.planner === 'function' ? Promise.resolve() : (plannerP || (plannerP = loadScript('planner.js').catch(e => { plannerP = null; throw e; })));
 const EMAILJS_SERVICE = 'service_a098n5f', EMAILJS_CHALLENGE_TPL = 'template_lhv0y0n';
 // Cấu hình Firebase nằm trong js/firebase-config.js (file duy nhất bạn cần sửa để nối web với Firebase)
 const CONFIG_MISSING = !window.FIREBASE_CONFIG || /PASTE_|PLACEHOLDER/.test(JSON.stringify(window.FIREBASE_CONFIG));
@@ -63,7 +65,7 @@ let supporters = { items:[] };                                       // settings
 const thanksList = () => (supporters.items || []).filter(x => x && x.show !== false && x.name && (!x.until || x.until >= DT.now().toISODate())).sort((a, b) => String(a.since || '').localeCompare(String(b.since || '')));
 /* Tự thêm https:// cho các link thanh toán nếu người dùng quên */
 function fixPayUrls(p) { const o = { ...p }; ['stripe', 'paypal', 'kofi', 'companionUrl', 'momoQr'].forEach(k => { const v = (o[k] || '').trim(); o[k] = v && !/^(https?:)?\/\//i.test(v) && !/^data:/i.test(v) ? 'https://' + v : v; }); return o; }
-state.companion = false;
+state.companion = false; state.companionUntil = ''; state.compReq = null; state.compCheckedAt = 0;
 let weekDocs = {}, weekOffset = 0;
 const unsubs = {};
 const route = { name:'home', args:[] };
@@ -399,7 +401,8 @@ const localFocus = () => store.get('focus', {});
 auth.onAuthStateChanged(async u => {
   if (DEMO) { render(true); return; }
   state.authReady = true;
-  state.user = u; state.isAdmin = false; state.companion = false; state.profileReady = false; state.profileFailed = false; library = []; profile = {};
+  if (typeof stopAdminWatch === 'function') stopAdminWatch();
+  state.user = u; state.isAdmin = false; state.companion = false; state.compReq = null; state.compCheckedAt = 0; state.profileReady = false; state.profileFailed = false; library = []; profile = {};
   if (unsubLib) { unsubLib(); unsubLib = null; }
   if (u) {
     const profileP = db.collection('users').doc(u.uid).get(); profileP.catch(() => {});      // tải hồ sơ song song với làm mới token, không chờ nhau
@@ -417,7 +420,7 @@ auth.onAuthStateChanged(async u => {
     } catch (e) { console.warn('profile', e.code); state.profileFailed = true; render(true); }
     try { await u.reload(); await u.getIdToken(true); } catch (e) {}   // làm mới trạng thái xác minh email SAU khi hồ sơ đã hiện, để không làm chậm trang
     state.isAdmin = isAdminUser(u);
-    if (state.isAdmin) { goLegacy(); loadAdmin().then(() => { if (typeof ensureSitePublished === 'function') ensureSitePublished(); }).catch(() => {}); }
+    if (state.isAdmin) { goLegacy(); loadAdmin().then(() => { if (typeof ensureSitePublished === 'function') ensureSitePublished(); if (typeof adminWatchRequests === 'function') adminWatchRequests(); }).catch(() => {}); }
     const cc = store.get('comp_' + u.uid, null);                       // tiết kiệm lượt đọc: nhớ kết quả 30 phút
     if (cc && Date.now() - cc.t < 30 * 60e3) state.companion = !!cc.v;
     else { try { const cd = await db.collection('companions').doc(u.uid).get(); state.companion = cd.exists && !(cd.data().until && cd.data().until < DT.now().toISODate()); store.set('comp_' + u.uid, { t:Date.now(), v:state.companion }); } catch (e) {} }
@@ -466,6 +469,18 @@ const LOCKABLE = ['home', 'schedule', 'watch', 'focus', 'blog', 'club', 'shop', 
 const loginRequired = () => !DEMO && !CONFIG_MISSING && branding.requireLogin !== false;
 const lockedPages = () => Array.isArray(branding.lockedPages) ? branding.lockedPages : ['schedule', 'watch', 'focus', 'blog', 'club', 'shop'];
 const isLocked = name => loginRequired() && !state.user && lockedPages().includes(name);
+/* Hỏi lại Firestore xem người dùng đã là Companion chưa (bỏ qua bản nhớ 30 phút) — gọi khi mở Planner / trang Ủng hộ, để vừa được duyệt là mở khoá ngay */
+async function refreshCompanion(force){
+  const u = state.user; if (!u || DEMO || (!force && Date.now() - state.compCheckedAt < 20000)) return false;
+  state.compCheckedAt = Date.now(); const before = state.companion + '|' + (state.compReq && state.compReq.status);
+  try {
+    const cd = await db.collection('companions').doc(u.uid).get(), d = cd.exists ? cd.data() : null;
+    state.companion = !!d && !(d.until && d.until < DT.now().toISODate()); state.companionUntil = d && d.until || '';
+    store.set('comp_' + u.uid, { t:Date.now(), v:state.companion });
+    if (!state.companion) { try { const r = await db.collection('companion_requests').doc(u.uid).get(); state.compReq = r.exists ? r.data() : null; } catch (e) {} } else state.compReq = null;
+  } catch (e) { console.warn('companion check', e.code); }
+  return before !== state.companion + '|' + (state.compReq && state.compReq.status);
+}
 function doRender(){
   if (!state.booted) return;                      // chưa nạp xong các file (pages.js, admin.js) thì chưa vẽ
   readRoute();
@@ -475,6 +490,11 @@ function doRender(){
   if (route.name === 'admin' && typeof PAGES.admin !== 'function') {            // admin.js chưa tải: tải rồi vẽ lại
     renderChrome(); $('page').innerHTML = '<div class="gate-load"><i></i></div>';
     loadAdmin().then(() => render(true)).catch(() => { $('page').innerHTML = '<p class="muted" style="padding:24px">Không tải được trang admin. Kiểm tra mạng rồi tải lại trang.</p>'; });
+    return;
+  }
+  if (route.name === 'planner' && typeof PAGES.planner !== 'function') {        // planner.js chỉ tải khi mở #/planner
+    renderChrome(); $('page').innerHTML = '<div class="gate-load"><i></i></div>';
+    loadPlanner().then(() => render(true)).catch(() => { $('page').innerHTML = '<p class="muted" style="padding:24px">Could not load the planner. Check your connection and reload.</p>'; });
     return;
   }
   const fn = state.locked ? PAGES.locked : (PAGES[route.name] || PAGES.home);
@@ -487,7 +507,7 @@ function afterRender(){
 }
 const NAV_DEFAULT = [
   { id:'home', icon:'home', path:'/' }, { id:'schedule', icon:'calendar', path:'/schedule' }, { id:'watch', icon:'play', path:'/watch' },
-  { id:'focus', icon:'timer', path:'/focus' }, { id:'blog', icon:'pen', path:'/blog' }, { id:'club', icon:'moon', path:'/club' }, { id:'shop', icon:'bag', path:'/shop' }, { id:'gear', icon:'tag', path:'/gear' }, { id:'donate', icon:'heart', path:'/donate' }, { id:'about', icon:'info', path:'/about' }
+  { id:'focus', icon:'timer', path:'/focus' }, { id:'blog', icon:'pen', path:'/blog' }, { id:'club', icon:'moon', path:'/club' }, { id:'planner', icon:'chart', path:'/planner' }, { id:'shop', icon:'bag', path:'/shop' }, { id:'gear', icon:'tag', path:'/gear' }, { id:'donate', icon:'heart', path:'/donate' }, { id:'about', icon:'info', path:'/about' }
 ];
 function navItems(){
   const saved = branding.nav; if (!Array.isArray(saved) || !saved.length) return NAV_DEFAULT.map(n => ({ ...n, visible:true }));
@@ -508,11 +528,11 @@ function renderChrome(){
       : `<a class="sb-item ${route.name === n.id || (n.id === 'home' && route.name === 'home') ? 'active' : ''}" href="#${n.path}" data-act="closeNav">${ic(n.icon)}<span>${esc(navLabel(n))}</span>${n.id === 'shop' && cartN ? `<span class="count">${cartN}</span>` : ''}${isLocked(n.id) ? `<span class="lk" title="${esc(t('lock_title'))}">${ic('lock', 'sm')}</span>` : ''}</a>`).join('')}
     ${state.user ? `<div class="sb-label">${esc(t('nav_account'))}</div>
       <a class="sb-item ${route.name === 'account' && route.args[0] === 'library' ? 'active' : ''}" href="#/account/library" data-act="closeNav">${ic('download')}<span>${esc(t('nav_library'))}</span>${library.length ? `<span class="count">${library.length}</span>` : ''}</a>` : ''}
-    ${state.isAdmin ? `<div class="sb-label">Admin</div><a class="sb-item ${route.name === 'admin' ? 'active' : ''}" href="#/admin" data-act="closeNav">${ic('shield')}<span>${esc(t('nav_admin'))}</span></a>` : ''}
+    ${state.isAdmin ? `<div class="sb-label">Admin</div><a class="sb-item ${route.name === 'admin' ? 'active' : ''}" href="#/admin" data-act="closeNav">${ic('shield')}<span>${esc(t('nav_admin'))}</span>${state.compPending ? `<span class="count">${state.compPending}</span>` : ''}</a>` : ''}
     <div class="sb-foot">${state.user
       ? `<a class="sb-user" href="#/account" data-act="closeNav"><span class="avatar">${esc((displayName() || '?').slice(0, 1).toUpperCase())}</span><div><b>${esc(displayName())}</b><small>${esc(state.isAdmin ? 'Admin' : t('nav_account'))}</small></div></a>`
       : `<a class="btn primary" style="width:100%" href="#/account" data-act="closeNav">${ic('user', 'sm')} ${esc(t('nav_signin'))}</a>`}</div>`;
-  const titles = { home:'nav_home', schedule:'nav_schedule', watch:'nav_watch', focus:'nav_focus', blog:'nav_blog', club:'nav_club', shop:'nav_shop', gear:'nav_gear', donate:'nav_donate', about:'nav_about', account:'nav_account', admin:'nav_admin' };
+  const titles = { home:'nav_home', schedule:'nav_schedule', watch:'nav_watch', focus:'nav_focus', blog:'nav_blog', club:'nav_club', planner:'nav_planner', shop:'nav_shop', gear:'nav_gear', donate:'nav_donate', about:'nav_about', account:'nav_account', admin:'nav_admin' };
   $('tb-title').textContent = t(titles[route.name] || 'nav_home');
   const dot = $('cart-dot'); dot.textContent = cartN; dot.classList.toggle('hidden', !cartN);
   $('btn-edit').classList.toggle('hidden', !state.isAdmin);

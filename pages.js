@@ -685,11 +685,22 @@ PAGES.club = function(){
 /* =========================================================
    DONATE / COMPANIONS
    ========================================================= */
+/* Báo đã thanh toán Companions: ghi companion_requests/<uid>; admin thấy ở tab Thành viên và bấm duyệt (mở Planner cho tài khoản đó) */
+function compClaimHTML(){
+  const fmt = ts => DT.fromMillis(tsMs(ts)).setZone(userTZ).toFormat('dd/MM'), r = state.compReq;
+  if (!state.user) return `<div class="limit-box stack"><b>${esc(t('cc_title'))}</b><p class="small muted">${esc(t('cc_login'))}</p><a class="btn secondary" href="#/account">${esc(t('nav_signin'))}</a></div>`;
+  const status = state.companion ? `<p class="small" style="color:var(--live)">${esc(state.companionUntil ? t('cc_active', { d:state.companionUntil }) : t('cc_active_open'))}</p>`
+    : r && r.status === 'pending' ? `<p class="small muted">${esc(t('cc_pending', { d:fmt(r.createdAt) }))}</p>`
+    : r && r.status === 'rejected' ? `<p class="small" style="color:var(--danger)">${esc(t('cc_rejected'))}</p>` : '';
+  const sent = !state.companion && r && r.status === 'pending';
+  return `<div class="limit-box stack"><b>${esc(t('cc_title'))}</b>${state.companion ? '' : `<p class="small muted">${esc(t('cc_sub'))}</p>`}${status}${sent ? '' : `<button class="btn secondary" data-act="compClaim">${ic('check', 'sm')} ${esc(state.companion ? t('cc_renew') : t('cc_btn'))}</button>`}</div>`;
+}
 let donAmt = null, donCur = null;
 const parseAmts = (s, d) => { const a = String(s || '').split(/[,\s]+/).map(Number).filter(n => n > 0); return a.length ? a : d; };
 /* mục cảm ơn những người đồng hành (tên do admin chọn hiện, xem tab Thành viên) */
 const thanksCard = () => { const l = thanksList(); return l.length ? `<section class="card pad thanks mt"><div class="card-h"><h2 ${cms('thanks_title')}>${ic('heart', 'sm')} ${esc(ctext('thanks_title'))}</h2></div><p class="muted small" ${cms('thanks_text')}>${esc(ctext('thanks_text'))}</p><div class="thanks-list">${l.map(x => `<span class="thanks-chip">${ic('heart', 'sm')} ${esc(x.name)}</span>`).join('')}</div></section>` : ''; };
 const donateHTML = function(){
+  if (state.user) refreshCompanion().then(ch => ch && render(true));
   const cur = donCur || effCurrency(), amts = cur === 'VND' ? parseAmts(payments.donateVND, [20000, 50000, 100000, 200000]) : parseAmts(payments.donateUSD, [3, 5, 10, 25]);
   const amt = donAmt && donAmt.cur === cur ? donAmt.v : amts[1] || amts[0], hasBank = payments.bankBin && payments.accountNo;
   let pay = '';
@@ -708,7 +719,7 @@ const donateHTML = function(){
         ${pay || `<p class="muted">${esc(t('donate_none'))}</p>`}<p class="small faint">${esc(t('donate_thanks'))}</p></section>
       <section class="card pad stack"><div class="row between"><h2 style="font-size:1.2rem" ${cms('comp_title')}>${esc(ctext('comp_title'))}</h2>${state.companion ? `<span class="badge">${ic('heart', 'sm')} ${esc(t('comp_badge'))}</span>` : ''}</div>
         <p class="muted" ${cms('comp_text')}>${esc(ctext('comp_text'))}</p><div><div class="label">${esc(t('comp_perks'))}</div><ul class="perks"><li ${cms('comp_perk1')}>${esc(ctext('comp_perk1'))}</li><li ${cms('comp_perk2')}>${esc(ctext('comp_perk2'))}</li><li ${cms('comp_perk3')}>${esc(ctext('comp_perk3'))}</li></ul></div>
-        ${branding.focusCodeHash ? `<div><div class="label">${esc(t('comp_steps_title'))}</div><ol class="steps"><li>${esc(t('comp_step1'))}</li><li>${esc(t('comp_step2'))}</li><li>${esc(t('comp_step3'))}</li></ol></div>${unlockBox()}` : ''}${state.companion || unlockValid() ? `<p class="small" style="color:var(--live)">${esc(t('comp_active'))}</p>` : ''}${payments.companionUrl ? `<a class="btn primary lg" target="_blank" rel="noopener" href="${esc(payments.companionUrl)}">${ic('heart', 'sm')} ${esc(t('comp_cta'))}</a>` : ''}</section></div>`;
+        ${branding.focusCodeHash ? `<div><div class="label">${esc(t('comp_steps_title'))}</div><ol class="steps"><li>${esc(t('comp_step1'))}</li><li>${esc(t('comp_step2'))}</li><li>${esc(t('comp_step3'))}</li></ol></div>${unlockBox()}` : ''}${state.companion || unlockValid() ? `<p class="small" style="color:var(--live)">${esc(t('comp_active'))}</p>` : ''}${payments.companionUrl ? `<a class="btn primary lg" target="_blank" rel="noopener" href="${esc(payments.companionUrl)}">${ic('heart', 'sm')} ${esc(t('comp_cta'))}</a>` : ''}${compClaimHTML()}</section></div>`;
   return body;
 };
 PAGES.donate = function(){ page(`${head('donate_title', 'donate_sub', '', 'lantern', 3)}${donateHTML()}${thanksCard()}`); };
@@ -716,6 +727,19 @@ CHANGES.donCustom = el => { const v = Math.round(+el.value); if (v > 0) { donAmt
 Object.assign(ACTIONS, {
   donCur: el => { donCur = el.dataset.c; donAmt = null; render(true); },
   donAmt: el => { donAmt = { cur:donCur || effCurrency(), v:+el.dataset.v }; render(true); },
+  compClaim: () => {
+    if (!state.user) return;
+    openModal(`<h3 style="margin-bottom:12px">${esc(t('cc_title'))}</h3><p class="small muted" style="margin-bottom:12px">${esc(t('cc_sub'))}</p>
+      <div class="field"><label class="label">${esc(t('cc_method'))}</label><select class="select" id="cc-method">${['kofi', 'bank', 'paypal', 'momo', 'other'].map(k => `<option value="${k}">${esc(t('cc_m_' + k))}</option>`).join('')}</select></div>
+      <div class="field mt-s"><input class="input" id="cc-note" maxlength="200" placeholder="${esc(t('cc_note_ph'))}"></div>
+      <div class="row mt" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="closeModal">${esc(t('cancel'))}</button><button type="button" class="btn primary" data-act="compClaimSend">${esc(t('cc_send'))}</button></div>`, true);
+  },
+  compClaimSend: async el => {
+    const u = state.user; if (!u) return; el.disabled = true;
+    const rq = { uid:u.uid, email:u.email || '', name:displayName() || '', method:$('cc-method').value, note:$('cc-note').value.trim().slice(0, 200), status:'pending' };
+    try { if (!DEMO) await db.collection('companion_requests').doc(u.uid).set({ ...rq, createdAt:TS() }); state.compReq = { ...rq, createdAt:Date.now() }; closeModal(); toast(t('cc_sent')); render(true); }
+    catch (e) { el.disabled = false; console.warn('claim', e.code); toast(t('cc_err') + ' ' + (e.code || '')); }
+  },
   moonRetry: () => location.reload(),
   moonStart: () => { if (!DEMO && !state.profileReady) return; if (moonData()) return render(true); moonSave({ startedAt:Date.now(), days:[], rounds:0 }); },
   moonAgain: () => { const m = moonData(); moonSave({ startedAt:Date.now(), days:[], rounds:(m ? m.rounds : 0) + 1 }); },

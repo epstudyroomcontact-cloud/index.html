@@ -42,6 +42,8 @@ Vào https://console.firebase.google.com (đăng nhập bằng Gmail đã tạo 
 3. Quay lại Firebase: bấm vào ô Rules, `Ctrl + A` (chọn hết), `Delete`, rồi `Ctrl + V` (dán).
 4. Bấm **Publish**.
 
+> Mỗi lần file `firestore.rules` thay đổi (ví dụ khi thêm Planner cho Companions và nút "Tôi đã thanh toán"), bạn làm lại đúng 4 bước này một lần. Chưa dán luật mới thì Planner và nút báo thanh toán sẽ báo lỗi lưu.
+
 ---
 
 ## PHẦN 3 — Tạo tài khoản admin (chủ trang)
