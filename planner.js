@@ -68,6 +68,7 @@ Object.assign(I18N.en, {
   pl_up_expired:'Your companion access ended on {d}. Your planner data is kept safely and comes back as soon as you renew.',
   pl_s_vocab:'Review vocabulary', pl_s_listen:'Listening practice', pl_s_read:'Reading task', pl_s_gym:'Workout', pl_s_essay:'Write an essay', pl_s_book:'Read a book', pl_s_meet:'Team meeting', pl_s_speak:'Speaking practice', pl_s_movie:'Watch a movie', pl_s_clean:'Tidy up', pl_s_review:'Weekly review',
   pl_chime_on:'Chime on', pl_chime_off:'Chime off', pl_rem_inpage:'Your browser blocks notifications, so I will remind you inside this page, with a chime. Keep the tab open.', pl_preview:'Preview with sample data', pl_preview_note:'This is how the Planner looks for companions. It is locked until you become a companion.',
+  pl_day_empty:'Nothing planned for this day yet.',
   pl_quick_ph:'Quick add: type a task and press Enter (try "19:30 Review vocab")', pl_quick_btn:'Add', pl_tpl_menu:'Weekly template', pl_streak_l:'Streak', pl_streak_u:'weeks at 70% or more', pl_streak_start:'Finish 70% of a week to start one', pl_ana:'Details', pl_still:'Still to do', pl_goal_set:'Goal', pl_now:'Now',
 });
 Object.assign(I18N.vi, {
@@ -79,13 +80,14 @@ Object.assign(I18N.vi, {
   pl_up_expired:'Quyền Companion của bạn đã hết hạn ngày {d}. Dữ liệu Planner vẫn được giữ nguyên và sẽ hiện lại ngay khi bạn gia hạn.',
   pl_s_vocab:'Ôn từ vựng', pl_s_listen:'Luyện nghe', pl_s_read:'Làm bài đọc', pl_s_gym:'Tập thể dục', pl_s_essay:'Viết bài luận', pl_s_book:'Đọc sách', pl_s_meet:'Họp nhóm', pl_s_speak:'Luyện nói', pl_s_movie:'Xem phim', pl_s_clean:'Dọn dẹp', pl_s_review:'Tổng kết tuần',
   pl_chime_on:'Chuông: bật', pl_chime_off:'Chuông: tắt', pl_rem_inpage:'Trình duyệt đang chặn thông báo, nên mình sẽ nhắc ngay trong trang và có chuông. Bạn để tab này mở nhé.', pl_preview:'Xem trước với dữ liệu mẫu', pl_preview_note:'Đây là giao diện Planner dành cho Companions. Planner bị khoá cho đến khi bạn trở thành Companion.',
+  pl_day_empty:'Ngày này chưa có việc nào.',
   pl_quick_ph:'Thêm nhanh: gõ việc rồi bấm Enter (ví dụ "19:30 Ôn từ vựng")', pl_quick_btn:'Thêm', pl_tpl_menu:'Tuần mẫu', pl_streak_l:'Chuỗi tuần', pl_streak_u:'tuần liên tiếp xong từ 70%', pl_streak_start:'Xong 70% việc của một tuần để bắt đầu', pl_ana:'Chi tiết', pl_still:'Việc chưa xong', pl_goal_set:'Mục tiêu', pl_now:'Bây giờ',
 });
 
 const PL_MAX = 300;                                              // số việc tối đa mỗi tuần (giữ tài liệu nhỏ, tránh lỗi quá cỡ)
 const PL_HOUR = 44;                                              // px cho mỗi giờ trong lưới
 const PL_COLORS = ['#f2b8c6', '#c9b8ec', '#f6c9a0', '#f4e08c', '#a9dcc6', '#a8cdee'];   // 6 nhóm: màu pastel, chữ tối cho mọi giao diện
-const PL = { off:0, key:'', tasks:null, state:'idle', save:'', prev:null, timer:0, sel:null, seq:0, slow:false, hist:{}, prefs:null, remTasks:null, sent:{}, remT:0 };
+const PL = { off:0, key:'', tasks:null, state:'idle', save:'', prev:null, timer:0, sel:null, seq:0, slow:false, hist:{}, prefs:null, remTasks:null, sent:{}, remT:0, mday:null };
 const plWeekStart = off => DT.now().setZone(userTZ).plus({ weeks:off }).startOf('week');
 const plKey = off => { const d = plWeekStart(off); return `${d.weekYear}-W${d.weekNumber}`; };
 const plDaysLeft = () => Math.ceil(DT.fromISO(state.companionUntil, { zone:userTZ }).endOf('day').diff(DT.now().setZone(userTZ), 'days').days);
@@ -265,6 +267,13 @@ function plUpsell(){
     <div class="pl-previewhead"><span class="badge">${ic('lock', 'sm')} ${esc(t('pl_preview'))}</span><small class="faint">${esc(t('pl_preview_note'))}</small></div>
     <div class="pl-locked" inert aria-hidden="true">${plPreview()}</div>`;
 }
+function plAgenda(){                                              // điện thoại: danh sách từng ngày thay cho lưới 7 cột (CSS chỉ hiện một trong hai)
+  const ws = plWeekStart(PL.off), today = DT.now().setZone(userTZ), ti = PL.off === 0 ? today.weekday - 1 : 0, di = PL.mday === null || PL.mday === undefined ? ti : PL.mday;
+  const tabs = Array.from({ length:7 }, (_, i) => { const n = PL.tasks.filter(x => x.day === i).length; return `<button type="button" class="pl-dt ${i === di ? 'on' : ''} ${PL.off === 0 && i === ti ? 'today' : ''}" data-act="plMday" data-d="${i}"><b>${esc(t('pl_d' + i))}</b><small>${ws.plus({ days:i }).toFormat('dd')}</small><i class="${n ? 'has' : ''}"></i></button>`; }).join('');
+  const list = PL.tasks.filter(x => x.day === di).sort((a, b) => (a.start || '99:99').localeCompare(b.start || '99:99') || a.title.localeCompare(b.title));
+  const row = x => `<div class="pl-ag ${x.done ? 'done' : ''}" data-act="plEdit" data-id="${esc(x.id)}"><button type="button" class="pl-ck sm" style="border-color:${PL_COLORS[x.c]}" data-act="plToggle" data-id="${esc(x.id)}" aria-label="${esc(t('pl_f_done'))}">${x.done ? ic('check', 'sm') : ''}</button><span class="pl-agc" style="background:${PL_COLORS[x.c]}"></span><div><b>${esc(x.title || '—')}</b><small>${x.start ? esc(x.start) + '–' + esc(hmStr(hm(x.start) + (x.dur || 0))) : esc(t('pl_allday'))}${x.dur && !x.start ? ' · ' + esc(fmtMin(x.dur)) : ''}</small></div></div>`;
+  return `<div class="pl-agenda"><div class="pl-dtabs">${tabs}</div><div class="pl-aglist">${list.length ? list.map(row).join('') : `<p class="muted small">${esc(t('pl_day_empty'))}</p>`}</div><button type="button" class="btn secondary" data-act="plNew" data-day="${di}">${ic('plus', 'sm')} ${esc(t('pl_add'))}</button></div>`;
+}
 function plGrid(){
   const tasks = PL.tasks, ws = plWeekStart(PL.off), nowDT = DT.now().setZone(userTZ), today = nowDT.toISODate(), nowM = nowDT.hour * 60 + nowDT.minute;
   const timed = tasks.filter(x => x.day !== null && x.start);
@@ -281,7 +290,7 @@ function plGrid(){
       strip:`<div class="pl-strip">${tasks.filter(x => x.day === di && !x.start).map(chip).join('')}</div>`,
       col:`<div class="pl-col ${isToday ? 'today' : ''}" data-act="plNew" data-day="${di}" data-g0="${g0}" style="height:${hours.length * PL_HOUR}px">${timed.filter(x => x.day === di).map(block).join('')}${isToday && nowM >= g0 * 60 && nowM < g1 * 60 ? `<i class="pl-now" style="top:${(nowM - g0 * 60) / 60 * PL_HOUR}px"></i>` : ''}</div>` };
   });
-  return `<div class="pl-scroll"><div class="pl-grid"><div class="pl-corner"></div>${cols.map(c => c.head).join('')}
+  return `${plAgenda()}<div class="pl-scroll"><div class="pl-grid"><div class="pl-corner"></div>${cols.map(c => c.head).join('')}
     <div class="pl-corner"></div>${cols.map(c => c.strip).join('')}
     <div class="pl-hours">${hours.map(h => `<div style="height:${PL_HOUR}px">${String(h).padStart(2, '0')}:00</div>`).join('')}</div>${cols.map(c => c.col).join('')}</div></div>`;
 }
@@ -348,7 +357,7 @@ PAGES.planner = function(){
   let body;
   if (PL.state === 'error') body = `<p class="muted">${esc(t('pl_load_err'))}</p><button class="btn primary" data-act="plRetry">${esc(t('club_retry'))}</button>${PL.err ? `<p class="small faint">${esc(PL.err)}</p>` : ''}`;
   else if (!PL.tasks) body = `<p class="muted">${esc(t(PL.slow ? 'pl_slow' : 'pl_loading'))}</p>${PL.slow ? `<button class="btn primary" data-act="plRetry">${esc(t('club_retry'))}</button>` : ''}`;
-  else { const S = plStats(PL.tasks, PL.off); body = `${plKpis(S)}${plQuickBar()}<p class="small faint" style="margin:4px 0 10px">${esc(t('pl_hint'))}</p><div class="pl-main"><div class="card pad pl-gridcard">${plGrid()}</div>${plSide()}</div>${plAnalysis(S)}`; }
+  else { const S = plStats(PL.tasks, PL.off); body = `${plKpis(S)}${plQuickBar()}<p class="small faint pl-hint" style="margin:4px 0 10px">${esc(t('pl_hint'))}</p><div class="pl-main"><div class="card pad pl-gridcard">${plGrid()}</div>${plSide()}</div>${plAnalysis(S)}`; }
   page(`${head('pl_title', 'pl_sub', '', 'moonwalk', 4)}${state.companionUntil && !state.isAdmin ? (plDaysLeft() <= 5 ? `<div class="card pad stack" style="margin-bottom:14px"><p class="small">${esc(t('pl_soon', { d:state.companionUntil }))}</p>${(() => { const r = plRecent(); return r && r.n ? `<p class="small"><b>${esc(t('pl_soon_stats', { n:r.n, t:fmtMin(r.t) }))}</b></p>` : ''; })()}${compClaimHTML()}</div>` : `<p class="small muted" style="margin:-6px 0 12px">${esc(t('pl_until', { d:state.companionUntil }))}</p>`) : ''}${nav}${body}`);
 };
 /* ---------- hộp thoại thêm / sửa ---------- */
@@ -375,7 +384,8 @@ FORMS.plQuick = f => {
   plSave(); render(true); setTimeout(() => { const n = $('pl-quick'); if (n) n.focus(); }, 30);
 };
 Object.assign(ACTIONS, {
-  plWeek: el => { plFlush(); const d = +el.dataset.d; PL.off = d ? PL.off + d : 0; PL.seq++; PL.tasks = null; PL.key = ''; PL.state = 'idle'; render(true); },
+  plMday: el => { PL.mday = +el.dataset.d; render(true); },
+  plWeek: el => { plFlush(); PL.mday = null; const d = +el.dataset.d; PL.off = d ? PL.off + d : 0; PL.seq++; PL.tasks = null; PL.key = ''; PL.state = 'idle'; render(true); },
   plRetry: () => { PL.seq++; PL.state = 'idle'; PL.key = ''; PL.tasks = null; PL.slow = false; render(true); },
   plRem: async () => {
     if (plRemOn()) { store.set('pl_rem', false); clearInterval(PL.remT); PL.remT = 0; toast(t('pl_rem_off')); return render(true); }
@@ -404,7 +414,7 @@ Object.assign(ACTIONS, {
   },
   plNew: (el, e) => {
     if (!PL.tasks) return; let day = el.dataset.day !== undefined ? +el.dataset.day : (PL.off === 0 ? DT.now().setZone(userTZ).weekday - 1 : 0), start = '';
-    if (day !== null && e && e.clientY !== undefined) { const r = el.getBoundingClientRect(), mins = Math.round((e.clientY - r.top) / PL_HOUR * 2) * 30 + (+el.dataset.g0) * 60; start = hmStr(Math.max(0, Math.min(1410, mins))); }
+    if (day !== null && e && e.clientY !== undefined && el.dataset.g0 !== undefined) { const r = el.getBoundingClientRect(), mins = Math.round((e.clientY - r.top) / PL_HOUR * 2) * 30 + (+el.dataset.g0) * 60; start = hmStr(Math.max(0, Math.min(1410, mins))); }
     PL.sel = null; plForm({ title:'', day, start:'', dur:60, c:0, done:false }, true, day, start);
   },
   plEdit: el => { const x = PL.tasks.find(v => v.id === el.dataset.id); if (!x) return; PL.sel = x.id; plForm(x, false); },
