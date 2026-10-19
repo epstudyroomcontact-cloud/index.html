@@ -90,6 +90,7 @@ PAGES.home = function(){
   const wk = getItems(0, weekDocs[0]).filter(x => !x.cancelled), hours = wk.reduce((a, x) => a + x.mins, 0) / 60, fm = focusToday(), avg = ratingAvg(), tItems = todayItems();
   const heroImg = cimg('hero_img') || branding.mascotUrl;
   let html = '';
+  if (on('about')) html += `<div style="margin-bottom:34px">${aboutIntroHTML()}</div>`;   // giới thiệu về chủ kênh ở đầu trang
   if (on('hero')) html += `<section class="hero" data-cms-img="hero_img">${heroImg ? `<img class="art" alt="" src="${esc(heroImg)}">` : paint('moonwalk', { crop:'full', seed:1 })}<div class="hero-copy">
       <span class="badge">${esc(hello)}</span>
       <h1 ${cms('home_title')}>${esc(ctext('home_title'))}</h1>
@@ -118,7 +119,7 @@ PAGES.home = function(){
   if (on('shop') && products.length) html += secHead('sec_shop', '#/shop') + `<div class="pgrid">${products.slice(0, 3).map(prodCard).join('')}</div>`;
   if (on('thanks') && thanksList().length) html += thanksCard();
   if (on('challenge')) html += clubPromo();
-  if (on('about')) html += `<div style="margin-top:44px">${aboutHTML()}</div>`;   // giới thiệu + FAQ + đánh giá (trước đây là trang About)
+  if (on('about')) html += aboutFaqHTML() + aboutReviewsHTML();   // FAQ rồi đánh giá nằm cuối trang
   page(html);
 };
 
@@ -478,18 +479,23 @@ FORMS.coupon = () => applyCoupon($('coupon-in').value);
    ========================================================= */
 const faqList = () => Array.isArray(content.faq) && content.faq.length ? content.faq.map(f => ({ q:L(f.q), a:L(f.a) })) : [1, 2, 3, 4].map(i => ({ q:ctext('faq' + i + 'q'), a:ctext('faq' + i + 'a'), k:i }));
 let reviewRating = 5;
-const aboutHTML = function(){
-  const avg = ratingAvg();
+const aboutIntroHTML = function(){
   return `<section class="about-hero"><div><span class="badge" ${cms('about_badge')}>${esc(ctext('about_badge'))}</span><h1 style="font-size:clamp(1.8rem,4vw,2.6rem);margin:12px 0" ${cms('about_h')}>${esc(ctext('about_h'))}</h1><p class="muted" style="font-size:1.05rem;white-space:pre-line" ${cms('about_text')}>${esc(ctext('about_text'))}</p>
       <div class="row mt"><a class="btn primary" href="#/watch">${ic('play', 'sm')} ${esc(t('btn_watch_live'))}</a>${Object.entries(branding.socialLinks || {}).filter(([, u]) => u).map(([n, u]) => `<a class="btn secondary" target="_blank" rel="noopener" href="${esc(u)}">${esc(n)}</a>`).join('')}</div></div>
       <div class="about-img" data-cms-img="about_img">${artOr('about_img', 'moonwalk', { crop:'tall', seed:2 })}</div></section>
-    <div class="grid g3 mt" style="margin-top:34px">${[['timer', 1], ['globe', 2], ['sliders', 3]].map(([icn, i]) => `<div class="card pad feat"><div class="tile" style="padding:0"><span class="t-ic">${ic(icn)}</span></div><h3 style="font-size:1.05rem;margin:10px 0 4px" ${cms('about_c' + i + '_t')}>${esc(ctext('about_c' + i + '_t'))}</h3><p class="muted small" ${cms('about_c' + i + '_d')}>${esc(ctext('about_c' + i + '_d'))}</p></div>`).join('')}</div>
-    <h2 style="font-size:1.3rem;margin:40px 0 14px" ${cms('faq_title')}>${esc(ctext('faq_title'))}</h2>
-    <div>${faqList().map(f => `<details class="faq"><summary>${esc(f.q)}</summary><div class="a">${esc(f.a)}</div></details>`).join('')}</div>
-    <div class="row between" style="margin:40px 0 14px"><h2 style="font-size:1.3rem" ${cms('reviews_title')}>${esc(ctext('reviews_title'))}</h2>${avg ? `<div class="row">${stars(Math.round(avg))}<b>${avg.toFixed(1)}</b><span class="small faint">(${reviews.length})</span></div>` : ''}</div>
+    <div class="grid g3 mt" style="margin-top:34px">${[['timer', 1], ['globe', 2], ['sliders', 3]].map(([icn, i]) => `<div class="card pad feat"><div class="tile" style="padding:0"><span class="t-ic">${ic(icn)}</span></div><h3 style="font-size:1.05rem;margin:10px 0 4px" ${cms('about_c' + i + '_t')}>${esc(ctext('about_c' + i + '_t'))}</h3><p class="muted small" ${cms('about_c' + i + '_d')}>${esc(ctext('about_c' + i + '_d'))}</p></div>`).join('')}</div>`;
+};
+const aboutFaqHTML = function(){
+  return `<h2 style="font-size:1.3rem;margin:40px 0 14px" ${cms('faq_title')}>${esc(ctext('faq_title'))}</h2>
+    <div>${faqList().map(f => `<details class="faq"><summary>${esc(f.q)}</summary><div class="a">${esc(f.a)}</div></details>`).join('')}</div>`;
+};
+const aboutReviewsHTML = function(){
+  const avg = ratingAvg();
+  return `<div class="row between" style="margin:40px 0 14px"><h2 style="font-size:1.3rem" ${cms('reviews_title')}>${esc(ctext('reviews_title'))}</h2>${avg ? `<div class="row">${stars(Math.round(avg))}<b>${avg.toFixed(1)}</b><span class="small faint">(${reviews.length})</span></div>` : ''}</div>
     <div class="grid g-main" style="align-items:start"><div class="grid g2">${reviews.length ? reviews.map(reviewCard).join('') : `<div style="grid-column:1/-1">${emptyBox('star', t('no_reviews'), '')}</div>`}</div>
     <section class="card pad"><h3 style="margin-bottom:10px">${esc(t('review_write'))}</h3>${state.user ? `<form class="stack" data-form="review"><div><label class="label">${esc(t('rating_label'))}</label><div class="seg" id="rev-stars">${[1, 2, 3, 4, 5].map(i => `<button type="button" class="${i === reviewRating ? 'on' : ''}" data-act="rate" data-n="${i}">${i}★</button>`).join('')}</div></div><textarea class="textarea" id="rev-text" required maxlength="600" placeholder="${esc(t('review_ph'))}"></textarea><button class="btn primary" type="submit">${esc(t('review_submit'))}</button></form>` : `<p class="muted small">${esc(t('review_login'))}</p><a class="btn primary mt-s" href="#/account">${esc(t('signin'))}</a>`}</section></div>`;
 };
+const aboutHTML = () => aboutIntroHTML() + aboutFaqHTML() + aboutReviewsHTML();
 PAGES.about = function(){ page(aboutHTML()); };   // trang About đã gộp vào Overview; giữ lại để phần chỉnh sửa vẫn dùng được
 FORMS.review = async () => {
   const text = $('rev-text').value.trim(); if (!text) return;
