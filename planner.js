@@ -15,10 +15,10 @@ Object.assign(I18N.en, {
   pl_allday:'No time', pl_week_list:'To do this week (no day)', pl_empty_list:'Nothing here. Tasks without a day show up in this list.', pl_hint:'Tap an empty spot in a day to add a task there. Tap a task to edit it, tap the circle to tick it off.',
   pl_review:'This week in numbers', pl_done_tasks:'Tasks done', pl_done_min:'Time done', pl_plan_min:'Time planned', pl_by_day:'By day', pl_by_cat:'By category', pl_left:'Still to do', pl_left_none:'Everything is ticked off. Nice.', pl_carry:'Move the unfinished tasks to next week', pl_carried:'Moved to next week', pl_carried_n:'{n} tasks moved to next week.',
   pl_insights:'What this says about your week', pl_i_none:'Add a few tasks and tick them off to get your weekly review.',
-  pl_i_rate_hi:'You finished {p}% of your tasks. That is a strong week.', pl_i_rate_mid:'You finished {p}% of your tasks. A solid base to build on.', pl_i_rate_lo:'You finished {p}% of your tasks. Maybe the plan was a bit big: try fewer tasks per day next week.',
+  pl_i_rate_hi:'You finished {p}% of the tasks that were due. That is a strong week.', pl_i_rate_mid:'You finished {p}% of the tasks that were due. A solid base to build on.', pl_i_rate_lo:'You finished {p}% of the tasks that were due. That is okay, every week has slow stretches. Next week, try fewer tasks per day so it is easier to keep the rhythm.',
   pl_i_best:'Your most productive day was {d}, with {t} done.', pl_i_part_0:'You get the most done in the morning.', pl_i_part_1:'You get the most done in the afternoon.', pl_i_part_2:'You get the most done in the evening.',
-  pl_i_over:'{d} was planned for {t}. That is a lot; leave some room to rest.', pl_i_left:'{n} tasks (about {t}) are still open. You can move them to next week with one tap.',
-  pl_i_vs_up:'That is {n} points better than last week ({p}%).', pl_i_vs_down:'That is {n} points lower than last week ({p}%).', pl_i_vs_same:'About the same as last week ({p}%).',
+  pl_i_over:'{d} was planned for {t}. That is a lot; leave some room to rest.', pl_i_left:'{n} tasks (about {t}) from earlier days are not done yet. Move them to today, or delete the ones you no longer need.',
+  pl_i_vs_up:'That is {n} points better than last week ({p}%).', pl_i_vs_down:'That is {n} points lower than last week ({p}%). One slow week does not undo your progress.', pl_i_vs_same:'About the same as last week ({p}%).',
   pl_min:'{m} min', pl_h:'{h} h', pl_hm:'{h} h {m} min', pl_untimed:'(no time set)', pl_until:'You are a companion until {d}.', pl_max:'A week can hold up to {n} tasks.', pl_soon:'Your companion access ends on {d}. Renew to keep using the planner.'
 });
 Object.assign(I18N.vi, {
@@ -32,37 +32,47 @@ Object.assign(I18N.vi, {
   pl_allday:'Chưa có giờ', pl_week_list:'Việc cả tuần (chưa gắn ngày)', pl_empty_list:'Chưa có gì. Việc không gắn ngày sẽ hiện ở danh sách này.', pl_hint:'Bấm vào chỗ trống trong một ngày để thêm việc ở đó. Bấm vào việc để sửa, bấm vào vòng tròn để tick xong.',
   pl_review:'Tuần này qua các con số', pl_done_tasks:'Việc đã xong', pl_done_min:'Thời gian đã làm', pl_plan_min:'Thời gian dự định', pl_by_day:'Theo ngày', pl_by_cat:'Theo nhóm', pl_left:'Việc còn lại', pl_left_none:'Tất cả đã được tick xong. Giỏi quá.', pl_carry:'Chuyển các việc chưa xong sang tuần sau', pl_carried:'Đã chuyển sang tuần sau', pl_carried_n:'Đã chuyển {n} việc sang tuần sau.',
   pl_insights:'Tuần này nói gì về bạn', pl_i_none:'Hãy thêm vài việc và tick xong để nhận bản tổng kết tuần.',
-  pl_i_rate_hi:'Bạn hoàn thành {p}% số việc. Đây là một tuần rất tốt.', pl_i_rate_mid:'Bạn hoàn thành {p}% số việc. Một nền tảng vững để làm tiếp.', pl_i_rate_lo:'Bạn hoàn thành {p}% số việc. Có thể kế hoạch hơi nhiều: tuần sau thử xếp ít việc mỗi ngày hơn.',
+  pl_i_rate_hi:'Bạn xong {p}% số việc đã đến hạn. Đây là một tuần rất tốt.', pl_i_rate_mid:'Bạn xong {p}% số việc đã đến hạn. Một nền tảng vững để làm tiếp.', pl_i_rate_lo:'Bạn xong {p}% số việc đã đến hạn. Không sao, tuần nào cũng có lúc chậm. Tuần sau thử xếp ít việc hơn mỗi ngày để dễ giữ nhịp.',
   pl_i_best:'Ngày làm được nhiều nhất là {d}, xong {t}.', pl_i_part_0:'Bạn làm xong nhiều việc nhất vào buổi sáng.', pl_i_part_1:'Bạn làm xong nhiều việc nhất vào buổi chiều.', pl_i_part_2:'Bạn làm xong nhiều việc nhất vào buổi tối.',
-  pl_i_over:'{d} xếp tới {t}. Hơi nhiều, nhớ chừa chỗ để nghỉ.', pl_i_left:'Còn {n} việc (khoảng {t}) chưa xong. Bạn chuyển sang tuần sau chỉ với một cú bấm.',
-  pl_i_vs_up:'Cao hơn tuần trước {n} điểm ({p}%).', pl_i_vs_down:'Thấp hơn tuần trước {n} điểm ({p}%).', pl_i_vs_same:'Gần bằng tuần trước ({p}%).',
+  pl_i_over:'{d} xếp tới {t}. Hơi nhiều, nhớ chừa chỗ để nghỉ.', pl_i_left:'Còn {n} việc (khoảng {t}) của những ngày trước chưa xong. Bạn dời sang hôm nay, hoặc xoá bớt việc không còn cần.',
+  pl_i_vs_up:'Cao hơn tuần trước {n} điểm ({p}%).', pl_i_vs_down:'Thấp hơn tuần trước {n} điểm ({p}%). Một tuần chậm không làm mất tiến bộ của bạn.', pl_i_vs_same:'Gần bằng tuần trước ({p}%).',
   pl_min:'{m} phút', pl_h:'{h} giờ', pl_hm:'{h} giờ {m} phút', pl_untimed:'(chưa đặt giờ)', pl_until:'Bạn là Companion đến ngày {d}.', pl_max:'Mỗi tuần chứa tối đa {n} việc.', pl_soon:'Quyền Companion của bạn hết hạn ngày {d}. Gia hạn để tiếp tục dùng planner.'
 });
 
 Object.assign(I18N.en, {
   pl_today:'Today', pl_next:'Next: {t}', pl_none_today:'Nothing planned for today. Tap an empty spot in today\'s column to add a task.',
   pl_rem_btn:'Remind me before tasks start', pl_rem_on:'Reminders are on', pl_rem_hint:'You get a reminder 10 minutes before a task starts, only while this site is open in your browser.', pl_rem_off:'Reminders off', pl_rem_denied:'Notifications are blocked for this site in your browser settings.', pl_rem_unsup:'This browser does not support notifications.', pl_rem_title:'Planner', pl_rem_test:'Reminders are on.', pl_rem_soon:'{t} starts at {s}', pl_rem_eve:'{n} tasks are still open today.',
-  pl_score:'Week score', pl_lv_0:'Keep going', pl_lv_1:'Solid', pl_lv_2:'Great', pl_lv_3:'Outstanding', pl_score_how:'60% tasks done, 25% time done, 15% days with progress',
+  pl_score:'Week score', pl_lv_0:'Getting started', pl_lv_1:'Solid', pl_lv_2:'Great', pl_lv_3:'Outstanding', pl_score_how:'60% tasks done, 25% time done, 15% days with progress',
   pl_trend:'Last 6 weeks', pl_streak:'{n} weeks in a row with 70% or more done', pl_streak_0:'Finish 70% of a week\'s tasks to start a streak.', pl_streak_this:'This week counts once you reach 70%.',
   pl_goal:'Weekly goal', pl_goal_none:'No goal', pl_goal_prog:'{d} of {g} ({p}%)',
   pl_tpl_save:'Save this week as my template', pl_tpl_use:'Use my template for this week', pl_tpl_saved:'Template saved ({n} tasks).', pl_tpl_added:'Added {n} tasks from your template.', pl_tpl_hint:'A template is your usual week. Save it once, then fill any new week with one tap.',
-  pl_part_0:'morning', pl_part_1:'afternoon', pl_part_2:'evening', pl_i_partrate:'Your {p} tasks get done most often ({r}%). Plan your important work then.', pl_i_empty:'Nothing planned for {d} yet.', pl_i_avg:'Your average over the recent weeks is {p}%.', pl_soon_stats:'In the last weeks you ticked off {n} tasks ({t}). Keep that going.'
+  pl_part_0:'morning', pl_part_1:'afternoon', pl_part_2:'evening', pl_i_partrate:'Your {p} tasks get done most often ({r}%). Plan your important work then.', pl_i_empty:'Nothing planned for {d} yet. Add more whenever you are ready.', pl_i_avg:'Your average over the recent weeks is {p}%.', pl_soon_stats:'In the last weeks you ticked off {n} tasks ({t}). Keep that going.'
 });
 
 Object.assign(I18N.vi, {
   pl_today:'Hôm nay', pl_next:'Tiếp theo: {t}', pl_none_today:'Hôm nay chưa có việc. Bấm vào chỗ trống ở cột hôm nay để thêm.',
   pl_rem_btn:'Nhắc tôi trước giờ làm việc', pl_rem_on:'Đang bật nhắc việc', pl_rem_hint:'Bạn được nhắc trước giờ bắt đầu 10 phút, chỉ khi trang web này đang mở trong trình duyệt.', pl_rem_off:'Đã tắt nhắc việc', pl_rem_denied:'Trình duyệt đang chặn thông báo của trang này. Bạn mở lại trong phần cài đặt trình duyệt.', pl_rem_unsup:'Trình duyệt này không hỗ trợ thông báo.', pl_rem_title:'Planner', pl_rem_test:'Đã bật nhắc việc.', pl_rem_soon:'{t} bắt đầu lúc {s}', pl_rem_eve:'Hôm nay còn {n} việc chưa xong.',
-  pl_score:'Điểm tuần', pl_lv_0:'Cố lên nhé', pl_lv_1:'Ổn định', pl_lv_2:'Rất tốt', pl_lv_3:'Xuất sắc', pl_score_how:'60% số việc xong, 25% thời gian xong, 15% số ngày có tiến triển',
+  pl_score:'Điểm tuần', pl_lv_0:'Đang khởi động', pl_lv_1:'Ổn định', pl_lv_2:'Rất tốt', pl_lv_3:'Xuất sắc', pl_score_how:'60% số việc xong, 25% thời gian xong, 15% số ngày có tiến triển',
   pl_trend:'6 tuần gần nhất', pl_streak:'{n} tuần liên tiếp xong từ 70% việc trở lên', pl_streak_0:'Xong 70% số việc của một tuần để bắt đầu chuỗi.', pl_streak_this:'Tuần này được tính khi bạn đạt 70%.',
   pl_goal:'Mục tiêu tuần', pl_goal_none:'Chưa đặt', pl_goal_prog:'{d} trên {g} ({p}%)',
   pl_tpl_save:'Lưu tuần này làm tuần mẫu', pl_tpl_use:'Dùng tuần mẫu cho tuần này', pl_tpl_saved:'Đã lưu tuần mẫu ({n} việc).', pl_tpl_added:'Đã thêm {n} việc từ tuần mẫu.', pl_tpl_hint:'Tuần mẫu là tuần quen thuộc của bạn. Lưu một lần, rồi điền đầy tuần mới chỉ bằng một cú bấm.',
-  pl_part_0:'buổi sáng', pl_part_1:'buổi chiều', pl_part_2:'buổi tối', pl_i_partrate:'Việc {p} của bạn xong nhiều nhất ({r}%). Hãy xếp việc quan trọng vào lúc đó.', pl_i_empty:'{d} chưa có việc nào.', pl_i_avg:'Trung bình các tuần gần đây của bạn là {p}%.', pl_soon_stats:'Mấy tuần qua bạn đã tick xong {n} việc ({t}). Giữ nhịp này nhé.'
+  pl_part_0:'buổi sáng', pl_part_1:'buổi chiều', pl_part_2:'buổi tối', pl_i_partrate:'Việc {p} của bạn xong nhiều nhất ({r}%). Hãy xếp việc quan trọng vào lúc đó.', pl_i_empty:'Chưa có kế hoạch cho {d}. Khi nào tiện, bạn xếp thêm nhé.', pl_i_avg:'Trung bình các tuần gần đây của bạn là {p}%.', pl_soon_stats:'Mấy tuần qua bạn đã tick xong {n} việc ({t}). Giữ nhịp này nhé.'
 });
 
 Object.assign(I18N.en, {
+  pl_i_early:'The week has only just started, so there is no verdict yet. Follow your plan and your review fills in as tasks come due.', pl_score_wait:'No verdict yet: it needs at least 3 tasks that are due or ticked off', pl_prov:'so far',
+  pl_dstreak_l:'Active days', pl_dstreak:'{n} days in a row. Resting one day does not break the streak.', pl_dstreak_0:'A day counts when you finish at least one task.',
+  pl_dgoal:'Daily goal', pl_dlv_0:'Not started', pl_dlv_1:'Warming up', pl_dlv_2:'Steady', pl_dlv_3:'Great', pl_dlv_4:'Complete',
+  pl_dv_empty:'Nothing planned for today. Pick 1 to 3 small tasks, that is enough.', pl_dv_all:'Everything for today is done. You are keeping a great rhythm.', pl_dv_goal:'Daily goal reached. Anything else is a bonus.', pl_dv_start:'Not started yet is fine. Pick the smallest task and do just 10 minutes.', pl_dv_none:'No task ticked today, and that is okay. Do not pile everything onto tomorrow: move only the 1 or 2 that matter most.', pl_dv_some:'{n} of {m} done. Every finished task counts.',
+  pl_tip_overdue:'{n} tasks from earlier days are still open. Bring them to today, or delete what you no longer need.', pl_tip_over:'Today is planned for {t}. Pick the 3 most important tasks and do them first; the rest is a bonus.', pl_tip_tm:'Tasks you did not get to can move to tomorrow with one tap.', pl_mv_today:'Move them to today', pl_mv_tm:'Move unfinished to tomorrow', pl_moved:'Moved {n} tasks.',
   pl_quick_ph:'Quick add: type a task and press Enter (try "19:30 Review vocab")', pl_quick_btn:'Add', pl_tpl_menu:'Weekly template', pl_streak_l:'Streak', pl_streak_u:'weeks at 70% or more', pl_streak_start:'Finish 70% of a week to start one', pl_ana:'Details', pl_still:'Still to do', pl_goal_set:'Goal', pl_now:'Now',
 });
 Object.assign(I18N.vi, {
+  pl_i_early:'Tuần mới bắt đầu nên mình chưa đánh giá vội. Cứ làm theo kế hoạch, bản nhận xét sẽ đầy dần khi các việc đến hạn.', pl_score_wait:'Chưa đánh giá vội: cần ít nhất 3 việc đã đến hạn hoặc đã tick xong', pl_prov:'tạm tính',
+  pl_dstreak_l:'Ngày hoạt động', pl_dstreak:'{n} ngày liên tiếp. Nghỉ 1 ngày không làm mất chuỗi.', pl_dstreak_0:'Một ngày được tính khi bạn xong ít nhất 1 việc.',
+  pl_dgoal:'Mục tiêu ngày', pl_dlv_0:'Chưa bắt đầu', pl_dlv_1:'Khởi động', pl_dlv_2:'Ổn định', pl_dlv_3:'Rất tốt', pl_dlv_4:'Trọn vẹn',
+  pl_dv_empty:'Hôm nay chưa có việc. Chọn 1 đến 3 việc nhỏ là đủ rồi.', pl_dv_all:'Xong hết việc hôm nay. Bạn đang giữ nhịp rất tốt.', pl_dv_goal:'Đã đạt mục tiêu ngày. Phần làm thêm là cộng thêm.', pl_dv_start:'Chưa bắt đầu cũng không sao. Chọn việc nhỏ nhất và làm 10 phút thôi.', pl_dv_none:'Hôm nay chưa tick được việc nào, không sao cả. Đừng dồn hết sang ngày mai: chỉ dời 1 đến 2 việc quan trọng nhất.', pl_dv_some:'Đã xong {n}/{m} việc. Việc nào xong cũng được tính.',
+  pl_tip_overdue:'Còn {n} việc của những ngày trước chưa xong. Đưa về hôm nay, hoặc xoá bớt việc không còn cần.', pl_tip_over:'Hôm nay xếp tới {t}. Chọn 3 việc quan trọng nhất làm trước, phần còn lại là cộng thêm.', pl_tip_tm:'Việc chưa kịp làm có thể dời sang ngày mai chỉ với một cú bấm.', pl_mv_today:'Dời về hôm nay', pl_mv_tm:'Dời việc chưa xong sang mai', pl_moved:'Đã dời {n} việc.',
   pl_quick_ph:'Thêm nhanh: gõ việc rồi bấm Enter (ví dụ "19:30 Ôn từ vựng")', pl_quick_btn:'Thêm', pl_tpl_menu:'Tuần mẫu', pl_streak_l:'Chuỗi tuần', pl_streak_u:'tuần liên tiếp xong từ 70%', pl_streak_start:'Xong 70% việc của một tuần để bắt đầu', pl_ana:'Chi tiết', pl_still:'Việc chưa xong', pl_goal_set:'Mục tiêu', pl_now:'Bây giờ',
 });
 
@@ -112,7 +122,7 @@ async function plLoad(){
     if (!DEMO) tasks = await (pre && pre.uid === state.user.uid && pre.key === key && Date.now() - pre.at < 60000 ? pre.p : plFetch(key));
     if (PL.seq !== seq) return;                                   // đã đổi tuần / bấm thử lại trong lúc tải
     console.info('planner load', Date.now() - t0, 'ms', hit ? '(có bản nhớ)' : '');
-    if (!PL.save) { PL.tasks = tasks.map(plClean); plCache(key, tasks); PL.hist[key] = plStats(PL.tasks); if (key === plKey(0)) PL.remTasks = { uid:state.user.uid, tasks:PL.tasks }; }      // bạn đã sửa trong lúc chờ thì giữ bản của bạn
+    if (!PL.save) { PL.tasks = tasks.map(plClean); plCache(key, tasks); PL.hist[key] = plStats(PL.tasks, PL.off); if (key === plKey(0)) PL.remTasks = { uid:state.user.uid, tasks:PL.tasks }; }      // bạn đã sửa trong lúc chờ thì giữ bản của bạn
     PL.state = 'ready'; PL.slow = false;
     if (!DEMO) { plHist(); plPrefs(); } else if (!PL.prefs) PL.prefs = {};
   } catch (e) {
@@ -130,7 +140,7 @@ function plFlush(){                                                // lưu ngay 
 function plSave(){
   PL.save = 'saving'; clearTimeout(PL.timer);
   PL.timer = setTimeout(async () => {
-    if (!PL.tasks) return; const key = PL.key, tasks = PL.tasks.map(plClean); plCache(key, tasks); PL.hist[key] = plStats(tasks); if (key === plKey(0)) PL.remTasks = { uid:state.user.uid, tasks };
+    if (!PL.tasks) return; const key = PL.key, tasks = PL.tasks.map(plClean); plCache(key, tasks); PL.hist[key] = plStats(tasks, PL.off); if (key === plKey(0)) PL.remTasks = { uid:state.user.uid, tasks };
     try { if (!DEMO) await plRef(key).set({ tasks, updatedAt:TS() }); if (PL.key === key) PL.save = 'saved'; }
     catch (e) { console.warn('planner save', e.code); PL.save = 'error'; toast(t('pl_err')); }
     const n = $('pl-status'); if (n) n.textContent = PL.save === 'saved' ? '✓ ' + t('pl_saved') : PL.save === 'error' ? t('pl_err') : t('pl_saving');
@@ -138,39 +148,51 @@ function plSave(){
   const n = $('pl-status'); if (n) n.textContent = t('pl_saving');
 }
 /* ---------- thống kê & nhận xét ---------- */
-function plStats(tasks){
-  const S = { n:tasks.length, nd:tasks.filter(x => x.done).length, plan:0, done:0, day:Array.from({ length:7 }, () => ({ plan:0, done:0, n:0, nd:0 })), cat:Array.from({ length:6 }, () => ({ plan:0, done:0, n:0, nd:0 })), part:[0, 0, 0], pn:[0, 0, 0], pd:[0, 0, 0] };
+/* "Đến hạn": chỉ chấm những việc đã tới lúc phải xong. Tuần đã qua = tất cả; tuần này = việc của các ngày trước và việc hôm nay đã quá giờ (việc đã tick luôn được tính); tuần sau = chỉ việc đã tick. Việc ở ngày chưa tới không bị tính là "chưa làm". */
+function plDueFn(off){
+  const now = DT.now().setZone(userTZ), di = now.weekday - 1, m = now.hour * 60 + now.minute;
+  return x => off < 0 || x.done || (off === 0 && x.day !== null && (x.day < di || (x.day === di && !!x.start && hm(x.start) + (x.dur || 0) <= m)));
+}
+function plStats(tasks, off = -1){
+  const due = plDueFn(off), blank = () => ({ plan:0, done:0, n:0, nd:0, dn:0, dnd:0 });
+  const S = { n:tasks.length, nd:tasks.filter(x => x.done).length, plan:0, done:0, dn:0, dnd:0, dplan:0, ddone:0, day:Array.from({ length:7 }, blank), cat:Array.from({ length:6 }, blank), part:[0, 0, 0], pn:[0, 0, 0], pd:[0, 0, 0] };
   tasks.forEach(x => {
     S.plan += x.dur; if (x.done) S.done += x.dur;
     const c = S.cat[x.c]; c.n++; c.plan += x.dur; if (x.done) { c.nd++; c.done += x.dur; }
-    if (x.day !== null) { const dd = S.day[x.day]; dd.plan += x.dur; dd.n++; if (x.done) { dd.done += x.dur; dd.nd++; } }
+    const isDue = due(x); if (isDue) { S.dn++; S.dplan += x.dur; if (x.done) { S.dnd++; S.ddone += x.dur; } }
+    if (x.day !== null) { const dd = S.day[x.day]; dd.plan += x.dur; dd.n++; if (x.done) { dd.done += x.dur; dd.nd++; } if (isDue) { dd.dn++; if (x.done) dd.dnd++; } }
     if (x.start) { const pi = hm(x.start) < 720 ? 0 : hm(x.start) < 1080 ? 1 : 2; S.pn[pi]++; if (x.done) S.pd[pi]++; }
     if (x.done && x.start) S.part[hm(x.start) < 720 ? 0 : hm(x.start) < 1080 ? 1 : 2] += x.dur || 1;
   });
-  S.rate = S.n ? Math.round(S.nd / S.n * 100) : 0;
+  S.rate = S.dn ? Math.round(S.dnd / S.dn * 100) : 0;
   return S;
 }
+const plOverdue = () => PL.off > 0 || !PL.tasks ? [] : PL.tasks.filter(x => !x.done && !x.carried && (PL.off < 0 || (x.day !== null && x.day < DT.now().setZone(userTZ).weekday - 1)));
 function plInsights(S){
   if (!S.n) return [t('pl_i_none')];
-  const out = [t(S.rate >= 80 ? 'pl_i_rate_hi' : S.rate >= 50 ? 'pl_i_rate_mid' : 'pl_i_rate_lo', { p:S.rate })];
-  if (PL.prev && PL.prev.n) { const dlt = S.rate - PL.prev.rate; out.push(t(dlt > 3 ? 'pl_i_vs_up' : dlt < -3 ? 'pl_i_vs_down' : 'pl_i_vs_same', { n:Math.abs(dlt), p:PL.prev.rate })); }
+  const out = [], early = S.dn < 3, di = DT.now().setZone(userTZ).weekday - 1;
+  if (early) out.push(t('pl_i_early'));
+  else {
+    out.push(t(S.rate >= 80 ? 'pl_i_rate_hi' : S.rate >= 50 ? 'pl_i_rate_mid' : 'pl_i_rate_lo', { p:S.rate }));
+    if (PL.prev && PL.prev.dn >= 3) { const dlt = S.rate - PL.prev.rate; out.push(t(dlt > 3 ? 'pl_i_vs_up' : dlt < -3 ? 'pl_i_vs_down' : 'pl_i_vs_same', { n:Math.abs(dlt), p:PL.prev.rate })); }
+  }
   const bi = S.day.reduce((b, d, i) => d.done > S.day[b].done ? i : b, 0); if (S.day[bi].done > 0) out.push(t('pl_i_best', { d:t('pl_d' + bi), t:fmtMin(S.day[bi].done) }));
-  const pm = Math.max(...S.part); if (pm > 0) out.push(t('pl_i_part_' + S.part.indexOf(pm)));
+  const pm = Math.max(...S.part); if (pm > 0 && S.dnd >= 3) out.push(t('pl_i_part_' + S.part.indexOf(pm)));
   const pr = S.pn.map((n, i) => n >= 3 ? Math.round(S.pd[i] / n * 100) : -1), pm2 = Math.max(...pr);
-  if (pm2 > 0 && pr.filter(v => v >= 0).length >= 2) out.push(t('pl_i_partrate', { p:t('pl_part_' + pr.indexOf(pm2)), r:pm2 }));
-  const earlier = [1, 2, 3].map(i => PL.hist[plKey(PL.off - i)]).filter(x => x && x.n); if (earlier.length >= 2) out.push(t('pl_i_avg', { p:Math.round(earlier.reduce((a, x) => a + x.rate, 0) / earlier.length) }));
-  const empty = S.day.map((d, i) => d.n === 0 ? i : -1).filter(i => i >= 0); if (PL.off >= 0 && S.n >= 3 && empty.length && empty.length <= 3) out.push(t('pl_i_empty', { d:empty.map(i => t('pl_d' + i)).join(', ') }));
+  if (!early && pm2 > 0 && pr.filter(v => v >= 0).length >= 2) out.push(t('pl_i_partrate', { p:t('pl_part_' + pr.indexOf(pm2)), r:pm2 }));
+  const earlier = [1, 2, 3].map(i => PL.hist[plKey(PL.off - i)]).filter(x => x && x.dn >= 3); if (!early && earlier.length >= 2) out.push(t('pl_i_avg', { p:Math.round(earlier.reduce((a, x) => a + x.rate, 0) / earlier.length) }));
+  const empty = S.day.map((d, i) => d.n === 0 && (PL.off > 0 || (PL.off === 0 && i >= di)) ? i : -1).filter(i => i >= 0); if (S.n >= 1 && empty.length && empty.length < 7) out.push(t('pl_i_empty', { d:empty.map(i => t('pl_d' + i)).join(', ') }));
   S.day.forEach((d, i) => { if (d.plan > 600) out.push(t('pl_i_over', { d:t('pl_d' + i), t:fmtMin(d.plan) })); });
-  const left = (PL.tasks || []).filter(x => !x.done && !x.carried); if (left.length) out.push(t('pl_i_left', { n:left.length, t:fmtMin(left.reduce((a, x) => a + x.dur, 0)) }));
+  const left = plOverdue(); if (left.length) out.push(t('pl_i_left', { n:left.length, t:fmtMin(left.reduce((a, x) => a + x.dur, 0)) }));
   return out;
 }
 
 /* ---------- lịch sử tuần, điểm, chuỗi, mục tiêu, tuần mẫu ---------- */
 async function plHist(){                                          // đọc 7 tuần trước để vẽ xu hướng, tính chuỗi tuần và so sánh (mỗi tuần chỉ đọc một lần)
   const base = PL.off, key = PL.key;
-  await Promise.all(Array.from({ length:7 }, (_, i) => plKey(base - 1 - i)).map(async k => {
-    if (k in PL.hist) return;
-    try { const d = await plRef(k).get(); PL.hist[k] = d.exists && Array.isArray(d.data().tasks) ? plStats(d.data().tasks.map(plClean)) : null; } catch (e) { /* chưa biết: bỏ qua */ }
+  await Promise.all(Array.from({ length:7 }, (_, i) => base - 1 - i).map(async o => {
+    const k = plKey(o); if (k in PL.hist) return;
+    try { const d = await plRef(k).get(); PL.hist[k] = d.exists && Array.isArray(d.data().tasks) ? plStats(d.data().tasks.map(plClean), o) : null; } catch (e) { /* chưa biết: bỏ qua */ }
   }));
   if (PL.key === key) { PL.prev = PL.hist[plKey(base - 1)] || null; render(true); }
 }
@@ -180,22 +202,24 @@ async function plPrefs(){                                         // goalMin + t
   PL.prefsLoading = false; render(true);
 }
 const plSavePrefs = patch => { PL.prefs = { ...(PL.prefs || {}), ...patch }; if (!DEMO) plRef('_prefs').set(patch, { merge:true }).catch(e => { console.warn('planner prefs', e.code); toast(t('pl_err')); }); };
-function plScore(S){                                              // 0-100: 60% số việc xong, 25% thời gian xong, 15% số ngày có tiến triển
-  if (!S.n) return null;
-  const timeR = S.plan ? Math.min(100, S.done / S.plan * 100) : S.rate, dn = S.day.filter(d => d.n > 0), cons = dn.length ? dn.filter(d => d.nd > 0).length / dn.length * 100 : 0;
+function plScore(S){                                              // 0-100 trên các việc đã đến hạn: 60% số việc xong, 25% thời gian xong, 15% số ngày có tiến triển. Chưa đủ 3 việc đến hạn thì chưa chấm.
+  if (S.dn < 3) return null;
+  const timeR = S.dplan ? Math.min(100, S.ddone / S.dplan * 100) : S.rate, dn = S.day.filter(d => d.dn > 0), cons = dn.length ? dn.filter(d => d.dnd > 0).length / dn.length * 100 : 0;
   return Math.round(S.rate * .6 + timeR * .25 + cons * .15);
 }
-function plStreak(){
-  let s = 0; for (let i = 1; i <= 7; i++) { const x = PL.hist[plKey(PL.off - i)]; if (x && x.n && x.rate >= 70) s++; else break; }
-  const cur = plStats(PL.tasks), ok = cur.n && cur.rate >= 70; return { n:s + (ok ? 1 : 0), ok };
+function plDayStreak(S){                                          // số ngày liên tiếp có ít nhất 1 việc xong; nghỉ 1 ngày không mất chuỗi, nghỉ 2 ngày liền thì dừng; hôm nay chưa làm cũng chưa bị tính là nghỉ
+  const di = DT.now().setZone(userTZ).weekday - 1, days = S.day.slice(0, di + 1).map(d => d.nd > 0).reverse();
+  for (let i = 1; i <= 4; i++) { const h = PL.hist[plKey(-i)]; days.push(...(h ? h.day.map(d => d.nd > 0) : Array(7).fill(false)).reverse()); }
+  let n = 0, miss = 0; for (let i = 0; i < days.length; i++) { if (days[i]) { n++; miss = 0; } else if (i > 0 && ++miss >= 2) break; }
+  return n;
 }
 function plRecent(){                                              // tổng việc/thời gian đã xong trong tuần này và 3 tuần trước (cho lời nhắc gia hạn)
   if (PL.off !== 0 || !PL.tasks) return null;
-  const all = [plStats(PL.tasks), ...[1, 2, 3].map(i => PL.hist[plKey(-i)]).filter(Boolean)];
+  const all = [plStats(PL.tasks, 0), ...[1, 2, 3].map(i => PL.hist[plKey(-i)]).filter(Boolean)];
   return { n:all.reduce((a, x) => a + x.nd, 0), t:all.reduce((a, x) => a + x.done, 0) };
 }
 function plTrend(){
-  const bars = Array.from({ length:6 }, (_, i) => { const k = PL.off - 5 + i, S = k === PL.off ? plStats(PL.tasks) : PL.hist[plKey(k)]; return { cur:k === PL.off, w:plWeekStart(k).toFormat('dd/MM'), r:S && S.n ? S.rate : null }; });
+  const bars = Array.from({ length:6 }, (_, i) => { const k = PL.off - 5 + i, S = k === PL.off ? plStats(PL.tasks, PL.off) : PL.hist[plKey(k)]; return { cur:k === PL.off, w:plWeekStart(k).toFormat('dd/MM'), r:S && S.dn >= (k === 0 ? 3 : 1) ? S.rate : null }; });
   return `<div class="pl-trend">${bars.map(b => `<div class="${b.cur ? 'cur' : ''}"><i style="height:${b.r === null ? 3 : Math.max(6, b.r)}%" class="${b.r === null ? 'none' : ''}"></i><b>${b.r === null ? '–' : b.r + '%'}</b><small>${b.w}</small></div>`).join('')}</div>`;
 }
 /* ---------- nhắc việc (Notification của trình duyệt, chỉ chạy khi trang đang mở) ---------- */
@@ -241,23 +265,32 @@ const plBar = (a, b, color) => `<div class="pl-bar"><i style="width:${b ? Math.m
 function plToday(){
   if (PL.off !== 0) return '';
   const now = DT.now().setZone(userTZ), di = now.weekday - 1, mins = now.hour * 60 + now.minute;
-  const list = PL.tasks.filter(x => x.day === di).sort((a, b) => (a.start || '99:99').localeCompare(b.start || '99:99')), nd = list.filter(x => x.done).length;
+  const list = PL.tasks.filter(x => x.day === di).sort((a, b) => (a.start || '99:99').localeCompare(b.start || '99:99')), nd = list.filter(x => x.done).length, undone = list.filter(x => !x.done);
+  const planMin = list.reduce((a, x) => a + x.dur, 0), doneMin = list.reduce((a, x) => a + (x.done ? x.dur : 0), 0), goal = PL.prefs && PL.prefs.dayGoalMin || 0, frac = goal ? doneMin / goal : list.length ? nd / list.length : 0;
   const next = list.find(x => !x.done && x.start && hm(x.start) + (x.dur || 0) >= mins);
+  const verdict = !list.length ? t('pl_dv_empty') : nd === list.length ? t('pl_dv_all') : goal && doneMin >= goal ? t('pl_dv_goal') : nd === 0 ? t(now.hour < 17 ? 'pl_dv_start' : 'pl_dv_none') : t('pl_dv_some', { n:nd, m:list.length });
+  const over = plOverdue(), tip = over.length ? { k:t('pl_tip_overdue', { n:over.length }), act:'plMoveToday', btn:t('pl_mv_today') } : planMin > 360 && undone.length ? { k:t('pl_tip_over', { t:fmtMin(planMin) }) } : undone.length && now.hour >= 18 && di < 6 ? { k:t('pl_tip_tm'), act:'plMoveTomorrow', btn:t('pl_mv_tm') } : null;
   const row = x => `<div class="pl-li ${x.done ? 'done' : ''}"><button type="button" class="pl-ck sm" style="border-color:${PL_COLORS[x.c]}" data-act="plToggle" data-id="${esc(x.id)}">${x.done ? ic('check', 'sm') : ''}</button><span data-act="plEdit" data-id="${esc(x.id)}">${esc(x.title || '—')}${x.start ? ` <small class="faint">${esc(x.start)}</small>` : ''}</span></div>`;
   const sup = typeof Notification !== 'undefined', denied = sup && Notification.permission === 'denied';
   const rem = plRemOn() ? `<button type="button" class="btn ghost sm" data-act="plRem">${ic('bell', 'sm')} ${esc(t('pl_rem_on'))}</button>` : sup && !denied ? `<button type="button" class="btn secondary sm" data-act="plRem">${ic('bell', 'sm')} ${esc(t('pl_rem_btn'))}</button><p class="small faint" style="margin-top:6px">${esc(t('pl_rem_hint'))}</p>` : '';
-  return `<section class="card pad"><div class="row between"><h3>${esc(t('pl_today'))}</h3><small class="faint">${nd}/${list.length}</small></div>${plBar(nd, list.length)}
-    ${next ? `<p class="small" style="margin:10px 0 4px"><b>${esc(t('pl_next', { t:next.start + ' ' + (next.title || '—') }))}</b></p>` : ''}
-    <div style="margin-top:6px">${list.length ? list.map(row).join('') : `<p class="muted small">${esc(t('pl_none_today'))}</p>`}</div><div style="margin-top:10px">${rem}</div></section>`;
+  const goalSel = `<select class="select" data-change="plDayGoal" aria-label="${esc(t('pl_dgoal'))}" style="width:auto;padding:3px 8px;font-size:.8rem">${[0, 30, 60, 90, 120, 180, 240].map(m => `<option value="${m}" ${goal === m ? 'selected' : ''}>${m ? fmtMin(m) : t('pl_goal_none')}</option>`).join('')}</select>`;
+  return `<section class="card pad"><div class="row between"><h3>${esc(t('pl_today'))}</h3>${list.length ? `<span class="badge">${esc(t('pl_dlv_' + (frac >= 1 ? 4 : frac >= .6 ? 3 : frac >= .3 ? 2 : frac > 0 ? 1 : 0)))}</span>` : ''}</div>
+    <div class="row between" style="margin:8px 0 6px"><small class="faint">${nd}/${list.length}${goal ? ' · ' + esc(fmtMin(doneMin)) + ' / ' + esc(fmtMin(goal)) : ''}</small></div>${plBar(goal ? doneMin : nd, goal || list.length)}
+    <p class="small" style="margin:10px 0 4px"><b>${esc(verdict)}</b></p>
+    ${next ? `<p class="small muted" style="margin:0 0 4px">${esc(t('pl_next', { t:next.start + ' ' + (next.title || '—') }))}</p>` : ''}
+    ${list.length ? `<div style="margin-top:6px">${list.map(row).join('')}</div>` : ''}
+    ${tip ? `<div class="pl-tip"><p class="small">${esc(tip.k)}</p>${tip.act ? `<button type="button" class="btn secondary sm" data-act="${tip.act}">${esc(tip.btn)}</button>` : ''}</div>` : ''}
+    <div class="row between" style="margin-top:12px"><span class="small faint">${esc(t('pl_dgoal'))}</span>${goalSel}</div><div style="margin-top:10px">${rem}</div></section>`;
 }
 function plKpis(S){
-  const sc = plScore(S), st = plStreak(), goal = PL.prefs && PL.prefs.goalMin || 0, lv = sc === null ? '' : t('pl_lv_' + (sc >= 85 ? 3 : sc >= 70 ? 2 : sc >= 50 ? 1 : 0));
+  const sc = plScore(S), goal = PL.prefs && PL.prefs.goalMin || 0, lv = sc === null ? '' : t('pl_lv_' + (sc >= 85 ? 3 : sc >= 70 ? 2 : sc >= 50 ? 1 : 0)) + (PL.off === 0 ? ' · ' + t('pl_prov') : '');
+  const active = S.day.filter(d => d.nd > 0).length, ds = PL.off === 0 ? plDayStreak(S) : 0;
   const goalSel = `<select class="select" data-change="plGoal" aria-label="${esc(t('pl_goal'))}">${[0, 5, 10, 15, 20, 30, 40].map(h => `<option value="${h * 60}" ${goal === h * 60 ? 'selected' : ''}>${h ? t('pl_h', { h }) : t('pl_goal_none')}</option>`).join('')}</select>`;
   return `<div class="pl-kpis4">
-    <div class="pl-kpi" title="${esc(t('pl_score_how'))}"><span class="pl-kl">${esc(t('pl_score'))}</span><b>${sc === null ? '–' : sc}</b><small>${esc(lv || t('pl_i_none'))}</small></div>
+    <div class="pl-kpi" title="${esc(t('pl_score_how'))}"><span class="pl-kl">${esc(t('pl_score'))}</span><b>${sc === null ? '–' : sc}</b><small>${esc(sc !== null ? lv : S.n ? t('pl_score_wait') : t('pl_i_none'))}</small></div>
     <div class="pl-kpi"><span class="pl-kl">${esc(t('pl_done_tasks'))}</span><b>${S.nd}<em>/${S.n}</em></b>${plBar(S.nd, S.n)}</div>
     <div class="pl-kpi"><span class="pl-kl">${esc(t('pl_done_min'))}</span><b>${esc(fmtMin(S.done))}</b>${goal ? `${plBar(S.done, goal)}<small>${esc(t('pl_goal_prog', { d:fmtMin(S.done), g:fmtMin(goal), p:Math.min(999, Math.round(S.done / goal * 100)) }))}</small>` : `<small>${esc(t('pl_plan_min'))}: ${esc(fmtMin(S.plan))}</small>`}<div class="pl-goal"><span>${esc(t('pl_goal_set'))}</span>${goalSel}</div></div>
-    <div class="pl-kpi"><span class="pl-kl">${esc(t('pl_streak_l'))}</span><b>${st.n}</b><small>${esc(st.n ? t('pl_streak_u') + (st.ok ? '' : ' · ' + t('pl_streak_this')) : t('pl_streak_start'))}</small></div></div>`;
+    <div class="pl-kpi"><span class="pl-kl">${esc(t('pl_dstreak_l'))}</span><b>${active}<em>/7</em></b><small>${esc(ds >= 2 ? t('pl_dstreak', { n:ds }) : t('pl_dstreak_0'))}</small></div></div>`;
 }
 function plQuickBar(){
   const tpl = PL.prefs && PL.prefs.template || [];
@@ -291,7 +324,7 @@ PAGES.planner = function(){
   let body;
   if (PL.state === 'error') body = `<p class="muted">${esc(t('pl_load_err'))}</p><button class="btn primary" data-act="plRetry">${esc(t('club_retry'))}</button>${PL.err ? `<p class="small faint">${esc(PL.err)}</p>` : ''}`;
   else if (!PL.tasks) body = `<p class="muted">${esc(t(PL.slow ? 'pl_slow' : 'pl_loading'))}</p>${PL.slow ? `<button class="btn primary" data-act="plRetry">${esc(t('club_retry'))}</button>` : ''}`;
-  else { const S = plStats(PL.tasks); body = `${plKpis(S)}${plQuickBar()}<p class="small faint" style="margin:4px 0 10px">${esc(t('pl_hint'))}</p><div class="pl-main"><div class="card pad pl-gridcard">${plGrid()}</div>${plSide()}</div>${plAnalysis(S)}`; }
+  else { const S = plStats(PL.tasks, PL.off); body = `${plKpis(S)}${plQuickBar()}<p class="small faint" style="margin:4px 0 10px">${esc(t('pl_hint'))}</p><div class="pl-main"><div class="card pad pl-gridcard">${plGrid()}</div>${plSide()}</div>${plAnalysis(S)}`; }
   page(`${head('pl_title', 'pl_sub', '', 'moonwalk', 4)}${state.companionUntil && !state.isAdmin ? (plDaysLeft() <= 5 ? `<div class="card pad stack" style="margin-bottom:14px"><p class="small">${esc(t('pl_soon', { d:state.companionUntil }))}</p>${(() => { const r = plRecent(); return r && r.n ? `<p class="small"><b>${esc(t('pl_soon_stats', { n:r.n, t:fmtMin(r.t) }))}</b></p>` : ''; })()}${compClaimHTML()}</div>` : `<p class="small muted" style="margin:-6px 0 12px">${esc(t('pl_until', { d:state.companionUntil }))}</p>`) : ''}${nav}${body}`);
 };
 /* ---------- hộp thoại thêm / sửa ---------- */
@@ -336,6 +369,14 @@ Object.assign(ACTIONS, {
     if (PL.tasks.length + tpl.length > PL_MAX) return toast(t('pl_max', { n:PL_MAX }));
     tpl.forEach(x => PL.tasks.push(plClean({ ...x, id:plId(), done:false, carried:false }))); plSave(); render(true); toast(t('pl_tpl_added', { n:tpl.length }));
   },
+  plMoveToday: () => {
+    const di = DT.now().setZone(userTZ).weekday - 1, mv = plOverdue(); if (!mv.length) return;
+    mv.forEach(x => { x.day = di; x.start = ''; }); plSave(); render(true); toast(t('pl_moved', { n:mv.length }));
+  },
+  plMoveTomorrow: () => {
+    const di = DT.now().setZone(userTZ).weekday - 1, mv = PL.tasks.filter(x => x.day === di && !x.done); if (!mv.length || di > 5) return;
+    mv.forEach(x => { x.day = di + 1; }); plSave(); render(true); toast(t('pl_moved', { n:mv.length }));
+  },
   plNew: (el, e) => {
     if (!PL.tasks) return; let day = el.dataset.day !== undefined ? +el.dataset.day : (PL.off === 0 ? DT.now().setZone(userTZ).weekday - 1 : 0), start = '';
     if (day !== null && e && e.clientY !== undefined) { const r = el.getBoundingClientRect(), mins = Math.round((e.clientY - r.top) / PL_HOUR * 2) * 30 + (+el.dataset.g0) * 60; start = hmStr(Math.max(0, Math.min(1410, mins))); }
@@ -368,4 +409,5 @@ Object.assign(ACTIONS, {
     } catch (e) { console.warn('carry', e.code); toast(t('pl_err')); }
   }
 });
+CHANGES.plDayGoal = el => { plSavePrefs({ dayGoalMin:+el.value || 0 }); render(true); };
 CHANGES.plGoal = el => { plSavePrefs({ goalMin:+el.value || 0 }); render(true); };
