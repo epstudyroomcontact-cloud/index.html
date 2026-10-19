@@ -3,7 +3,12 @@ const BUILD = '2026-10-13 · bản 8 (khung stream xem được video đã live)
 /* =========================================================
    CORE — cấu hình, trạng thái, dữ liệu realtime, đăng nhập, router, sự kiện
    ========================================================= */
-try { emailjs.init("JKo4tonk0gQMwrHFZ"); } catch (e) { console.warn('EmailJS chưa tải được', e); }
+/* Tải theo nhu cầu (không chặn lúc mở trang): EmailJS chỉ khi gửi email, admin.js chỉ khi chủ trang đăng nhập / mở #/admin */
+const loadScript = src => new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('load ' + src)); document.head.appendChild(s); });
+let emailP = null;
+const loadEmailJS = () => emailP || (emailP = loadScript('https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js').then(() => { emailjs.init("JKo4tonk0gQMwrHFZ"); }).catch(e => { emailP = null; console.warn('EmailJS chưa tải được', e); throw e; }));
+let adminP = null;
+const loadAdmin = () => typeof PAGES.admin === 'function' ? Promise.resolve() : (adminP || (adminP = loadScript('admin.js').catch(e => { adminP = null; throw e; })));
 const EMAILJS_SERVICE = 'service_a098n5f', EMAILJS_CHALLENGE_TPL = 'template_lhv0y0n';
 // Cấu hình Firebase nằm trong js/firebase-config.js (file duy nhất bạn cần sửa để nối web với Firebase)
 const CONFIG_MISSING = !window.FIREBASE_CONFIG || /PASTE_|PLACEHOLDER/.test(JSON.stringify(window.FIREBASE_CONFIG));
@@ -329,7 +334,7 @@ function loadDemo(){
     { id:'r2', name:'Daniel', rating:5, text:'Love that the schedule converts to my timezone automatically.', createdAt:now - 300000000 },
     { id:'r3', name:'Haruka', rating:4, text:'Calm, focused, and the planner is gorgeous.', createdAt:now - 200000000 }];
   content = { texts:{}, images:{}, faq:null };
-  if (DEMO_AS) { state.user = { uid:'demo', email:'demo@epstudyroom.com', displayName:'Demo', emailVerified:true, metadata:{ creationTime:new Date().toUTCString() } }; state.isAdmin = DEMO_AS === 'admin'; }
+  if (DEMO_AS) { state.user = { uid:'demo', email:'demo@epstudyroom.com', displayName:'Demo', emailVerified:true, metadata:{ creationTime:new Date().toUTCString() } }; state.isAdmin = DEMO_AS === 'admin'; if (state.isAdmin) loadAdmin().catch(() => {}); }
   library = [{ id:'planner', name:'30-Day Study Planner (PDF)', orderCode:'EP-DEMO1' }];
   if (DEMO_AS) { const d = []; for (let i = 11; i >= 1; i--) d.push(DT.now().minus({ days:i }).toISODate()); profile = { displayName:'Demo', moon:{ startedAt:Date.now() - 12 * 86400000, days:d, rounds:0 } }; state.companion = DEMO_AS === 'admin'; }
 }
@@ -387,7 +392,7 @@ auth.onAuthStateChanged(async u => {
   if (u) {
     try { await u.reload(); await u.getIdToken(true); } catch (e) {}
     state.isAdmin = isAdminUser(u);
-    if (state.isAdmin) { goLegacy(); if (typeof ensureSitePublished === 'function') ensureSitePublished(); }
+    if (state.isAdmin) { goLegacy(); loadAdmin().then(() => { if (typeof ensureSitePublished === 'function') ensureSitePublished(); }).catch(() => {}); }
     try {
       const d = await db.collection('users').doc(u.uid).get(); profile = d.exists ? d.data() : {};
       const todos = [...(profile.todos || [])]; localTodos().forEach(x => { if (!todos.find(y => y.id === x.id)) todos.push(x); });
@@ -452,7 +457,11 @@ function doRender(){
   state.locked = isLocked(route.name);
   startLibrary();
   if (state.locked && !state.authReady) { renderChrome(); $('page').innerHTML = '<div class="gate-load"><i></i></div>'; return; }   // đợi biết đã đăng nhập hay chưa
-  if (route.name === 'admin' && !state.isAdmin && !DEMO) { /* trang admin yêu cầu quyền */ }
+  if (route.name === 'admin' && typeof PAGES.admin !== 'function') {            // admin.js chưa tải: tải rồi vẽ lại
+    renderChrome(); $('page').innerHTML = '<div class="gate-load"><i></i></div>';
+    loadAdmin().then(() => render(true)).catch(() => { $('page').innerHTML = '<p class="muted" style="padding:24px">Không tải được trang admin. Kiểm tra mạng rồi tải lại trang.</p>'; });
+    return;
+  }
   const fn = state.locked ? PAGES.locked : (PAGES[route.name] || PAGES.home);
   renderChrome(); fn(); afterRender();
 }
