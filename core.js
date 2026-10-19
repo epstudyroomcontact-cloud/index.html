@@ -387,22 +387,25 @@ const localFocus = () => store.get('focus', {});
 auth.onAuthStateChanged(async u => {
   if (DEMO) { render(true); return; }
   state.authReady = true;
-  state.user = u; state.isAdmin = false; state.companion = false; state.profileReady = false; library = []; profile = {};
+  state.user = u; state.isAdmin = false; state.companion = false; state.profileReady = false; state.profileFailed = false; library = []; profile = {};
   if (unsubLib) { unsubLib(); unsubLib = null; }
   if (u) {
-    try { await u.reload(); await u.getIdToken(true); } catch (e) {}
-    state.isAdmin = isAdminUser(u);
-    if (state.isAdmin) { goLegacy(); loadAdmin().then(() => { if (typeof ensureSitePublished === 'function') ensureSitePublished(); }).catch(() => {}); }
+    const profileP = db.collection('users').doc(u.uid).get(); profileP.catch(() => {});      // tải hồ sơ song song với làm mới token, không chờ nhau
     try {
-      const d = await db.collection('users').doc(u.uid).get(); profile = d.exists ? d.data() : {};
+      const d = await profileP; profile = d.exists ? d.data() : {};
       const todos = [...(profile.todos || [])]; localTodos().forEach(x => { if (!todos.find(y => y.id === x.id)) todos.push(x); });
       const fl = { ...(profile.focusLog || {}) }; Object.entries(localFocus()).forEach(([k, v]) => { const o = fl[k] || { m:0, s:0 }; fl[k] = { m:Math.max(o.m, v.m), s:Math.max(o.s, v.s) }; });
       store.set('todos', todos); store.set('focus', fl); profile.todos = todos; profile.focusLog = fl;
       if (profile.unlock && !store.get('unlock', null)) store.set('unlock', profile.unlock);
       if (!d.exists || !profile.displayName) { profile.displayName = profile.displayName || u.displayName || (u.email || '').split('@')[0]; }
       state.profileReady = true;                                      // hồ sơ đã tải xong → mới được hiện/ghi Moon Journey
+      store.set('moon_' + u.uid, profile.moon || null);               // nhớ để lần sau hiện ngay trong lúc chờ tải
+      render(true);
       saveProfileNow();
-    } catch (e) { console.warn('profile', e.code); }
+    } catch (e) { console.warn('profile', e.code); state.profileFailed = true; render(true); }
+    try { await u.reload(); await u.getIdToken(true); } catch (e) {}   // làm mới trạng thái xác minh email SAU khi hồ sơ đã hiện, để không làm chậm trang
+    state.isAdmin = isAdminUser(u);
+    if (state.isAdmin) { goLegacy(); loadAdmin().then(() => { if (typeof ensureSitePublished === 'function') ensureSitePublished(); }).catch(() => {}); }
     const cc = store.get('comp_' + u.uid, null);                       // tiết kiệm lượt đọc: nhớ kết quả 30 phút
     if (cc && Date.now() - cc.t < 30 * 60e3) state.companion = !!cc.v;
     else { try { const cd = await db.collection('companions').doc(u.uid).get(); state.companion = cd.exists && !(cd.data().until && cd.data().until < DT.now().toISODate()); store.set('comp_' + u.uid, { t:Date.now(), v:state.companion }); } catch (e) {} }
