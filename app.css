@@ -10,7 +10,7 @@
   --line:#232c40; --line2:#34405b;
   --on-accent:#fff; --accent:#ff3d9a; --accent-rgb:255,61,154; --accent-strong:#ff3d9a; --accent-soft:rgba(var(--accent-rgb),.17);
   --sage:#2ee6c8; --peach:#ffc72c; --live:#3dff9a; --danger:#ff5a66;
-  --seg-focus:var(--accent); --seg-short:var(--sage); --seg-long:var(--peach);
+  --seg-focus:var(--accent); --seg-short:var(--sage); --seg-long:var(--peach); --seg-prep:#8e9bb0;
   --radius:18px; --shadow-sm:0 1px 2px rgba(0,0,0,.4); --shadow:0 14px 40px rgba(0,0,0,.5); --sbw:264px;
 }
 :root{--surface2:#18202f}
@@ -258,7 +258,7 @@ input[type=checkbox],input[type=radio]{accent-color:var(--accent-strong)}
 .s-time{font-family:var(--mono);font-weight:700;font-size:.95rem}
 .s-title{font-size:.82rem;color:var(--ink2);margin-top:2px;font-weight:600}
 .pomo-bar{display:flex;gap:2px;height:8px;border-radius:99px;overflow:hidden;margin:10px 0 7px}
-.pomo-bar i{display:block;height:100%;min-width:3px}.pomo-bar .f{background:var(--seg-focus)}.pomo-bar .s{background:var(--seg-short)}.pomo-bar .l{background:var(--seg-long)}
+.pomo-bar i{display:block;height:100%;min-width:3px}.pomo-bar .f{background:var(--seg-focus)}.pomo-bar .s{background:var(--seg-short)}.pomo-bar .l{background:var(--seg-long)}.pomo-bar .p{background:var(--seg-prep)}
 .pomo-chip{font-size:.74rem;color:var(--ink2);font-weight:600}
 .plan-toggle{font-size:.74rem;font-weight:700;color:var(--accent-strong);margin-top:5px}
 .plan{list-style:none;margin-top:8px;display:none;font-family:var(--mono);font-size:.74rem;border-top:1px dashed var(--line2);padding-top:8px}
@@ -411,7 +411,7 @@ html[data-font="serif"] h1,html[data-font="serif"] h2,html[data-font="serif"] h3
 .day-cell.next{border-color:var(--accent);color:var(--accent-strong);box-shadow:0 0 0 3px var(--accent-soft)}
 @media(max-width:520px){.days30{grid-template-columns:repeat(6,1fr)}}
 .steps,.perks{margin-left:1.2em;color:var(--ink2)}.steps li,.perks li{margin:5px 0}
-.ad-blocks .blk{display:grid;grid-template-columns:auto 1fr 90px auto;gap:8px;align-items:center;margin-bottom:6px}
+.ad-blocks .blk{display:grid;grid-template-columns:auto minmax(110px,1fr) minmax(90px,1.2fr) 90px auto;gap:8px;align-items:center;margin-bottom:6px}
 .ad-blocks .blk .dot{width:12px;height:12px;border-radius:4px}
 .limit-box{width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
 
