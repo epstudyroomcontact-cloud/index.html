@@ -45,7 +45,7 @@ Object.assign(I18N.en, {
   pl_score:'Week score', pl_lv_0:'Keep going', pl_lv_1:'Solid', pl_lv_2:'Great', pl_lv_3:'Outstanding', pl_score_how:'60% tasks done, 25% time done, 15% days with progress',
   pl_trend:'Last 6 weeks', pl_streak:'{n} weeks in a row with 70% or more done', pl_streak_0:'Finish 70% of a week\'s tasks to start a streak.', pl_streak_this:'This week counts once you reach 70%.',
   pl_goal:'Weekly goal', pl_goal_none:'No goal', pl_goal_prog:'{d} of {g} ({p}%)',
-  pl_tools:'Tools', pl_tpl_save:'Save this week as my template', pl_tpl_use:'Use my template for this week', pl_tpl_saved:'Template saved ({n} tasks).', pl_tpl_added:'Added {n} tasks from your template.', pl_ics:'Export this week to a calendar (.ics)', pl_tpl_hint:'A template is your usual week. Save it once, then fill any new week with one tap.',
+  pl_tpl_save:'Save this week as my template', pl_tpl_use:'Use my template for this week', pl_tpl_saved:'Template saved ({n} tasks).', pl_tpl_added:'Added {n} tasks from your template.', pl_tpl_hint:'A template is your usual week. Save it once, then fill any new week with one tap.',
   pl_part_0:'morning', pl_part_1:'afternoon', pl_part_2:'evening', pl_i_partrate:'Your {p} tasks get done most often ({r}%). Plan your important work then.', pl_i_empty:'Nothing planned for {d} yet.', pl_i_avg:'Your average over the recent weeks is {p}%.', pl_soon_stats:'In the last weeks you ticked off {n} tasks ({t}). Keep that going.'
 });
 
@@ -55,12 +55,19 @@ Object.assign(I18N.vi, {
   pl_score:'Điểm tuần', pl_lv_0:'Cố lên nhé', pl_lv_1:'Ổn định', pl_lv_2:'Rất tốt', pl_lv_3:'Xuất sắc', pl_score_how:'60% số việc xong, 25% thời gian xong, 15% số ngày có tiến triển',
   pl_trend:'6 tuần gần nhất', pl_streak:'{n} tuần liên tiếp xong từ 70% việc trở lên', pl_streak_0:'Xong 70% số việc của một tuần để bắt đầu chuỗi.', pl_streak_this:'Tuần này được tính khi bạn đạt 70%.',
   pl_goal:'Mục tiêu tuần', pl_goal_none:'Chưa đặt', pl_goal_prog:'{d} trên {g} ({p}%)',
-  pl_tools:'Công cụ', pl_tpl_save:'Lưu tuần này làm tuần mẫu', pl_tpl_use:'Dùng tuần mẫu cho tuần này', pl_tpl_saved:'Đã lưu tuần mẫu ({n} việc).', pl_tpl_added:'Đã thêm {n} việc từ tuần mẫu.', pl_ics:'Xuất tuần này sang lịch (.ics)', pl_tpl_hint:'Tuần mẫu là tuần quen thuộc của bạn. Lưu một lần, rồi điền đầy tuần mới chỉ bằng một cú bấm.',
+  pl_tpl_save:'Lưu tuần này làm tuần mẫu', pl_tpl_use:'Dùng tuần mẫu cho tuần này', pl_tpl_saved:'Đã lưu tuần mẫu ({n} việc).', pl_tpl_added:'Đã thêm {n} việc từ tuần mẫu.', pl_tpl_hint:'Tuần mẫu là tuần quen thuộc của bạn. Lưu một lần, rồi điền đầy tuần mới chỉ bằng một cú bấm.',
   pl_part_0:'buổi sáng', pl_part_1:'buổi chiều', pl_part_2:'buổi tối', pl_i_partrate:'Việc {p} của bạn xong nhiều nhất ({r}%). Hãy xếp việc quan trọng vào lúc đó.', pl_i_empty:'{d} chưa có việc nào.', pl_i_avg:'Trung bình các tuần gần đây của bạn là {p}%.', pl_soon_stats:'Mấy tuần qua bạn đã tick xong {n} việc ({t}). Giữ nhịp này nhé.'
 });
 
+Object.assign(I18N.en, {
+  pl_quick_ph:'Quick add: type a task and press Enter (try "19:30 Review vocab")', pl_quick_btn:'Add', pl_tpl_menu:'Weekly template', pl_streak_l:'Streak', pl_streak_u:'weeks at 70% or more', pl_streak_start:'Finish 70% of a week to start one', pl_ana:'Details', pl_still:'Still to do', pl_goal_set:'Goal', pl_now:'Now',
+});
+Object.assign(I18N.vi, {
+  pl_quick_ph:'Thêm nhanh: gõ việc rồi bấm Enter (ví dụ "19:30 Ôn từ vựng")', pl_quick_btn:'Thêm', pl_tpl_menu:'Tuần mẫu', pl_streak_l:'Chuỗi tuần', pl_streak_u:'tuần liên tiếp xong từ 70%', pl_streak_start:'Xong 70% việc của một tuần để bắt đầu', pl_ana:'Chi tiết', pl_still:'Việc chưa xong', pl_goal_set:'Mục tiêu', pl_now:'Bây giờ',
+});
+
 const PL_MAX = 300;                                              // số việc tối đa mỗi tuần (giữ tài liệu nhỏ, tránh lỗi quá cỡ)
-const PL_HOUR = 48;                                              // px cho mỗi giờ trong lưới
+const PL_HOUR = 44;                                              // px cho mỗi giờ trong lưới
 const PL_COLORS = ['#f2b8c6', '#c9b8ec', '#f6c9a0', '#f4e08c', '#a9dcc6', '#a8cdee'];   // 6 nhóm: màu pastel, chữ tối cho mọi giao diện
 const PL = { off:0, key:'', tasks:null, state:'idle', save:'', prev:null, timer:0, sel:null, seq:0, slow:false, hist:{}, prefs:null, remTasks:null, sent:{}, remT:0 };
 const plWeekStart = off => DT.now().setZone(userTZ).plus({ weeks:off }).startOf('week');
@@ -210,9 +217,9 @@ function plUpsell(){
     ${login ? `<a class="btn primary" href="#/account">${esc(t('club_login_btn'))}</a>` : `${compClaimHTML()}<a class="btn secondary" href="#/donate">${esc(t('pl_up_cta'))}</a>`}</section>`;
 }
 function plGrid(){
-  const tasks = PL.tasks, ws = plWeekStart(PL.off), today = DT.now().setZone(userTZ).toISODate();
+  const tasks = PL.tasks, ws = plWeekStart(PL.off), nowDT = DT.now().setZone(userTZ), today = nowDT.toISODate(), nowM = nowDT.hour * 60 + nowDT.minute;
   const timed = tasks.filter(x => x.day !== null && x.start);
-  const g0 = Math.max(0, Math.min(6, ...timed.map(x => Math.floor(hm(x.start) / 60)))), g1 = Math.min(24, Math.max(22, ...timed.map(x => Math.ceil((hm(x.start) + x.dur) / 60))));
+  const g0 = Math.max(0, Math.min(7, ...timed.map(x => Math.floor(hm(x.start) / 60)))), g1 = Math.min(24, Math.max(21, ...timed.map(x => Math.ceil((hm(x.start) + x.dur) / 60))));
   const hours = Array.from({ length:g1 - g0 }, (_, i) => g0 + i);
   const block = x => {
     const top = (hm(x.start) - g0 * 60) / 60 * PL_HOUR, h = Math.max(24, x.dur / 60 * PL_HOUR - 2);
@@ -223,7 +230,7 @@ function plGrid(){
     const d = ws.plus({ days:di }), isToday = d.toISODate() === today;
     return { head:`<div class="pl-dh ${isToday ? 'today' : ''}"><b>${esc(t('pl_d' + di))}</b><small>${d.toFormat('dd/MM')}</small></div>`,
       strip:`<div class="pl-strip">${tasks.filter(x => x.day === di && !x.start).map(chip).join('')}</div>`,
-      col:`<div class="pl-col" data-act="plNew" data-day="${di}" data-g0="${g0}" style="height:${hours.length * PL_HOUR}px">${timed.filter(x => x.day === di).map(block).join('')}</div>` };
+      col:`<div class="pl-col ${isToday ? 'today' : ''}" data-act="plNew" data-day="${di}" data-g0="${g0}" style="height:${hours.length * PL_HOUR}px">${timed.filter(x => x.day === di).map(block).join('')}${isToday && nowM >= g0 * 60 && nowM < g1 * 60 ? `<i class="pl-now" style="top:${(nowM - g0 * 60) / 60 * PL_HOUR}px"></i>` : ''}</div>` };
   });
   return `<div class="pl-scroll"><div class="pl-grid"><div class="pl-corner"></div>${cols.map(c => c.head).join('')}
     <div class="pl-corner"></div>${cols.map(c => c.strip).join('')}
@@ -243,36 +250,34 @@ function plToday(){
     ${next ? `<p class="small" style="margin:10px 0 4px"><b>${esc(t('pl_next', { t:next.start + ' ' + (next.title || '—') }))}</b></p>` : ''}
     <div style="margin-top:6px">${list.length ? list.map(row).join('') : `<p class="muted small">${esc(t('pl_none_today'))}</p>`}</div><div style="margin-top:10px">${rem}</div></section>`;
 }
-function plInsightCards(S){
+function plKpis(S){
   const sc = plScore(S), st = plStreak(), goal = PL.prefs && PL.prefs.goalMin || 0, lv = sc === null ? '' : t('pl_lv_' + (sc >= 85 ? 3 : sc >= 70 ? 2 : sc >= 50 ? 1 : 0));
-  const goalSel = `<select class="select" data-change="plGoal" style="width:auto;padding:4px 8px">${[0, 5, 10, 15, 20, 30, 40].map(h => `<option value="${h * 60}" ${goal === h * 60 ? 'selected' : ''}>${h ? t('pl_h', { h }) : t('pl_goal_none')}</option>`).join('')}</select>`;
-  return `<section class="card pad"><div class="row between"><h3>${esc(t('pl_score'))}</h3><span class="badge">${sc === null ? '–' : sc + ' · ' + esc(lv)}</span></div>
-    <p class="small faint" style="margin:4px 0 10px">${esc(t('pl_score_how'))}</p>
-    <div class="label">${esc(t('pl_trend'))}</div>${plTrend()}
-    <div class="row" style="margin-top:12px;gap:8px;align-items:center">${ic('moon', 'sm')}<span class="small">${esc(st.n ? t('pl_streak', { n:st.n }) : t('pl_streak_0'))}${st.n && !st.ok ? ' ' + esc(t('pl_streak_this')) : ''}</span></div>
-    <div class="row between" style="margin-top:14px"><div class="label" style="margin:0">${esc(t('pl_goal'))}</div>${goalSel}</div>
-    ${goal ? `${plBar(S.done, goal)}<small class="faint">${esc(t('pl_goal_prog', { d:fmtMin(S.done), g:fmtMin(goal), p:Math.min(999, Math.round(S.done / goal * 100)) }))}</small>` : ''}</section>`;
+  const goalSel = `<select class="select" data-change="plGoal" aria-label="${esc(t('pl_goal'))}">${[0, 5, 10, 15, 20, 30, 40].map(h => `<option value="${h * 60}" ${goal === h * 60 ? 'selected' : ''}>${h ? t('pl_h', { h }) : t('pl_goal_none')}</option>`).join('')}</select>`;
+  return `<div class="pl-kpis4">
+    <div class="pl-kpi" title="${esc(t('pl_score_how'))}"><span class="pl-kl">${esc(t('pl_score'))}</span><b>${sc === null ? '–' : sc}</b><small>${esc(lv || t('pl_i_none'))}</small></div>
+    <div class="pl-kpi"><span class="pl-kl">${esc(t('pl_done_tasks'))}</span><b>${S.nd}<em>/${S.n}</em></b>${plBar(S.nd, S.n)}</div>
+    <div class="pl-kpi"><span class="pl-kl">${esc(t('pl_done_min'))}</span><b>${esc(fmtMin(S.done))}</b>${goal ? `${plBar(S.done, goal)}<small>${esc(t('pl_goal_prog', { d:fmtMin(S.done), g:fmtMin(goal), p:Math.min(999, Math.round(S.done / goal * 100)) }))}</small>` : `<small>${esc(t('pl_plan_min'))}: ${esc(fmtMin(S.plan))}</small>`}<div class="pl-goal"><span>${esc(t('pl_goal_set'))}</span>${goalSel}</div></div>
+    <div class="pl-kpi"><span class="pl-kl">${esc(t('pl_streak_l'))}</span><b>${st.n}</b><small>${esc(st.n ? t('pl_streak_u') + (st.ok ? '' : ' · ' + t('pl_streak_this')) : t('pl_streak_start'))}</small></div></div>`;
 }
-function plTools(){
+function plQuickBar(){
   const tpl = PL.prefs && PL.prefs.template || [];
-  return `<section class="card pad stack"><h3>${esc(t('pl_tools'))}</h3><p class="small faint">${esc(t('pl_tpl_hint'))}</p>
-    <button type="button" class="btn secondary" data-act="plTplSave">${esc(t('pl_tpl_save'))}</button>${tpl.length ? `<button type="button" class="btn secondary" data-act="plTplUse">${esc(t('pl_tpl_use'))} (${tpl.length})</button>` : ''}
-    <button type="button" class="btn ghost" data-act="plIcs">${ic('download', 'sm')} ${esc(t('pl_ics'))}</button></section>`;
+  return `<div class="pl-tools"><form class="pl-quick" data-form="plQuick" autocomplete="off"><input class="input" id="pl-quick" maxlength="80" placeholder="${esc(t('pl_quick_ph'))}" aria-label="${esc(t('pl_quick_btn'))}"><button class="btn secondary" type="submit">${ic('plus', 'sm')} ${esc(t('pl_quick_btn'))}</button></form>
+    <details class="pl-menu"><summary class="btn ghost">${esc(t('pl_tpl_menu'))}</summary><div class="pl-pop card"><p class="small faint">${esc(t('pl_tpl_hint'))}</p><button type="button" class="btn secondary sm" data-act="plTplSave">${esc(t('pl_tpl_save'))}</button>${tpl.length ? `<button type="button" class="btn secondary sm" data-act="plTplUse">${esc(t('pl_tpl_use'))} (${tpl.length})</button>` : ''}</div></details></div>`;
 }
-function plReview(){
-  const S = plStats(PL.tasks), left = PL.tasks.filter(x => !x.done), open = left.filter(x => !x.carried);
-  const row = x => `<div class="pl-li ${x.carried ? 'done' : ''}"><button type="button" class="pl-ck sm" style="border-color:${PL_COLORS[x.c]}" data-act="plToggle" data-id="${esc(x.id)}"></button><span data-act="plEdit" data-id="${esc(x.id)}">${esc(x.title || '—')}${x.day !== null ? ` <small class="faint">${esc(t('pl_d' + x.day))}${x.start ? ' ' + esc(x.start) : ''}</small>` : ''}</span>${x.carried ? `<small class="faint">${esc(t('pl_carried'))}</small>` : ''}</div>`;
-  const noDay = PL.tasks.filter(x => x.day === null);
-  return `<div class="stack">${plToday()}
-    <section class="card pad"><h3 style="margin-bottom:12px">${esc(t('pl_review'))}</h3>
-      <div class="pl-kpis"><div><b>${S.rate}%</b><small>${esc(t('pl_done_tasks'))} · ${S.nd}/${S.n}</small></div><div><b>${esc(fmtMin(S.done))}</b><small>${esc(t('pl_done_min'))}</small></div><div><b>${esc(fmtMin(S.plan))}</b><small>${esc(t('pl_plan_min'))}</small></div></div>
-      ${plBar(S.nd, S.n)}
-      <div class="label" style="margin-top:16px">${esc(t('pl_by_day'))}</div>${S.day.map((d, i) => `<div class="pl-row"><span>${esc(t('pl_d' + i))}</span><div class="pl-bar tall"><i class="lt" style="width:${Math.min(100, d.plan / Math.max(60, ...S.day.map(x => x.plan)) * 100)}%"></i><i style="width:${Math.min(100, d.done / Math.max(60, ...S.day.map(x => x.plan)) * 100)}%"></i></div><small class="faint">${esc(fmtMin(d.done))} / ${esc(fmtMin(d.plan))}</small></div>`).join('')}
-      <div class="label" style="margin-top:16px">${esc(t('pl_by_cat'))}</div>${S.cat.map((c, i) => c.n ? `<div class="pl-row"><span><i class="dot" style="background:${PL_COLORS[i]}"></i> ${esc(t('pl_c' + i))}</span>${plBar(c.nd, c.n, PL_COLORS[i])}<small class="faint">${c.nd}/${c.n}</small></div>` : '').join('')}</section>
-    ${plInsightCards(S)}
-    <section class="card pad"><h3 style="margin-bottom:10px">${esc(t('pl_insights'))}</h3><ul class="pl-ins">${plInsights(S).map(s => `<li>${esc(s)}</li>`).join('')}</ul></section>
-    <section class="card pad"><h3 style="margin-bottom:10px">${esc(t('pl_left'))}</h3>${left.length ? left.map(row).join('') : `<p class="muted small">${esc(t('pl_left_none'))}</p>`}${open.length ? `<button class="btn secondary mt-s" data-act="plCarry">${esc(t('pl_carry'))}</button>` : ''}</section>
-    <section class="card pad"><h3 style="margin-bottom:10px">${esc(t('pl_week_list'))}</h3>${noDay.length ? noDay.map(row).join('') : `<p class="muted small">${esc(t('pl_empty_list'))}</p>`}</section>${plTools()}</div>`;
+function plSide(){
+  const left = PL.tasks.filter(x => !x.done), open = left.filter(x => !x.carried), noDay = PL.tasks.filter(x => x.day === null);
+  const row = x => `<div class="pl-li ${x.carried ? 'done' : ''}"><button type="button" class="pl-ck sm" style="border-color:${PL_COLORS[x.c]}" data-act="plToggle" data-id="${esc(x.id)}">${x.done ? ic('check', 'sm') : ''}</button><span data-act="plEdit" data-id="${esc(x.id)}">${esc(x.title || '—')}${x.day !== null ? ` <small class="faint">${esc(t('pl_d' + x.day))}${x.start ? ' ' + esc(x.start) : ''}</small>` : ''}</span>${x.carried ? `<small class="faint">${esc(t('pl_carried'))}</small>` : ''}</div>`;
+  return `<div class="pl-side">${plToday()}
+    <section class="card pad"><h3>${esc(t('pl_still'))}</h3><div class="pl-list">${left.length ? left.map(row).join('') : `<p class="muted small">${esc(t('pl_left_none'))}</p>`}</div>${open.length ? `<button class="btn secondary sm mt-s" data-act="plCarry">${esc(t('pl_carry'))}</button>` : ''}</section>
+    ${noDay.length ? `<section class="card pad"><h3>${esc(t('pl_week_list'))}</h3><div class="pl-list">${noDay.map(row).join('')}</div></section>` : ''}</div>`;
+}
+function plAnalysis(S){
+  const mx = Math.max(60, ...S.day.map(x => x.plan));
+  return `<h2 class="pl-h2">${esc(t('pl_ana'))}</h2><div class="pl-ana">
+    <section class="card pad"><h3>${esc(t('pl_trend'))}</h3>${plTrend()}</section>
+    <section class="card pad"><h3>${esc(t('pl_by_day'))}</h3>${S.day.map((d, i) => `<div class="pl-row"><span>${esc(t('pl_d' + i))}</span><div class="pl-bar tall"><i class="lt" style="width:${Math.min(100, d.plan / mx * 100)}%"></i><i style="width:${Math.min(100, d.done / mx * 100)}%"></i></div><small class="faint">${esc(fmtMin(d.done))} / ${esc(fmtMin(d.plan))}</small></div>`).join('')}</section>
+    <section class="card pad"><h3>${esc(t('pl_by_cat'))}</h3>${S.n ? S.cat.map((c, i) => c.n ? `<div class="pl-row"><span><i class="dot" style="background:${PL_COLORS[i]}"></i> ${esc(t('pl_c' + i))}</span>${plBar(c.nd, c.n, PL_COLORS[i])}<small class="faint">${c.nd}/${c.n}</small></div>` : '').join('') : `<p class="muted small">${esc(t('pl_i_none'))}</p>`}</section>
+    <section class="card pad wide"><h3>${esc(t('pl_insights'))}</h3><ul class="pl-ins">${plInsights(S).map(s => `<li>${esc(s)}</li>`).join('')}</ul></section></div>`;
 }
 PAGES.planner = function(){
   if (!state.user && !state.authReady && !DEMO) return page('<div class="gate-load"><i></i></div>');
@@ -286,7 +291,7 @@ PAGES.planner = function(){
   let body;
   if (PL.state === 'error') body = `<p class="muted">${esc(t('pl_load_err'))}</p><button class="btn primary" data-act="plRetry">${esc(t('club_retry'))}</button>${PL.err ? `<p class="small faint">${esc(PL.err)}</p>` : ''}`;
   else if (!PL.tasks) body = `<p class="muted">${esc(t(PL.slow ? 'pl_slow' : 'pl_loading'))}</p>${PL.slow ? `<button class="btn primary" data-act="plRetry">${esc(t('club_retry'))}</button>` : ''}`;
-  else body = `<p class="small faint" style="margin-bottom:10px">${esc(t('pl_hint'))}</p><div class="pl-layout"><div class="card pad" style="padding:12px">${plGrid()}</div>${plReview()}</div>`;
+  else { const S = plStats(PL.tasks); body = `${plKpis(S)}${plQuickBar()}<p class="small faint" style="margin:4px 0 10px">${esc(t('pl_hint'))}</p><div class="pl-main"><div class="card pad pl-gridcard">${plGrid()}</div>${plSide()}</div>${plAnalysis(S)}`; }
   page(`${head('pl_title', 'pl_sub', '', 'moonwalk', 4)}${state.companionUntil && !state.isAdmin ? (plDaysLeft() <= 5 ? `<div class="card pad stack" style="margin-bottom:14px"><p class="small">${esc(t('pl_soon', { d:state.companionUntil }))}</p>${(() => { const r = plRecent(); return r && r.n ? `<p class="small"><b>${esc(t('pl_soon_stats', { n:r.n, t:fmtMin(r.t) }))}</b></p>` : ''; })()}${compClaimHTML()}</div>` : `<p class="small muted" style="margin:-6px 0 12px">${esc(t('pl_until', { d:state.companionUntil }))}</p>`) : ''}${nav}${body}`);
 };
 /* ---------- hộp thoại thêm / sửa ---------- */
@@ -305,6 +310,13 @@ function plForm(x, isNew, day, start){
   PL.cat = x.c;
   setTimeout(() => { const el = $('pl-title'); if (el && isNew) el.focus(); }, 30);
 }
+FORMS.plQuick = f => {
+  const inp = f.querySelector('input'); let v = inp.value.trim(); if (!v || !PL.tasks) return;
+  if (PL.tasks.length >= PL_MAX) return toast(t('pl_max', { n:PL_MAX }));
+  const m = v.match(/^(\d{1,2})[:h](\d{2})?\s+(.+)$/i), day = PL.off === 0 ? DT.now().setZone(userTZ).weekday - 1 : null;
+  PL.tasks.push(plClean(m && +m[1] < 24 && +(m[2] || 0) < 60 ? { title:m[3], day, start:m[1] + ':' + (m[2] || '00'), dur:60, c:0 } : { title:v, day, c:0 }));
+  plSave(); render(true); setTimeout(() => { const n = $('pl-quick'); if (n) n.focus(); }, 30);
+};
 Object.assign(ACTIONS, {
   plWeek: el => { plFlush(); const d = +el.dataset.d; PL.off = d ? PL.off + d : 0; PL.seq++; PL.tasks = null; PL.key = ''; PL.state = 'idle'; render(true); },
   plRetry: () => { PL.seq++; PL.state = 'idle'; PL.key = ''; PL.tasks = null; PL.slow = false; render(true); },
@@ -323,18 +335,6 @@ Object.assign(ACTIONS, {
     const tpl = PL.prefs && PL.prefs.template || []; if (!tpl.length) return;
     if (PL.tasks.length + tpl.length > PL_MAX) return toast(t('pl_max', { n:PL_MAX }));
     tpl.forEach(x => PL.tasks.push(plClean({ ...x, id:plId(), done:false, carried:false }))); plSave(); render(true); toast(t('pl_tpl_added', { n:tpl.length }));
-  },
-  plIcs: () => {
-    const ws = plWeekStart(PL.off), fmt = "yyyyLLdd'T'HHmmss", esc2 = s => String(s).replace(/([,;\\])/g, '\\$1').replace(/\n/g, '\\n'), stamp = DT.utc().toFormat("yyyyLLdd'T'HHmmss'Z'");
-    const L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//EP Study Room//Planner//EN', 'CALSCALE:GREGORIAN'];
-    PL.tasks.filter(x => x.day !== null).forEach(x => {
-      const d = ws.plus({ days:x.day }); L.push('BEGIN:VEVENT', 'UID:' + x.id + '@epstudyroom', 'DTSTAMP:' + stamp);
-      if (x.start) { const s = d.set({ hour:+x.start.slice(0, 2), minute:+x.start.slice(3, 5) }); L.push('DTSTART;TZID=' + userTZ + ':' + s.toFormat(fmt), 'DTEND;TZID=' + userTZ + ':' + s.plus({ minutes:x.dur || 30 }).toFormat(fmt)); }
-      else L.push('DTSTART;VALUE=DATE:' + d.toFormat('yyyyLLdd'), 'DTEND;VALUE=DATE:' + d.plus({ days:1 }).toFormat('yyyyLLdd'));
-      L.push('SUMMARY:' + esc2(x.title || '—'), 'END:VEVENT');
-    });
-    L.push('END:VCALENDAR');
-    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([L.join('\r\n')], { type:'text/calendar' })); a.download = 'planner-' + PL.key + '.ics'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   },
   plNew: (el, e) => {
     if (!PL.tasks) return; let day = el.dataset.day !== undefined ? +el.dataset.day : (PL.off === 0 ? DT.now().setZone(userTZ).weekday - 1 : 0), start = '';
