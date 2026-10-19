@@ -279,9 +279,23 @@ if (pomo.running && pomo.endAt <= Date.now()) pomoComplete(true, true);     // h
 
 const todos = () => store.get('todos', []);
 const saveTodos = l => { store.set('todos', l); saveProfileSoon(); };
+const plLinked = () => state.companion || state.isAdmin || DEMO;           // có quyền dùng Planner → Focus liên kết với Planner
 function renderTodos(){
-  const box = $('todo-list'); if (!box) return; const l = todos();
-  box.innerHTML = l.length ? l.map(x => `<div class="todo-item ${x.done ? 'done' : ''}"><label><input type="checkbox" data-change="todoToggle" data-id="${esc(x.id)}" ${x.done ? 'checked' : ''}><span>${esc(x.text)}</span></label><button type="button" class="btn ghost icon sm" data-act="todoDel" data-id="${esc(x.id)}" aria-label="${esc(t('remove'))}">${ic('trash', 'sm')}</button></div>`).join('') : `<div class="small faint" style="padding:12px 0">${esc(t('todo_empty'))}</div>`;
+  const box = $('todo-list'); if (!box) return;
+  if (plLinked() && typeof plFocusEdit !== 'function') { loadPlanner().then(() => renderTodos()).catch(() => {}); }
+  const l = todos(), toPl = plLinked() && typeof plFocusEdit === 'function';
+  box.innerHTML = l.length ? l.map(x => `<div class="todo-item ${x.done ? 'done' : ''}"><label><input type="checkbox" data-change="todoToggle" data-id="${esc(x.id)}" ${x.done ? 'checked' : ''}><span>${esc(x.text)}</span></label>${toPl ? `<button type="button" class="btn ghost icon sm" data-act="todoToPl" data-id="${esc(x.id)}" title="${esc(t('todo_to_pl'))}" aria-label="${esc(t('todo_to_pl'))}">${ic('calendar', 'sm')}</button>` : ''}<button type="button" class="btn ghost icon sm" data-act="todoDel" data-id="${esc(x.id)}" aria-label="${esc(t('remove'))}">${ic('trash', 'sm')}</button></div>`).join('') : `<div class="small faint" style="padding:12px 0">${esc(t('todo_empty'))}</div>`;
+  renderFocusPl();
+}
+/* việc hôm nay của Planner hiện ngay dưới danh sách việc của Focus (chỉ cho người có quyền dùng Planner); tick ở đây = tick bên Planner */
+function renderFocusPl(){
+  const box = $('todo-pl'); if (!box) return;
+  if (!plLinked() || typeof plTodayList !== 'function') { box.innerHTML = ''; return; }
+  plTodayList().then(l => {
+    const b = $('todo-pl'); if (!b) return;
+    b.innerHTML = `<div class="divider" style="margin:14px 0 10px"></div><div class="row between"><b class="small">${ic('calendar', 'sm')} ${esc(t('focus_pl_title'))}</b><a class="link small" href="#/planner">${esc(t('focus_pl_open'))}</a></div>`
+      + (l.length ? `<div class="mt-s">${l.map(x => `<div class="todo-item ${x.done ? 'done' : ''}"><label><input type="checkbox" data-change="focusPlToggle" data-id="${esc(x.id)}" ${x.done ? 'checked' : ''}><span>${esc(x.title || '—')}${x.start ? ` <small class="faint">${esc(x.start)}</small>` : ''}</span></label></div>`).join('')}</div>` : `<div class="small faint mt-s">${esc(t('focus_pl_empty'))}</div>`);
+  }).catch(() => { const b = $('todo-pl'); if (b) b.innerHTML = ''; });
 }
 /* ô xem stream nhỏ ngay trong Phòng tập trung (Watch live giữ nguyên) */
 let fsPick = 'auto';                 // auto = đang live thì xem live, chưa live thì xem video mới nhất; 'live' = luôn xem live; hoặc id video đã live
@@ -315,7 +329,7 @@ PAGES.focus = function(){
     </section>
     <div class="stack">${streamCard()}<section class="card pad"><div class="card-h"><h2>${esc(t('todo_title'))}</h2></div>
         <form class="row" style="flex-wrap:nowrap" data-form="todo"><input class="input" id="todo-in" placeholder="${esc(t('todo_ph'))}" maxlength="140" autocomplete="off"><button class="btn primary icon" type="submit" aria-label="add">${ic('plus')}</button></form>
-        <div id="todo-list" class="mt-s"></div>${!state.user ? `<p class="hint mt-s">${esc(t('sync_note'))} <a class="link" href="#/account">${esc(t('signin'))}</a></p>` : ''}</section>
+        <div id="todo-list" class="mt-s"></div><div id="todo-pl"></div>${!state.user ? `<p class="hint mt-s">${esc(t('sync_note'))} <a class="link" href="#/account">${esc(t('signin'))}</a></p>` : ''}</section>
       <div class="grid g2 keep2"><div class="card tile"><span class="t-l">${esc(t('sessions_today'))}</span><span class="t-v">${td.s}</span></div><div class="card tile"><span class="t-l">${esc(t('minutes_today'))}</span><span class="t-v">${td.m}</span></div></div>
       <section class="card pad"><div class="card-h"><h2>${esc(t('week_chart'))}</h2></div><div class="bars">${days.map((d, i) => `<div><i style="height:${Math.max(3, vals[i] / mx * 100)}%" title="${vals[i]} ${esc(t('min'))}"></i><small>${esc(d.setLocale(state.lang).toFormat('ccc'))}</small></div>`).join('')}</div></section></div></div><div class="mt">${musicCard()}</div>
     <h2 class="mt" style="font-size:1.3rem;margin:40px 0 14px">${ic('heart', 'sm')} ${esc(t('nav_donate'))}</h2>${donateHTML()}`);   // phần Support nằm ngay trong Focus room
@@ -324,6 +338,11 @@ PAGES.focus = function(){
 CHANGES.cfg = el => { const k = el.dataset.k, v = Math.max(1, Math.min(180, parseInt(el.value, 10) || 1)); pomo.cfg[k] = v; if (!pomo.running && (k === pomo.mode)) pomo.remaining = pomoDur(pomo.mode); pomoSave(); updateTimerUI(); };
 CHANGES.cfgAuto = el => { pomo.cfg.auto = el.checked; pomoSave(); };
 CHANGES.todoToggle = el => { saveTodos(todos().map(x => x.id === el.dataset.id ? { ...x, done:el.checked } : x)); renderTodos(); };
+CHANGES.focusPlToggle = async el => {
+  const id = el.dataset.id, done = el.checked;
+  if (!await plFocusEdit(ts => { const x = ts.find(v => v.id === id); if (!x) return false; x.done = done; return true; })) toast(t('pl_err'));
+  renderFocusPl();
+};
 FORMS.todo = () => { const i = $('todo-in'), v = i.value.trim(); if (!v) return; saveTodos([{ id:Date.now().toString(36), text:v, done:false }, ...todos()]); i.value = ''; renderTodos(); i.focus(); };
 
 /* =========================================================
@@ -612,6 +631,11 @@ Object.assign(ACTIONS, {
   pskip: () => pomoComplete(false),
   pmode: el => pomoMode(el.dataset.m),
   ppreset: el => { const p = PRESETS[el.dataset.p]; Object.assign(pomo.cfg, { focus:p.focus, short:p.short, long:p.long, every:p.longEvery }); pomo.cycle = 0; pomoMode('focus'); render(true); },
+  todoToPl: async el => {                                          // chuyển việc của Focus thành việc hôm nay trong Planner (chuyển hẳn, không nhân đôi)
+    const x = todos().find(v => v.id === el.dataset.id); if (!x || typeof plFocusEdit !== 'function') return;
+    if (await plFocusEdit(ts => { if (ts.length >= PL_MAX) return false; ts.push(plClean({ title:x.text, day:plToday0(), start:'', dur:0, c:0, done:!!x.done })); return true; })) { saveTodos(todos().filter(v => v.id !== x.id)); renderTodos(); toast(t('todo_to_pl_done')); }
+    else toast(t('pl_err'));
+  },
   todoDel: el => { saveTodos(todos().filter(x => x.id !== el.dataset.id)); renderTodos(); },
   rate: el => { reviewRating = +el.dataset.n; document.querySelectorAll('#rev-stars button').forEach(b => b.classList.toggle('on', +b.dataset.n === reviewRating)); },
   authTab: el => { authTab = el.dataset.t; render(true); },
