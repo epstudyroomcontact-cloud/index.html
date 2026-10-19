@@ -695,6 +695,20 @@ function compClaimHTML(){
   const sent = !state.companion && r && r.status === 'pending';
   return `<div class="limit-box stack"><b>${esc(t('cc_title'))}</b>${state.companion ? '' : `<p class="small muted">${esc(t('cc_sub'))}</p>`}${status}${sent ? '' : `<button class="btn secondary" data-act="compClaim">${ic('check', 'sm')} ${esc(state.companion ? t('cc_renew') : t('cc_btn'))}</button>`}</div>`;
 }
+let compPay = null;                                                // 'vnd' | 'kofi': cách trả đang chọn ở thẻ Người đồng hành
+const compCode = () => 'EPCP' + (state.user ? state.user.uid.slice(0, 6).toUpperCase() : '');     // nội dung chuyển khoản riêng của từng người, để admin đối chiếu
+const compPayMode = () => { const bank = payments.bankBin && payments.accountNo, kofi = payments.companionUrl; return compPay === 'vnd' && bank || compPay === 'kofi' && kofi ? compPay : (bank && (effCurrency() === 'VND' || !kofi) ? 'vnd' : kofi ? 'kofi' : ''); };
+function compPayHTML(){
+  const bank = payments.bankBin && payments.accountNo, kofi = payments.companionUrl, mode = compPayMode(); if (!mode) return '';
+  const amt = Math.round(+payments.companionVND) || 125000, code = compCode(), cp = v => `<button type="button" class="btn secondary sm" data-act="copy" data-v="${esc(v)}">${esc(t('copy'))}</button>`;
+  const seg = bank && kofi ? `<div class="seg"><button type="button" class="${mode === 'vnd' ? 'on' : ''}" data-act="compPay" data-m="vnd">${esc(t('comp_pay_vn'))}</button><button type="button" class="${mode === 'kofi' ? 'on' : ''}" data-act="compPay" data-m="kofi">${esc(t('comp_pay_kofi'))}</button></div>` : '';
+  let body;
+  if (mode === 'kofi') body = `<a class="btn primary lg" target="_blank" rel="noopener" href="${esc(kofi)}">${ic('heart', 'sm')} ${esc(t('comp_cta'))}</a>`;
+  else if (!state.user) body = `<p class="small muted">${esc(t('comp_vnd_login'))}</p><a class="btn secondary" href="#/account">${esc(t('signin'))}</a>`;
+  else body = `<p class="small"><b>${esc(t('comp_vnd_amt', { a:money(amt, 'VND') }))}</b></p><img class="qr" alt="VietQR" src="https://img.vietqr.io/image/${encodeURIComponent(payments.bankBin)}-${encodeURIComponent(payments.accountNo)}-compact2.png?amount=${amt}&addInfo=${encodeURIComponent(code)}&accountName=${encodeURIComponent(payments.accountName || '')}"><p class="small muted" style="text-align:center">${esc(t('donate_scan'))}</p>
+    <div class="kv"><div class="kvr"><span>${esc(t('acc_no'))}</span><b>${esc(payments.accountNo)}</b>${cp(payments.accountNo)}</div><div class="kvr"><span>${esc(t('comp_vnd_sum'))}</span><b>${esc(String(amt))}</b>${cp(String(amt))}</div><div class="kvr"><span>${esc(t('donate_note'))}</span><b>${esc(code)}</b>${cp(code)}</div></div>${payments.momoPhone ? `<div class="small muted">MoMo: <b>${esc(payments.momoPhone)}</b></div>` : ''}<p class="small faint">${esc(t('comp_vnd_hint'))}</p>`;
+  return `<div class="stack">${seg}${body}</div>`;
+}
 let donAmt = null, donCur = null;
 const parseAmts = (s, d) => { const a = String(s || '').split(/[,\s]+/).map(Number).filter(n => n > 0); return a.length ? a : d; };
 /* mục cảm ơn những người đồng hành (tên do admin chọn hiện, xem tab Thành viên) */
@@ -719,19 +733,20 @@ const donateHTML = function(){
         ${pay || `<p class="muted">${esc(t('donate_none'))}</p>`}<p class="small faint">${esc(t('donate_thanks'))}</p></section>
       <section class="card pad stack"><div class="row between"><h2 style="font-size:1.2rem" ${cms('comp_title')}>${esc(ctext('comp_title'))}</h2>${state.companion ? `<span class="badge">${ic('heart', 'sm')} ${esc(t('comp_badge'))}</span>` : ''}</div>
         <p class="muted" ${cms('comp_text')}>${esc(ctext('comp_text'))}</p><div><div class="label">${esc(t('comp_perks'))}</div><ul class="perks"><li ${cms('comp_perk4')}>${esc(ctext('comp_perk4'))}</li><li ${cms('comp_perk1')}>${esc(ctext('comp_perk1'))}</li><li ${cms('comp_perk2')}>${esc(ctext('comp_perk2'))}</li><li ${cms('comp_perk3')}>${esc(ctext('comp_perk3'))}</li></ul></div>
-        ${branding.focusCodeHash ? `<div><div class="label">${esc(t('comp_steps_title'))}</div><ol class="steps"><li>${esc(t('comp_step1'))}</li><li>${esc(t('comp_step2'))}</li><li>${esc(t('comp_step3'))}</li></ol></div>${unlockBox()}` : ''}${state.companion || unlockValid() ? `<p class="small" style="color:var(--live)">${esc(t('comp_active'))}</p>` : ''}${payments.companionUrl ? `<a class="btn primary lg" target="_blank" rel="noopener" href="${esc(payments.companionUrl)}">${ic('heart', 'sm')} ${esc(t('comp_cta'))}</a>` : ''}${compClaimHTML()}</section></div>`;
+        ${branding.focusCodeHash ? `<div><div class="label">${esc(t('comp_steps_title'))}</div><ol class="steps"><li>${esc(t('comp_step1'))}</li><li>${esc(t('comp_step2'))}</li><li>${esc(t('comp_step3'))}</li></ol></div>${unlockBox()}` : ''}${state.companion || unlockValid() ? `<p class="small" style="color:var(--live)">${esc(t('comp_active'))}</p>` : ''}${compPayHTML()}${compClaimHTML()}</section></div>`;
   return body;
 };
 PAGES.donate = function(){ page(`${head('donate_title', 'donate_sub', '', 'lantern', 3)}${donateHTML()}${thanksCard()}`); };
 CHANGES.donCustom = el => { const v = Math.round(+el.value); if (v > 0) { donAmt = { cur:donCur || effCurrency(), v }; render(true); } };
 Object.assign(ACTIONS, {
+  compPay: el => { compPay = el.dataset.m; render(true); },
   donCur: el => { donCur = el.dataset.c; donAmt = null; render(true); },
   donAmt: el => { donAmt = { cur:donCur || effCurrency(), v:+el.dataset.v }; render(true); },
   compClaim: () => {
     if (!state.user) return;
     openModal(`<h3 style="margin-bottom:12px">${esc(t('cc_title'))}</h3><p class="small muted" style="margin-bottom:12px">${esc(t('cc_sub'))}</p>
-      <div class="field"><label class="label">${esc(t('cc_method'))}</label><select class="select" id="cc-method">${['kofi', 'bank', 'paypal', 'momo', 'other'].map(k => `<option value="${k}">${esc(t('cc_m_' + k))}</option>`).join('')}</select></div>
-      <div class="field mt-s"><label class="label">${esc(t('cc_note_label'))} *</label><input class="input" id="cc-note" maxlength="200" placeholder="${esc(t('cc_note_ph'))}"><p class="small" id="cc-err" style="color:var(--danger);margin-top:4px"></p></div>
+      <div class="field"><label class="label">${esc(t('cc_method'))}</label><select class="select" id="cc-method">${['kofi', 'bank', 'paypal', 'momo', 'other'].map(k => `<option value="${k}" ${k === (compPayMode() === 'vnd' ? 'bank' : 'kofi') ? 'selected' : ''}>${esc(t('cc_m_' + k))}</option>`).join('')}</select></div>
+      <div class="field mt-s"><label class="label">${esc(t('cc_note_label'))} *</label><input class="input" id="cc-note" maxlength="200" value="${compPayMode() === 'vnd' && state.user ? esc(compCode()) : ''}" placeholder="${esc(t('cc_note_ph'))}"><p class="small" id="cc-err" style="color:var(--danger);margin-top:4px"></p></div>
       <div class="row mt" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="closeModal">${esc(t('cancel'))}</button><button type="button" class="btn primary" data-act="compClaimSend">${esc(t('cc_send'))}</button></div>`, true);
   },
   compClaimSend: async el => {
