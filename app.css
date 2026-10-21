@@ -431,6 +431,11 @@ html[data-font="serif"] h1,html[data-font="serif"] h2,html[data-font="serif"] h3
 .mja-sleep{transform-origin:50% 100%;animation:mjaBreath 5.6s ease-in-out infinite}
 @keyframes mjaBreath{0%,100%{transform:scale(1,1)}45%{transform:scale(1.01,1.028)}}
 .mja-hair{transform-origin:50% 0;animation:mjaHair 5.4s ease-in-out infinite}
+/* gió nhẹ: tóc và nơ nghiêng theo gió rồi lơi ra, vạt áo lay chậm */
+.mja-hairw{transform-origin:50% 0;animation:mjaHairW 4.8s ease-in-out infinite}
+@keyframes mjaHairW{0%,100%{transform:rotate(1deg)}30%{transform:rotate(4deg)}55%{transform:rotate(2deg)}78%{transform:rotate(4.8deg)}}
+.mja-hem{transform-origin:50% 0;animation:mjaHem 6s ease-in-out infinite}
+@keyframes mjaHem{0%,100%{transform:skewX(0)}35%{transform:skewX(-2.2deg)}60%{transform:skewX(-.6deg)}80%{transform:skewX(-1.6deg)}}
 @keyframes mjaHair{0%,100%{transform:rotate(-2.2deg)}30%{transform:rotate(1.6deg)}55%{transform:rotate(3.2deg)}78%{transform:rotate(.4deg)}}
 .mja-umb{transform-origin:50% 100%;animation:mjaUmb 6.2s ease-in-out infinite}
 @keyframes mjaUmb{0%,100%{transform:rotate(-2.4deg)}35%{transform:rotate(1.4deg)}52%{transform:rotate(3deg)}70%{transform:rotate(.6deg)}}
@@ -466,24 +471,27 @@ html[data-font="serif"] h1,html[data-font="serif"] h2,html[data-font="serif"] h3
 .mja-sway{transform-origin:50% 100%;animation:mjaSway 8s ease-in-out infinite}
 @keyframes mjaSway{0%,100%{transform:rotate(-.7deg)}50%{transform:rotate(.8deg) translateX(.3px)}}
 /* bước đi: chân trước/chân sau đưa lệch nửa nhịp, thân nhún hai lần mỗi chu kỳ */
-.mja-legA,.mja-legB{transform-origin:50% 0;animation:mjaLeg 1.1s ease-in-out infinite}
+.mja-legA,.mja-legB{transform-origin:50% 0;animation:mjaLeg 1.3s ease-in-out infinite}
 .mja-legB{animation-name:mjaLeg2}
-@keyframes mjaLeg{0%,100%{transform:rotate(-20deg)}50%{transform:rotate(18deg) translateY(-.6px)}}
-@keyframes mjaLeg2{0%,100%{transform:rotate(18deg) translateY(-.6px)}50%{transform:rotate(-20deg)}}
-.mja-bkA,.mja-bkB{transform-origin:50% 0;animation:mjaBk 1.1s ease-in-out infinite}
+@keyframes mjaLeg{0%,100%{transform:rotate(-9deg)}50%{transform:rotate(8deg) translateY(-.3px)}}
+@keyframes mjaLeg2{0%,100%{transform:rotate(8deg) translateY(-.3px)}50%{transform:rotate(-9deg)}}
+.mja-bkA,.mja-bkB{transform-origin:50% 0;animation:mjaBk 1.3s ease-in-out infinite}
 .mja-bkB{animation-name:mjaBk2}
-@keyframes mjaBk{0%,100%{transform:translateY(0)}25%{transform:translateY(-1.6px) scaleY(.86)}50%{transform:translateY(0)}}
-@keyframes mjaBk2{0%,50%,100%{transform:translateY(0)}75%{transform:translateY(-1.6px) scaleY(.86)}}
+@keyframes mjaBk{0%,100%{transform:translateY(0)}25%{transform:translateY(-.6px) scaleY(.95)}50%{transform:translateY(0)}}
+@keyframes mjaBk2{0%,50%,100%{transform:translateY(0)}75%{transform:translateY(-.6px) scaleY(.95)}}
 .mja-row{transform-origin:100% 0;animation:mjaRow 2.4s ease-in-out infinite}
 @keyframes mjaRow{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(7deg)}}
-.mja-armS{transform-origin:50% 0;animation:mjaLeg2 1.1s ease-in-out infinite}
-.mja-step{animation:mjaStep .275s ease-in-out infinite alternate}
-@keyframes mjaStep{from{transform:translateY(0)}to{transform:translateY(-1.1px)}}
-.mja-pawA,.mja-pawB{transform-origin:50% 0;animation:mjaPaw .8s ease-in-out infinite}
+.mja-armS,.mja-armF{transform-origin:50% 0;animation:mjaArm 1.3s ease-in-out infinite}
+.mja-armF{animation-name:mjaArm2}
+@keyframes mjaArm{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}
+@keyframes mjaArm2{0%,100%{transform:rotate(5deg)}50%{transform:rotate(-5deg)}}
+.mja-step{animation:mjaStep .325s ease-in-out infinite alternate}
+@keyframes mjaStep{from{transform:translateY(0)}to{transform:translateY(-.45px)}}
+.mja-pawA,.mja-pawB{transform-origin:50% 0;animation:mjaPaw .9s ease-in-out infinite}
 .mja-pawB{animation-name:mjaPaw2}
-@keyframes mjaPaw{0%,100%{transform:rotate(-24deg)}50%{transform:rotate(22deg) translateY(-.5px)}}
-@keyframes mjaPaw2{0%,100%{transform:rotate(22deg) translateY(-.5px)}50%{transform:rotate(-24deg)}}
-.mja-catstep{animation:mjaStep .2s ease-in-out infinite alternate}
+@keyframes mjaPaw{0%,100%{transform:rotate(-13deg)}50%{transform:rotate(12deg) translateY(-.3px)}}
+@keyframes mjaPaw2{0%,100%{transform:rotate(12deg) translateY(-.3px)}50%{transform:rotate(-13deg)}}
+.mja-catstep{animation:mjaStep .225s ease-in-out infinite alternate}
 .mja-ear{transform-origin:20% 100%;animation:mjaEar 7s infinite}
 @keyframes mjaEar{0%,80%,88%,100%{transform:rotate(0)}82%{transform:rotate(-16deg)}84%{transform:rotate(4deg)}86%{transform:rotate(-8deg)}}
 .mja-grass{transform-origin:50% 100%;animation:mjaGrass 3.6s ease-in-out infinite}
