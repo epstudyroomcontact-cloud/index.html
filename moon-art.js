@@ -322,7 +322,8 @@ function mjGirl(c, x, y, s = 1, pose = 'back', o = {}){
     g = mjUmbC(c, hd ? hd[0] + L * Math.sin(a) : u.x, hd ? hd[1] - L * Math.cos(a) : u.y, R, u.rot || 0, u) + g;
     if (hd) g += `<circle cx="${_r1(hd[0])}" cy="${_r1(hd[1])}" r="1.55" fill="${K}"/>`;
   }
-  if (o.lantern) g += mjLantern(c, ...reach(SH, o.lantern));
+  // đèn treo dưới bàn tay; vẽ lại nắm tay lên trên quầng sáng để thấy rõ tay đang xách quai đèn
+  if (o.lantern) { const [lx, ly] = reach(SH, o.lantern); g += mjLantern(c, lx, ly) + `<circle cx="${_r1(lx)}" cy="${_r1(ly)}" r="1.7" fill="${K}"/><circle cx="${_r1(lx - .2)}" cy="${_r1(ly - .9)}" r="1.9" fill="${COS}"/>`; }
   MJ_TF = TF0; MJ_DRIP = D0;
   // đứng: thở và đổi trọng tâm rất chậm; đi: nhún theo bước
   if (o.lean) g = `<g transform="rotate(${o.lean})">${g}</g>`;
@@ -576,7 +577,7 @@ const MJ_SCENES = {
     bg += trunks(9, 16, '#132247', -10, 196) + mjS(c, 120, [-20, -20, 420, 60], ['#0f1d40', '#162a55', '#1d3366'], { ang:-10, len:[10, 26], w:[4, 6], op:.8, jit:30, bend:.4 });
     bg += `<path d="M150 250Q190 200 196 170Q200 150 210 140L222 140Q214 160 222 180Q240 220 300 250Z" fill="#1d2d5a"/>` + mjS(c, 60, [150, 140, 300, 250], ['#26396a', '#2f4680'], { ang:0, len:[10, 30], w:[2, 3], op:.6, in:(x, y) => Math.abs(x - (205 + (y - 140) * .1)) < 8 + (y - 140) * .6 });
     bg += trunks(5, 34, '#08102a', -20, 250) + mjBush(c, 30, 236, 60, 26, ['#0a1d24', '#123330', '#1a443d'], 90) + mjBush(c, 380, 240, 60, 28, ['#0a1d24', '#123330', '#1a443d'], 90) + mjFlies(c, 22, [0, 60, 400, 230], { sz:.8 });
-    return [bg, mjGo(0, -7, mjGlow(c, 210, 190, 90, 'w', .5) + mjGirl(c, 206, 214, 1.25, 'back', { hand:[10.4, -28.4], lantern:[10.4, -28.4], walk:true }))];
+    return [bg, mjGo(0, -7, mjGlow(c, 210, 190, 90, 'w', .5) + mjGirl(c, 206, 214, 1.25, 'back', { hand:[10.8, -20.6], lantern:[10.8, -20.6], walk:true }))];
   },
   // Lá thư gửi Moon: gấp lá thư thành thuyền giấy, thả trôi trên mặt nước có ngọn nến nhỏ
   d300:c => {

@@ -2,7 +2,7 @@
    HIỆU ỨNG CHUYỂN ĐỘNG CHO TỪNG TRẠM (canvas đè lên tranh)
    - <div class="mj-art" data-mjfx="fireflies,petals"> : các hiệu ứng nền chạy liên tục, mỗi trạm một kiểu (MJ_FX ở cuối file).
    - data-mjburst="1" : trạm vừa mở lần đầu, chạy thêm một màn "mở trạm" (vòng sáng loé ra và bụi sao bung).
-   - Trạm gặp lại Moon (finale) là màn lớn nhất: ánh vàng lan ra, trái tim bằng bụi sao, đom đóm bay lên,
+   - Trạm gặp lại Moon (finale) là màn lớn nhất: ánh vàng lan ra, sóng sáng vàng toả nhẹ trên mặt đất, đom đóm bay lên,
      cánh hoa rơi và sao băng, sau đó giữ nhịp sáng ấm.
    - Thêm: sương mù trôi (fog), hơi mưa (haze), tia sáng xiên (rays), mây trôi che trăng (clouds), lá rơi (leaves), hạt bồ công anh (seeds).
    - Máy bật "giảm chuyển động" thì chỉ vẽ một khung đứng yên (không có màn mở trạm). Ngoài màn hình thì dừng vẽ.
@@ -93,8 +93,7 @@ function mjfBurstDraw(g, st, dt){
 
 // ----- màn lớn nhất: gặp lại Moon -----
 function mjfFinaleInit(st){
-  const s = st.h / 250, cx = st.w * .52, cy = st.h * .52; st.fin = { age:0, s, cx, cy, heart:[], rise:[], petals:[], meteors:[mjfMeteor(st, 2.6), mjfMeteor(st, 3.8), mjfMeteor(st, 5.2)] };
-  for (let i = 0; i < 90; i++) { const t = i / 90 * Math.PI * 2, hx = 16 * Math.pow(Math.sin(t), 3), hy = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)); st.fin.heart.push({ tx:cx + hx * 3.4 * s, ty:cy - 30 * s + hy * 3.4 * s, d:mjfR(0, .5), sz:mjfR(1, 2.2), p:mjfR(0, 9) }); }
+  const s = st.h / 250, cx = st.w * .52, cy = st.h * .52; st.fin = { age:0, s, cx, cy, rise:[], petals:[], meteors:[mjfMeteor(st, 2.6), mjfMeteor(st, 3.8), mjfMeteor(st, 5.2)] };
   for (let i = 0; i < Math.max(26, st.w * st.h / 5000); i++) st.fin.rise.push({ x:mjfR(0, st.w), y:mjfR(st.h * .6, st.h * 1.3), v:mjfR(10, 24) * s, p:mjfR(0, 9), r:mjfR(1.2, 2.4) });
   for (let i = 0; i < 18; i++) st.fin.petals.push(MJF_KIND.petals.make(st, false)), st.fin.petals[i].y -= mjfR(0, st.h);
 }
@@ -103,9 +102,8 @@ function mjfFinaleDraw(g, st, dt, t){
   // ánh vàng ấm lan ra rồi thở nhẹ
   const glow = Math.min(1, A / 2.2) * (.75 + .25 * Math.sin(t * 1.1));
   mjfGlow(g, F.cx, F.cy + 40 * s, Math.max(1, (70 + 130 * Math.min(1, A / 3)) * s), `rgba(255,214,140,${(glow * .38).toFixed(3)})`);
-  // trái tim bằng bụi sao: bay từ giữa ra thành hình, sáng một lúc rồi tan thành lấp lánh
-  const hs = Math.min(1, Math.max(0, (A - .6) / 1.8)), fade = A < 6 ? 1 : Math.max(.25, 1 - (A - 6) / 3);
-  if (A > .6) for (const q of F.heart) { const e = 1 - Math.pow(1 - Math.min(1, Math.max(0, hs - q.d * .3) / (1 - q.d * .3)), 3), x = F.cx + (q.tx - F.cx) * e, y = F.cy + (q.ty - F.cy) * e, tw = .55 + .45 * Math.sin(t * 2.4 + q.p), a = e * tw * fade; if (a < .03) continue; mjfGlow(g, x, y, q.sz * 4 * s, `rgba(255,190,210,${(a * .4).toFixed(3)})`); mjfSpark(g, x, y, q.sz * s, `rgba(255,236,200,${a.toFixed(3)})`); }
+  // sóng ánh sáng vàng lan nhẹ trên mặt đất từ chỗ cô bé ôm Moon ra xung quanh, vài giây một lần
+  if (A > .6) for (let k = 0; k < 3; k++) { const u = ((A - .6) / 3.6 + k / 3) % 1, R = (12 + 180 * u) * s, a = (1 - u) * Math.min(1, (A - .6) / 1.2) * .24; if (a < .01) continue; g.strokeStyle = `rgba(255,222,150,${a.toFixed(3)})`; g.lineWidth = Math.max(.5, (3.2 - 2.4 * u) * s); g.beginPath(); g.ellipse(st.w * .515, st.h * .95, R, R * .32, 0, 0, Math.PI * 2); g.stroke(); }
   // đom đóm bay lên từ mặt đất
   if (A > 1.4) for (const q of F.rise) { q.y -= q.v * dt; q.x += Math.sin(t * .7 + q.p) * 8 * dt; if (q.y < -6) { q.y = st.h + mjfR(0, 30); q.x = mjfR(0, st.w); } const a = .4 + .6 * Math.pow(.5 + .5 * Math.sin(t * 1.8 + q.p * 2), 2); mjfGlow(g, q.x, q.y, q.r * 5, `rgba(255,228,140,${(a * .45).toFixed(3)})`); g.fillStyle = `rgba(255,248,210,${a.toFixed(3)})`; g.beginPath(); g.arc(q.x, q.y, q.r * .55, 0, 7); g.fill(); }
   // cánh hoa hồng rơi
