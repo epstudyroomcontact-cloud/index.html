@@ -10,6 +10,18 @@ const A_TABS = [
 ];
 const A = html => { const b = $('admin-body'); if (b) b.innerHTML = html; };
 const fail = e => alert('Lỗi: ' + (e && e.message || e));
+/* Mọi lần đọc Firebase của trang quản trị nên có hạn chờ: mạng chập chờn hoặc bị tiện ích chặn thì báo lỗi thay vì kẹt "Đang tải…" mãi */
+const withTimeout = (pr, ms = 15000, what = 'Firebase') => new Promise((res, rej) => { const id = setTimeout(() => rej(Object.assign(new Error(what + ' không phản hồi sau ' + Math.round(ms / 1000) + ' giây'), { code:'timeout' })), ms); Promise.resolve(pr).then(v => { clearTimeout(id); res(v); }, e => { clearTimeout(id); rej(e); }); });
+const loadError = (e, retry) => `<div class="card pad stack"><b>Không tải được</b><p class="small muted">${esc((e && (e.code === 'timeout' ? e.message : (e.code || e.message))) || 'Lỗi không rõ')}. Thường do mạng chập chờn hoặc trình duyệt đang chạy bản web cũ.</p><div class="row"><button class="btn primary sm" data-act="${retry}">Thử lại</button><button class="btn secondary sm" data-act="hardReload">Tải lại trang (bản mới nhất)</button></div></div>`;
+/* Kiểm tra trình duyệt có đang chạy bản web cũ không: đọc lại index.html (bỏ qua bộ nhớ đệm) và so mã ?v= của core.js với bản đang chạy */
+let verAt = 0;
+async function checkNewVersion(){
+  if (DEMO || Date.now() - verAt < 60000) return; verAt = Date.now();
+  try {
+    const r = await withTimeout(fetch(location.pathname + '?cb=' + Date.now(), { cache:'no-store' }), 8000, 'Kiểm tra bản mới'), m = (await r.text()).match(/core\.js\?v=([\w.-]+)/), el = $('ver-note');
+    if (m && m[1] !== ASSET_V && el) el.innerHTML = `<div class="limit-box small" style="border-color:var(--accent);margin-top:8px">Có bản web mới hơn (mã ${esc(m[1])}), trình duyệt của bạn đang chạy mã ${esc(ASSET_V)}. <button class="btn primary sm" data-act="hardReload">Tải bản mới</button></div>`;
+  } catch (e) { console.warn('version check', e.code || e.message); }
+}
 const ok = m => toast(m || 'Đã lưu ✔');
 /* Lưu có dịch tự động: khoá nút + hiện "Đang dịch…" trong lúc dịch (xem js/translate.js) */
 async function withTranslate(btn, work){
@@ -34,8 +46,9 @@ PAGES.admin = function(){
       ? `<p class="muted small">Email <b>${esc(ADMIN_EMAIL)}</b> là email của chủ trang, nhưng cần được <b>xác minh</b> trước (để không ai khác mạo danh được). Mở hộp thư, bấm vào đường link trong email xác minh, rồi bấm nút bên dưới.</p>
          <div class="row"><button class="btn primary" data-act="recheckAdmin">${ic('check', 'sm')} Tôi đã xác minh rồi</button><button class="btn secondary" data-act="resendVerify">${ic('mail', 'sm')} Gửi lại email xác minh</button></div>`
       : `<p class="muted small">Chỉ tài khoản <b>${esc(ADMIN_EMAIL)}</b> mới có quyền quản trị. Bạn đang đăng nhập bằng <b>${esc(state.user.email)}</b>.</p><button class="btn secondary" data-act="signout">${ic('logout', 'sm')} Đăng xuất</button>`}</div></div>`);  const tab = A_TABS.some(x => x[0] === route.args[0]) ? route.args[0] : 'overview';
-  page(`<div class="page-head"><div><h1>Trang quản trị</h1><p>Tuỳ chỉnh giao diện, nội dung, sản phẩm và đơn hàng của bạn.</p><p class="faint small">Phiên bản web: ${esc(BUILD)}</p></div><button class="btn primary" data-act="startEdit">${ic('pen', 'sm')} Sửa chữ & ảnh trực tiếp trên trang</button></div>
+  page(`<div class="page-head"><div><h1>Trang quản trị</h1><p>Tuỳ chỉnh giao diện, nội dung, sản phẩm và đơn hàng của bạn.</p><p class="faint small">Phiên bản web: ${esc(BUILD)} · mã ${esc(ASSET_V)}</p><div id="ver-note"></div></div><button class="btn primary" data-act="startEdit">${ic('pen', 'sm')} Sửa chữ & ảnh trực tiếp trên trang</button></div>
     <nav class="a-tabs">${A_TABS.map(([k, icn, l]) => `<a href="#/admin/${k}" class="${tab === k ? 'on' : ''}">${ic(icn, 'sm')} ${esc(l)}${k === 'members' && state.compPending ? ` <span class="count">${state.compPending}</span>` : ''}</a>`).join('')}</nav><div id="admin-body"></div>`);
+  checkNewVersion();
   ({ overview:tabOverview, site:tabSite, schedule:tabSchedule, blog:tabBlog, music:tabMusic, products:tabProducts, gear:tabGear, orders:tabOrders, coupons:tabCoupons, trials:tabTrials, content:tabContent, reviews:tabReviews, payments:tabPayments, members:tabMembers })[tab]();
 };
 const reloadTab = () => { const f = ({ overview:tabOverview, site:tabSite, schedule:tabSchedule, blog:tabBlog, music:tabMusic, products:tabProducts, gear:tabGear, orders:tabOrders, coupons:tabCoupons, trials:tabTrials, content:tabContent, reviews:tabReviews, payments:tabPayments, members:tabMembers })[route.args[0] || 'overview']; if (f) f(); };
@@ -640,7 +653,7 @@ const rewardMonthsFor = r => { const w = r._rw; return r.reward && w && w.status
 /* Dòng trong yêu cầu chờ duyệt: số tháng tặng sẽ được cộng khi bấm Duyệt (khuyến mãi + ưu đãi trăng) và số tiền VND đúng cần nhận (giá gói thường) */
 function rewardLine(r){
   const w = r._rw, m = +r.months || 1, ms = tsMs(r.createdAt), live = !!w && w.status === 'unused' && tsMs(w.expires) > ms, warn = s => `<div class="small" style="color:var(--danger);margin-top:2px">${s}</div>`;
-  let out = '';
+  let out = r._rwErr ? warn('⚠ Chưa tải được ưu đãi của khách nên tạm khoá nút Duyệt. <button class="btn secondary sm" data-act="memReload">Thử lại</button>') : '';
   if (r.reward || w) out += `<div class="small faint" style="margin-top:2px">${moonLine(r._mj)}${r._mj && !moonStat(r._mj).reached ? ' · <span style="color:var(--danger)">chưa thấy đạt 60 ngày</span>' : ''}</div>`;
   if (r.reward && !w) out += warn('⚠ Khách báo dùng ưu đãi Hành trình trăng nhưng KHÔNG có ưu đãi nào trong hệ thống: không cộng tháng tặng cho ưu đãi này');
   else if (w && !live) out += warn(`🎁 Ưu đãi Hành trình trăng ${w.status === 'used' ? 'đã dùng rồi' : 'đã hết hạn'}: không cộng tháng tặng cho ưu đãi này`);
@@ -665,7 +678,8 @@ Object.assign(ACTIONS, {
   },
   enableNotif: async () => { try { const r = await Notification.requestPermission(); toast(r === 'granted' ? 'Đã bật thông báo' : 'Chưa bật thông báo'); tabMembers(); } catch (e) { fail(e); } },
   memMore: async () => { try { await memLoadMore(); await memRewards(MEM.users); membersView(MEM.users, window._signups || [], window._memComps || [], window._memReqs || []); } catch (e) { fail(e); } },
-  memReload: () => { Object.assign(MEM, { users:[], last:null, done:false, at:0 }); tabMembers(); },
+  memReload: () => { Object.assign(MEM, { users:[], last:null, done:false, at:0, busy:false, rw:{} }); MEM.gen++; tabMembers(); },
+  hardReload: () => { location.href = location.pathname + '?r=' + Date.now() + location.hash; },
   memFind: async () => {
     const q = ($('mem-q') || {}).value; if (!q || !q.trim()) return; const m = q.trim();
     try { let sn = await db.collection('users').where('email', '==', m).limit(5).get(); if (sn.empty && m !== m.toLowerCase()) sn = await db.collection('users').where('email', '==', m.toLowerCase()).limit(5).get(); if (sn.empty) return toast('Không thấy email này'); MEM.users = sn.docs.map(d => ({ id:d.id, ...d.data() })); MEM.done = true; await memRewards(MEM.users); membersView(MEM.users, window._signups || [], window._memComps || [], window._memReqs || []); } catch (e) { fail(e); }
@@ -675,35 +689,45 @@ Object.assign(ACTIONS, {
   }
 });
 /* Thành viên: mỗi hồ sơ người dùng khá nặng (việc cần làm, nhật ký tập trung, Moon Journey…) nên KHÔNG đọc hết một lúc: hiện ngay phần nhẹ (yêu cầu chờ duyệt, người sắp hết hạn), rồi tải 25 người một lần, có tìm theo email và nhớ kết quả 5 phút */
-const MEM = { users:[], last:null, done:false, at:0, busy:false };
+const MEM = { users:[], last:null, done:false, at:0, busy:false, gen:0 };
 const MEM_PAGE = 25, userMail = u => (u.email || '').toLowerCase();
 async function memLoadMore(){
-  if (MEM.busy || MEM.done) return; MEM.busy = true;
+  if (MEM.busy || MEM.done) return; MEM.busy = true; const g = MEM.gen = MEM.gen || 0;      // g: lần tải bị bỏ (đã bắt đầu lại) thì kết quả trễ không được chen vào danh sách
   try {
     let q = db.collection('users').orderBy(firebase.firestore.FieldPath.documentId()).limit(MEM_PAGE); if (MEM.last) q = q.startAfter(MEM.last);
-    const sn = await q.get(); MEM.users.push(...sn.docs.map(d => ({ id:d.id, ...d.data() }))); MEM.last = sn.docs[sn.docs.length - 1] || MEM.last; MEM.done = sn.size < MEM_PAGE; MEM.at = Date.now();
-  } finally { MEM.busy = false; }
+    const sn = await withTimeout(q.get(), 15000, 'Danh sách thành viên'); if (g !== MEM.gen) return; MEM.users.push(...sn.docs.map(d => ({ id:d.id, ...d.data() }))); MEM.last = sn.docs[sn.docs.length - 1] || MEM.last; MEM.done = sn.size < MEM_PAGE; MEM.at = Date.now();
+  } finally { if (g === MEM.gen) MEM.busy = false; }
 }
 async function tabMembers(){
   A('<p class="muted">Đang tải…</p>'); let signups = window._signups || [], comps = [], reqs = [];
   if (DEMO) { const dd = n => Array.from({ length:n }, (_, i) => DT.now().setZone('Asia/Ho_Chi_Minh').minus({ days:n - 1 - i }).toISODate()); MEM.users = [{ id:'u1', displayName:'Linh', email:'linh@mail.com', moon:{ days:dd(61), best:61, rounds:2 } }, { id:'u2', displayName:'Daniel', email:'d@mail.com', moon:{ days:dd(11), best:11 } }]; MEM.rw = { u1:{ months:1, status:'unused', expires:Date.now() + 20 * 864e5 } }; MEM.done = true; comps = [{ id:'u1' }]; return membersView(MEM.users, signups, comps, reqs); }
-  if (Date.now() - MEM.at > 300000) Object.assign(MEM, { users:[], last:null, done:false });                  // quá 5 phút thì tải lại từ đầu
-  try { comps = await getAll('companions'); } catch (e) { return fail(e); }
-  try { reqs = (await getAll('companion_requests', 'createdAt', 100)).filter(r => r.status === 'pending'); } catch (e) { console.warn('requests', e.code); }
-  await Promise.all(reqs.map(async r => { try { const d = await db.collection('moon_rewards').doc(r.id).get(); r._rw = d.exists ? d.data() : null; if (r.reward || r._rw) { const ud = await db.collection('users').doc(r.id).get(); r._mj = ud.exists ? ud.data().moon || null : null; } } catch (e) {} }));      // ưu đãi Hành trình trăng của người báo thanh toán (để đối chiếu số tiền)
-  if (Date.now() - MEM.at > 300000) MEM.rw = {};
-  membersView(MEM.users, signups, comps, reqs, !MEM.users.length);                                            // phần nhẹ hiện trước
-  window._memComps = comps; window._memReqs = reqs;
-  try { if (!MEM.users.length) { await memLoadMore(); membersView(MEM.users, signups, comps, reqs); } if (await memRewards(MEM.users)) membersView(MEM.users, signups, comps, reqs); } catch (e) { console.warn('users', e.code); return A(`<p class="muted">Không tải được danh sách thành viên (${esc(e.code || e.message || '')}). <button class="btn secondary sm" data-act="memReload">Thử lại</button></p>`); }
-  try { signups = await getAll('challenge_signups', 'timestamp', 100); window._signups = signups; membersView(MEM.users, signups, comps, reqs); } catch (e) { console.warn('signups', e.code); }
+  try {
+    if (Date.now() - MEM.at > 300000) Object.assign(MEM, { users:[], last:null, done:false, rw:{} });                  // quá 5 phút thì tải lại từ đầu
+    MEM.busy = false; MEM.gen++;                                                                                    // lần tải trước bị treo thì không để khoá mãi
+    const tm = (pr, what) => withTimeout(pr, 15000, what);
+    // ba phần độc lập nên đọc song song (trước đây đọc nối tiếp nên chậm gấp ba, và một phần treo là kẹt cả trang)
+    const [c, rq] = await Promise.all([
+      tm(getAll('companions'), 'Danh sách Companion'),
+      tm(getAll('companion_requests', 'createdAt', 100), 'Yêu cầu chờ duyệt').then(l => l.filter(r => r.status === 'pending'), e => { console.warn('requests', e.code || e.message); return null; }),
+      MEM.users.length ? null : memLoadMore()
+    ]);
+    comps = c; reqs = rq || []; window._memReqErr = rq === null;
+    // ưu đãi và chuỗi điểm danh của người báo thanh toán (để đối chiếu); lỗi thì báo rõ và khoá nút Duyệt, tránh duyệt thiếu tháng tặng
+    await Promise.all(reqs.map(async r => { try { const d = await tm(db.collection('moon_rewards').doc(r.id).get(), 'Ưu đãi của khách'); r._rw = d.exists ? d.data() : null; if (r.reward || r._rw) { const ud = await tm(db.collection('users').doc(r.id).get(), 'Hồ sơ khách'); r._mj = ud.exists ? ud.data().moon || null : null; } } catch (e) { r._rwErr = true; console.warn('reward', e.code || e.message); } }));
+    window._memComps = comps; window._memReqs = reqs;
+    membersView(MEM.users, signups, comps, reqs, !MEM.users.length && !MEM.done);                                 // hiện ngay, phần nhẹ trước
+    if (await memRewards(MEM.users)) membersView(MEM.users, signups, comps, reqs);
+    signups = await tm(getAll('challenge_signups', 'timestamp', 100), 'Đăng ký email').catch(e => { console.warn('signups', e.code || e.message); return signups; });
+    window._signups = signups; membersView(MEM.users, signups, comps, reqs);
+  } catch (e) { console.warn('members', e.code || e.message); A(loadError(e, 'memReload')); }
 }
 function membersView(users, signups, comps, reqs, loadingUsers){
   const isC = id => comps.some(c => c.id === id);
   const today = DT.now().toISODate(), soon = DT.now().plus({ days:7 }).toISODate(), who = id => { const u = users.find(x => x.id === id) || {}; return u.displayName || u.email || (comps.find(c => c.id === id) || {}).name || id; };
   const expiring = comps.filter(c => c.until && c.until <= soon).sort((x, y) => x.until < y.until ? -1 : 1);      // sắp hết hạn hoặc đã hết hạn: để gia hạn kịp khi khách trả hằng tháng
   const expCard = expiring.length ? aCard(`Sắp hết hạn / đã hết hạn (${expiring.length})`, expiring.map(c => `<div class="ord-row"><div><b>${esc(c.name || who(c.id))}</b><div class="small muted">${esc((users.find(x => x.id === c.id) || {}).email || c.email || '')}</div><div class="small faint">${c.until < today ? 'Đã hết hạn ngày ' : 'Hết hạn ngày '}${esc(c.until)}</div></div><span class="row"><select class="select" id="rn-${esc(c.id)}" style="width:auto;padding:4px 8px">${[1, 3, 12].map(m => `<option value="${m}">+${m} tháng</option>`).join('')}</select><button class="btn primary sm" data-act="compRenew" data-id="${esc(c.id)}" data-name="${esc(c.name || '')}" data-email="${esc(c.email || (users.find(x => x.id === c.id) || {}).email || '')}">Gia hạn</button></span></div>`).join('')) : '';
-  A(`${expCard}${reqs.length ? aCard(`Yêu cầu Companions chờ duyệt (${reqs.length})`, reqs.map(r => `<div class="ord-row"><div><b>${esc(r.email || r.name || '—')}</b> <span class="badge">${esc(METHOD_VI[r.method] || r.method || '')}</span><div class="small muted">${esc(r.name || '—')}</div>${r.note ? `<div class="small faint">“${esc(r.note)}”</div>` : ''}${r.message ? `<div class="small" style="margin-top:2px">💬 ${esc(r.message)}</div>` : ''}${rewardLine(r)}<div class="small faint">${esc(dateStr(r.createdAt))}${isC(r.id) ? ' · đang là Companion (gia hạn)' : ''}</div></div>
-      <span class="row"><select class="select" id="cm-${esc(r.id)}" style="width:auto;padding:4px 8px">${[1, 3, 12].map(m => `<option value="${m}" ${m === (+r.months || 1) ? 'selected' : ''}>+${m} tháng</option>`).join('')}</select><button class="btn primary sm" data-act="compApprove" data-ts="${tsMs(r.createdAt)}" data-rwm="${rewardMonthsFor(r) || ''}" data-id="${esc(r.id)}" data-name="${esc(r.name || '')}" data-email="${esc(r.email || '')}">Duyệt</button><button class="btn ghost sm" data-act="compReject" data-id="${esc(r.id)}">Từ chối</button></span></div>`).join(''), '') + ('Notification' in window && Notification.permission === 'default' ? '<p style="margin:-4px 0 10px"><button class="btn secondary sm" data-act="enableNotif">Bật thông báo trên trình duyệt khi có yêu cầu mới</button></p>' : '') + '<p class="hint" style="margin:-4px 0 14px">Kiểm tra khoản thanh toán trong Ko-fi / ngân hàng / PayPal rồi bấm <b>Duyệt</b>: tài khoản đó thành Companion, mở Planner ngay (không cần tải lại trang) và tên hiện ở mục cảm ơn. Nếu không thấy tiền, bấm <b>Từ chối</b> — họ sẽ thấy thông báo và có thể gửi lại.</p>' : ''}<div class="grid g2">${aCard(`Thành viên (${users.length}${MEM.done ? '' : '+'})`, users.length ? users.map(u => { const bd = rewardBadge(u.moon, (MEM.rw || {})[u.id]); return `<div class="ord-row"><div><b>${esc(u.displayName || '—')}</b> ${isC(u.id) ? `<span class="badge">${ic('heart', 'sm')} Đồng hành</span>` : ''}<div class="small muted">${esc(u.email || '')}</div><div class="small faint">${moonLine(u.moon)}</div>${bd ? `<div class="small" style="margin-top:2px">${bd}</div>` : ''}</div>
+  A(`${window._memReqErr ? `<div class="limit-box small" style="border-color:var(--danger);margin-bottom:12px">⚠ Chưa tải được danh sách yêu cầu chờ duyệt (có thể đang có khách báo thanh toán mà bạn chưa thấy). <button class="btn primary sm" data-act="memReload">Thử lại</button></div>` : ''}${expCard}${reqs.length ? aCard(`Yêu cầu Companions chờ duyệt (${reqs.length})`, reqs.map(r => `<div class="ord-row"><div><b>${esc(r.email || r.name || '—')}</b> <span class="badge">${esc(METHOD_VI[r.method] || r.method || '')}</span><div class="small muted">${esc(r.name || '—')}</div>${r.note ? `<div class="small faint">“${esc(r.note)}”</div>` : ''}${r.message ? `<div class="small" style="margin-top:2px">💬 ${esc(r.message)}</div>` : ''}${rewardLine(r)}<div class="small faint">${esc(dateStr(r.createdAt))}${isC(r.id) ? ' · đang là Companion (gia hạn)' : ''}</div></div>
+      <span class="row"><select class="select" id="cm-${esc(r.id)}" style="width:auto;padding:4px 8px">${[1, 3, 12].map(m => `<option value="${m}" ${m === (+r.months || 1) ? 'selected' : ''}>+${m} tháng</option>`).join('')}</select><button class="btn primary sm" ${r._rwErr ? 'disabled title="Chưa tải được ưu đãi của khách, bấm Thử lại ở đầu tab"' : ''} data-act="compApprove" data-ts="${tsMs(r.createdAt)}" data-rwm="${rewardMonthsFor(r) || ''}" data-id="${esc(r.id)}" data-name="${esc(r.name || '')}" data-email="${esc(r.email || '')}">Duyệt</button><button class="btn ghost sm" data-act="compReject" data-id="${esc(r.id)}">Từ chối</button></span></div>`).join(''), '') + ('Notification' in window && Notification.permission === 'default' ? '<p style="margin:-4px 0 10px"><button class="btn secondary sm" data-act="enableNotif">Bật thông báo trên trình duyệt khi có yêu cầu mới</button></p>' : '') + '<p class="hint" style="margin:-4px 0 14px">Kiểm tra khoản thanh toán trong Ko-fi / ngân hàng / PayPal rồi bấm <b>Duyệt</b>: tài khoản đó thành Companion, mở Planner ngay (không cần tải lại trang) và tên hiện ở mục cảm ơn. Nếu không thấy tiền, bấm <b>Từ chối</b> — họ sẽ thấy thông báo và có thể gửi lại.</p>' : ''}<div class="grid g2">${aCard(`Thành viên (${users.length}${MEM.done ? '' : '+'})`, users.length ? users.map(u => { const bd = rewardBadge(u.moon, (MEM.rw || {})[u.id]); return `<div class="ord-row"><div><b>${esc(u.displayName || '—')}</b> ${isC(u.id) ? `<span class="badge">${ic('heart', 'sm')} Đồng hành</span>` : ''}<div class="small muted">${esc(u.email || '')}</div><div class="small faint">${moonLine(u.moon)}</div>${bd ? `<div class="small" style="margin-top:2px">${bd}</div>` : ''}</div>
         <span class="stack" style="gap:6px;align-items:flex-end"><label class="row small" style="font-weight:700"><input type="checkbox" data-change="companion" data-id="${esc(u.id)}" data-name="${esc(u.displayName || u.email || '')}" data-email="${esc(u.email || '')}" ${isC(u.id) ? 'checked' : ''}> Người đồng hành</label>${isC(u.id) ? `<label class="small faint">Đến ngày <input class="input" type="date" style="width:150px;padding:4px 8px" data-change="compUntil" data-id="${esc(u.id)}" value="${esc((comps.find(c => c.id === u.id) || {}).until || '')}"></label>
           <label class="row small" style="font-weight:700"><input type="checkbox" data-change="supShow" data-id="${esc(u.id)}" data-name="${esc(u.displayName || '')}" data-until="${esc((comps.find(c => c.id === u.id) || {}).until || '')}" ${supItem(u.id) ? 'checked' : ''}> Hiện tên ở mục cảm ơn</label>${supItem(u.id) ? `<label class="small faint">Tên hiện <input class="input" style="width:150px;padding:4px 8px" maxlength="40" data-change="supName" data-id="${esc(u.id)}" value="${esc(supItem(u.id).name || '')}"></label>` : ''}` : ''}</span></div>`; }).join('') + (MEM.done ? '' : '<p class="small faint" style="margin-top:8px">Mới hiện ' + users.length + ' người đầu tiên, bấm “Tải thêm” hoặc tìm theo email.</p>') : (loadingUsers ? '<p class="muted">Đang tải danh sách thành viên…</p>' : '<p class="muted">Chưa có.</p>'), `<div class="row" style="flex-wrap:wrap"><input class="input" id="mem-q" placeholder="Tìm theo email đầy đủ" style="width:210px;padding:6px 10px"><button class="btn secondary sm" data-act="memFind">Tìm</button>${MEM.done ? '' : '<button class="btn secondary sm" data-act="memMore">Tải thêm</button>'}<button class="btn ghost sm" data-act="memReload">Tải lại</button></div>`)}
     ${aCard(`Đăng ký email nhắc lịch (${signups.length})`, signups.length ? signups.map(s => `<div class="ord-row"><div><b>${esc(s.codename || '')}</b><div class="small muted">${esc(s.email || '')}</div></div><span class="small faint">${esc(dateStr(s.timestamp))}</span></div>`).join('') : '<p class="muted">Chưa có.</p>', `<button class="btn secondary sm" data-act="copyEmails">Sao chép email</button>`)}</div>
