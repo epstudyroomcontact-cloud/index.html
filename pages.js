@@ -692,23 +692,27 @@ Object.assign(ACTIONS, {
 renderCart();
 
 /* =========================================================
-   MOON JOURNEY — điểm danh 30 ngày: trăng khuyết dần đầy, đủ 30 ngày thì trăng tròn
-   Dữ liệu lưu trong users/<uid>.moon = { startedAt, days:['YYYY-MM-DD',…], rounds }
+   MOON JOURNEY — điểm danh: mỗi 30 ngày liên tiếp là một chặng, trăng khuyết dần đầy rồi tròn (+1 trăng tròn vào bộ sưu tập),
+   qua ngày 30 thì trăng đầy lại cho chặng kế tiếp; chuỗi càng dài càng mở huy hiệu / danh hiệu (chỉ để vui, không đổi quyền lợi gói).
+   Dữ liệu lưu trong users/<uid>.moon = { startedAt, days:['YYYY-MM-DD',…], rounds (cũ), moons, best }
    ========================================================= */
 const MOON_TOTAL = 30;
+const MOON_MILES = [[3, '🌱'], [7, '🌒'], [14, '🌓'], [21, '🌔'], [30, '🌕'], [60, '⭐'], [100, '🌠'], [200, '🌌'], [365, '👑']];   // mốc chuỗi → huy hiệu (tên: mj_<mốc>)
 const todayKey = () => DT.now().setZone(userTZ).toISODate();
 const dayShift = (k, n) => DT.fromISO(k, { zone:userTZ }).plus({ days:n }).toISODate();
 /* Chuỗi điểm danh kiểu Duolingo: chỉ tính các ngày liên tiếp kết thúc ở hôm nay hoặc hôm qua.
-   Bỏ lỡ một ngày thì chuỗi đứt và về ngày 1 (broken = true, lost = độ dài chuỗi đã mất). Đủ 30 ngày thì giữ trăng tròn cho đến khi bắt đầu vòng mới. */
+   Bỏ lỡ một ngày thì chuỗi đứt và về ngày 1 (broken = true, lost = độ dài chuỗi đã mất); số trăng tròn và huy hiệu (theo chuỗi dài nhất) vẫn giữ nguyên.
+   Qua 30 ngày chuỗi vẫn cộng tiếp (chặng 2, 3…). */
 const moonData = () => {
   const m = profile && profile.moon; if (!m) return null;
   let days = [...new Set(Array.isArray(m.days) ? m.days : [])].filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort(), broken = false, lost = 0;
-  if (days.length && days.length < MOON_TOTAL) {
+  const raw = days.length;
+  if (days.length) {
     let i = days.length - 1; while (i > 0 && dayShift(days[i - 1], 1) === days[i]) i--;
     const run = days.slice(i), last = run[run.length - 1], today = todayKey();
     if (last === today || last === dayShift(today, -1)) days = run; else { lost = run.length; days = []; broken = true; }
   }
-  return { startedAt:m.startedAt || Date.now(), days, rounds:m.rounds || 0, best:Math.max(m.best || 0, days.length, lost), broken, lost };
+  return { startedAt:m.startedAt || Date.now(), days, rounds:m.rounds || 0, moons:Math.max(m.moons || 0, (m.rounds || 0) + (raw >= MOON_TOTAL ? 1 : 0)), best:Math.max(m.best || 0, days.length, lost), broken, lost };
 };
 async function moonSave(m){
   const prev = profile.moon;
@@ -719,31 +723,77 @@ async function moonSave(m){
   render(true);
   return ok;
 }
+/* Ưu đãi mốc 60 ngày: giảm % khi trả gói Người đồng hành bằng chuyển khoản VND, dùng một lần, có hạn.
+   Lưu ở moon_rewards/<uid> = { uid, pct, expires, status:'unused'|'used', createdAt }; khách chỉ tạo được 1 lần (rules kiểm % và hạn theo cài đặt của admin),
+   admin đánh dấu 'used' khi duyệt thanh toán. % và số ngày hiệu lực do admin chỉnh ở tab Thanh toán (settings/payments.moonRewardPct / moonRewardDays / moonRewardOn). */
+const MOON_REWARD_AT = 60;
+let mrLoading = false;
+const moonRewardCfg = (src = payments) => ({ on:src.moonRewardOn !== false, pct:Math.min(50, Math.max(1, Math.round(+src.moonRewardPct) || 10)), days:Math.min(365, Math.max(1, Math.round(+src.moonRewardDays) || 30)) });
+const moonRewardActive = () => { const r = state.moonReward; return r && r.status === 'unused' && tsMs(r.expires) > Date.now() ? r : null; };
+const rewardPrice = (v, r = moonRewardActive()) => r ? Math.round(v * (100 - r.pct) / 100 / 1000) * 1000 : v;     // làm tròn nghìn như các gói VND khác
+const fmtDay = ms => DT.fromMillis(ms).setZone(userTZ).toFormat('dd/MM/yyyy');
+async function loadMoonReward(force){
+  if (!state.user || DEMO || mrLoading || (!force && state.moonReward !== undefined)) return;
+  mrLoading = true;
+  try { const d = await db.collection('moon_rewards').doc(state.user.uid).get(); state.moonReward = d.exists ? d.data() : null; }
+  catch (e) { console.warn('moon reward', e.code); state.moonReward = null; }
+  mrLoading = false; render(true);
+}
+async function claimMoonReward(){
+  const u = state.user; if (!u || state.moonReward) return false;
+  try {
+    const c = moonRewardCfg(DEMO ? payments : (await db.collection('settings').doc('payments').get()).data() || {});      // đọc cài đặt mới nhất để khớp với rules
+    if (!c.on) return false;
+    const r = { uid:u.uid, pct:c.pct, expires:DEMO ? Date.now() + c.days * 864e5 : firebase.firestore.Timestamp.fromMillis(Date.now() + c.days * 864e5), status:'unused', createdAt:DEMO ? Date.now() : TS() };
+    if (!DEMO) await db.collection('moon_rewards').doc(u.uid).set(r);
+    state.moonReward = { ...r, createdAt:Date.now() }; return true;
+  } catch (e) { console.warn('claim reward', e.code); return false; }
+}
+function moonRewardCard(m){
+  const c = moonRewardCfg(); if (!c.on && !state.moonReward) return '';
+  if (m.best < MOON_REWARD_AT) return `<p class="small faint" style="text-align:center">🎁 ${esc(t('mr_teaser', { n:MOON_REWARD_AT, p:c.pct }))}</p>`;
+  const r = state.moonReward; if (r === undefined && !DEMO) { loadMoonReward(); return ''; }
+  let inner;
+  if (!r) inner = `<p class="small">${esc(t('mr_can', { p:c.pct, d:c.days }))}</p><button class="btn primary" data-act="moonReward">🎁 ${esc(t('mr_claim'))}</button>`;
+  else if (r.status === 'used') inner = `<p class="small muted">${esc(t('mr_used'))}</p>`;
+  else if (tsMs(r.expires) <= Date.now()) inner = `<p class="small muted">${esc(t('mr_expired'))}</p>`;
+  else inner = `<p class="small">${esc(t('mr_have', { p:r.pct, d:fmtDay(tsMs(r.expires)) }))}</p><a class="btn primary" href="#/donate">${ic('heart', 'sm')} ${esc(t('mr_use'))}</a>`;
+  return `<section class="card pad stack"><div class="card-h"><h3>🎁 ${esc(t('mr_title'))}</h3></div>${inner}<p class="small faint">${esc(t('mr_note'))}</p></section>`;
+}
+const moonPos = n => n ? ((n - 1) % MOON_TOTAL) + 1 : 0;            // vị trí trong chặng hiện tại (1–30), 0 = chưa có chuỗi
 function clubPromo(){
-  const m = moonData(), d = m ? m.days.length : 0;
+  const m = moonData(), d = m ? moonPos(m.days.length) : 0;
   return `<section class="card pad club-promo" style="margin-top:34px"><div class="moon-sm">${moonSVG(state.user ? d : 8, MOON_TOTAL)}</div>
     <div><h2 style="font-size:1.4rem" ${cms('club_title')}>${esc(ctext('club_title'))}</h2><p class="muted mt-s" ${cms('club_sub')}>${esc(ctext('club_sub'))}</p>
-    <a class="btn primary mt" href="#/club">${state.user && m ? esc(t('club_day', { d:Math.min(d, MOON_TOTAL), t:MOON_TOTAL })) : esc(t('club_start'))}</a></div></section>`;
+    <a class="btn primary mt" href="#/club">${state.user && m ? esc(t('club_day', { d, t:MOON_TOTAL })) : esc(t('club_start'))}</a></div></section>`;
 }
 PAGES.club = function(){
-  const m = moonData(), d = m ? Math.min(m.days.length, MOON_TOTAL) : 0, full = d >= MOON_TOTAL, doneToday = m && m.days.includes(todayKey());
+  const m = moonData(), n = m ? m.days.length : 0, d = moonPos(n), full = d === MOON_TOTAL, doneToday = m && m.days.includes(todayKey()),
+    stage = n ? Math.floor((n - 1) / MOON_TOTAL) + 1 : 1, base = (stage - 1) * MOON_TOTAL;
   let main = '';
   if (!state.user) main = `<div class="card pad stack" style="align-items:center;text-align:center"><div class="moon-big">${moonSVG(6, MOON_TOTAL)}</div><p class="muted">${esc(t('club_login'))}</p><a class="btn primary" href="#/account">${esc(t('club_login_btn'))}</a></div>`;
   else if (!DEMO && !state.profileReady) {                       // chưa tải xong hồ sơ: hiện bản đã nhớ (chỉ xem), không cho bấm
-    const cm = store.get('moon_' + state.user.uid, null), cd = cm && Array.isArray(cm.days) ? Math.min(cm.days.length, MOON_TOTAL) : 0;
+    const cm = store.get('moon_' + state.user.uid, null), cd = cm && Array.isArray(cm.days) ? moonPos(cm.days.length) : 0;
     main = `<div class="card pad stack" style="align-items:center;text-align:center"><div class="moon-big">${moonSVG(cd, MOON_TOTAL)}</div>${state.profileFailed ? `<p class="muted">${esc(t('club_load_fail'))}</p><button class="btn primary" data-act="moonRetry">${esc(t('club_retry'))}</button>` : `<p class="muted">${cm ? esc(t('club_day', { d:cd, t:MOON_TOTAL })) + ' · ' : ''}${esc(t('loading'))}</p>`}</div>`;
   }   // chưa tải xong hồ sơ: không hiện nút Bắt đầu (bấm nhầm sẽ xoá các ngày đã điểm danh)
   else if (!m) main = `<div class="card pad stack" style="align-items:center;text-align:center"><div class="moon-big">${moonSVG(0, MOON_TOTAL)}</div><button class="btn primary lg" data-act="moonStart">${esc(t('club_start'))}</button></div>`;
-  else main = `<div class="card pad stack" style="align-items:center;text-align:center"><div class="moon-big ${full ? 'full' : ''}">${moonSVG(d, MOON_TOTAL)}</div>
-      <h2 style="font-size:1.5rem">${esc(full ? t('club_full') : t('club_day', { d, t:MOON_TOTAL }))}</h2>
-      ${full ? `<p class="muted">${esc(t('club_full_sub'))}</p><button class="btn primary" data-act="moonAgain">${esc(t('club_again'))}</button>` : `<div class="progress" style="width:100%;max-width:300px"><i style="width:${d / MOON_TOTAL * 100}%"></i></div><button class="btn primary lg" data-act="moonCheckin" ${doneToday ? 'disabled' : ''}>${ic('check', 'sm')} ${esc(doneToday ? t('club_done_today') : t('club_checkin'))}</button>`}
-      ${!full && !doneToday ? `<p class="small" style="color:${m.broken ? 'var(--danger)' : 'var(--ink3)'}">${esc(m.broken ? t('club_broken', { n:m.lost }) : d ? t('club_keep') : '')}</p>` : ''}
-      ${m.best > 1 ? `<div class="small faint">${esc(t('club_best', { n:m.best }))}</div>` : ''}${m.rounds ? `<div class="small faint">${esc(t('club_rounds', { n:m.rounds }))}</div>` : ''}${state.companion ? `<span class="badge">${ic('heart', 'sm')} ${esc(t('comp_badge'))}</span>` : ''}</div>`;
-  const cells = Array.from({ length:MOON_TOTAL }, (_, i) => { const on = m && i < d, next = m && !full && i === d && !doneToday; return `<div class="day-cell ${on ? 'on' : ''} ${next ? 'next' : ''}" title="${on && m.days[i] ? esc(m.days[i]) : ''}">${on ? ic('check', 'sm') : i + 1}</div>`; }).join('');
+  else {
+    const got = MOON_MILES.filter(([k]) => m.best >= k), nxt = MOON_MILES.find(([k]) => m.best < k), title = got.length ? t('mj_' + got[got.length - 1][0]) : '';
+    main = `<div class="card pad stack" style="align-items:center;text-align:center"><div class="moon-big ${full ? 'full' : ''}">${moonSVG(d, MOON_TOTAL)}</div>
+      <h2 style="font-size:1.5rem">${esc(full && doneToday ? t('club_full') : t('club_day', { d, t:MOON_TOTAL }))}</h2>
+      ${stage > 1 ? `<span class="badge">${esc(t('mj_stage', { n:stage }))}</span>` : ''}
+      ${full ? `<p class="muted">${esc(t('club_full_sub'))}</p>` : `<div class="progress" style="width:100%;max-width:300px"><i style="width:${d / MOON_TOTAL * 100}%"></i></div>`}
+      <button class="btn primary lg" data-act="moonCheckin" ${doneToday ? 'disabled' : ''}>${ic('check', 'sm')} ${esc(doneToday ? t('club_done_today') : t('club_checkin'))}</button>
+      ${!doneToday ? `<p class="small" style="color:${m.broken ? 'var(--danger)' : 'var(--ink3)'}">${esc(m.broken ? t('club_broken', { n:m.lost }) : n ? t('club_keep') : '')}</p>` : ''}
+      ${title ? `<div class="small"><b>${esc(t('mj_title', { name:title }))}</b>${nxt ? ` · <span class="faint">${esc(t('mj_next', { n:nxt[0] - n, name:t('mj_' + nxt[0]) }))}</span>` : ''}</div>` : nxt ? `<div class="small faint">${esc(t('mj_next', { n:nxt[0] - n, name:t('mj_' + nxt[0]) }))}</div>` : ''}
+      ${m.best > 1 ? `<div class="small faint">${esc(t('club_best', { n:m.best }))}</div>` : ''}${m.moons ? `<div class="small faint">🌕 ${esc(t('club_rounds', { n:m.moons }))}</div>` : ''}${state.companion ? `<span class="badge">${ic('heart', 'sm')} ${esc(t('comp_badge'))}</span>` : ''}</div>`;
+  }
+  const cells = Array.from({ length:MOON_TOTAL }, (_, i) => { const on = m && i < d, next = m && i === d && d < MOON_TOTAL && !doneToday; return `<div class="day-cell ${on ? 'on' : ''} ${next ? 'next' : ''}" title="${on && m.days[base + i] ? esc(m.days[base + i]) : ''}">${on ? ic('check', 'sm') : i + 1}</div>`; }).join('');
   page(`${head('club_title', 'club_sub', '', 'gaze', 9)}
     <div class="grid g2" style="align-items:start">${main}
-      <div class="stack"><section class="card pad"><div class="card-h"><h3>${esc(t('club_calendar'))}</h3></div><div class="days30">${cells}</div></section>
-        <section class="card pad"><h3 style="margin-bottom:10px">${esc(t('club_how'))}</h3><ol class="steps"><li>${esc(t('club_how1'))}</li><li>${esc(t('club_how2'))}</li><li>${esc(t('club_how3'))}</li></ol></section></div></div>
+      <div class="stack"><section class="card pad"><div class="card-h"><h3>${esc(m ? t('mj_cal', { n:stage, a:base + 1, b:base + MOON_TOTAL }) : t('club_calendar'))}</h3></div><div class="days30">${cells}</div></section>
+        ${m ? `<section class="card pad"><div class="card-h"><h3>${esc(t('mj_shelf'))}</h3></div><div class="mj-shelf">${MOON_MILES.map(([k, e]) => m.best >= k ? `<span class="mj-badge on">${e}<small>${esc(t('mj_' + k))}</small></span>` : `<span class="mj-badge" title="${esc(t('mj_locked', { n:k }))}">${e}<small>${esc(t('mj_locked', { n:k }))}</small></span>`).join('')}</div></section>${moonRewardCard(m)}` : ''}
+        <section class="card pad"><h3 style="margin-bottom:10px">${esc(t('club_how'))}</h3><ol class="steps"><li>${esc(t('club_how1'))}</li><li>${esc(t('club_how2'))}</li><li>${esc(t('club_how3'))}</li><li>${esc(t('mj_how4'))}</li></ol></section></div></div>
     <h2 style="font-size:1.2rem;margin:34px 0 14px">${esc(t('club_remind'))}</h2>${challengeCard()}`);
 };
 
@@ -777,14 +827,14 @@ const compCode = () => state.user && state.user.email ? mailNote(state.user.emai
 const compPayMode = () => { const bank = payments.bankBin && payments.accountNo, kofi = payments.companionUrl || payments.paypal; return compPay === 'vnd' && bank || compPay === 'kofi' && kofi ? compPay : (bank && (effCurrency() === 'VND' || !kofi) ? 'vnd' : kofi ? 'kofi' : ''); };
 function compPayHTML(){
   const bank = payments.bankBin && payments.accountNo, kofi = payments.companionUrl || payments.paypal, mode = compPayMode(); if (!mode) return '';
-  const amt = compPrice(compMonths), code = compCode(), cp = v => `<button type="button" class="btn secondary sm" data-act="copy" data-v="${esc(v)}">${esc(t('copy'))}</button>`;
+  const rw = mode === 'vnd' ? moonRewardActive() : null, amt = rewardPrice(compPrice(compMonths), rw), code = compCode(), cp = v => `<button type="button" class="btn secondary sm" data-act="copy" data-v="${esc(v)}">${esc(t('copy'))}</button>`;
   const seg = bank && kofi ? `<div class="seg"><button type="button" class="${mode === 'vnd' ? 'on' : ''}" data-act="compPay" data-m="vnd">${esc(t('comp_pay_vn'))}</button><button type="button" class="${mode === 'kofi' ? 'on' : ''}" data-act="compPay" data-m="kofi">${esc(t('comp_pay_kofi'))}</button></div>` : '';
   let body;
   if (mode === 'kofi') { const um = payments.paypal ? compMonths : 1; body = `<div class="row">${(payments.paypal ? [1, 3, 12] : [1]).map(m => `<button type="button" class="chip ${m === um ? 'on' : ''}" data-act="compMonths" data-m="${m}">${esc(t('comp_plan_' + m))} · ${money(compPriceUSD(m), 'USD')}${m > 1 ? ` <small>${esc(t('comp_save', { p:Math.round((1 - compPriceUSD(m) / (compBaseUSD() * m)) * 100) }))}</small>` : ''}</button>`).join('')}</div>
     <a class="btn primary lg" target="_blank" rel="noopener" href="${esc(compUsdUrl(um))}">${ic('heart', 'sm')} ${esc(t(um === 1 ? 'comp_cta' : 'comp_pay_prepaid', { a:money(compPriceUSD(um), 'USD') }))}</a>
     <p class="small faint">${esc(t(um === 1 ? 'comp_usd_note1' : 'comp_usd_note'))}</p>`; }
   else if (!state.user) body = `<p class="small muted">${esc(t('comp_vnd_login'))}</p><a class="btn secondary" href="#/account">${esc(t('signin'))}</a>`;
-  else body = `<div class="row">${[1, 3, 12].map(m => `<button type="button" class="chip ${m === compMonths ? 'on' : ''}" data-act="compMonths" data-m="${m}">${esc(t('comp_plan_' + m))} · ${money(compPrice(m), 'VND')}${m > 1 ? ` <small>${esc(t('comp_save', { p:Math.round((1 - compPrice(m) / (compBase() * m)) * 100) }))}</small>` : ''}</button>`).join('')}</div><img class="qr" alt="VietQR" src="https://img.vietqr.io/image/${encodeURIComponent(payments.bankBin)}-${encodeURIComponent(payments.accountNo)}-compact2.png?amount=${amt}&addInfo=${encodeURIComponent(code)}&accountName=${encodeURIComponent(payments.accountName || '')}"><p class="small muted" style="text-align:center">${esc(t('donate_scan'))}</p>
+  else body = `${rw ? `<div class="limit-box small" style="border-color:var(--accent)">🎁 ${esc(t('mr_banner', { p:rw.pct, d:fmtDay(tsMs(rw.expires)) }))}</div>` : ''}<div class="row">${[1, 3, 12].map(m => `<button type="button" class="chip ${m === compMonths ? 'on' : ''}" data-act="compMonths" data-m="${m}">${esc(t('comp_plan_' + m))} · ${rw ? `<s class="faint">${money(compPrice(m), 'VND')}</s> ${money(rewardPrice(compPrice(m), rw), 'VND')}` : money(compPrice(m), 'VND')}${m > 1 ? ` <small>${esc(t('comp_save', { p:Math.round((1 - compPrice(m) / (compBase() * m)) * 100) }))}</small>` : ''}</button>`).join('')}</div><img class="qr" alt="VietQR" src="https://img.vietqr.io/image/${encodeURIComponent(payments.bankBin)}-${encodeURIComponent(payments.accountNo)}-compact2.png?amount=${amt}&addInfo=${encodeURIComponent(code)}&accountName=${encodeURIComponent(payments.accountName || '')}"><p class="small muted" style="text-align:center">${esc(t('donate_scan'))}</p>
     <div class="kv"><div class="kvr"><span>${esc(t('acc_no'))}</span><b>${esc(payments.accountNo)}</b>${cp(payments.accountNo)}</div><div class="kvr"><span>${esc(t('comp_vnd_sum'))}</span><b>${esc(String(amt))}</b>${cp(String(amt))}</div><div class="kvr"><span>${esc(t('donate_note'))}</span><b>${esc(code)}</b>${cp(code)}</div></div>${payments.momoPhone ? `<div class="small muted">MoMo: <b>${esc(payments.momoPhone)}</b></div>` : ''}<p class="small faint">${esc(t(state.user.email ? 'comp_vnd_mail' : 'comp_vnd_hint'))}</p>`;
   return `<div class="stack">${seg}${body}</div>`;
 }
@@ -794,7 +844,7 @@ const parseAmts = (s, d) => { const a = String(s || '').split(/[,\s]+/).map(Numb
 /* mục cảm ơn những người đồng hành (tên do admin chọn hiện, xem tab Thành viên) */
 const thanksCard = () => { const l = thanksList(); return l.length ? `<section class="card pad thanks mt"><div class="card-h"><h2 ${cms('thanks_title')}>${ic('heart', 'sm')} ${esc(ctext('thanks_title'))}</h2></div><p class="muted small" ${cms('thanks_text')}>${esc(ctext('thanks_text'))}</p><div class="thanks-list">${l.map(x => `<span class="thanks-chip">${ic('heart', 'sm')} ${esc(x.name)}</span>`).join('')}</div></section>` : ''; };
 const donateHTML = function(){
-  if (state.user) refreshCompanion().then(ch => ch && render(true));
+  if (state.user) { refreshCompanion().then(ch => ch && render(true)); loadMoonReward(); }
   const cur = donCur || effCurrency(), amts = cur === 'VND' ? parseAmts(payments.donateVND, [20000, 50000, 100000, 200000]) : parseAmts(payments.donateUSD, [3, 5, 10, 25]);
   const amt = donAmt && donAmt.cur === cur ? donAmt.v : amts[1] || amts[0], hasBank = payments.bankBin && payments.accountNo, note = donNote();
   let pay = '';
@@ -839,18 +889,20 @@ Object.assign(ACTIONS, {
     const note = $('cc-note').value.trim().slice(0, 200); if (note.length < 2) { $('cc-err').textContent = t('cc_note_req'); $('cc-note').focus(); return; }   // bắt buộc: để admin đối chiếu khoản thanh toán
     el.disabled = true;
     const rq = { uid:u.uid, email:u.email || '', name:displayName() || '', method:$('cc-method').value, months:+$('cc-months').value || 1, note, message:($('cc-msg').value || '').trim().slice(0, 300), status:'pending' };
+    const rw = moonRewardActive(); if (rw && rq.method === 'bank') { rq.reward = rw.pct; rq.amount = rewardPrice(compPrice(rq.months), rw); }      // chỉ để admin đối chiếu; admin vẫn kiểm moon_rewards/<uid> khi duyệt
     try { if (!DEMO) await db.collection('companion_requests').doc(u.uid).set({ ...rq, createdAt:TS() }); state.compReq = { ...rq, createdAt:Date.now() }; closeModal(); toast(t('cc_sent')); render(true);
       if (payments.claimTemplate && !DEMO) loadEmailJS().then(() => emailjs.send(EMAILJS_SERVICE, payments.claimTemplate, { user_name:rq.name, user_email:rq.email, months:rq.months, method:rq.method, note:rq.note, message:rq.message })).catch(() => {});      // báo email cho admin (nếu đã tạo mẫu EmailJS)
     }
     catch (e) { el.disabled = false; console.warn('claim', e.code); toast(t('cc_err') + ' ' + (e.code || '')); }
   },
+  moonReward: async el => { el.disabled = true; if (await claimMoonReward()) { toast(t('mr_got', { p:state.moonReward.pct })); render(true); } else { el.disabled = false; toast(t('err_generic')); } },
   moonRetry: () => location.reload(),
-  moonStart: () => { if (!DEMO && !state.profileReady) return; if (moonData()) return render(true); moonSave({ startedAt:Date.now(), days:[], rounds:0 }); },
-  moonAgain: () => { const m = moonData(); moonSave({ startedAt:Date.now(), days:[], rounds:(m ? m.rounds : 0) + 1 }); },
+  moonStart: () => { if (!DEMO && !state.profileReady) return; if (moonData()) return render(true); moonSave({ startedAt:Date.now(), days:[], rounds:0, moons:0 }); },
   moonCheckin: () => {
     const m = moonData(); if (!m) return; const k = todayKey(); if (m.days.includes(k)) return toast(t('club_done_today'));
     const { broken, lost, ...keep } = m;                              // chuỗi đã đứt thì moonData() trả days rỗng nên bắt đầu lại từ ngày 1
     keep.days = [...m.days, k]; keep.best = Math.max(keep.best || 0, keep.days.length);     // mảng mới, để lưu lỗi thì dữ liệu cũ vẫn nguyên
-    moonSave(keep).then(ok => { if (ok && keep.days.length >= MOON_TOTAL) toast(t('club_full')); });
+    const n = keep.days.length; if (n % MOON_TOTAL === 0) keep.moons = (m.moons || 0) + 1; else keep.moons = m.moons || 0;   // mỗi 30 ngày liên tiếp = +1 trăng tròn
+    moonSave(keep).then(async ok => { if (ok && n === MOON_REWARD_AT && !state.moonReward && moonRewardCfg().on && await claimMoonReward()) { toast(t('mr_got', { p:state.moonReward.pct })); render(true); } else if (ok) { if (n % MOON_TOTAL === 0) toast(t('mj_full_plus')); else if (MOON_MILES.some(([x]) => x === n)) toast(t('mj_unlocked', { name:t('mj_' + n) })); } });
   }
 });
