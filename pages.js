@@ -816,31 +816,26 @@ const COMP_DISC = { 1:1, 3:.9, 12:.75 };
 const compBase = () => Math.round(+payments.companionVND) || 59000;
 const compPrice = m => m === 1 ? compBase() : Math.round(compBase() * m * COMP_DISC[m] / 1000) * 1000;
 const compBaseUSD = () => +payments.companionUSD || 3;
-const compListUSD = m => m === 1 ? compBaseUSD() : Math.round(compBaseUSD() * m * COMP_DISC[m]);
-/* Khuyến mãi gói 3 / 12 tháng do admin đặt ở tab Thanh toán (settings/payments: promoOn, promoLabel, promo3, promo12 = % giảm thêm, promoStart, promoEnd = YYYY-MM-DD theo giờ Việt Nam).
-   Giảm thêm trên giá gói (đã gồm mức giảm sẵn 10% / 25%). Giá do trình duyệt tính nên admin vẫn đối chiếu số tiền nhận được khi duyệt. */
+const compPriceUSD = m => m === 1 ? compBaseUSD() : Math.round(compBaseUSD() * m * COMP_DISC[m]);
+/* Khuyến mãi "tặng thêm tháng" cho gói 3 / 12 tháng (settings/payments: promoOn, promoLabel, promoMonths3, promoMonths12 = số tháng tặng, mặc định 1; promoStart, promoEnd = YYYY-MM-DD theo giờ Việt Nam).
+   Không giảm giá: áp dụng cho MỌI cách thanh toán (VND, Ko-fi, PayPal) vì admin tự đặt ngày hết hạn khi duyệt (admin.js cộng tháng tặng vào hạn). */
 const promoDay = ms => DT.fromMillis(ms).setZone('Asia/Ho_Chi_Minh').toISODate();
 const promoActive = (ms = Date.now()) => { const d = promoDay(ms); return payments.promoOn === true && !(payments.promoStart && d < payments.promoStart) && !(payments.promoEnd && d > payments.promoEnd); };
-function compPromoPct(m, ms = Date.now()){
+function compBonusMonths(m, ms = Date.now()){
   if (m === 1 || !promoActive(ms)) return 0;
-  const pct = Math.min(50, Math.round(+payments['promo' + m]) || 0); return pct < 1 ? 0 : pct;
+  const v = payments['promoMonths' + m]; return Math.min(12, Math.max(0, v === undefined || v === '' ? 1 : Math.round(+v) || 0));
 }
-/* Tặng thêm thời gian (ngày) khi mua gói 3 / 12 tháng: áp dụng cho MỌI cách thanh toán (kể cả Ko-fi, PayPal) vì admin tự đặt ngày hết hạn khi duyệt (admin.js cộng vào hạn). */
-function compBonusDays(m, ms = Date.now()){
-  if (m === 1 || !promoActive(ms)) return 0;
-  return Math.min(366, Math.max(0, Math.round(+payments['promoBonus' + m]) || 0));
+const bonusText = n => t(n === 1 ? 'promo_m1' : 'promo_mn', { n });
+/* Giá VND: chỉ có ưu đãi Hành trình trăng (nếu khách có) làm giảm giá. reward = true khi ưu đãi trăng được dùng. */
+function compBest(m, rw){
+  const list = compPrice(m), price = rw ? rewardPrice(list, rw) : list;
+  return { list, reward:price < list, price };
 }
-const promoUsdOk = () => /paypal\.me\/|paypal\.com\/paypalme\//i.test(payments.paypal || '');     // chỉ PayPal.me mới đổi được số tiền; Ko-fi / link PayPal khác thì giá do nền tảng đặt
-const compPriceUSD = m => { const l = compListUSD(m), pp = promoUsdOk() ? compPromoPct(m) : 0; return pp ? Math.round(l * (100 - pp) / 100) : l; };
-/* Giá VND tốt nhất: lấy cái LỢI HƠN giữa khuyến mãi gói và ưu đãi Hành trình trăng (không cộng gộp). reward = true khi ưu đãi trăng là cái được dùng. */
-function compBest(m, rw, ms = Date.now()){
-  const list = compPrice(m), pp = compPromoPct(m, ms), pr = pp ? Math.round(list * (100 - pp) / 100 / 1000) * 1000 : list, rp = rw ? rewardPrice(list, rw) : list, useReward = !!rw && rp < pr;
-  return { list, promo:useReward ? 0 : pp, reward:useReward, price:useReward ? rp : pr };
-}
-function promoBanner(discount = true){          // discount = false: kiểu thanh toán không đổi được giá (Ko-fi / PayPal khác), chỉ nói phần tặng thêm thời gian
-  const parts = [3, 12].map(m => { const x = [discount && compPromoPct(m) ? t('promo_off', { p:compPromoPct(m) }) : '', compBonusDays(m) ? t('promo_bonus', { d:compBonusDays(m) }) : ''].filter(Boolean).join(' + '); return x ? t('promo_plan' + m, { x }) : ''; }).filter(Boolean); if (!parts.length) return '';
+function promoBanner(){
+  const parts = [3, 12].map(m => compBonusMonths(m) ? t('promo_plan' + m, { x:bonusText(compBonusMonths(m)) }) : '').filter(Boolean); if (!parts.length) return '';
   return `<div class="limit-box small" style="border-color:var(--accent)">🔥 ${esc(t('promo_banner', { name:payments.promoLabel || t('promo_default'), parts:parts.join(' · ') }))}${payments.promoEnd ? esc(t('promo_until', { d:payments.promoEnd.split('-').reverse().join('/') })) : ''}</div>`;
 }
+const bonusChip = m => compBonusMonths(m) ? ` <small>${esc(t(compBonusMonths(m) === 1 ? 'promo_chip1' : 'promo_chipn', { n:compBonusMonths(m) }))}</small>` : '';
 const compUsdUrl = m => {                                          // 1 tháng: Ko-fi Membership (tự gia hạn); 3/12 tháng: trả một lần qua PayPal.me (hoặc Ko-fi nếu chưa có PayPal)
   const pp = payments.paypal || '', amt = compPriceUSD(m);
   if (m > 1 && pp) return /paypal\.me\/|paypal\.com\/paypalme\//i.test(pp) ? pp.replace(/\/+$/, '') + '/' + amt + 'USD' : pp;
@@ -854,11 +849,11 @@ function compPayHTML(){
   const rw = mode === 'vnd' ? moonRewardActive() : null, amt = compBest(compMonths, rw).price, code = compCode(), cp = v => `<button type="button" class="btn secondary sm" data-act="copy" data-v="${esc(v)}">${esc(t('copy'))}</button>`;
   const seg = bank && kofi ? `<div class="seg"><button type="button" class="${mode === 'vnd' ? 'on' : ''}" data-act="compPay" data-m="vnd">${esc(t('comp_pay_vn'))}</button><button type="button" class="${mode === 'kofi' ? 'on' : ''}" data-act="compPay" data-m="kofi">${esc(t('comp_pay_kofi'))}</button></div>` : '';
   let body;
-  if (mode === 'kofi') { const um = payments.paypal ? compMonths : 1; body = `${promoBanner(promoUsdOk())}<div class="row">${(payments.paypal ? [1, 3, 12] : [1]).map(m => `<button type="button" class="chip ${m === um ? 'on' : ''}" data-act="compMonths" data-m="${m}">${esc(t('comp_plan_' + m))} · ${compPriceUSD(m) < compListUSD(m) ? `<s class="faint">${money(compListUSD(m), 'USD')}</s> ` : ''}${money(compPriceUSD(m), 'USD')}${m > 1 ? ` <small>${esc(t('comp_save', { p:Math.round((1 - compPriceUSD(m) / (compBaseUSD() * m)) * 100) }))}</small>` : ''}${compBonusDays(m) ? ` <small>${esc(t('promo_chip_bonus', { d:compBonusDays(m) }))}</small>` : ''}</button>`).join('')}</div>
+  if (mode === 'kofi') { const um = payments.paypal ? compMonths : 1; body = `${promoBanner()}<div class="row">${(payments.paypal ? [1, 3, 12] : [1]).map(m => `<button type="button" class="chip ${m === um ? 'on' : ''}" data-act="compMonths" data-m="${m}">${esc(t('comp_plan_' + m))} · ${money(compPriceUSD(m), 'USD')}${m > 1 ? ` <small>${esc(t('comp_save', { p:Math.round((1 - compPriceUSD(m) / (compBaseUSD() * m)) * 100) }))}</small>` : ''}${bonusChip(m)}</button>`).join('')}</div>
     <a class="btn primary lg" target="_blank" rel="noopener" href="${esc(compUsdUrl(um))}">${ic('heart', 'sm')} ${esc(t(um === 1 ? 'comp_cta' : 'comp_pay_prepaid', { a:money(compPriceUSD(um), 'USD') }))}</a>
     <p class="small faint">${esc(t(um === 1 ? 'comp_usd_note1' : 'comp_usd_note'))}</p>`; }
   else if (!state.user) body = `<p class="small muted">${esc(t('comp_vnd_login'))}</p><a class="btn secondary" href="#/account">${esc(t('signin'))}</a>`;
-  else body = `${promoBanner()}${rw ? `<div class="limit-box small" style="border-color:var(--accent)">🎁 ${esc(t('mr_banner', { p:rw.pct, d:fmtDay(tsMs(rw.expires)) }))}${promoBanner() ? ' ' + esc(t('promo_nostack')) : ''}</div>` : ''}<div class="row">${[1, 3, 12].map(m => { const b = compBest(m, rw); return `<button type="button" class="chip ${m === compMonths ? 'on' : ''}" data-act="compMonths" data-m="${m}">${esc(t('comp_plan_' + m))} · ${b.price < b.list ? `<s class="faint">${money(b.list, 'VND')}</s> ` : ''}${money(b.price, 'VND')}${m > 1 ? ` <small>${esc(t('comp_save', { p:Math.round((1 - b.price / (compBase() * m)) * 100) }))}</small>` : ''}${compBonusDays(m) ? ` <small>${esc(t('promo_chip_bonus', { d:compBonusDays(m) }))}</small>` : ''}</button>`; }).join('')}</div><img class="qr" alt="VietQR" src="https://img.vietqr.io/image/${encodeURIComponent(payments.bankBin)}-${encodeURIComponent(payments.accountNo)}-compact2.png?amount=${amt}&addInfo=${encodeURIComponent(code)}&accountName=${encodeURIComponent(payments.accountName || '')}"><p class="small muted" style="text-align:center">${esc(t('donate_scan'))}</p>
+  else body = `${promoBanner()}${rw ? `<div class="limit-box small" style="border-color:var(--accent)">🎁 ${esc(t('mr_banner', { p:rw.pct, d:fmtDay(tsMs(rw.expires)) }))}</div>` : ''}<div class="row">${[1, 3, 12].map(m => { const b = compBest(m, rw); return `<button type="button" class="chip ${m === compMonths ? 'on' : ''}" data-act="compMonths" data-m="${m}">${esc(t('comp_plan_' + m))} · ${b.price < b.list ? `<s class="faint">${money(b.list, 'VND')}</s> ` : ''}${money(b.price, 'VND')}${m > 1 ? ` <small>${esc(t('comp_save', { p:Math.round((1 - b.price / (compBase() * m)) * 100) }))}</small>` : ''}${bonusChip(m)}</button>`; }).join('')}</div><img class="qr" alt="VietQR" src="https://img.vietqr.io/image/${encodeURIComponent(payments.bankBin)}-${encodeURIComponent(payments.accountNo)}-compact2.png?amount=${amt}&addInfo=${encodeURIComponent(code)}&accountName=${encodeURIComponent(payments.accountName || '')}"><p class="small muted" style="text-align:center">${esc(t('donate_scan'))}</p>
     <div class="kv"><div class="kvr"><span>${esc(t('acc_no'))}</span><b>${esc(payments.accountNo)}</b>${cp(payments.accountNo)}</div><div class="kvr"><span>${esc(t('comp_vnd_sum'))}</span><b>${esc(String(amt))}</b>${cp(String(amt))}</div><div class="kvr"><span>${esc(t('donate_note'))}</span><b>${esc(code)}</b>${cp(code)}</div></div>${payments.momoPhone ? `<div class="small muted">MoMo: <b>${esc(payments.momoPhone)}</b></div>` : ''}<p class="small faint">${esc(t(state.user.email ? 'comp_vnd_mail' : 'comp_vnd_hint'))}</p>`;
   return `<div class="stack">${seg}${body}</div>`;
 }
@@ -913,8 +908,8 @@ Object.assign(ACTIONS, {
     const note = $('cc-note').value.trim().slice(0, 200); if (note.length < 2) { $('cc-err').textContent = t('cc_note_req'); $('cc-note').focus(); return; }   // bắt buộc: để admin đối chiếu khoản thanh toán
     el.disabled = true;
     const rq = { uid:u.uid, email:u.email || '', name:displayName() || '', method:$('cc-method').value, months:+$('cc-months').value || 1, note, message:($('cc-msg').value || '').trim().slice(0, 300), status:'pending' };
-    const bd = compBonusDays(rq.months); if (bd) rq.bonus = bd;                 // ngày tặng thêm: áp dụng mọi cách thanh toán, admin tự cộng khi duyệt
-    if (rq.method === 'bank') { const b = compBest(rq.months, moonRewardActive()); rq.amount = b.price; if (b.reward) rq.reward = moonRewardActive().pct; else if (b.promo) rq.promo = b.promo; }      // chỉ để admin đối chiếu; admin vẫn kiểm moon_rewards/<uid> và cài đặt khuyến mãi khi duyệt
+    const bd = compBonusMonths(rq.months); if (bd) rq.bonus = bd;                 // tháng tặng thêm: áp dụng mọi cách thanh toán, admin tự cộng khi duyệt
+    if (rq.method === 'bank') { const b = compBest(rq.months, moonRewardActive()); rq.amount = b.price; if (b.reward) rq.reward = moonRewardActive().pct; }      // chỉ để admin đối chiếu; admin vẫn kiểm moon_rewards/<uid> và cài đặt khuyến mãi khi duyệt
     try { if (!DEMO) await db.collection('companion_requests').doc(u.uid).set({ ...rq, createdAt:TS() }); state.compReq = { ...rq, createdAt:Date.now() }; closeModal(); toast(t('cc_sent')); render(true);
       if (payments.claimTemplate && !DEMO) loadEmailJS().then(() => emailjs.send(EMAILJS_SERVICE, payments.claimTemplate, { user_name:rq.name, user_email:rq.email, months:rq.months, method:rq.method, note:rq.note, message:rq.message })).catch(() => {});      // báo email cho admin (nếu đã tạo mẫu EmailJS)
     }

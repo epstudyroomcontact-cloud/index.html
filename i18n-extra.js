@@ -129,24 +129,14 @@
     es:{"mr_teaser": "Llega a {n} días para ganar un {p}% de descuento en un plan Compañero.", "mr_title": "Recompensa del Viaje lunar", "mr_can": "¡Llegaste a 60 días! Reclama un {p}% de descuento en un pago de Compañero por transferencia bancaria (VND). Es válido {d} días desde que lo reclamas.", "mr_claim": "Reclamar mi recompensa", "mr_have": "Tienes un {p}% de descuento, válido hasta el {d}.", "mr_use": "Usarlo en la página de Apoyo", "mr_used": "Ya usaste esta recompensa. ¡Gracias!", "mr_expired": "Esta recompensa ha caducado.", "mr_note": "Un uso por cuenta. Solo para pagos de Compañero por transferencia bancaria (VND).", "mr_got": "¡Ganaste un {p}% de descuento en un plan Compañero! Úsalo en la página de Apoyo.", "mr_banner": "Recompensa del Viaje lunar: {p}% de descuento, válido hasta el {d}. El importe de abajo ya lo incluye."}
   };
   Object.keys(MR).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], MR[l]); });
-  /* Khuyến mãi gói 3 / 12 tháng */
-  const PM = {
-    hi:{"promo_default": "विशेष ऑफ़र", "promo_b3": "3 महीने के प्लान पर अतिरिक्त {p}% छूट", "promo_b12": "12 महीने के प्लान पर अतिरिक्त {p}% छूट", "promo_banner": "{name}: {parts}।", "promo_until": " {d} को समाप्त।", "promo_nostack": "अगर आपके पास मून जर्नी इनाम भी है, तो जो बेहतर होगा वही अपने-आप लगेगा (दोनों जुड़ते नहीं)।"},
-    ja:{"promo_default": "特別オファー", "promo_b3": "3か月プランがさらに{p}%オフ", "promo_b12": "12か月プランがさらに{p}%オフ", "promo_banner": "{name}：{parts}。", "promo_until": " {d}まで。", "promo_nostack": "ムーンジャーニーの特典もある場合は、お得なほうが自動で適用されます（併用はできません）。"},
-    ko:{"promo_default": "특별 혜택", "promo_b3": "3개월 플랜 추가 {p}% 할인", "promo_b12": "12개월 플랜 추가 {p}% 할인", "promo_banner": "{name}: {parts}.", "promo_until": " {d}까지.", "promo_nostack": "문 저니 보상도 있다면 더 유리한 쪽이 자동으로 적용돼요(중복 적용은 안 돼요)."},
-    zh:{"promo_default": "特别优惠", "promo_b3": "3 个月套餐再减 {p}%", "promo_b12": "12 个月套餐再减 {p}%", "promo_banner": "{name}：{parts}。", "promo_until": " {d} 结束。", "promo_nostack": "如果你同时有月亮之旅奖励，系统会自动采用更划算的一个（不叠加）。"},
-    fr:{"promo_default": "Offre spéciale", "promo_b3": "{p} % de réduction supplémentaire sur la formule 3 mois", "promo_b12": "{p} % de réduction supplémentaire sur la formule 12 mois", "promo_banner": "{name} : {parts}.", "promo_until": " Se termine le {d}.", "promo_nostack": "Si vous avez aussi une récompense Parcours lunaire, la meilleure offre s’applique automatiquement (elles ne se cumulent pas)."},
-    es:{"promo_default": "Oferta especial", "promo_b3": "{p}% de descuento extra en el plan de 3 meses", "promo_b12": "{p}% de descuento extra en el plan de 12 meses", "promo_banner": "{name}: {parts}.", "promo_until": " Termina el {d}.", "promo_nostack": "Si también tienes una recompensa del Viaje lunar, se aplica automáticamente la mejor oferta (no se acumulan)."}
+  /* Khuyến mãi: tặng thêm tháng khi thành Người đồng hành */
+  const PQ = {
+    hi:{"promo_banner": "{name}: Companion बनें और बोनस समय मुफ़्त पाएँ। {parts}।", "promo_plan3": "3 महीने का प्लान: +{x}", "promo_plan12": "12 महीने का प्लान: +{x}", "promo_m1": "1 महीना मुफ़्त", "promo_mn": "{n} महीने मुफ़्त", "promo_chip1": "+1 महीना मुफ़्त", "promo_chipn": "+{n} महीने मुफ़्त", "promo_default": "विशेष ऑफ़र", "promo_until": " {d} को समाप्त।"},
+    ja:{"promo_banner": "{name}：コンパニオンになると、無料で期間が延長されます。{parts}。", "promo_plan3": "3か月プラン：+{x}", "promo_plan12": "12か月プラン：+{x}", "promo_m1": "1か月無料", "promo_mn": "{n}か月無料", "promo_chip1": "+1か月無料", "promo_chipn": "+{n}か月無料", "promo_default": "特別オファー", "promo_until": " {d}まで。"},
+    ko:{"promo_banner": "{name}: 컴패니언이 되면 보너스 기간을 무료로 드려요. {parts}.", "promo_plan3": "3개월 플랜: +{x}", "promo_plan12": "12개월 플랜: +{x}", "promo_m1": "1개월 무료", "promo_mn": "{n}개월 무료", "promo_chip1": "+1개월 무료", "promo_chipn": "+{n}개월 무료", "promo_default": "특별 혜택", "promo_until": " {d}까지."},
+    zh:{"promo_banner": "{name}：成为陪伴者，免费赠送额外时长。{parts}。", "promo_plan3": "3 个月套餐：+{x}", "promo_plan12": "12 个月套餐：+{x}", "promo_m1": "1 个月免费", "promo_mn": "{n} 个月免费", "promo_chip1": "+1 个月免费", "promo_chipn": "+{n} 个月免费", "promo_default": "特别优惠", "promo_until": " {d} 结束。"},
+    fr:{"promo_banner": "{name} : devenez Compagnon et recevez du temps offert. {parts}.", "promo_plan3": "Formule 3 mois : +{x}", "promo_plan12": "Formule 12 mois : +{x}", "promo_m1": "1 mois offert", "promo_mn": "{n} mois offerts", "promo_chip1": "+1 mois offert", "promo_chipn": "+{n} mois offerts", "promo_default": "Offre spéciale", "promo_until": " Se termine le {d}."},
+    es:{"promo_banner": "{name}: hazte Compañero y recibe tiempo extra gratis. {parts}.", "promo_plan3": "Plan de 3 meses: +{x}", "promo_plan12": "Plan de 12 meses: +{x}", "promo_m1": "1 mes gratis", "promo_mn": "{n} meses gratis", "promo_chip1": "+1 mes gratis", "promo_chipn": "+{n} meses gratis", "promo_default": "Oferta especial", "promo_until": " Termina el {d}."}
   };
-  Object.keys(PM).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], PM[l]); });
-  /* Khuyến mãi: tặng thêm ngày */
-  const PB = {
-    hi:{"promo_off": "अतिरिक्त {p}% छूट", "promo_bonus": "{d} बोनस दिन", "promo_plan3": "3 महीने का प्लान: {x}", "promo_plan12": "12 महीने का प्लान: {x}", "promo_chip_bonus": "+{d} दिन"},
-    ja:{"promo_off": "さらに{p}%オフ", "promo_bonus": "{d}日分をプレゼント", "promo_plan3": "3か月プラン：{x}", "promo_plan12": "12か月プラン：{x}", "promo_chip_bonus": "+{d}日"},
-    ko:{"promo_off": "추가 {p}% 할인", "promo_bonus": "{d}일 보너스", "promo_plan3": "3개월 플랜: {x}", "promo_plan12": "12개월 플랜: {x}", "promo_chip_bonus": "+{d}일"},
-    zh:{"promo_off": "再减 {p}%", "promo_bonus": "额外赠送 {d} 天", "promo_plan3": "3 个月套餐：{x}", "promo_plan12": "12 个月套餐：{x}", "promo_chip_bonus": "+{d} 天"},
-    fr:{"promo_off": "{p} % de réduction en plus", "promo_bonus": "{d} jours offerts", "promo_plan3": "Formule 3 mois : {x}", "promo_plan12": "Formule 12 mois : {x}", "promo_chip_bonus": "+{d} jours"},
-    es:{"promo_off": "{p}% de descuento extra", "promo_bonus": "{d} días de regalo", "promo_plan3": "Plan de 3 meses: {x}", "promo_plan12": "Plan de 12 meses: {x}", "promo_chip_bonus": "+{d} días"}
-  };
-  Object.keys(PB).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], PB[l]); });
+  Object.keys(PQ).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], PQ[l]); });
 })();
