@@ -13,8 +13,8 @@ const mjfIO = 'IntersectionObserver' in window ? new IntersectionObserver(es => 
 const mjfR = (a, b) => a + Math.random() * (b - a);
 const MJ_FX = {
   start:'fog,haze', d1:'fog,haze', d3:'fog,haze', d7:'clouds,motes', d10:'fireflies,fog', d14:'ripples,glints,fog', d21:'starfall,clouds', d30:'glints,meteors,clouds',
-  d45:'motes,rays', d60:'fireflies,stars,seeds', d80:'motes,fireflies,fog', d100:'ripples,fireflies,fog', d130:'petals,rays', d200:'stars,meteors',
-  d250:'rays,fog,haze', d300:'ripples,fireflies,seeds', d365:'finale', d400:'dreamdust,rays', d450:'dreamdust,stars,clouds', after:'meteorshower,stars,fog'
+  d45:'motes,rays', d60:'fireflies,stars,seeds', d80:'motes,fireflies,fog', d100:'ripples,fireflies,fog,leaves', d130:'petals,rays', d200:'stars,meteors',
+  d250:'rays,fog,haze', d300:'ripples,fireflies,seeds,leaves', d365:'finale', d400:'dreamdust,rays', d450:'dreamdust,stars,clouds', after:'meteorshower,stars,fog'
 };
 
 // ----- từng loại hạt: make tạo hạt, step cập nhật, draw vẽ -----
