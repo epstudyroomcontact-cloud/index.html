@@ -723,14 +723,15 @@ async function moonSave(m){
   render(true);
   return ok;
 }
-/* Ưu đãi mốc 60 ngày: giảm % khi trả gói Người đồng hành bằng chuyển khoản VND, dùng một lần, có hạn.
-   Lưu ở moon_rewards/<uid> = { uid, pct, expires, status:'unused'|'used', createdAt }; khách chỉ tạo được 1 lần (rules kiểm % và hạn theo cài đặt của admin),
-   admin đánh dấu 'used' khi duyệt thanh toán. % và số ngày hiệu lực do admin chỉnh ở tab Thanh toán (settings/payments.moonRewardPct / moonRewardDays / moonRewardOn). */
+/* Ưu đãi mốc 60 ngày: tặng thêm tháng Người đồng hành (mọi cách thanh toán), dùng một lần, có hạn. Không giảm giá.
+   Lưu ở moon_rewards/<uid> = { uid, months, expires, status:'unused'|'used', createdAt }; khách chỉ tạo được 1 lần (rules kiểm số tháng và hạn theo cài đặt của admin),
+   admin duyệt thanh toán thì tự cộng tháng tặng và đánh dấu 'used'. Số tháng và số ngày hiệu lực do admin chỉnh ở tab Thanh toán (settings/payments.moonRewardMonths / moonRewardDays / moonRewardOn).
+   Ưu đãi nhận trước đây (có pct, không có months) vẫn dùng được: tính theo số tháng đang cài đặt. */
 const MOON_REWARD_AT = 60;
 let mrLoading = false;
-const moonRewardCfg = (src = payments) => ({ on:src.moonRewardOn !== false, pct:Math.min(50, Math.max(1, Math.round(+src.moonRewardPct) || 10)), days:Math.min(365, Math.max(1, Math.round(+src.moonRewardDays) || 30)) });
+const moonRewardCfg = (src = payments) => ({ on:src.moonRewardOn !== false, months:Math.min(12, Math.max(1, Math.round(+src.moonRewardMonths) || 1)), days:Math.min(365, Math.max(1, Math.round(+src.moonRewardDays) || 30)) });
 const moonRewardActive = () => { const r = state.moonReward; return r && r.status === 'unused' && tsMs(r.expires) > Date.now() ? r : null; };
-const rewardPrice = (v, r = moonRewardActive()) => r ? Math.round(v * (100 - r.pct) / 100 / 1000) * 1000 : v;     // làm tròn nghìn như các gói VND khác
+const moonRewardMonths = (r, src = payments) => r && r.months !== undefined ? Math.min(12, Math.max(1, Math.round(+r.months) || 1)) : moonRewardCfg(src).months;     // ưu đãi cũ (giảm %) không có months: tặng theo số tháng đang cài đặt
 const fmtDay = ms => DT.fromMillis(ms).setZone(userTZ).toFormat('dd/MM/yyyy');
 async function loadMoonReward(force){
   if (!state.user || DEMO || mrLoading || (!force && state.moonReward !== undefined)) return;
@@ -744,20 +745,20 @@ async function claimMoonReward(){
   try {
     const c = moonRewardCfg(DEMO ? payments : (await db.collection('settings').doc('payments').get()).data() || {});      // đọc cài đặt mới nhất để khớp với rules
     if (!c.on) return false;
-    const r = { uid:u.uid, pct:c.pct, expires:DEMO ? Date.now() + c.days * 864e5 : firebase.firestore.Timestamp.fromMillis(Date.now() + c.days * 864e5), status:'unused', createdAt:DEMO ? Date.now() : TS() };
+    const r = { uid:u.uid, months:c.months, expires:DEMO ? Date.now() + c.days * 864e5 : firebase.firestore.Timestamp.fromMillis(Date.now() + c.days * 864e5), status:'unused', createdAt:DEMO ? Date.now() : TS() };
     if (!DEMO) await db.collection('moon_rewards').doc(u.uid).set(r);
     state.moonReward = { ...r, createdAt:Date.now() }; return true;
   } catch (e) { console.warn('claim reward', e.code); return false; }
 }
 function moonRewardCard(m){
   const c = moonRewardCfg(); if (!c.on && !state.moonReward) return '';
-  if (m.best < MOON_REWARD_AT) return `<p class="small faint" style="text-align:center">🎁 ${esc(t('mr_teaser', { n:MOON_REWARD_AT, p:c.pct }))}</p>`;
+  if (m.best < MOON_REWARD_AT) return `<p class="small faint" style="text-align:center">🎁 ${esc(t('mr_teaser', { n:MOON_REWARD_AT, x:bonusText(c.months) }))}</p>`;
   const r = state.moonReward; if (r === undefined && !DEMO) { loadMoonReward(); return ''; }
   let inner;
-  if (!r) inner = `<p class="small">${esc(t('mr_can', { p:c.pct, d:c.days }))}</p><button class="btn primary" data-act="moonReward">🎁 ${esc(t('mr_claim'))}</button>`;
+  if (!r) inner = `<p class="small">${esc(t('mr_can', { x:bonusText(c.months), d:c.days }))}</p><button class="btn primary" data-act="moonReward">🎁 ${esc(t('mr_claim'))}</button>`;
   else if (r.status === 'used') inner = `<p class="small muted">${esc(t('mr_used'))}</p>`;
   else if (tsMs(r.expires) <= Date.now()) inner = `<p class="small muted">${esc(t('mr_expired'))}</p>`;
-  else inner = `<p class="small">${esc(t('mr_have', { p:r.pct, d:fmtDay(tsMs(r.expires)) }))}</p><a class="btn primary" href="#/donate">${ic('heart', 'sm')} ${esc(t('mr_use'))}</a>`;
+  else inner = `<p class="small">${esc(t('mr_have', { x:bonusText(moonRewardMonths(r)), d:fmtDay(tsMs(r.expires)) }))}</p><a class="btn primary" href="#/donate">${ic('heart', 'sm')} ${esc(t('mr_use'))}</a>`;
   return `<section class="card pad stack"><div class="card-h"><h3>🎁 ${esc(t('mr_title'))}</h3></div>${inner}<p class="small faint">${esc(t('mr_note'))}</p></section>`;
 }
 const moonPos = n => n ? ((n - 1) % MOON_TOTAL) + 1 : 0;            // vị trí trong chặng hiện tại (1–30), 0 = chưa có chuỗi
@@ -826,11 +827,7 @@ function compBonusMonths(m, ms = Date.now()){
   const v = payments['promoMonths' + m]; return Math.min(12, Math.max(0, v === undefined || v === '' ? 1 : Math.round(+v) || 0));
 }
 const bonusText = n => t(n === 1 ? 'promo_m1' : 'promo_mn', { n });
-/* Giá VND: chỉ có ưu đãi Hành trình trăng (nếu khách có) làm giảm giá. reward = true khi ưu đãi trăng được dùng. */
-function compBest(m, rw){
-  const list = compPrice(m), price = rw ? rewardPrice(list, rw) : list;
-  return { list, reward:price < list, price };
-}
+const rewardBanner = rw => rw ? `<div class="limit-box small" style="border-color:var(--accent)">🎁 ${esc(t('mr_banner', { x:bonusText(moonRewardMonths(rw)), d:fmtDay(tsMs(rw.expires)) }))}</div>` : '';
 function promoBanner(){
   const parts = [3, 12].map(m => compBonusMonths(m) ? t('promo_plan' + m, { x:bonusText(compBonusMonths(m)) }) : '').filter(Boolean); if (!parts.length) return '';
   return `<div class="limit-box small" style="border-color:var(--accent)">🔥 ${esc(t('promo_banner', { name:payments.promoLabel || t('promo_default'), parts:parts.join(' · ') }))}${payments.promoEnd ? esc(t('promo_until', { d:payments.promoEnd.split('-').reverse().join('/') })) : ''}</div>`;
@@ -846,14 +843,14 @@ const compCode = () => state.user && state.user.email ? mailNote(state.user.emai
 const compPayMode = () => { const bank = payments.bankBin && payments.accountNo, kofi = payments.companionUrl || payments.paypal; return compPay === 'vnd' && bank || compPay === 'kofi' && kofi ? compPay : (bank && (effCurrency() === 'VND' || !kofi) ? 'vnd' : kofi ? 'kofi' : ''); };
 function compPayHTML(){
   const bank = payments.bankBin && payments.accountNo, kofi = payments.companionUrl || payments.paypal, mode = compPayMode(); if (!mode) return '';
-  const rw = mode === 'vnd' ? moonRewardActive() : null, amt = compBest(compMonths, rw).price, code = compCode(), cp = v => `<button type="button" class="btn secondary sm" data-act="copy" data-v="${esc(v)}">${esc(t('copy'))}</button>`;
+  const amt = compPrice(compMonths), code = compCode(), cp = v => `<button type="button" class="btn secondary sm" data-act="copy" data-v="${esc(v)}">${esc(t('copy'))}</button>`;
   const seg = bank && kofi ? `<div class="seg"><button type="button" class="${mode === 'vnd' ? 'on' : ''}" data-act="compPay" data-m="vnd">${esc(t('comp_pay_vn'))}</button><button type="button" class="${mode === 'kofi' ? 'on' : ''}" data-act="compPay" data-m="kofi">${esc(t('comp_pay_kofi'))}</button></div>` : '';
   let body;
-  if (mode === 'kofi') { const um = payments.paypal ? compMonths : 1; body = `${promoBanner()}<div class="row">${(payments.paypal ? [1, 3, 12] : [1]).map(m => `<button type="button" class="chip ${m === um ? 'on' : ''}" data-act="compMonths" data-m="${m}">${esc(t('comp_plan_' + m))} · ${money(compPriceUSD(m), 'USD')}${m > 1 ? ` <small>${esc(t('comp_save', { p:Math.round((1 - compPriceUSD(m) / (compBaseUSD() * m)) * 100) }))}</small>` : ''}${bonusChip(m)}</button>`).join('')}</div>
+  if (mode === 'kofi') { const um = payments.paypal ? compMonths : 1; body = `${promoBanner()}${rewardBanner(moonRewardActive())}<div class="row">${(payments.paypal ? [1, 3, 12] : [1]).map(m => `<button type="button" class="chip ${m === um ? 'on' : ''}" data-act="compMonths" data-m="${m}">${esc(t('comp_plan_' + m))} · ${money(compPriceUSD(m), 'USD')}${m > 1 ? ` <small>${esc(t('comp_save', { p:Math.round((1 - compPriceUSD(m) / (compBaseUSD() * m)) * 100) }))}</small>` : ''}${bonusChip(m)}</button>`).join('')}</div>
     <a class="btn primary lg" target="_blank" rel="noopener" href="${esc(compUsdUrl(um))}">${ic('heart', 'sm')} ${esc(t(um === 1 ? 'comp_cta' : 'comp_pay_prepaid', { a:money(compPriceUSD(um), 'USD') }))}</a>
     <p class="small faint">${esc(t(um === 1 ? 'comp_usd_note1' : 'comp_usd_note'))}</p>`; }
   else if (!state.user) body = `<p class="small muted">${esc(t('comp_vnd_login'))}</p><a class="btn secondary" href="#/account">${esc(t('signin'))}</a>`;
-  else body = `${promoBanner()}${rw ? `<div class="limit-box small" style="border-color:var(--accent)">🎁 ${esc(t('mr_banner', { p:rw.pct, d:fmtDay(tsMs(rw.expires)) }))}</div>` : ''}<div class="row">${[1, 3, 12].map(m => { const b = compBest(m, rw); return `<button type="button" class="chip ${m === compMonths ? 'on' : ''}" data-act="compMonths" data-m="${m}">${esc(t('comp_plan_' + m))} · ${b.price < b.list ? `<s class="faint">${money(b.list, 'VND')}</s> ` : ''}${money(b.price, 'VND')}${m > 1 ? ` <small>${esc(t('comp_save', { p:Math.round((1 - b.price / (compBase() * m)) * 100) }))}</small>` : ''}${bonusChip(m)}</button>`; }).join('')}</div><img class="qr" alt="VietQR" src="https://img.vietqr.io/image/${encodeURIComponent(payments.bankBin)}-${encodeURIComponent(payments.accountNo)}-compact2.png?amount=${amt}&addInfo=${encodeURIComponent(code)}&accountName=${encodeURIComponent(payments.accountName || '')}"><p class="small muted" style="text-align:center">${esc(t('donate_scan'))}</p>
+  else body = `${promoBanner()}${rewardBanner(moonRewardActive())}<div class="row">${[1, 3, 12].map(m => { const pr = compPrice(m); return `<button type="button" class="chip ${m === compMonths ? 'on' : ''}" data-act="compMonths" data-m="${m}">${esc(t('comp_plan_' + m))} · ${money(pr, 'VND')}${m > 1 ? ` <small>${esc(t('comp_save', { p:Math.round((1 - pr / (compBase() * m)) * 100) }))}</small>` : ''}${bonusChip(m)}</button>`; }).join('')}</div><img class="qr" alt="VietQR" src="https://img.vietqr.io/image/${encodeURIComponent(payments.bankBin)}-${encodeURIComponent(payments.accountNo)}-compact2.png?amount=${amt}&addInfo=${encodeURIComponent(code)}&accountName=${encodeURIComponent(payments.accountName || '')}"><p class="small muted" style="text-align:center">${esc(t('donate_scan'))}</p>
     <div class="kv"><div class="kvr"><span>${esc(t('acc_no'))}</span><b>${esc(payments.accountNo)}</b>${cp(payments.accountNo)}</div><div class="kvr"><span>${esc(t('comp_vnd_sum'))}</span><b>${esc(String(amt))}</b>${cp(String(amt))}</div><div class="kvr"><span>${esc(t('donate_note'))}</span><b>${esc(code)}</b>${cp(code)}</div></div>${payments.momoPhone ? `<div class="small muted">MoMo: <b>${esc(payments.momoPhone)}</b></div>` : ''}<p class="small faint">${esc(t(state.user.email ? 'comp_vnd_mail' : 'comp_vnd_hint'))}</p>`;
   return `<div class="stack">${seg}${body}</div>`;
 }
@@ -909,13 +906,14 @@ Object.assign(ACTIONS, {
     el.disabled = true;
     const rq = { uid:u.uid, email:u.email || '', name:displayName() || '', method:$('cc-method').value, months:+$('cc-months').value || 1, note, message:($('cc-msg').value || '').trim().slice(0, 300), status:'pending' };
     const bd = compBonusMonths(rq.months); if (bd) rq.bonus = bd;                 // tháng tặng thêm: áp dụng mọi cách thanh toán, admin tự cộng khi duyệt
-    if (rq.method === 'bank') { const b = compBest(rq.months, moonRewardActive()); rq.amount = b.price; if (b.reward) rq.reward = moonRewardActive().pct; }      // chỉ để admin đối chiếu; admin vẫn kiểm moon_rewards/<uid> và cài đặt khuyến mãi khi duyệt
+    if (rq.method === 'bank') rq.amount = compPrice(rq.months);                 // chỉ để admin đối chiếu số tiền
+    const rw = moonRewardActive(); if (rw) rq.reward = moonRewardMonths(rw);      // báo có ưu đãi trăng; admin vẫn kiểm moon_rewards/<uid> khi duyệt rồi mới cộng tháng tặng
     try { if (!DEMO) await db.collection('companion_requests').doc(u.uid).set({ ...rq, createdAt:TS() }); state.compReq = { ...rq, createdAt:Date.now() }; closeModal(); toast(t('cc_sent')); render(true);
       if (payments.claimTemplate && !DEMO) loadEmailJS().then(() => emailjs.send(EMAILJS_SERVICE, payments.claimTemplate, { user_name:rq.name, user_email:rq.email, months:rq.months, method:rq.method, note:rq.note, message:rq.message })).catch(() => {});      // báo email cho admin (nếu đã tạo mẫu EmailJS)
     }
     catch (e) { el.disabled = false; console.warn('claim', e.code); toast(t('cc_err') + ' ' + (e.code || '')); }
   },
-  moonReward: async el => { el.disabled = true; if (await claimMoonReward()) { toast(t('mr_got', { p:state.moonReward.pct })); render(true); } else { el.disabled = false; toast(t('err_generic')); } },
+  moonReward: async el => { el.disabled = true; if (await claimMoonReward()) { toast(t('mr_got', { x:bonusText(moonRewardMonths(state.moonReward)) })); render(true); } else { el.disabled = false; toast(t('err_generic')); } },
   moonRetry: () => location.reload(),
   moonStart: () => { if (!DEMO && !state.profileReady) return; if (moonData()) return render(true); moonSave({ startedAt:Date.now(), days:[], rounds:0, moons:0 }); },
   moonCheckin: () => {
@@ -923,6 +921,6 @@ Object.assign(ACTIONS, {
     const { broken, lost, ...keep } = m;                              // chuỗi đã đứt thì moonData() trả days rỗng nên bắt đầu lại từ ngày 1
     keep.days = [...m.days, k]; keep.best = Math.max(keep.best || 0, keep.days.length);     // mảng mới, để lưu lỗi thì dữ liệu cũ vẫn nguyên
     const n = keep.days.length; if (n % MOON_TOTAL === 0) keep.moons = (m.moons || 0) + 1; else keep.moons = m.moons || 0;   // mỗi 30 ngày liên tiếp = +1 trăng tròn
-    moonSave(keep).then(async ok => { if (ok && n === MOON_REWARD_AT && !state.moonReward && moonRewardCfg().on && await claimMoonReward()) { toast(t('mr_got', { p:state.moonReward.pct })); render(true); } else if (ok) { if (n % MOON_TOTAL === 0) toast(t('mj_full_plus')); else if (MOON_MILES.some(([x]) => x === n)) toast(t('mj_unlocked', { name:t('mj_' + n) })); } });
+    moonSave(keep).then(async ok => { if (ok && n === MOON_REWARD_AT && !state.moonReward && moonRewardCfg().on && await claimMoonReward()) { toast(t('mr_got', { x:bonusText(moonRewardMonths(state.moonReward)) })); render(true); } else if (ok) { if (n % MOON_TOTAL === 0) toast(t('mj_full_plus')); else if (MOON_MILES.some(([x]) => x === n)) toast(t('mj_unlocked', { name:t('mj_' + n) })); } });
   }
 });
