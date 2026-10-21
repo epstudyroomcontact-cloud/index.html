@@ -282,12 +282,13 @@ Cần tải lên GitHub: thư mục **js** (các file `core.js`, `pages.js`, `ad
 
 ## PHẦN 15 — Hành trình trăng: con đường tìm Moon
 
-Trang Hành trình trăng có một con đường uốn lượn trong đêm, đi từ dưới lên qua phố mưa, mặt nước có đường trăng, đồng đom đóm, rừng thông, biển sao, bờ biển có hải đăng rồi lên trên mây. Mỗi ngày trong chuỗi điểm danh là một bước, đường sáng đến đâu là khách đã đi đến đó. Các trạm dừng (ngày 0, 1, 3, 7, 10, 14, 21, 30, 45, 60, 80, 100, 130, 200, 250, 300, 365, 400, 450, 480) mỗi trạm mở một bức tranh đêm kiểu minh hoạ, mỗi trạm một nơi khác nhau. Ngày 365 là trạm gặp lại Moon (khi khách tới ngày 365, Moon ngồi chờ ngay cạnh trạm trên bản đồ).
+Trang Hành trình trăng có một con đường uốn lượn trong đêm, đi từ dưới lên qua phố mưa, mặt nước có đường trăng, đồng đom đóm, rừng thông, biển sao, bờ biển có hải đăng rồi lên trên mây. Mỗi ngày trong chuỗi điểm danh là một bước, đường sáng đến đâu là khách đã đi đến đó. Các trạm dừng (ngày 0, 1, 3, 7, 10, 14, 21, 30, 45, 60, 80, 100, 130, 200, 250, 300, 365, 400, 450, 480) mỗi trạm mở một bức tranh đêm có chất liệu như tranh vẽ màu bột, mỗi trạm một nơi khác nhau. Ngày 365 là trạm gặp lại Moon (khi khách tới ngày 365, Moon ngồi chờ ngay cạnh trạm trên bản đồ).
 
 - Trạm mở theo **chuỗi dài nhất**, nên đứt chuỗi vẫn giữ các trạm đã mở (giống huy hiệu). Không cần thêm dữ liệu hay sửa luật Firestore.
 - **Viết lời cho từng trạm**: bật bút chì (chế độ sửa), mở trạm, bấm vào ô nét đứt dưới tranh để viết (Shift+Enter để xuống dòng). Trạm chưa có lời thì khách chỉ thấy tranh và tên trạm. Tên trạm cũng sửa được như vậy.
 - **Thay tranh bằng tranh vẽ thật**: bật bút chì, mở trạm, bấm vào tranh rồi tải ảnh lên (khung ngang tỉ lệ 8:5, ví dụ 1600×1000). Bấm "Dùng ảnh mặc định" để quay lại tranh vẽ sẵn.
-- Tài khoản admin mở được mọi trạm (để duyệt trước).
+- Khách chỉ thấy tranh và tên của các trạm đã tới; trạm chưa tới chỉ hiện ổ khoá và số ngày. Tài khoản admin luôn xem được mọi trạm.
+- Mưa ở các tranh mưa và trên bản đồ chạy bằng `moon-rain.js` (canvas, nhiều lớp, có gợn nước). Máy bật "giảm chuyển động" thì mưa đứng yên. Nút "Mưa" trên bản đồ tắt/bật mưa.
 - Xem thử không cần đăng nhập: mở `index.html?demo=1&as=user&days=370#/club` (đổi số `days` để giả lập chuỗi bao nhiêu ngày).
 - Đổi ngày của trạm: sửa mảng `MJ_STOPS` ở đầu `moon-story.js`. Tranh của từng trạm ở `moon-art.js`.
 

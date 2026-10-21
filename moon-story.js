@@ -19,6 +19,8 @@ const MJ_STOPS = [
 const mjStop = id => MJ_STOPS.find(s => s.id === id);
 const mjTitle = s => ctext('mjc_' + s.id + '_t');
 const mjOpen = (s, best) => s.day <= best;
+// admin luôn xem được mọi trạm (để duyệt và viết lời); khách chỉ thấy trạm đã tới
+const mjPreview = () => !!state.isAdmin;
 const mjSeenKey = () => 'mj_seen_' + (state.user ? state.user.uid : 'guest');
 const mjSeen = () => +store.get(mjSeenKey(), -1);
 const mjRainOn = () => store.get('mj_rain', true) !== false;
@@ -29,9 +31,14 @@ let mjScroll = null;
 /* ---------- bản đồ con đường ---------- */
 const MJ_W = 340, MJ_GAP = 132, MJ_TOP = 190, MJ_BOT = 80;
 const mjH = () => MJ_TOP + (MJ_STOPS.length - 1) * MJ_GAP + MJ_BOT;
-const mjXY = i => [i === 0 ? 170 : i % 2 ? 84 : 256, mjH() - MJ_BOT - i * MJ_GAP];
+// vị trí các trạm: xếp lệch tự nhiên (không đổi bên đều đặn), khoảng cách dọc cũng xê dịch một chút
+const MJ_XS = [170, 98, 212, 262, 150, 80, 128, 248, 190, 86, 238, 122, 264, 156, 84, 214, 238, 118, 226, 150];
+const MJ_YJ = [0, 10, -8, 6, -12, 8, -4, 12, -6, 4, -10, 6, 0, -8, 10, -6, 0, 8, -4, 0];
+const mjXY = i => { const j = Math.max(0, Math.min(MJ_STOPS.length - 1, i)); return [MJ_XS[j % MJ_XS.length], mjH() - MJ_BOT - j * MJ_GAP + MJ_YJ[j % MJ_YJ.length]]; };
 const mjBez = (p, t) => { const u = 1 - t; return [0, 1].map(k => u * u * u * p[0][k] + 3 * u * u * t * p[1][k] + 3 * u * t * t * p[2][k] + t * t * t * p[3][k]); };
-const mjSeg = i => { const a = mjXY(i), b = mjXY(i + 1), c = MJ_GAP * .62; return [a, [a[0], a[1] - c], [b[0], b[1] + c], b]; };
+// đường cong mềm đi qua các trạm (Catmull-Rom), kéo thêm theo chiều dọc để đường uốn như lối đi
+const mjSeg = i => { const p0 = mjXY(i - 1), a = mjXY(i), b = mjXY(i + 1), p3 = mjXY(i + 2), v = MJ_GAP * .24, k = 1 / 3.6;
+  return [a, [a[0] + (b[0] - p0[0]) * k, a[1] - v], [b[0] - (p3[0] - a[0]) * k, b[1] + v], b]; };
 function mjAt(i, f){                         // điểm ở phần f (0–1) theo chiều dài đoạn i
   const p = mjSeg(i), N = 40, pts = [[0, mjBez(p, 0)]]; let L = 0;
   for (let k = 1; k <= N; k++) { const q = mjBez(p, k / N), o = pts[k - 1][1]; L += Math.hypot(q[0] - o[0], q[1] - o[1]); pts.push([L, q]); }
@@ -65,10 +72,10 @@ function mjMap(n, best, preview){
     for (let k = step; k < span; k += step) { const [x, y] = mjAt(i, k / span), on = a + k <= n; dots += `<circle cx="${_r1(x)}" cy="${_r1(y)}" r="${on ? 2.4 : 1.8}" class="${on ? 'on' : ''}"/>`; }
   }
   MJ_STOPS.forEach((s, i) => {
-    const [x, y] = mjXY(i), open = preview || mjOpen(s, best), reached = s.day <= n, isNew = mjOpen(s, best) && s.day > seen && !!state.user, nextUp = !open && MJ_STOPS.filter(z => !mjOpen(z, best))[0] === s;
+    const [x, y] = mjXY(i), open = preview || mjOpen(s, best), reached = s.day <= n, isNew = mjOpen(s, best) && s.day > seen && !!state.user;
     const R = s.big ? 21 : 17, side = i === 0 ? 0 : x < 170 ? 1 : -1, lx = side === 0 ? x : x + side * (R + 10), anchor = side === 0 ? 'middle' : side > 0 ? 'start' : 'end', ly = side === 0 ? y + R + 18 : y - 2;
-    const label = open || nextUp ? esc(mjTitle(s)) : '• • •', cls = `mj-stop ${open ? 'is-open' : 'is-locked'} ${reached ? 'is-reached' : ''} ${s.big ? 'is-big' : ''}`;
-    stops += `<g class="${cls}" data-act="mjOpen" data-id="${s.id}" tabindex="0" role="button" aria-label="${esc(mjTitle(s))} · ${esc(t('mjs_day', { n:s.day }))}">
+    const label = open ? esc(mjTitle(s)) : '• • •', cls = `mj-stop ${open ? 'is-open' : 'is-locked'} ${reached ? 'is-reached' : ''} ${s.big ? 'is-big' : ''}`;
+    stops += `<g class="${cls}" data-act="mjOpen" data-id="${s.id}" tabindex="0" role="button" aria-label="${open ? esc(mjTitle(s)) + ' · ' : ''}${esc(t('mjs_day', { n:s.day }))}">
       <circle cx="${x}" cy="${y}" r="${R + 14}" fill="transparent"/>${open ? mjGlow(c, x, y, R * 2.6, 'w', reached ? .8 : .45) : ''}${reached ? `<circle cx="${x}" cy="${y}" r="${R + 6}" class="halo"/>` : ''}<circle cx="${x}" cy="${y}" r="${R}" class="disc"/>
       <g transform="translate(${x} ${y}) scale(${s.big ? 1.25 : 1})" class="gl">${open ? MJ_GLYPH[s.g] : '<rect x="-5" y="-2" width="10" height="8" rx="1.5"/><path d="M-3-2v-2.5a3 3 0 0 1 6 0V-2" fill="none" stroke="currentColor" stroke-width="1.6"/>'}</g>
       ${isNew ? `<circle cx="${x + R * .72}" cy="${y - R * .72}" r="5" class="new"/>` : ''}
@@ -83,12 +90,12 @@ function mjMap(n, best, preview){
 
 /* ---------- các khối trên trang ---------- */
 function mjMapCard(m){
-  const n = m ? m.days.length : 0, best = m ? m.best : 0, preview = !!state.isAdmin, nxt = MJ_STOPS.find(s => !mjOpen(s, best));
+  const n = m ? m.days.length : 0, best = m ? m.best : 0, preview = mjPreview(), nxt = MJ_STOPS.find(s => !mjOpen(s, best));
   const rain = mjRainOn();
   return `<section class="card mj-road"><div class="mj-road-h"><div><h2>${esc(t('mjs_road'))}</h2><p class="small muted">${esc(t('mjs_road_sub'))}</p></div>
       <button type="button" class="mj-toggle ${rain ? 'on' : ''}" data-act="mjRain" aria-pressed="${rain}">${esc(t('mjs_rain'))}</button></div>
-    <div class="mj-frame ${rain ? 'rain' : ''}"><div class="mj-scroll" id="mj-scroll">${mjMap(n, best, preview)}</div></div>
-    <div class="mj-road-f small">${nxt && state.user ? `<span>${esc(t('mjs_next', { name:mjTitle(nxt), n:nxt.day - best }))}</span>` : ''}${m && m.broken ? `<span class="faint">${esc(t('mjs_kept'))}</span>` : ''}${preview ? `<span class="faint">${esc(t('mjs_preview'))}</span>` : ''}${t('mjs_lang') ? `<span class="faint">${esc(t('mjs_lang'))}</span>` : ''}</div></section>`;
+    <div class="mj-frame"${rain ? ' data-mjrain="map"' : ''}><div class="mj-scroll" id="mj-scroll">${mjMap(n, best, preview)}</div></div>
+    <div class="mj-road-f small">${nxt && state.user ? `<span>${esc(t('mjs_next', { n:nxt.day - best }))}</span>` : ''}${m && m.broken ? `<span class="faint">${esc(t('mjs_kept'))}</span>` : ''}${preview ? `<span class="faint">${esc(t('mjs_preview'))}</span>` : ''}${t('mjs_lang') ? `<span class="faint">${esc(t('mjs_lang'))}</span>` : ''}</div></section>`;
 }
 function mjLatestCard(m){
   const best = m ? m.best : 0, open = MJ_STOPS.filter(s => mjOpen(s, best)), s = open[open.length - 1], isNew = state.user && s.day > mjSeen();
@@ -104,7 +111,7 @@ function mjChapterHTML(s, best, preview){
     <div class="row between mj-ch-nav">${prev ? `<button class="btn ghost sm" data-act="mjOpen" data-id="${prev.id}">${ic('chev-l', 'sm')} ${esc(t('mjs_prev'))}</button>` : '<span></span>'}${next ? `<button class="btn ghost sm" data-act="mjOpen" data-id="${next.id}">${esc(t('mjs_nextc'))} ${ic('chev-r', 'sm')}</button>` : ''}</div></div></article>`;
 }
 function mjOpenChapter(id){
-  const s = mjStop(id); if (!s) return; const m = moonData(), best = m ? m.best : 0, preview = !!state.isAdmin;
+  const s = mjStop(id); if (!s) return; const m = moonData(), best = m ? m.best : 0, preview = mjPreview();
   if (!preview && !mjOpen(s, best)) { toast(t('mjs_lock', { n:s.day, k:s.day - best })); return; }
   openModal(mjChapterHTML(s, best, preview)); $('dialog').classList.add('mj-dialog'); $('dialog').scrollTop = 0;
   if (state.editMode) applyEditable();
