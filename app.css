@@ -520,3 +520,4 @@ html[data-font="serif"] h1,html[data-font="serif"] h2,html[data-font="serif"] h3
 @media(pointer:coarse){.btn.sm{min-height:38px}.pl-li{padding:9px 0}.pl-li .pl-ck.sm{width:22px;height:22px}}
 
 .pl-li{flex-wrap:wrap}.pl-li-x{flex-basis:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;padding-left:30px}.pl-li-x .btn{opacity:1}
+.todo-prog{margin-bottom:6px}.todo-item.cur{background:rgba(var(--accent-rgb),.08);border-radius:10px}.todo-item .btn.on{color:var(--accent-strong)}

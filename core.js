@@ -8,7 +8,7 @@ const loadScript = src => new Promise((res, rej) => { const s = document.createE
 let emailP = null;
 const loadEmailJS = () => emailP || (emailP = loadScript('https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js').then(() => { emailjs.init("JKo4tonk0gQMwrHFZ"); }).catch(e => { emailP = null; console.warn('EmailJS chưa tải được', e); throw e; }));
 let adminP = null;
-const ASSET_V = '29';                                                // đổi cùng số ?v= trong index.html mỗi lần cập nhật, để trình duyệt không trộn file cũ với file mới
+const ASSET_V = '30';                                                // đổi cùng số ?v= trong index.html mỗi lần cập nhật, để trình duyệt không trộn file cũ với file mới
 const loadAdmin = () => typeof PAGES.admin === 'function' ? Promise.resolve() : (adminP || (adminP = loadScript('admin.js?v=' + ASSET_V).catch(e => { adminP = null; throw e; })));
 let plannerP = null;
 const loadPlanner = () => typeof PAGES.planner === 'function' ? Promise.resolve() : (plannerP || (plannerP = Promise.all([loadScript('planner-i18n.js?v=' + ASSET_V).catch(() => {}), loadScript('planner.js?v=' + ASSET_V)]).catch(e => { plannerP = null; throw e; })));   // planner-i18n.js = bản dịch hi/ja/ko/zh/fr/es; thiếu thì dùng tiếng Anh
@@ -399,6 +399,7 @@ function unlockValid(){
   return u.hash === branding.focusCodeHash && (!u.until || u.until >= today) && (!branding.focusCodeUntil || branding.focusCodeUntil >= today);
 }
 const localTodos = () => store.get('todos', []);
+const todosGone = () => store.get('todos_gone', []);                  // id các việc đã xoá (để máy khác / lần tải sau không "sống lại" việc đã xoá)
 const localFocus = () => store.get('focus', {});
 auth.onAuthStateChanged(async u => {
   if (DEMO) { render(true); return; }
@@ -411,7 +412,8 @@ auth.onAuthStateChanged(async u => {
     const profileP = db.collection('users').doc(u.uid).get(); profileP.catch(() => {});      // tải hồ sơ song song với làm mới token, không chờ nhau
     try {
       const d = await profileP; profile = d.exists ? d.data() : {};
-      const todos = [...(profile.todos || [])]; localTodos().forEach(x => { if (!todos.find(y => y.id === x.id)) todos.push(x); });
+      const gone = new Set([...(profile.todosGone || []), ...todosGone()]), todos = (profile.todos || []).filter(x => !gone.has(x.id)); localTodos().forEach(x => { if (!gone.has(x.id) && !todos.find(y => y.id === x.id)) todos.push(x); });
+      store.set('todos_gone', [...gone].slice(-300));
       const fl = { ...(profile.focusLog || {}) }; Object.entries(localFocus()).forEach(([k, v]) => { const o = fl[k] || { m:0, s:0 }; fl[k] = { m:Math.max(o.m, v.m), s:Math.max(o.s, v.s) }; });
       store.set('todos', todos); store.set('focus', fl); profile.todos = todos; profile.focusLog = fl;
       if (profile.unlock && !store.get('unlock', null)) store.set('unlock', profile.unlock);
@@ -434,12 +436,13 @@ auth.onAuthStateChanged(async u => {
 });
 const saveProfileNow = () => {
   if (!state.user || DEMO) return;
-  const data = { displayName: profile.displayName || state.user.displayName || '', email: state.user.email, todos: store.get('todos', []), focusLog: store.get('focus', {}) };
+  const data = { displayName: profile.displayName || state.user.displayName || '', email: state.user.email, todos: store.get('todos', []), todosGone: todosGone(), focusLog: store.get('focus', {}) };
   const sig = state.user.uid + JSON.stringify(data);
   if (store.get('profsig', '') === sig) return;          // không có gì thay đổi thì không ghi (tiết kiệm lượt ghi)
   db.collection('users').doc(state.user.uid).set({ ...data, updatedAt: TS() }, { merge:true }).then(() => store.set('profsig', sig)).catch(e => console.warn('save profile', e.code));
 };
 const saveProfileSoon = debounce(saveProfileNow, 1500);
+document.addEventListener('visibilitychange', () => { if (document.hidden) saveProfileNow(); });     // rời tab / đóng trang: ghi ngay thay đổi còn chờ (xoá việc rồi tải lại không bị quay lại)
 const displayName = () => (profile.displayName || (state.user && (state.user.displayName || (state.user.email || '').split('@')[0])) || '');
 function authErr(e){
   const c = e && e.code || '';
