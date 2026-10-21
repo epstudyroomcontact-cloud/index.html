@@ -585,7 +585,9 @@ function mjScene(id, seed = 7){
   return `<svg class="mj-scene" viewBox="0 0 400 250" role="img" aria-label="${esc(mjTitle(mjStop(id)))}" preserveAspectRatio="xMidYMid slice"><defs>${mjTexDefs(k, seed % 50)}${c.d}</defs>
     <g filter="url(#${k}P)"><rect width="400" height="250" fill="${MJN.navy}"/><g filter="url(#${k}w)">${bg}</g>${fg}<rect width="400" height="250" fill="url(#${k}v)"/></g></svg>`;
 }
-const mjArt = s => { const u = cimg('mj_art_' + s.id), rain = !u && MJ_RAINY[s.id] && mjRainOn() ? ` data-mjrain="${MJ_RAINY[s.id]}"` : ''; return `<div class="mj-art"${rain} data-cms-img="mj_art_${s.id}">${u ? `<img alt="" src="${esc(u)}" loading="lazy">` : mjScene(s.id, 11 + MJ_STOPS.indexOf(s) * 7)}</div>`; };
+// fresh: trạm vừa mở lần đầu, chạy màn "mở trạm" (moon-fx.js); hiệu ứng nền của từng trạm ở MJ_FX
+const mjArt = (s, fresh) => { const u = cimg('mj_art_' + s.id), rain = !u && MJ_RAINY[s.id] && mjRainOn() ? ` data-mjrain="${MJ_RAINY[s.id]}"` : '', fx = typeof MJ_FX !== 'undefined' && MJ_FX[s.id] ? ` data-mjfx="${MJ_FX[s.id]}"` : '';
+  return `<div class="mj-art"${rain}${fx}${fresh ? ' data-mjburst="1"' : ''} data-cms-img="mj_art_${s.id}">${u ? `<img alt="" src="${esc(u)}" loading="lazy">` : mjScene(s.id, 11 + MJ_STOPS.indexOf(s) * 7)}</div>`; };
 
 /* ---------- nền bản đồ con đường: đi từ dưới lên, qua nhiều cảnh đêm ----------
    yOf(i) = toạ độ y của trạm i. Các vùng: phố mưa (trạm 0–4), mặt nước (5–7), đồng đom đóm (8–10), rừng thông và hồ (11–13),

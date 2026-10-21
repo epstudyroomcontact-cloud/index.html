@@ -2,7 +2,7 @@
    MƯA THẬT CHO HÀNH TRÌNH TRĂNG (vẽ bằng canvas, đè lên tranh)
    - Tranh mưa: <div class="mj-art" data-mjrain="0.82"> (số là vị trí mặt đất, tính theo chiều cao tranh).
    - Bản đồ: <div class="mj-frame" data-mjrain="map">.
-   - Ba lớp mưa theo độ xa: xa thì mảnh, chậm, mờ; gần thì dài, nhanh, rõ. Mỗi hạt có tốc độ riêng,
+   - Ba lớp mưa theo độ xa: xa thì mảnh, chậm, mờ; gần thì dài và rõ hơn. Mưa rơi chậm cho êm. Mỗi hạt có tốc độ riêng,
      gió đổi nhẹ theo thời gian nên không lặp lại. Hạt chạm đất để lại vòng gợn nước và vài giọt bắn.
    - Máy bật "giảm chuyển động" thì chỉ vẽ một khung đứng yên. Tranh nằm ngoài màn hình thì dừng vẽ.
    ========================================================= */
@@ -16,22 +16,22 @@ function mjrWind(t){ return .2 + .07 * Math.sin(t * .31) + .045 * Math.sin(t * 1
 function mjrSize(st){
   const r = st.host.getBoundingClientRect(), d = Math.min(2, window.devicePixelRatio || 1);
   st.w = Math.max(1, r.width); st.h = Math.max(1, r.height); st.cv.width = Math.round(st.w * d); st.cv.height = Math.round(st.h * d); st.ctx.setTransform(d, 0, 0, d, 0, 0);
-  const want = Math.min(280, Math.round(st.w * st.h / 820));
+  const want = Math.min(280, Math.round(st.w * st.h / 1000));
   while (st.drops.length < want) st.drops.push(mjrDrop(st, true));
   st.drops.length = want;
 }
 // một hạt mưa mới; first: rải khắp khung lúc mới gắn
 function mjrDrop(st, first){
   const u = Math.random(); let acc = 0, L = MJR_LAYERS[2]; for (const l of MJR_LAYERS) { acc += l.k; if (u <= acc) { L = l; break; } }
-  const z = L.z * (.9 + Math.random() * .2), v = st.h * (1.1 + z * 2.3) * (.85 + Math.random() * .3);
+  const z = L.z * (.9 + Math.random() * .2), v = st.h * (.42 + z * .95) * (.85 + Math.random() * .3);   // mưa rơi chậm, êm
   const end = st.map ? (z > .6 ? st.h * (.08 + Math.random() * .92) : st.h * 1.2)
     : z > .6 ? st.h * (st.gy + (1 - st.gy) * Math.min(1, (z - .5) * 1.6) * Math.random() + .01) : st.h * (st.gy - .03 + Math.random() * .06);
   const y = first ? Math.random() * end : -Math.random() * st.h * .5 - 10;
-  return { x:Math.random() * (st.w + st.h * .4) - st.h * .2, y, z, v, end, len:v * (.026 + Math.random() * .01) };
+  return { x:Math.random() * (st.w + st.h * .4) - st.h * .2, y, z, v, end, len:v * (.05 + Math.random() * .02) };
 }
 function mjrSplash(st, d){
   const s = st.h / 250;
-  st.rip.push({ x:d.x, y:d.end, r:0, max:(1.6 + d.z * 3.6) * s * (.8 + Math.random() * .5), age:0, dur:.45 + Math.random() * .35, z:d.z });
+  st.rip.push({ x:d.x, y:d.end, r:0, max:(1.6 + d.z * 3.6) * s * (.8 + Math.random() * .5), age:0, dur:.8 + Math.random() * .5, z:d.z });
   if (d.z > .8 && Math.random() < .6) for (let i = 0; i < 2; i++) st.bits.push({ x:d.x, y:d.end, vx:(Math.random() - .5) * 40 * s, vy:-(18 + Math.random() * 26) * s, age:0, dur:.28 + Math.random() * .12 });
 }
 function mjrStep(st, dt, t){
@@ -41,7 +41,7 @@ function mjrStep(st, dt, t){
     if (d.y >= d.end) { if (d.end < st.h) mjrSplash(st, d); st.drops[i] = mjrDrop(st); }
   }
   st.rip = st.rip.filter(r => (r.age += dt) < r.dur); st.rip.forEach(r => { r.r = r.max * (1 - Math.pow(1 - r.age / r.dur, 2.2)); });
-  st.bits = st.bits.filter(b => (b.age += dt) < b.dur); st.bits.forEach(b => { b.x += b.vx * dt; b.y += b.vy * dt; b.vy += 260 * (st.h / 250) * dt; });
+  st.bits = st.bits.filter(b => (b.age += dt) < b.dur); st.bits.forEach(b => { b.x += b.vx * dt; b.y += b.vy * dt; b.vy += 160 * (st.h / 250) * dt; });
   st.wind = wind;
 }
 function mjrDraw(st){
