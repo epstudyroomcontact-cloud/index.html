@@ -12,9 +12,9 @@ const mjfReduced = () => !!(window.matchMedia && matchMedia('(prefers-reduced-mo
 const mjfIO = 'IntersectionObserver' in window ? new IntersectionObserver(es => { es.forEach(e => { const st = e.target._mjf; if (st) st.vis = e.isIntersecting; }); mjfKick(); }) : null;
 const mjfR = (a, b) => a + Math.random() * (b - a);
 const MJ_FX = {
-  start:'fog,haze', d1:'fog,haze', d3:'fog,leaves,haze', d7:'clouds,motes', d10:'fireflies,fog', d14:'ripples,glints,fog', d21:'starfall,clouds', d30:'glints,meteors,clouds',
+  start:'fog,haze', d1:'fog,haze', d3:'fog,haze', d7:'clouds,motes', d10:'fireflies,fog', d14:'ripples,glints,fog', d21:'starfall,clouds', d30:'glints,meteors,clouds',
   d45:'motes,rays', d60:'fireflies,stars,seeds', d80:'motes,fireflies,fog', d100:'ripples,fireflies,fog', d130:'petals,rays', d200:'stars,meteors',
-  d250:'fireflies,rays,leaves,fog', d300:'ripples,fireflies,seeds', d365:'finale', d400:'dreamdust,rays', d450:'dreamdust,stars,clouds', after:'meteorshower,stars,fog'
+  d250:'rays,fog,haze', d300:'ripples,fireflies,seeds', d365:'finale', d400:'dreamdust,rays', d450:'dreamdust,stars,clouds', after:'meteorshower,stars,fog'
 };
 
 // ----- từng loại hạt: make tạo hạt, step cập nhật, draw vẽ -----

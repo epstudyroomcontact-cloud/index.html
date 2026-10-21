@@ -206,27 +206,34 @@ function mjGirl(c, x, y, s = 1, pose = 'back', o = {}){
   };
   const bootB = bx => P(`M${_r1(bx - 1.9)} 0Q${_r1(bx - 2.1)} -1 ${_r1(bx - 1.9)} -1.8V-8.6H${_r1(bx + 1.9)}V-1.8Q${_r1(bx + 2.1)} -1 ${_r1(bx + 1.9)} 0Z`, BO) + P(`M${_r1(bx - 1.3)} -8.2H${_r1(bx - .4)}V-1.6H${_r1(bx - 1.3)}Z`, BOL, .55);
   const bootS = bx => P(`M${_r1(bx - 1.9)} 0V-8.6H${_r1(bx + 1.7)}V-2.6Q${_r1(bx + 2.1)} -1.4 ${_r1(bx + 3.6)} -1.2Q${_r1(bx + 4.4)} -.6 ${_r1(bx + 3.8)} 0Z`, BO) + P(`M${_r1(bx - 1.3)} -8.2H${_r1(bx - .5)}V-1.4H${_r1(bx - 1.3)}Z`, BOL, .55);
-  const wind = (cy, inner) => `<g transform="translate(0 ${_r1(cy)}) skewX(${-W * 1.4}) translate(0 ${_r1(-cy)})">${mjA(c, 'mja-hair', inner)}</g>`;
+  // tóc bồng: nới rộng khối tóc quanh tâm đầu (cx) cho phồng, không bết sát đầu
+  const wind = (cy, inner, cx = 0) => `<g transform="translate(${_r1(cx)} ${_r1(cy)}) skewX(${-W * 1.4}) scale(1.14 1) translate(${_r1(-cx)} ${_r1(-cy)})">${mjA(c, 'mja-hair', inner)}</g>`;
   // tóc dài nhìn từ sau (đầu tâm 0,hy)
   const hairBack = (hy, len) => wind(hy, P(`M-5.8 ${hy}C-6.2 ${hy - 8} 6.2 ${hy - 8} 5.8 ${hy}C6.6 ${hy + len * .35} 7.2 ${hy + len * .7} 6.4 ${hy + len * .94}Q5.4 ${hy + len} 4.6 ${hy + len * .9}Q3.8 ${hy + len * 1.06} 2.2 ${hy + len}Q1 ${hy + len * .92} 0 ${hy + len * 1.04}Q-1.2 ${hy + len * .92} -2.4 ${hy + len}Q-3.8 ${hy + len * 1.06} -4.6 ${hy + len * .9}Q-5.6 ${hy + len} -6.4 ${hy + len * .94}C-7.2 ${hy + len * .7} -6.6 ${hy + len * .35} -5.8 ${hy}Z`, HR)
     + ln(`M-3 ${hy - 4}C-3.6 ${hy + len * .4} -4 ${hy + len * .7} -4.4 ${hy + len * .9}M2.4 ${hy - 4.4}C3 ${hy + len * .4} 3.6 ${hy + len * .7} 4 ${hy + len * .92}M-.2 ${hy - 3}C-.4 ${hy + len * .5} 0 ${hy + len * .8} -.2 ${hy + len}`, HM, .7, .9)
-    + ln(`M-3.4 ${hy - 4.6}Q0 ${hy - 7.4} 3.4 ${hy - 4.6}`, HL, 1, .7));
-  // mũ áo mưa trùm đầu, nhìn từ sau, có lọn tóc lòi ra hai bên
-  const hoodBack = hy => ln(`M-5.6 ${hy + 4}C-6.6 ${hy + 8} -6.2 ${hy + 12} -7 ${hy + 15}M5.4 ${hy + 4}C6.4 ${hy + 8} 6.2 ${hy + 11} 6.8 ${hy + 14}`, HR, 1.6) + P(`M-7.2 ${hy + 5.6}C-8.6 ${hy - .4} -6.8 ${hy - 7.6} 0 ${hy - 8}C6.8 ${hy - 7.6} 8.6 ${hy - .4} 7.2 ${hy + 5.6}Q0 ${hy + 7.8} -7.2 ${hy + 5.6}Z`, CO)
-    + P(`M2 ${hy - 7.8}C6.6 ${hy - 6.6} 8.4 ${hy - .6} 7.2 ${hy + 5.6}Q5.4 ${hy + 6.4} 3.6 ${hy + 6.8}C5 ${hy + 1} 4.6 ${hy - 4} 2 ${hy - 7.8}Z`, COS, .7) + ln(`M0 ${hy - 7.8}Q.6 ${hy - 1} 0 ${hy + 6.6}`, COS, .7, .8) + ln(`M-4.4 ${hy - 5.6}Q-2 ${hy - 7.4} 0 ${hy - 7.6}`, COL, 1.1, .55);
+    + ln(`M-3.4 ${hy - 4.6}Q0 ${hy - 7.4} 3.4 ${hy - 4.6}`, HL, 1, .7)
+    + ln(`M-6 ${hy + 2}C-7.6 ${hy + len * .4} -7.2 ${hy + len * .6} -8.2 ${hy + len * .8}M6 ${hy + 1.6}C7.8 ${hy + len * .36} 7.2 ${hy + len * .62} 8.4 ${hy + len * .78}M-4.6 ${hy + len * .7}q-1 1.8 -.6 3.4M4.4 ${hy + len * .72}q1 1.6 .5 3.2`, HR, .55, .85));
+  // mũ áo mưa đội lỏng, nhìn từ sau: vạt mũ rủ sau gáy nằm dưới tóc, phần mũ chỉ ôm đỉnh đầu nên tóc dài vẫn buông ra ngoài
+  const hoodFoldB = hy => P(`M-7.4 ${hy + 1.4}C-9 ${hy + 7} -7.6 ${hy + 11} -6.8 ${hy + 13.4}Q0 ${hy + 15.6} 6.8 ${hy + 13.4}C7.6 ${hy + 11} 9 ${hy + 7} 7.4 ${hy + 1.4}Z`, COS) + ln(`M-6 ${hy + 13}Q0 ${hy + 15} 6 ${hy + 13}`, COD, .7, .6);
+  const hoodCapB = hy => P(`M-7.8 ${hy + 1}C-9.2 ${hy - 5.8} -6.2 ${hy - 10.6} 0 ${hy - 10.8}C6.2 ${hy - 10.6} 9.2 ${hy - 5.8} 7.8 ${hy + 1}Q6.6 ${hy - 1.6} 4.6 ${hy - 2.4}Q2.4 ${hy - 3.2} 0 ${hy - 3.2}Q-2.4 ${hy - 3.2} -4.6 ${hy - 2.4}Q-6.6 ${hy - 1.6} -7.8 ${hy + 1}Z`, CO)
+    + P(`M2.4 ${hy - 10.4}C6.8 ${hy - 9.4} 9 ${hy - 5} 7.8 ${hy + 1}Q6.8 ${hy - 1.4} 5.4 ${hy - 2.2}C6 ${hy - 5.2} 4.8 ${hy - 8.4} 2.4 ${hy - 10.4}Z`, COS, .7)
+    + ln(`M-7.4 ${hy + .4}Q-6.2 ${hy - 1.8} -4.6 ${hy - 2.4}Q-2.4 ${hy - 3.2} 0 ${hy - 3.2}Q2.4 ${hy - 3.2} 4.6 ${hy - 2.4}Q6.2 ${hy - 1.8} 7.4 ${hy + .4}`, COL, .9, .6) + ln(`M0 ${hy - 10.6}Q.5 ${hy - 7} 0 ${hy - 3.4}`, COS, .6, .7) + ln(`M-4.8 ${hy - 8.6}Q-2.4 ${hy - 10.2} 0 ${hy - 10.4}`, COL, 1, .5);
   // đầu nhìn nghiêng sang phải, tâm (hx,hy)
   const headSide = (hx, hy, len) => {
     const X = d => _r1(hx + d), Y = d => _r1(hy + d);
-    if (hood) return P(`M${X(-6.6)} ${Y(5.4)}C${X(-8.2)} ${Y(-.6)} ${X(-6.2)} ${Y(-7.6)} ${X(.4)} ${Y(-8)}C${X(5.4)} ${Y(-8)} ${X(7.4)} ${Y(-3.8)} ${X(7)} ${Y(.6)}C${X(6.8)} ${Y(3.2)} ${X(6)} ${Y(4.8)} ${X(4.6)} ${Y(5.6)}Q${X(-1)} ${Y(7.2)} ${X(-6.6)} ${Y(5.4)}Z`, CO)
-      + P(`M${X(-6.6)} ${Y(5.4)}C${X(-8.2)} ${Y(-.6)} ${X(-6.2)} ${Y(-7.6)} ${X(.4)} ${Y(-8)}C${X(-3)} ${Y(-5)} ${X(-4.4)} ${Y(1)} ${X(-3.4)} ${Y(6.4)}Z`, COS, .6)
-      + P(`M${X(4.6)} ${Y(-3.8)}C${X(7.2)} ${Y(-3.6)} ${X(7.8)} ${Y(-.6)} ${X(7.6)} ${Y(1.8)}Q${X(7.4)} ${Y(4.4)} ${X(5)} ${Y(4.8)}C${X(3.4)} ${Y(3)} ${X(3.2)} ${Y(-1.6)} ${X(4.6)} ${Y(-3.8)}Z`, K) + P(`M${X(7.4)} ${Y(-.2)}L${X(8.4)} ${Y(1.2)}L${X(7.4)} ${Y(1.6)}Z`, K)
-      + `<ellipse cx="${X(6)}" cy="${Y(2.4)}" rx="1.1" ry=".7" fill="#f29aa8" opacity=".55"/>` + mjA(c, 'mja-blink', `<ellipse cx="${X(6.3)}" cy="${Y(.3)}" rx=".5" ry=".66" fill="#2a1a20"/>`, 5.2) + ln(`M${X(-2)} ${Y(-7.2)}Q${X(2.6)} ${Y(-8.2)} ${X(5.4)} ${Y(-5.6)}`, COL, 1, .55) + ln(`M${X(4.4)} ${Y(-4.4)}Q${X(6)} ${Y(-4)} ${X(7)} ${Y(-2)}`, COS, .8, .7);
     const hair = P(`M${X(4.6)} ${Y(-3.6)}C${X(4.4)} ${Y(-7.6)} ${X(-2.6)} ${Y(-8.4)} ${X(-5.4)} ${Y(-4.6)}C${X(-7.2)} ${Y(-1.6)} ${X(-6.8)} ${Y(3)} ${X(-7.2)} ${Y(len * .35)}C${X(-7.6)} ${Y(len * .65)} ${X(-8.4)} ${Y(len * .86)} ${X(-9.6)} ${Y(len)}Q${X(-7.4)} ${Y(len * .98)} ${X(-6.4)} ${Y(len * .88)}Q${X(-5.8)} ${Y(len * 1.02)} ${X(-4.2)} ${Y(len * .94)}C${X(-3.4)} ${Y(len * .6)} ${X(-2.2)} ${Y(len * .3)} ${X(-1.6)} ${Y(3)}C${X(-1)} ${Y(.4)} ${X(.8)} ${Y(-2)} ${X(2.4)} ${Y(-2.6)}Q${X(3.6)} ${Y(-2.6)} ${X(4.6)} ${Y(-3.6)}Z`, HR)
       + ln(`M${X(-4.8)} ${Y(-2)}C${X(-5.6)} ${Y(len * .3)} ${X(-6)} ${Y(len * .6)} ${X(-7.4)} ${Y(len * .9)}M${X(-2.8)} ${Y(1)}C${X(-3.2)} ${Y(len * .4)} ${X(-3.6)} ${Y(len * .65)} ${X(-4.6)} ${Y(len * .88)}`, HM, .7, .9) + ln(`M${X(-3.6)} ${Y(-6.2)}Q${X(.8)} ${Y(-8)} ${X(3.6)} ${Y(-5.4)}`, HL, .9, .75);
-    const puff = MJ_COLD ? [0, 1.6, 3.2].map(d => `<g class="mja-puff" style="animation-delay:-${d}s"><ellipse cx="${X(9.4)}" cy="${Y(2)}" rx="1.6" ry="1.1" fill="#e8eefc"/></g>`).join('') : '';
-    return puff + wind(hy, hair) + P(`M${X(-3.6)} ${Y(-.6)}C${X(-3.8)} ${Y(-5.6)} ${X(-.6)} ${Y(-6.4)} ${X(1.6)} ${Y(-6)}C${X(4.4)} ${Y(-5.6)} ${X(5.6)} ${Y(-3.6)} ${X(5.6)} ${Y(-1.4)}L${X(6.6)} ${Y(.6)}Q${X(6.4)} ${Y(1.2)} ${X(5.6)} ${Y(1.2)}Q${X(5.8)} ${Y(3.4)} ${X(4.2)} ${Y(4.6)}C${X(2.4)} ${Y(5.8)} ${X(-.4)} ${Y(5.8)} ${X(-2)} ${Y(4.4)}C${X(-3.2)} ${Y(3.2)} ${X(-3.6)} ${Y(1.6)} ${X(-3.6)} ${Y(-.6)}Z`, K)
+    let puff = '';
+    if (MJ_COLD) { const pg = c.id(); c.def(`<radialGradient id="${pg}"><stop offset="0" stop-color="#eef3ff" stop-opacity=".85"/><stop offset=".6" stop-color="#eef3ff" stop-opacity=".3"/><stop offset="1" stop-color="#eef3ff" stop-opacity="0"/></radialGradient>`);
+      puff = [0, 1.6, 3.2].map((d, i) => `<g class="mja-puff" style="animation-delay:-${d}s"><ellipse cx="${X(9.6)}" cy="${Y(2.2)}" rx="${2.4 + i * .3}" ry="${1.6 + i * .2}" fill="url(#${pg})"/></g>`).join(''); }
+    // mũ đội lỏng nhìn nghiêng: vạt mũ rủ sau gáy (dưới tóc) và phần mũ ôm đỉnh, sau đầu, để hở mặt và tóc mái
+    const fold = hood ? P(`M${X(-7.4)} ${Y(5.6)}C${X(-10.2)} ${Y(8)} ${X(-9.8)} ${Y(12)} ${X(-6.8)} ${Y(14.2)}L${X(-2.2)} ${Y(10.8)}Q${X(-4.6)} ${Y(8.2)} ${X(-5.2)} ${Y(5)}Z`, COS) : '';
+    const cap = hood ? P(`M${X(1.8)} ${Y(-7.6)}C${X(-2.6)} ${Y(-10.8)} ${X(-9.6)} ${Y(-8.2)} ${X(-9.4)} ${Y(-1.4)}Q${X(-9.2)} ${Y(3.4)} ${X(-7.4)} ${Y(5.8)}L${X(-5.4)} ${Y(5)}C${X(-6)} ${Y(.4)} ${X(-4.6)} ${Y(-4.4)} ${X(-1.2)} ${Y(-6.6)}Q${X(.2)} ${Y(-7.4)} ${X(1.8)} ${Y(-7.6)}Z`, CO)
+      + P(`M${X(-9.4)} ${Y(-1.4)}Q${X(-9.2)} ${Y(3.4)} ${X(-7.4)} ${Y(5.8)}L${X(-6.2)} ${Y(5.4)}C${X(-7.6)} ${Y(1.6)} ${X(-7.6)} ${Y(-3)} ${X(-6.4)} ${Y(-6.4)}C${X(-8.4)} ${Y(-5.6)} ${X(-9.4)} ${Y(-3.6)} ${X(-9.4)} ${Y(-1.4)}Z`, COS, .7)
+      + ln(`M${X(1.6)} ${Y(-7.4)}Q${X(.2)} ${Y(-7.2)} ${X(-1.2)} ${Y(-6.4)}C${X(-4.4)} ${Y(-4.2)} ${X(-5.8)} ${Y(.4)} ${X(-5.4)} ${Y(4.8)}`, COL, .9, .65) + ln(`M${X(-3)} ${Y(-9.4)}Q${X(-6.6)} ${Y(-8.4)} ${X(-8.2)} ${Y(-4.6)}`, COL, .9, .45) : '';
+    return puff + fold + wind(hy, hair, hx - 2) + P(`M${X(-3.6)} ${Y(-.6)}C${X(-3.8)} ${Y(-5.6)} ${X(-.6)} ${Y(-6.4)} ${X(1.6)} ${Y(-6)}C${X(4.4)} ${Y(-5.6)} ${X(5.6)} ${Y(-3.6)} ${X(5.6)} ${Y(-1.4)}L${X(6.6)} ${Y(.6)}Q${X(6.4)} ${Y(1.2)} ${X(5.6)} ${Y(1.2)}Q${X(5.8)} ${Y(3.4)} ${X(4.2)} ${Y(4.6)}C${X(2.4)} ${Y(5.8)} ${X(-.4)} ${Y(5.8)} ${X(-2)} ${Y(4.4)}C${X(-3.2)} ${Y(3.2)} ${X(-3.6)} ${Y(1.6)} ${X(-3.6)} ${Y(-.6)}Z`, K)
       + P(`M${X(-4.2)} ${Y(-.6)}C${X(-4.6)} ${Y(-6.4)} ${X(-.6)} ${Y(-7.6)} ${X(2)} ${Y(-7.2)}C${X(4.4)} ${Y(-6.8)} ${X(5.6)} ${Y(-5.2)} ${X(5.6)} ${Y(-3.2)}Q${X(3.8)} ${Y(-4.6)} ${X(1.6)} ${Y(-4.2)}Q${X(-.6)} ${Y(-3.4)} ${X(-1.2)} ${Y(-.8)}Q${X(-2)} ${Y(1.6)} ${X(-1.8)} ${Y(3.6)}Q${X(-3.6)} ${Y(1.8)} ${X(-4.2)} ${Y(-.6)}Z`, HR)
-      + (o.closed ? ln(`M${X(2.6)} ${Y(-.4)}q.8.6 1.6.1`, '#3a2228', .5) : mjA(c, 'mja-blink', `<ellipse cx="${X(3.2)}" cy="${Y(-.3)}" rx=".6" ry=".75" fill="#2a1a20"/>`, 5.2)) + `<ellipse cx="${X(3)}" cy="${Y(2.2)}" rx="1.4" ry=".9" fill="#f29aa8" opacity=".55"/>` + ln(`M${X(4.4)} ${Y(3.2)}q.4.2.7-.1`, '#c46a78', .45);
+      + (o.closed ? ln(`M${X(2.6)} ${Y(-.4)}q.8.6 1.6.1`, '#3a2228', .5) : mjA(c, 'mja-blink', `<ellipse cx="${X(3.2)}" cy="${Y(-.3)}" rx=".6" ry=".75" fill="#2a1a20"/>`, 5.2)) + `<ellipse cx="${X(3)}" cy="${Y(2.2)}" rx="1.4" ry=".9" fill="#f29aa8" opacity=".55"/>` + ln(`M${X(4.4)} ${Y(3.2)}q.4.2.7-.1`, '#c46a78', .45) + cap;
   };
   const coatTex = box => mjS(c, 9, box, [COS, COL], { ang:88, len:[4, 9], w:[.9, 1.4], op:.6, jit:10 });
   let g = '';
@@ -240,7 +247,7 @@ function mjGirl(c, x, y, s = 1, pose = 'back', o = {}){
     g += arm([-5.2, -34.4], [-7.6, -20], true);
     g += P('M-5.6 -37C-7.4 -33 -9.4 -22 -10.6 -13Q-5 -11.2 0 -11.8Q5 -11.2 10.6 -13C9.4 -22 7.4 -33 5.6 -37Q0 -39.4 -5.6 -37Z', CO) + P('M2.6 -38.4C5.6 -32 7.4 -22 7.6 -11.8Q9.4 -12.2 10.6 -13C9.4 -22 7.4 -33 5.6 -37Z', COS, .75) + ln('M-10.4 -13.2Q0 -10.6 10.4 -13.2', COD, .8, .6) + ln('M-.2 -37.6Q.4 -25 0 -12', COS, .6, .6) + coatTex([-9, -36, 7, -14]);
     if (o.closedUmb) g += `<path d="M8.4 -18.4L10 -1" stroke="#4a3a6a" stroke-width=".9"/>` + P('M8.5 -15.6L7.2 -5.4L9.6 -2.4L10.4 -14.2Z', '#e5739f');
-    g += mjA(c, 'mja-look', hood ? hoodBack(-43.2) : P('M-6.6 -37.8Q-7.8 -32.6 -3 -31.2Q0 -30.6 3 -31.2Q7.8 -32.6 6.6 -37.8Z', COS) + hairBack(-44, 18), 11);
+    g += mjA(c, 'mja-look', P('M-6.6 -37.8Q-7.8 -32.6 -3 -31.2Q0 -30.6 3 -31.2Q7.8 -32.6 6.6 -37.8Z', COS) + (hood ? hoodFoldB(-44) : '') + hairBack(-44, 18) + (hood ? hoodCapB(-44) : ''), 11);
     { mjDripAt(-10.2, -12.8); mjDripAt(10.2, -12.8); mjDripAt(-3, -11.6); }
     g += pose === 'reach' ? arm(SH, [12.6, -46.4]) : arm(SH, o.hand || [7.6, -20]);
   } else if (pose === 'side') {
@@ -268,7 +275,7 @@ function mjGirl(c, x, y, s = 1, pose = 'back', o = {}){
   } else if (pose === 'sit') {
     g += arm([-4.6, -18.6], [-8.6, -4.6], true) + arm([4.6, -18.6], [8.6, -4.6], true);
     g += P('M-10.6 0C-10.6 -6 -8 -14 -5 -20.6Q0 -22.6 5 -20.6C8 -14 10.6 -6 10.6 0Q0 1.4 -10.6 0Z', CO) + P('M2.4 -21.6C5.6 -15 7.6 -7 7.6 .8Q9.4 .5 10.6 0C10.6 -6 8 -14 5 -20.6Z', COS, .75) + ln('M0 -21.4Q.4 -10 0 1', COS, .6, .6) + coatTex([-8, -20, 8, -2]);
-    g += hood ? hoodBack(-26.6) : P('M-6 -21.4Q-7 -16.6 -2.6 -15.4Q0 -15 2.6 -15.4Q7 -16.6 6 -21.4Z', COS) + hairBack(-27.4, 16);
+    g += P('M-6 -21.4Q-7 -16.6 -2.6 -15.4Q0 -15 2.6 -15.4Q7 -16.6 6 -21.4Z', COS) + (hood ? hoodFoldB(-27.4) : '') + hairBack(-27.4, 16) + (hood ? hoodCapB(-27.4) : '');
   } else if (pose === 'perch') {
     SH = [1.4, -17];
     if (o.legs !== false) g += P('M3.4 0H6.6V6.4H3.4Z', PA) + `<g transform="translate(0 12.6)">${bootS(4.8).replace(/V-8\.6/g, 'V-6.6')}</g>`;
@@ -630,7 +637,7 @@ const MJ_COLDS = { d1:1, d3:1, d14:1, d10:1 };
 // full: bộ lọc chất liệu phủ lên mọi thứ (đẹp nhất, dùng cho ảnh xuất và phim). Trên web dùng lớp chất liệu tĩnh đặt chồng lên
 // (pha trộn soft-light) để các chuyển động CSS bên trong không bắt máy tính lại bộ lọc mỗi khung hình.
 function mjScene(id, seed = 7, full = false){
-  const k = 'mjs' + (++_mjN), c = mjCtx(seed, k); MJ_HOOD = false; MJ_COLD = !!MJ_COLDS[id]; MJ_DRIP = MJ_RAINY[id] ? [] : null; MJ_UMBS = MJ_DRIP && []; const [bg, fg] = (MJ_SCENES[id] || MJ_SCENES.after)(c), drip = MJ_DRIP && [...new Set(MJ_DRIP.map(p => p.join(',')))], umbs = MJ_UMBS && [...new Set(MJ_UMBS)]; MJ_HOOD = false; MJ_COLD = false; MJ_DRIP = null; MJ_UMBS = null;
+  const k = 'mjs' + (++_mjN), c = mjCtx(seed, k); MJ_HOOD = !!MJ_RAINY[id]; MJ_COLD = !!MJ_COLDS[id]; MJ_DRIP = MJ_RAINY[id] ? [] : null; MJ_UMBS = MJ_DRIP && []; const [bg, fg] = (MJ_SCENES[id] || MJ_SCENES.after)(c), drip = MJ_DRIP && [...new Set(MJ_DRIP.map(p => p.join(',')))], umbs = MJ_UMBS && [...new Set(MJ_UMBS)]; MJ_HOOD = false; MJ_COLD = false; MJ_DRIP = null; MJ_UMBS = null;
   return `<svg class="mj-scene" viewBox="0 0 400 250"${drip && drip.length ? ` data-drip="${drip.join(' ')}"` : ''}${umbs && umbs.length ? ` data-umb="${umbs.join(' ')}"` : ''} role="img" aria-label="${esc(mjTitle(mjStop(id)))}" preserveAspectRatio="xMidYMid slice"><defs>${mjTexDefs(k, seed % 50)}${c.d}</defs>
     ${full ? `<g filter="url(#${k}P)">` : '<g>'}<rect width="400" height="250" fill="${MJN.navy}"/><g class="mj-bg"><g filter="url(#${k}w)">${bg}</g></g><g class="mj-fg">${fg}</g><rect width="400" height="250" fill="url(#${k}v)"/></g>
     ${full ? '' : `<g pointer-events="none"><rect width="400" height="250" filter="url(#${k}B)" style="mix-blend-mode:soft-light" opacity=".55"/><rect width="400" height="250" filter="url(#${k}T)" style="mix-blend-mode:soft-light"/></g>`}</svg>`;
