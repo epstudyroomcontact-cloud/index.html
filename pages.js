@@ -825,14 +825,17 @@ Object.assign(ACTIONS, {
       <div class="field"><label class="label">${esc(t('cc_method'))}</label><select class="select" id="cc-method">${['kofi', 'bank', 'paypal', 'momo', 'other'].map(k => `<option value="${k}" ${k === (compPayMode() === 'vnd' ? 'bank' : compMonths > 1 && payments.paypal ? 'paypal' : 'kofi') ? 'selected' : ''}>${esc(t('cc_m_' + k))}</option>`).join('')}</select></div>
       <div class="field mt-s"><label class="label">${esc(t('cc_months'))}</label><select class="select" id="cc-months">${[1, 3, 12].map(m => `<option value="${m}" ${m === compMonths ? 'selected' : ''}>${esc(t('comp_plan_' + m))}</option>`).join('')}</select></div>
       <div class="field mt-s"><label class="label">${esc(t('cc_note_label'))} *</label><input class="input" id="cc-note" maxlength="200" value="${compPayMode() === 'vnd' && state.user ? esc(compCode()) : ''}" placeholder="${esc(t('cc_note_ph'))}"><p class="small" id="cc-err" style="color:var(--danger);margin-top:4px"></p></div>
+      <div class="field mt-s"><label class="label">${esc(t('cc_msg_label'))}</label><textarea class="textarea" id="cc-msg" maxlength="300" style="min-height:56px" placeholder="${esc(t('cc_msg_ph'))}"></textarea></div>
       <div class="row mt" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="closeModal">${esc(t('cancel'))}</button><button type="button" class="btn primary" data-act="compClaimSend">${esc(t('cc_send'))}</button></div>`, true);
   },
   compClaimSend: async el => {
     const u = state.user; if (!u) return;
     const note = $('cc-note').value.trim().slice(0, 200); if (note.length < 2) { $('cc-err').textContent = t('cc_note_req'); $('cc-note').focus(); return; }   // bắt buộc: để admin đối chiếu khoản thanh toán
     el.disabled = true;
-    const rq = { uid:u.uid, email:u.email || '', name:displayName() || '', method:$('cc-method').value, months:+$('cc-months').value || 1, note, status:'pending' };
-    try { if (!DEMO) await db.collection('companion_requests').doc(u.uid).set({ ...rq, createdAt:TS() }); state.compReq = { ...rq, createdAt:Date.now() }; closeModal(); toast(t('cc_sent')); render(true); }
+    const rq = { uid:u.uid, email:u.email || '', name:displayName() || '', method:$('cc-method').value, months:+$('cc-months').value || 1, note, message:($('cc-msg').value || '').trim().slice(0, 300), status:'pending' };
+    try { if (!DEMO) await db.collection('companion_requests').doc(u.uid).set({ ...rq, createdAt:TS() }); state.compReq = { ...rq, createdAt:Date.now() }; closeModal(); toast(t('cc_sent')); render(true);
+      if (payments.claimTemplate && !DEMO) loadEmailJS().then(() => emailjs.send(EMAILJS_SERVICE, payments.claimTemplate, { user_name:rq.name, user_email:rq.email, months:rq.months, method:rq.method, note:rq.note, message:rq.message })).catch(() => {});      // báo email cho admin (nếu đã tạo mẫu EmailJS)
+    }
     catch (e) { el.disabled = false; console.warn('claim', e.code); toast(t('cc_err') + ' ' + (e.code || '')); }
   },
   moonRetry: () => location.reload(),
