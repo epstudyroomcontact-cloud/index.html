@@ -158,6 +158,7 @@ function mjUmbC(c, x, y, R = 26, rot = 0, o = {}){
   g += mjDots(c, Math.round(R * .7), [-R, A[1], R, ry], ['#ffffff', '#ffe3ee'], [.4, .9], .4, (px, py) => py < ry * .4 && Math.pow(px / R, 2) + Math.pow((py - ry * .2) / (A[1] - ry * .2), 2) < .8);
   if (o.lights) front.forEach(t => { g += mjGlow(c, t[0], t[1] + 2, 6, 'f', .8) + `<circle cx="${_r1(t[0])}" cy="${_r1(t[1] + 2)}" r=".9" fill="#fff6c8"/>`; });
   if (o.stars) for (let i = 0; i < o.stars; i++) { const px = (c.r() - .5) * R * 1.5, py = A[1] * (.15 + c.r() * .7); if (Math.pow(px / R, 2) + Math.pow(py / A[1], 2) > .75) continue; const z = 1.3 + c.r() * 2; g += mjGlow(c, px, py, z * 3.2, 'f', .7) + mjSpark(px, py, z, '#fff3b0'); }
+  if (MJ_DRIP) { const T = MJ_TF || { x:0, y:0, sx:1, sy:1 }; MJ_UMBS.push([T.x + x * T.sx, T.y + y * T.sy, R * Math.abs(T.sy), rot * Math.sign(T.sx)].map(_r1).join(',')); }
   if (MJ_DRIP) { const ar = rot * Math.PI / 180, co = Math.cos(ar), si = Math.sin(ar); front.forEach(t => mjDripAt(x + t[0] * co - (t[1] + R * .05) * si, y + t[0] * si + (t[1] + R * .05) * co)); }
   const sh = R * (o.shaft ?? .9);
   if (o.shaft !== 0) g += `<path d="M0 ${_r1(ry * .9)}V${_r1(sh)}" stroke="#3e3550" stroke-width="1.1" stroke-linecap="round"/>${o.handle === false ? '' : `<path d="M0 ${_r1(sh)}v1.6q0 3.6 3.4 3.6q2.6 0 2.8-2.6" fill="none" stroke="#4a3a6a" stroke-width="1.9" stroke-linecap="round"/>`}`;
@@ -185,7 +186,7 @@ const mjLn = (d, col, w, op = 1) => `<path d="${d}" stroke="${col}" stroke-width
 let MJ_HOOD = false;
 // MJ_DRIP: khi vẽ tranh mưa, gom các điểm nước nhỏ giọt (mép dù, gấu áo mưa, mái hiên) theo toạ độ tranh 400x250, kèm mặt đất bên dưới.
 // MJ_TF: phép dời/thu phóng của nhân vật đang vẽ, để đổi toạ độ trong người ra toạ độ tranh.
-let MJ_DRIP = null, MJ_TF = null;
+let MJ_DRIP = null, MJ_TF = null, MJ_UMBS = null, MJ_COLD = false;   // MJ_UMBS: vòm ô để mưa bắn tung trên mặt ô
 const mjDripAt = (lx, ly, gy) => { if (!MJ_DRIP) return; const T = MJ_TF || { x:0, y:0, sx:1, sy:1, gy }; MJ_DRIP.push([_r1(T.x + lx * T.sx), _r1(T.y + ly * T.sy), _r1(gy ?? T.gy)]); };
 function mjGirl(c, x, y, s = 1, pose = 'back', o = {}){
   const K = '#f7d9c4', KS = '#e0b19a', CO = '#f08db1', COS = '#cc6690', COL = '#ffc2d7', COD = '#a8477a', BO = '#b9395f', BOL = '#e4688f', PA = '#2b3566', HR = '#3b2729', HM = '#5a3b3d', HL = '#8e6866';
@@ -222,7 +223,8 @@ function mjGirl(c, x, y, s = 1, pose = 'back', o = {}){
       + `<ellipse cx="${X(6)}" cy="${Y(2.4)}" rx="1.1" ry=".7" fill="#f29aa8" opacity=".55"/>` + mjA(c, 'mja-blink', `<ellipse cx="${X(6.3)}" cy="${Y(.3)}" rx=".5" ry=".66" fill="#2a1a20"/>`, 5.2) + ln(`M${X(-2)} ${Y(-7.2)}Q${X(2.6)} ${Y(-8.2)} ${X(5.4)} ${Y(-5.6)}`, COL, 1, .55) + ln(`M${X(4.4)} ${Y(-4.4)}Q${X(6)} ${Y(-4)} ${X(7)} ${Y(-2)}`, COS, .8, .7);
     const hair = P(`M${X(4.6)} ${Y(-3.6)}C${X(4.4)} ${Y(-7.6)} ${X(-2.6)} ${Y(-8.4)} ${X(-5.4)} ${Y(-4.6)}C${X(-7.2)} ${Y(-1.6)} ${X(-6.8)} ${Y(3)} ${X(-7.2)} ${Y(len * .35)}C${X(-7.6)} ${Y(len * .65)} ${X(-8.4)} ${Y(len * .86)} ${X(-9.6)} ${Y(len)}Q${X(-7.4)} ${Y(len * .98)} ${X(-6.4)} ${Y(len * .88)}Q${X(-5.8)} ${Y(len * 1.02)} ${X(-4.2)} ${Y(len * .94)}C${X(-3.4)} ${Y(len * .6)} ${X(-2.2)} ${Y(len * .3)} ${X(-1.6)} ${Y(3)}C${X(-1)} ${Y(.4)} ${X(.8)} ${Y(-2)} ${X(2.4)} ${Y(-2.6)}Q${X(3.6)} ${Y(-2.6)} ${X(4.6)} ${Y(-3.6)}Z`, HR)
       + ln(`M${X(-4.8)} ${Y(-2)}C${X(-5.6)} ${Y(len * .3)} ${X(-6)} ${Y(len * .6)} ${X(-7.4)} ${Y(len * .9)}M${X(-2.8)} ${Y(1)}C${X(-3.2)} ${Y(len * .4)} ${X(-3.6)} ${Y(len * .65)} ${X(-4.6)} ${Y(len * .88)}`, HM, .7, .9) + ln(`M${X(-3.6)} ${Y(-6.2)}Q${X(.8)} ${Y(-8)} ${X(3.6)} ${Y(-5.4)}`, HL, .9, .75);
-    return wind(hy, hair) + P(`M${X(-3.6)} ${Y(-.6)}C${X(-3.8)} ${Y(-5.6)} ${X(-.6)} ${Y(-6.4)} ${X(1.6)} ${Y(-6)}C${X(4.4)} ${Y(-5.6)} ${X(5.6)} ${Y(-3.6)} ${X(5.6)} ${Y(-1.4)}L${X(6.6)} ${Y(.6)}Q${X(6.4)} ${Y(1.2)} ${X(5.6)} ${Y(1.2)}Q${X(5.8)} ${Y(3.4)} ${X(4.2)} ${Y(4.6)}C${X(2.4)} ${Y(5.8)} ${X(-.4)} ${Y(5.8)} ${X(-2)} ${Y(4.4)}C${X(-3.2)} ${Y(3.2)} ${X(-3.6)} ${Y(1.6)} ${X(-3.6)} ${Y(-.6)}Z`, K)
+    const puff = MJ_COLD ? [0, 1.6, 3.2].map(d => `<g class="mja-puff" style="animation-delay:-${d}s"><ellipse cx="${X(9.4)}" cy="${Y(2)}" rx="1.6" ry="1.1" fill="#e8eefc"/></g>`).join('') : '';
+    return puff + wind(hy, hair) + P(`M${X(-3.6)} ${Y(-.6)}C${X(-3.8)} ${Y(-5.6)} ${X(-.6)} ${Y(-6.4)} ${X(1.6)} ${Y(-6)}C${X(4.4)} ${Y(-5.6)} ${X(5.6)} ${Y(-3.6)} ${X(5.6)} ${Y(-1.4)}L${X(6.6)} ${Y(.6)}Q${X(6.4)} ${Y(1.2)} ${X(5.6)} ${Y(1.2)}Q${X(5.8)} ${Y(3.4)} ${X(4.2)} ${Y(4.6)}C${X(2.4)} ${Y(5.8)} ${X(-.4)} ${Y(5.8)} ${X(-2)} ${Y(4.4)}C${X(-3.2)} ${Y(3.2)} ${X(-3.6)} ${Y(1.6)} ${X(-3.6)} ${Y(-.6)}Z`, K)
       + P(`M${X(-4.2)} ${Y(-.6)}C${X(-4.6)} ${Y(-6.4)} ${X(-.6)} ${Y(-7.6)} ${X(2)} ${Y(-7.2)}C${X(4.4)} ${Y(-6.8)} ${X(5.6)} ${Y(-5.2)} ${X(5.6)} ${Y(-3.2)}Q${X(3.8)} ${Y(-4.6)} ${X(1.6)} ${Y(-4.2)}Q${X(-.6)} ${Y(-3.4)} ${X(-1.2)} ${Y(-.8)}Q${X(-2)} ${Y(1.6)} ${X(-1.8)} ${Y(3.6)}Q${X(-3.6)} ${Y(1.8)} ${X(-4.2)} ${Y(-.6)}Z`, HR)
       + (o.closed ? ln(`M${X(2.6)} ${Y(-.4)}q.8.6 1.6.1`, '#3a2228', .5) : mjA(c, 'mja-blink', `<ellipse cx="${X(3.2)}" cy="${Y(-.3)}" rx=".6" ry=".75" fill="#2a1a20"/>`, 5.2)) + `<ellipse cx="${X(3)}" cy="${Y(2.2)}" rx="1.4" ry=".9" fill="#f29aa8" opacity=".55"/>` + ln(`M${X(4.4)} ${Y(3.2)}q.4.2.7-.1`, '#c46a78', .45);
   };
@@ -239,7 +241,7 @@ function mjGirl(c, x, y, s = 1, pose = 'back', o = {}){
     g += P('M-5.6 -37C-7.4 -33 -9.4 -22 -10.6 -13Q-5 -11.2 0 -11.8Q5 -11.2 10.6 -13C9.4 -22 7.4 -33 5.6 -37Q0 -39.4 -5.6 -37Z', CO) + P('M2.6 -38.4C5.6 -32 7.4 -22 7.6 -11.8Q9.4 -12.2 10.6 -13C9.4 -22 7.4 -33 5.6 -37Z', COS, .75) + ln('M-10.4 -13.2Q0 -10.6 10.4 -13.2', COD, .8, .6) + ln('M-.2 -37.6Q.4 -25 0 -12', COS, .6, .6) + coatTex([-9, -36, 7, -14]);
     if (o.closedUmb) g += `<path d="M8.4 -18.4L10 -1" stroke="#4a3a6a" stroke-width=".9"/>` + P('M8.5 -15.6L7.2 -5.4L9.6 -2.4L10.4 -14.2Z', '#e5739f');
     g += mjA(c, 'mja-look', hood ? hoodBack(-43.2) : P('M-6.6 -37.8Q-7.8 -32.6 -3 -31.2Q0 -30.6 3 -31.2Q7.8 -32.6 6.6 -37.8Z', COS) + hairBack(-44, 18), 11);
-    if (hood) { mjDripAt(-10.2, -12.8); mjDripAt(10.2, -12.8); mjDripAt(-3, -11.6); }
+    { mjDripAt(-10.2, -12.8); mjDripAt(10.2, -12.8); mjDripAt(-3, -11.6); }
     g += pose === 'reach' ? arm(SH, [12.6, -46.4]) : arm(SH, o.hand || [7.6, -20]);
   } else if (pose === 'side') {
     SH = [.6, -34.2];
@@ -248,7 +250,7 @@ function mjGirl(c, x, y, s = 1, pose = 'back', o = {}){
     g += arm([-1.6, -34.4], umbHand || [-3.6, -21], true);
     if (lg) g += wk ? G('mja-legB', P('M-3.6 -13.4H-.8V-8H-3.6Z', PA) + bootS(-2.2)) + G('mja-legA', P('M.6 -13.4H3.4V-8H.6Z', PA) + bootS(2))
       : P('M-3.6 -12.4H-.8V-8H-3.6ZM.6 -12.4H3.4V-8H.6Z', PA) + bootS(-2.2) + bootS(2);
-    if (hood) { mjDripAt(-9.4, -12.8); mjDripAt(8.2, -13.2); }
+    { mjDripAt(-9.4, -12.8); mjDripAt(8.2, -13.2); }
     g += P('M-4.6 -37.4C-7 -32 -9 -22 -9.8 -13Q-1 -11.4 8.6 -13.4C7.6 -22 6 -32 4.4 -37Q0 -39.2 -4.6 -37.4Z', CO) + P('M-4.6 -37.4C-7 -32 -9 -22 -9.8 -13Q-7.4 -12.4 -5.4 -12.2C-5.6 -22 -4.4 -32 -2.4 -38.2Z', COS, .75) + P('M1.4 -24.6H5.4V-20.4Q3.4 -19.8 1.4 -20.4Z', COS, .8) + ln('M5 -36Q6.4 -25 7.6 -13.4', COD, .6, .6) + ln('M-9.6 -13.2Q-1 -11 8.4 -13.6', COD, .8, .6) + coatTex([-7, -36, 6, -14]);
     if (!hood) g += P('M-5.2 -37.8Q-7.8 -33.6 -5 -31.6Q-3.4 -33.6 -1.4 -36.4Z', COS);
     g += mjA(c, 'mja-look', headSide(1.2, -43.6, 20), 9);
@@ -623,11 +625,13 @@ function mjTexDefs(k, seed){
 }
 // tranh có mưa và vị trí mặt đất (tỉ lệ theo chiều cao tranh) để hạt mưa rơi chạm đất; mưa chạy bằng moon-rain.js
 const MJ_RAINY = { start:.84, d1:.86, d3:.9, d250:.86 };
+// đêm lạnh: hơi thở thành làn khói nhẹ trước miệng (cảnh nhìn nghiêng)
+const MJ_COLDS = { d1:1, d3:1, d14:1, d10:1 };
 // full: bộ lọc chất liệu phủ lên mọi thứ (đẹp nhất, dùng cho ảnh xuất và phim). Trên web dùng lớp chất liệu tĩnh đặt chồng lên
 // (pha trộn soft-light) để các chuyển động CSS bên trong không bắt máy tính lại bộ lọc mỗi khung hình.
 function mjScene(id, seed = 7, full = false){
-  const k = 'mjs' + (++_mjN), c = mjCtx(seed, k); MJ_HOOD = !!MJ_RAINY[id]; MJ_DRIP = MJ_HOOD ? [] : null; const [bg, fg] = (MJ_SCENES[id] || MJ_SCENES.after)(c), drip = MJ_DRIP && [...new Set(MJ_DRIP.map(p => p.join(',')))]; MJ_HOOD = false; MJ_DRIP = null;
-  return `<svg class="mj-scene" viewBox="0 0 400 250"${drip && drip.length ? ` data-drip="${drip.join(' ')}"` : ''} role="img" aria-label="${esc(mjTitle(mjStop(id)))}" preserveAspectRatio="xMidYMid slice"><defs>${mjTexDefs(k, seed % 50)}${c.d}</defs>
+  const k = 'mjs' + (++_mjN), c = mjCtx(seed, k); MJ_HOOD = false; MJ_COLD = !!MJ_COLDS[id]; MJ_DRIP = MJ_RAINY[id] ? [] : null; MJ_UMBS = MJ_DRIP && []; const [bg, fg] = (MJ_SCENES[id] || MJ_SCENES.after)(c), drip = MJ_DRIP && [...new Set(MJ_DRIP.map(p => p.join(',')))], umbs = MJ_UMBS && [...new Set(MJ_UMBS)]; MJ_HOOD = false; MJ_COLD = false; MJ_DRIP = null; MJ_UMBS = null;
+  return `<svg class="mj-scene" viewBox="0 0 400 250"${drip && drip.length ? ` data-drip="${drip.join(' ')}"` : ''}${umbs && umbs.length ? ` data-umb="${umbs.join(' ')}"` : ''} role="img" aria-label="${esc(mjTitle(mjStop(id)))}" preserveAspectRatio="xMidYMid slice"><defs>${mjTexDefs(k, seed % 50)}${c.d}</defs>
     ${full ? `<g filter="url(#${k}P)">` : '<g>'}<rect width="400" height="250" fill="${MJN.navy}"/><g class="mj-bg"><g filter="url(#${k}w)">${bg}</g></g><g class="mj-fg">${fg}</g><rect width="400" height="250" fill="url(#${k}v)"/></g>
     ${full ? '' : `<g pointer-events="none"><rect width="400" height="250" filter="url(#${k}B)" style="mix-blend-mode:soft-light" opacity=".55"/><rect width="400" height="250" filter="url(#${k}T)" style="mix-blend-mode:soft-light"/></g>`}</svg>`;
 }
