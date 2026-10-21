@@ -225,6 +225,7 @@ function musicCard(){
     <div class="label mt">${esc(t('music_more'))}</div><div class="row">${MOODS.map(([k, q]) => `<a class="chip" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent(q)}">${esc(t('mood_' + k))}</a>`).join('')}</div></section>`;
 }
 Object.assign(ACTIONS, {
+  passToggle: el => { const i = el.closest('.pass-wrap').querySelector('input'), show = i.type === 'password'; i.type = show ? 'text' : 'password'; el.setAttribute('aria-pressed', show); el.setAttribute('aria-label', t(show ? 'pass_hide' : 'pass_show')); el.title = t(show ? 'pass_hide' : 'pass_show'); el.innerHTML = ic(show ? 'eye-off' : 'eye'); i.focus(); },
   hintOff: el => { store.set('hint_' + el.dataset.key, true); const n = el.closest('.hint-note'); if (n && !el.href) n.remove(); },
   phoneNoteOff: el => { store.set('phone_note_off', true); const n = el.closest('.phone-note'); if (n) n.remove(); },
   ambSet: el => setAmbient(el.dataset.k),
@@ -582,7 +583,7 @@ let authTab = 'signin', myOrders = null;
 const authCard = (title, sub, strip = true) => `<div class="card">${strip ? `<div class="art-strip">${paint('moonwalk', { crop:'banner', seed:7 })}</div>` : ''}<div class="stack"><div style="text-align:center"><h2 style="font-size:1.4rem">${esc(title)}</h2><p class="muted small mt-s">${esc(sub)}</p></div>
       <div class="seg" style="align-self:center"><button type="button" class="${authTab === 'signin' ? 'on' : ''}" data-act="authTab" data-t="signin">${esc(t('signin'))}</button><button type="button" class="${authTab === 'signup' ? 'on' : ''}" data-act="authTab" data-t="signup">${esc(t('signup'))}</button></div>
       <form class="stack" data-form="${authTab}">${authTab === 'signup' ? `<input class="input" id="au-name" placeholder="${esc(t('name_ph'))}" required maxlength="60" autocomplete="nickname">` : ''}
-        <input class="input" id="au-email" type="email" placeholder="${esc(t('email'))}" required autocomplete="email"><input class="input" id="au-pass" type="password" placeholder="${esc(t('password'))}" required minlength="6" autocomplete="${authTab === 'signup' ? 'new-password' : 'current-password'}">
+        <input class="input" id="au-email" type="email" placeholder="${esc(t('email'))}" required autocomplete="email"><div class="pass-wrap"><input class="input" autocapitalize="off" spellcheck="false" id="au-pass" type="password" placeholder="${esc(t('password'))}" required minlength="6" autocomplete="${authTab === 'signup' ? 'new-password' : 'current-password'}"><button type="button" class="pass-eye" data-act="passToggle" aria-label="${esc(t('pass_show'))}" title="${esc(t('pass_show'))}" aria-pressed="false">${ic('eye')}</button></div>
         <button class="btn primary lg" type="submit">${esc(authTab === 'signin' ? t('signin') : t('signup'))}</button><div class="small" style="color:var(--danger)" id="au-err"></div>
         ${authTab === 'signin' ? `<button type="button" class="link" style="align-self:center" data-act="forgot">${esc(t('forgot'))}</button>` : ''}</form></div></div>`;
 // mục đang bị khoá với khách chưa đăng nhập: vẫn hiện tiêu đề + tranh của mục đó, kèm lời mời đăng nhập / tạo tài khoản
