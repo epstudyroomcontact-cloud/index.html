@@ -282,13 +282,13 @@ Cần tải lên GitHub: thư mục **js** (các file `core.js`, `pages.js`, `ad
 
 ## PHẦN 15 — Hành trình trăng: câu chuyện đi tìm Moon
 
-Trang Hành trình trăng có một con đường uốn lượn. Mỗi ngày trong chuỗi điểm danh là một bước, đường sáng đến đâu là khách đã đi đến đó. Các trạm dừng (ngày 1, 3, 7, 10, 14, 21, 30, 45, 60, 80, 100, 130, 160, 200, 250, 300, 365) mở ra từng chương truyện. Ngày 100 là chương gặp lại Moon; sau đó là các chương sau khi gặp lại, và sau 365 ngày cứ mỗi 30 ngày mở thêm một mẩu "Những đêm sau đó".
+Trang Hành trình trăng có một con đường uốn lượn. Mỗi ngày trong chuỗi điểm danh là một bước, đường sáng đến đâu là khách đã đi đến đó. Các trạm dừng (ngày 1, 3, 7, 10, 14, 21, 30, 45, 60, 80, 100, 130, 160, 200, 250, 300, 365, 400, 450) mở ra từng chương truyện. Ngày 365 là chương gặp lại Moon; sau đó là hai chương sau khi gặp lại (400, 450), rồi cứ mỗi 30 ngày mở thêm một mẩu "Những đêm sau đó".
 
 - Chương mở theo **chuỗi dài nhất**, nên đứt chuỗi vẫn giữ các chương đã đọc (giống huy hiệu). Không cần thêm dữ liệu hay sửa luật Firestore.
 - **Sửa chữ truyện**: bật bút chì (chế độ sửa), mở chương, bấm vào tên chương hoặc nội dung để sửa (Shift+Enter để xuống dòng). Hoặc sửa trong file `moon-story-text.js`.
 - **Thay tranh bằng tranh vẽ thật**: bật bút chì, mở chương, bấm vào tranh rồi tải ảnh lên (khung ngang tỉ lệ 8:5, ví dụ 1600×1000). Bấm "Dùng ảnh mặc định" để quay lại tranh vẽ sẵn.
 - Tài khoản admin đọc được mọi chương (để duyệt trước).
-- Xem thử không cần đăng nhập: mở `index.html?demo=1&as=user&days=105#/club` (đổi số `days` để giả lập chuỗi bao nhiêu ngày).
+- Xem thử không cần đăng nhập: mở `index.html?demo=1&as=user&days=370#/club` (đổi số `days` để giả lập chuỗi bao nhiêu ngày).
 - Đổi ngày của trạm hoặc thêm trạm: sửa mảng `MJ_STOPS` ở đầu `moon-story.js`.
 
 ## QUY TẮC CẬP NHẬT WEB LÊN GITHUB (đọc cái này khi cần cập nhật)

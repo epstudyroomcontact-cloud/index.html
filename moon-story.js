@@ -4,7 +4,7 @@
    Lớp câu chuyện vẽ trên trang Hành trình trăng (pages.js → PAGES.club). Chỉ ĐỌC chuỗi điểm danh (moonData()), không ghi thêm gì lên Firebase.
    - Con đường: mỗi ngày của chuỗi hiện tại là một bước, đi đến đâu đường sáng đến đó.
    - Trạm dừng (MJ_STOPS): mở khi chuỗi DÀI NHẤT (best) đạt số ngày của trạm, nên đứt chuỗi vẫn giữ các chương đã mở (giống huy hiệu).
-   - Sau trạm 365 ngày: cứ mỗi 30 ngày mở thêm một mẩu "Những đêm sau đó" (mjn_1…6, hết thì lặp lại).
+   - Ngày 365 là chương gặp lại Moon; sau đó còn trạm 400, 450, rồi cứ mỗi 30 ngày mở thêm một mẩu "Những đêm sau đó" (mjn_1…6, hết thì lặp lại).
    - Chữ truyện ở moon-story-text.js. Tranh vẽ bằng SVG (mjScene); muốn thay tranh thật: bật bút chì, mở chương, bấm vào tranh
      để tải ảnh (lưu ở settings/content.images.mj_art_<trạm>).
    - Chương nào đã đọc thì nhớ trong máy (localStorage mj_seen_<uid>), chỉ để hiện chữ "Mới".
@@ -12,15 +12,15 @@
 const MJ_STOPS = [
   { id:'start', day:0, g:'umb' }, { id:'d1', day:1, g:'moon' }, { id:'d3', day:3, g:'umb' }, { id:'d7', day:7, g:'lamp' },
   { id:'d10', day:10, g:'book' }, { id:'d14', day:14, g:'half' }, { id:'d21', day:21, g:'star' }, { id:'d30', day:30, g:'full' },
-  { id:'d45', day:45, g:'candle' }, { id:'d60', day:60, g:'star' }, { id:'d80', day:80, g:'bell' }, { id:'d100', day:100, g:'heart', big:true },
+  { id:'d45', day:45, g:'candle' }, { id:'d60', day:60, g:'star' }, { id:'d80', day:80, g:'door' }, { id:'d100', day:100, g:'paw' },
   { id:'d130', day:130, g:'moon' }, { id:'d160', day:160, g:'umb' }, { id:'d200', day:200, g:'spiral' }, { id:'d250', day:250, g:'lamp' },
-  { id:'d300', day:300, g:'letter' }, { id:'d365', day:365, g:'crown', big:true }, { id:'after', day:395, g:'paw' }
+  { id:'d300', day:300, g:'letter' }, { id:'d365', day:365, g:'heart', big:true }, { id:'d400', day:400, g:'moon' }, { id:'d450', day:450, g:'crown', big:true }, { id:'after', day:480, g:'paw' }
 ];
-const MJ_NOTES = 6, MJ_NOTE_EVERY = 30;
+const MJ_NOTES = 6, MJ_NOTE_EVERY = 30, MJ_NOTE_FROM = 450;     // gặp lại Moon ở trạm 365; sau trạm 450, mỗi 30 ngày mở thêm một mẩu
 const mjStop = id => MJ_STOPS.find(s => s.id === id);
 const mjTitle = s => ctext('mjc_' + s.id + '_t');
 const mjOpen = (s, best) => s.day <= best;
-const mjNotesOpen = best => best >= 365 + MJ_NOTE_EVERY ? Math.floor((best - 365) / MJ_NOTE_EVERY) : 0;
+const mjNotesOpen = best => best >= MJ_NOTE_FROM + MJ_NOTE_EVERY ? Math.floor((best - MJ_NOTE_FROM) / MJ_NOTE_EVERY) : 0;
 const mjSeenKey = () => 'mj_seen_' + (state.user ? state.user.uid : 'guest');
 const mjSeen = () => +store.get(mjSeenKey(), -1);
 const mjRainOn = () => store.get('mj_rain', true) !== false;
@@ -81,15 +81,15 @@ const MJ_UMB = 'M-30 0Q-30-26 0-28Q30-26 30 0Q22.5-6 15 0Q7.5-6 0 0Q-7.5-6-15 0Q
 function mjUmbrella(x, y, s = 1, rot = 0, col = '#ff5fa0', handle = true){
   return `<g transform="translate(${x} ${y}) rotate(${rot}) scale(${s})"><path d="${MJ_UMB}" fill="${col}"/><path d="M-30 0Q-30-26 0-28" fill="none" stroke="#fff" stroke-opacity=".25" stroke-width="2"/>${handle ? '<path d="M0-28V24q0 6-6 6" fill="none" stroke="#0c1424" stroke-width="2.4" stroke-linecap="round"/>' : ''}</g>`;
 }
-// mèo đen ngồi (nhìn thẳng), cuộn tròn ngủ, hoặc chỉ thấy hai mắt trong bóng tối; (0,0) = chân
+// Moon: mèo trắng, đầu và tai có mảng cam. Ngồi (nhìn thẳng), cuộn tròn ngủ, hoặc chỉ thấy hai mắt trong bóng tối; (0,0) = chân
 function mjCat(x, y, s = 1, pose = 'sit', o = {}){
-  const fur = o.fur || '#0b0d14', eye = o.eye || '#f6c64a', glow = o.glow ? `<ellipse cx="0" cy="-30" rx="48" ry="44" fill="url(#${o.glow}w)" opacity=".9"/>` : '';
+  const fur = o.fur || '#eef1f6', patch = o.patch || (o.fur ? o.fur : '#e39a52'), line = o.fur ? 'none' : '#8fa1bd', eye = o.eye || '#d9a441', glow = o.glow ? `<ellipse cx="0" cy="-30" rx="48" ry="44" fill="url(#${o.glow}w)" opacity=".9"/>` : '';
   let b;
-  if (pose === 'curl') b = `<ellipse cx="0" cy="-11" rx="27" ry="12" fill="${fur}"/><circle cx="-19" cy="-14" r="10" fill="${fur}"/><path d="M-27-20l1-11 7 7zM-14-21l3-10 4 8z" fill="${fur}"/><path d="M24-6q10 2 4 8q-14 4-36 0" fill="none" stroke="${fur}" stroke-width="5" stroke-linecap="round"/><path d="M-24-14q2 2 4 0M-17-15q2 2 4 0" stroke="${eye}" stroke-width="1.2" fill="none" opacity=".8"/>`;
-  else if (pose === 'eyes') b = `<ellipse cx="0" cy="-22" rx="18" ry="20" fill="${fur}" opacity=".55"/><circle cx="-6" cy="-30" r="4" fill="${eye}"/><circle cx="6" cy="-30" r="4" fill="${eye}"/><circle cx="-6" cy="-30" r="1.6" fill="#111"/><circle cx="6" cy="-30" r="1.6" fill="#111"/>`;
-  else b = `<path d="M-16 0C-21-18-14-33 0-33C14-33 21-18 16 0Z" fill="${fur}"/><path d="M14-3C30-5 33-21 26-30" fill="none" stroke="${fur}" stroke-width="5" stroke-linecap="round"/><circle cx="0" cy="-41" r="14" fill="${fur}"/><path d="M-13-46l1-16 9 9zM13-46l-1-16-9 9z" fill="${fur}"/>
+  if (pose === 'curl') b = `<g stroke="${line}" stroke-width=".8"><ellipse cx="0" cy="-11" rx="27" ry="12" fill="${fur}"/><path d="M24-6q10 2 4 8q-14 4-36 0" fill="none" stroke="${fur}" stroke-width="5" stroke-linecap="round"/><circle cx="-19" cy="-14" r="10" fill="${fur}"/></g><path d="M-27-20l1-11 7 7zM-14-21l3-10 4 8z" fill="${patch}"/><path d="M-27-17q8-10 16-2q-8 3-16 2z" fill="${patch}"/><path d="M-24-12q2 2 4 0M-17-13q2 2 4 0" stroke="#5a6478" stroke-width="1.1" fill="none"/>`;
+  else if (pose === 'eyes') b = `<ellipse cx="0" cy="-22" rx="18" ry="20" fill="${fur}" opacity=".35"/><circle cx="-6" cy="-30" r="4" fill="${eye}"/><circle cx="6" cy="-30" r="4" fill="${eye}"/><circle cx="-6" cy="-30" r="1.6" fill="#111"/><circle cx="6" cy="-30" r="1.6" fill="#111"/>`;
+  else b = `<g stroke="${line}" stroke-width=".8"><path d="M14-3C30-5 33-21 26-30" fill="none" stroke="${fur}" stroke-width="5" stroke-linecap="round"/><path d="M-16 0C-21-18-14-33 0-33C14-33 21-18 16 0Z" fill="${fur}"/><circle cx="0" cy="-41" r="14" fill="${fur}"/></g><path d="M-13-46l1-16 9 9zM13-46l-1-16-9 9z" fill="${patch}"/><path d="M-13-47q6-10 13-6q7-4 13 6q-6-4-13-1q-7-3-13 1z" fill="${patch}"/><path d="M-9-34q9 5 18 0" stroke="#c9d3e3" stroke-width="2" fill="none" opacity=".7"/>
     <circle cx="-5.6" cy="-42" r="4.6" fill="${eye}"/><circle cx="5.6" cy="-42" r="4.6" fill="${eye}"/><circle cx="-5" cy="-41.6" r="1.8" fill="#111"/><circle cx="6.2" cy="-41.6" r="1.8" fill="#111"/><circle cx="-6.6" cy="-43.4" r=".9" fill="#fff"/><circle cx="4.6" cy="-43.4" r=".9" fill="#fff"/><path d="M-1-37.5h2l-1 1.2z" fill="#e88"/>
-    <path d="M-8-37h-9M-8-36l-8 2M8-37h9M8-36l8 2" stroke="#c9d6ea" stroke-width=".5" opacity=".7"/>`;
+    <path d="M-8-37h-9M-8-36l-8 2M8-37h9M8-36l8 2" stroke="#7d8aa3" stroke-width=".5" opacity=".8"/>`;
   return `<g transform="translate(${x} ${y}) scale(${s})">${glow}${o.shadow ? `<ellipse cx="${o.shadow}" cy="2" rx="22" ry="5" fill="#04101e" opacity=".5"/>` : ''}${b}</g>`;
 }
 // người (nhìn từ sau lưng), có thể cầm ô
@@ -131,17 +131,20 @@ const MJ_SCENES = {
     <path d="M0 214Q120 182 220 196T400 190V250H0z" fill="#0a1426"/>${mjStrokes(r, 18, [0, 200, 400, 250], ['#132544', '#0b1730'], [3, 7], .6)}
     <circle cx="200" cy="168" r="60" fill="url(#${id}w)"/>${mjUmbrella(200, 188, 1.5, 180, '#ff5fa0', false)}<circle cx="200" cy="170" r="9" fill="#fff3c4"/><path d="M200 156l3 10 10 4-10 4-3 10-3-10-10-4 10-4z" fill="#fffbe8"/>`,
   d30:(r, id) => `${mjRoom(r, id, { wx:150, wy:16, ww:150, wh:140, mr:30 })}${mjDesk(r, 200)}<path d="M150 156L300 156L340 250L60 250Z" fill="#fbe7a1" opacity=".08"/>
-    <ellipse cx="206" cy="214" rx="64" ry="14" fill="#2c3f66"/><ellipse cx="206" cy="210" rx="54" ry="10" fill="#3b5486"/>${mjCat(212, 214, 1.05, 'curl', { fur:'#0b0d14' })}<ellipse cx="206" cy="204" rx="60" ry="12" fill="#fbe7a1" opacity=".1"/>`,
+    <ellipse cx="206" cy="214" rx="64" ry="14" fill="#2c3f66"/><ellipse cx="206" cy="210" rx="54" ry="10" fill="#3b5486"/>${mjCat(212, 214, 1.05, 'curl')}<ellipse cx="206" cy="204" rx="60" ry="12" fill="#fbe7a1" opacity=".1"/>`,
   d45:(r, id) => `${mjRoom(r, id, { wx:262, wy:30, ww:100, wh:96, mr:12, mf:.8 })}<rect x="30" y="140" width="210" height="8" fill="#26375a"/><rect x="30" y="148" width="210" height="4" fill="#0b1322"/>
     <circle cx="150" cy="120" r="50" fill="url(#${id}w)"/><path d="M84 140q0-18 26-18t26 18z" fill="#e8708f"/><path d="M84 140h52" stroke="#ff9cc4" stroke-width="2"/><rect x="160" y="112" width="10" height="28" rx="2" fill="#efe6d2"/><path d="M165 112q-5-8 0-16q5 8 0 16z" fill="#ffcf6b"/>
     <rect x="190" y="104" width="34" height="36" rx="2" fill="#16233c" stroke="#2c3f66" stroke-width="2"/>${mjMoon(id, 207, 122, 7, 1, .4)}${mjDesk(r, 214)}`,
   d60:(r, id) => `${mjStrokes(r, 50, [0, 0, 400, 150], ['#0a1630', '#13285a', '#1c3a72'], [4, 10], .45, [30, 80])}${mjStars(r, 60, [0, 0, 400, 140], .15)}
     <path d="M0 150Q200 130 400 152V250H0z" fill="#0b1a33"/>${mjStrokes(r, 30, [0, 150, 400, 250], ['#132a4a', '#0e2140', '#1a3660'], [3, 7], .6)}${mjStars(r, 46, [0, 156, 400, 248], .3)}
     <g transform="translate(250 214)"><ellipse cx="0" cy="-16" rx="44" ry="30" fill="url(#${id}w)" opacity=".8"/><path d="M-26 0v-14q0-10 10-12h22q8-10 14-10l4 6q6 2 4 8l-6 2v20M-20 0v-8M12 0v-10M-26-18q-10-4-10-12" fill="none" stroke="#fff3c4" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/></g>${mjPerson(150, 220, 1.1, { umb:false })}`,
-  d80:(r, id) => `${mjStrokes(r, 60, [0, 0, 400, 250], ['#0c1a35', '#173062', '#0a1530'], [5, 12], .45, [30, 90])}${mjStars(r, 40, [0, 0, 400, 160])}${mjMoon(id, 330, 46, 20, .85)}
+  d80:(r, id) => `${mjStrokes(r, 60, [0, 0, 400, 250], ['#0c1a35', '#173062', '#0a1530'], [5, 12], .45, [30, 90])}${mjStars(r, 40, [0, 0, 400, 160])}${mjMoon(id, 90, 50, 20, .85)}
     <path d="M0 250L0 220Q160 210 260 120T400 60V250z" fill="#0a1426"/><path d="M20 238Q170 214 270 128T392 72" stroke="#f6c64a" stroke-width="2" stroke-dasharray="3 7" fill="none" opacity=".6"/>${mjPerson(176, 202, .7, { umb:false })}
-    <path d="M330 66V112" stroke="#ff5fa0" stroke-width="2"/><circle cx="330" cy="124" r="26" fill="url(#${id}w)"/><path d="M318 132q0-20 12-20t12 20z" fill="#f6c64a"/><circle cx="330" cy="134" r="3" fill="#b8892a"/>`,
-  d100:(r, id) => `<rect width="400" height="250" fill="url(#${id}warm)"/>${mjStrokes(r, 60, [0, 0, 400, 140], ['#1b3762', '#25497a', '#36639a'], [5, 12], .4, [30, 90])}${mjStars(r, 30, [0, 0, 400, 100])}${mjMoon(id, 200, 70, 42, 1, 1)}
+    <circle cx="352" cy="58" r="44" fill="url(#${id}w)"/><rect x="340" y="34" width="24" height="38" rx="2" fill="#ffd98a"/><path d="M340 34h24v38" fill="none" stroke="#0a1426" stroke-width="3"/><path d="M364 34l-8 4v38l8-4z" fill="#3a2a14" opacity=".8"/>`,
+  d100:(r, id) => `${mjStrokes(r, 50, [0, 0, 400, 112], ['#0c1d3a', '#163257', '#20467a'], [4, 10], .45, [30, 80])}${mjStars(r, 30, [0, 0, 400, 100])}${mjMoon(id, 120, 48, 20, .9)}
+    <rect y="110" width="400" height="14" fill="#091428"/><rect y="124" width="400" height="76" fill="#1a426b"/>${mjStrokes(r, 70, [0, 124, 400, 200], ['#1f4d78', '#2b6797', '#3c82b5', '#163a60'], [2, 5], .7, [30, 90])}<path d="M108 128h24M104 140h32M110 154h22M106 168h28" stroke="#fbe7a1" stroke-width="3" stroke-linecap="round" opacity=".45"/>
+    <path d="M0 200Q200 186 400 202V250H0z" fill="#0a1426"/>${mjCat(286, 114, .34, 'sit')}${mjPerson(110, 236, 1.1, { umb:false })}`,
+  d365:(r, id) => `<rect width="400" height="250" fill="url(#${id}warm)"/>${mjStrokes(r, 60, [0, 0, 400, 140], ['#1b3762', '#25497a', '#36639a'], [5, 12], .4, [30, 90])}${mjStars(r, 30, [0, 0, 400, 100])}${mjMoon(id, 200, 70, 42, 1, 1)}
     <rect y="140" width="400" height="110" fill="#1d4670"/>${mjSwirl(r, 200, 198, 230, ['#2a5f8f', '#3c7bb0', '#5c9fcd', '#f3d58c', '#21507e'], .26, 22)}<ellipse cx="200" cy="168" rx="30" ry="40" fill="#fbe7a1" opacity=".22"/>
     ${mjCat(214, 206, .78, 'sit', { glow:id })}${mjPerson(140, 220, 1.05, { umb:false })}`,
   d130:(r, id) => `${mjRoom(r, id, { wx:120, wy:22, ww:160, wh:130, mr:20 })}${mjDesk(r, 176)}<ellipse cx="200" cy="164" rx="34" ry="6" fill="#fbe7a1" opacity=".45"/>
@@ -156,12 +159,15 @@ const MJ_SCENES = {
     <ellipse cx="290" cy="220" rx="70" ry="12" fill="#21466e"/>${mjMoon(id, 300, 220, 8, 1, .5)}${mjLamp(id, 80, 186, 130)}${mjPerson(196, 212, 1.2, { tilt:4 })}`,
   d300:(r, id) => `${mjRoom(r, id, { wx:250, wy:20, ww:110, wh:100, mr:12, mf:.9 })}${mjDesk(r, 150)}<g transform="rotate(-6 170 196)"><rect x="96" y="160" width="150" height="76" rx="2" fill="#efe6d2"/><path d="M110 178h110M110 190h120M110 202h96M110 214h60" stroke="#8b97b1" stroke-width="1.2"/>
     <g transform="translate(222 220)" fill="#e8708f"><ellipse rx="5" ry="4"/><circle cx="-6" cy="-6" r="2"/><circle cx="-2" cy="-9" r="2"/><circle cx="3" cy="-9" r="2"/><circle cx="7" cy="-6" r="2"/></g></g><path d="M270 190l70-26" stroke="#ff5fa0" stroke-width="4" stroke-linecap="round"/>`,
-  d365:(r, id) => `${mjStrokes(r, 60, [0, 0, 400, 180], ['#0c1a35', '#173062', '#22447e'], [5, 12], .45, [30, 90])}${mjStars(r, 50, [0, 0, 400, 170], .18)}${mjMoon(id, 300, 60, 30, 1)}
+  d450:(r, id) => `${mjStrokes(r, 60, [0, 0, 400, 180], ['#0c1a35', '#173062', '#22447e'], [5, 12], .45, [30, 90])}${mjStars(r, 50, [0, 0, 400, 170], .18)}${mjMoon(id, 300, 60, 30, 1)}
     <path d="M0 200Q200 170 400 204V250H0z" fill="#0a1426"/>${mjStrokes(r, 18, [0, 196, 400, 250], ['#132544', '#0b1730'], [3, 7], .6)}${mjPerson(170, 222, 1.2, { umb:false })}<circle cx="182" cy="168" r="30" fill="url(#${id}w)"/><circle cx="182" cy="168" r="7" fill="#fff3c4"/>${mjCat(222, 222, .55, 'sit')}`,
+  d400:(r, id) => `${mjRoom(r, id, { wx:250, wy:22, ww:110, wh:100, mr:14 })}<rect x="20" y="150" width="330" height="70" rx="10" fill="#22314f"/><rect x="34" y="138" width="70" height="28" rx="12" fill="#d9dfe9"/>
+    <path d="M90 156Q160 132 230 152T350 150V214H90z" fill="#f2a63f"/><path d="M90 160Q160 140 230 158T350 156" stroke="#ffd36b" stroke-width="5" fill="none" opacity=".8"/><path d="M110 190q40-12 80 0t80 0" stroke="#d98a2e" stroke-width="4" fill="none" opacity=".7"/>
+    <path d="M250 122L360 122L340 250L150 250Z" fill="#fbe7a1" opacity=".07"/><g opacity=".8">${mjCat(300, 158, .8, 'curl', { glow:id })}</g>`,
   after:(r, id) => `${mjRoom(r, id, { wx:140, wy:20, ww:140, wh:120, mr:14, mf:.7 })}${mjDesk(r, 170)}<path d="M330 182q16-12 30-2q-14 10-30 2z" fill="#c98a3a"/><path d="M330 182l30-2" stroke="#7a4f1f" stroke-width="1"/>`
 };
 function mjScene(id, seed){
-  const k = 'mjs' + (++_mjN), r = mjRng(seed || 7), sky = MJ_SKY[{ start:'rain', d1:'rain', d7:'rain', d160:'rain', d250:'rain', d100:'warm' }[id] || 'night'];
+  const k = 'mjs' + (++_mjN), r = mjRng(seed || 7), sky = MJ_SKY[{ start:'rain', d1:'rain', d7:'rain', d160:'rain', d250:'rain', d365:'warm' }[id] || 'night'];
   const rainy = { start:1, d1:1, d7:1, d160:1, d250:.6 }[id];
   return `<svg class="mj-scene" viewBox="0 0 400 250" role="img" aria-label="${esc(mjTitle(mjStop(id)))}" preserveAspectRatio="xMidYMid slice"><defs>
     <linearGradient id="${k}bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky[0]}"/><stop offset="1" stop-color="${sky[1]}"/></linearGradient>
@@ -201,7 +207,7 @@ const MJ_GLYPH = {
   book:'<path d="M-8-5q4-2 8 0v10q-4-2-8 0zM8-5q-4-2-8 0v10q4-2 8 0z"/>', star:'<path d="M0-8l2.3 5 5.4.6-4 3.7 1.1 5.3L0 4l-4.8 2.6 1.1-5.3-4-3.7 5.4-.6z"/>',
   candle:'<rect x="-2.5" y="-2" width="5" height="9" rx="1"/><path d="M0-3q-3-3 0-7q3 4 0 7z"/>', bell:'<path d="M-6 4q0-11 6-11t6 11z"/><circle cy="6" r="1.8"/>',
   heart:'<path d="M0 7l-6-6a3.6 3.6 0 0 1 6-4a3.6 3.6 0 0 1 6 4z"/>', spiral:'<path d="M0 0a2 2 0 0 1 4 0a4 4 0 0 1-8 0a6 6 0 0 1 12 0" fill="none" stroke="currentColor" stroke-width="1.6"/>',
-  letter:'<rect x="-8" y="-5" width="16" height="11" rx="1.5"/><path d="M-8-4l8 6 8-6" fill="none" stroke="#0d1d36" stroke-width="1.2"/>', crown:'<path d="M-8 5v-9l4 4 4-6 4 6 4-4v9z"/>',
+  letter:'<rect x="-8" y="-5" width="16" height="11" rx="1.5"/><path d="M-8-4l8 6 8-6" fill="none" stroke="#0d1d36" stroke-width="1.2"/>', crown:'<path d="M-8 5v-9l4 4 4-6 4 6 4-4v9z"/>', door:'<rect x="-5.5" y="-8" width="11" height="16" rx="1.5"/><circle cx="2.6" r="1.2" fill="#f6c64a"/>',
   paw:'<ellipse cy="3" rx="4" ry="3.4"/><circle cx="-5" cy="-3" r="1.8"/><circle cx="-1.7" cy="-6" r="1.8"/><circle cx="1.7" cy="-6" r="1.8"/><circle cx="5" cy="-3" r="1.8"/>'
 };
 function mjMap(n, best, preview){
