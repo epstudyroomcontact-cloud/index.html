@@ -158,6 +158,7 @@ function mjUmbC(c, x, y, R = 26, rot = 0, o = {}){
   g += mjDots(c, Math.round(R * .7), [-R, A[1], R, ry], ['#ffffff', '#ffe3ee'], [.4, .9], .4, (px, py) => py < ry * .4 && Math.pow(px / R, 2) + Math.pow((py - ry * .2) / (A[1] - ry * .2), 2) < .8);
   if (o.lights) front.forEach(t => { g += mjGlow(c, t[0], t[1] + 2, 6, 'f', .8) + `<circle cx="${_r1(t[0])}" cy="${_r1(t[1] + 2)}" r=".9" fill="#fff6c8"/>`; });
   if (o.stars) for (let i = 0; i < o.stars; i++) { const px = (c.r() - .5) * R * 1.5, py = A[1] * (.15 + c.r() * .7); if (Math.pow(px / R, 2) + Math.pow(py / A[1], 2) > .75) continue; const z = 1.3 + c.r() * 2; g += mjGlow(c, px, py, z * 3.2, 'f', .7) + mjSpark(px, py, z, '#fff3b0'); }
+  if (MJ_DRIP) { const ar = rot * Math.PI / 180, co = Math.cos(ar), si = Math.sin(ar); front.forEach(t => mjDripAt(x + t[0] * co - (t[1] + R * .05) * si, y + t[0] * si + (t[1] + R * .05) * co)); }
   const sh = R * (o.shaft ?? .9);
   if (o.shaft !== 0) g += `<path d="M0 ${_r1(ry * .9)}V${_r1(sh)}" stroke="#3e3550" stroke-width="1.1" stroke-linecap="round"/>${o.handle === false ? '' : `<path d="M0 ${_r1(sh)}v1.6q0 3.6 3.4 3.6q2.6 0 2.8-2.6" fill="none" stroke="#4a3a6a" stroke-width="1.9" stroke-linecap="round"/>`}`;
   return `<g transform="translate(${_r1(x)} ${_r1(y)}) rotate(${rot})">${mjA(c, 'mja-umb', g + `<path d="M-.8 ${_r1(A[1] + .4)}L0 ${_r1(A[1] - R * .16)}L.8 ${_r1(A[1] + .4)}Z" fill="#3e3550"/>`)}</g>`;
@@ -182,10 +183,16 @@ const mjLn = (d, col, w, op = 1) => `<path d="${d}" stroke="${col}" stroke-width
 // pose: back (đứng quay lưng), side (đứng nghiêng sang phải), kneel (ngồi thụp, nhìn sang phải), sit (ngồi quay lưng), perch (ngồi thả chân, nhìn sang phải), reach (quay lưng, giơ tay)
 // o: flip, wind (tóc bay), hand (điểm bàn tay phải, tay tự gập khuỷu), umb {hand,R,rot,...} (tay thứ hai cầm ô nếu khác hand), lantern [x,y], cat (bế Moon), closedUmb, legs:false, closed, shadow, hood
 let MJ_HOOD = false;
+// MJ_DRIP: khi vẽ tranh mưa, gom các điểm nước nhỏ giọt (mép dù, gấu áo mưa, mái hiên) theo toạ độ tranh 400x250, kèm mặt đất bên dưới.
+// MJ_TF: phép dời/thu phóng của nhân vật đang vẽ, để đổi toạ độ trong người ra toạ độ tranh.
+let MJ_DRIP = null, MJ_TF = null;
+const mjDripAt = (lx, ly, gy) => { if (!MJ_DRIP) return; const T = MJ_TF || { x:0, y:0, sx:1, sy:1, gy }; MJ_DRIP.push([_r1(T.x + lx * T.sx), _r1(T.y + ly * T.sy), _r1(gy ?? T.gy)]); };
 function mjGirl(c, x, y, s = 1, pose = 'back', o = {}){
   const K = '#f7d9c4', KS = '#e0b19a', CO = '#f08db1', COS = '#cc6690', COL = '#ffc2d7', COD = '#a8477a', BO = '#b9395f', BOL = '#e4688f', PA = '#2b3566', HR = '#3b2729', HM = '#5a3b3d', HL = '#8e6866';
   const f = o.flip ? -1 : 1, ln = mjLn, W = o.wind || 0, hood = o.hood ?? MJ_HOOD, P = (d, fill, op) => `<path d="${d}" fill="${fill}"${op ? ` opacity="${op}"` : ''}/>`;
-  const L1 = 8.2, L2 = 7.8;
+  const L1 = 8.2, L2 = 7.8, TF0 = MJ_TF; MJ_TF = { x, y, sx:s * f, sy:s, gy:y };
+  // o.walk: bước đi (hai chân đưa lệch nhịp, thân nhún theo bước, tay đánh nhẹ); cả nhóm dùng chung một pha
+  const wk = !!o.walk, ph = _r1(c.r() * 2), G = (cls, inner) => `<g class="mja ${cls}" style="animation-delay:-${ph}s">${inner}</g>`;
   const reach = (S, H) => { const dx = H[0] - S[0], dy = H[1] - S[1], d = Math.hypot(dx, dy), m = L1 + L2 - .3; return d > m ? [S[0] + dx * m / d, S[1] + dy * m / d] : H; };
   // tay áo mưa: vai -> khuỷu -> bàn tay, khuỷu gập xuống
   const arm = (S, H0, far) => {
@@ -217,7 +224,7 @@ function mjGirl(c, x, y, s = 1, pose = 'back', o = {}){
       + ln(`M${X(-4.8)} ${Y(-2)}C${X(-5.6)} ${Y(len * .3)} ${X(-6)} ${Y(len * .6)} ${X(-7.4)} ${Y(len * .9)}M${X(-2.8)} ${Y(1)}C${X(-3.2)} ${Y(len * .4)} ${X(-3.6)} ${Y(len * .65)} ${X(-4.6)} ${Y(len * .88)}`, HM, .7, .9) + ln(`M${X(-3.6)} ${Y(-6.2)}Q${X(.8)} ${Y(-8)} ${X(3.6)} ${Y(-5.4)}`, HL, .9, .75);
     return wind(hy, hair) + P(`M${X(-3.6)} ${Y(-.6)}C${X(-3.8)} ${Y(-5.6)} ${X(-.6)} ${Y(-6.4)} ${X(1.6)} ${Y(-6)}C${X(4.4)} ${Y(-5.6)} ${X(5.6)} ${Y(-3.6)} ${X(5.6)} ${Y(-1.4)}L${X(6.6)} ${Y(.6)}Q${X(6.4)} ${Y(1.2)} ${X(5.6)} ${Y(1.2)}Q${X(5.8)} ${Y(3.4)} ${X(4.2)} ${Y(4.6)}C${X(2.4)} ${Y(5.8)} ${X(-.4)} ${Y(5.8)} ${X(-2)} ${Y(4.4)}C${X(-3.2)} ${Y(3.2)} ${X(-3.6)} ${Y(1.6)} ${X(-3.6)} ${Y(-.6)}Z`, K)
       + P(`M${X(-4.2)} ${Y(-.6)}C${X(-4.6)} ${Y(-6.4)} ${X(-.6)} ${Y(-7.6)} ${X(2)} ${Y(-7.2)}C${X(4.4)} ${Y(-6.8)} ${X(5.6)} ${Y(-5.2)} ${X(5.6)} ${Y(-3.2)}Q${X(3.8)} ${Y(-4.6)} ${X(1.6)} ${Y(-4.2)}Q${X(-.6)} ${Y(-3.4)} ${X(-1.2)} ${Y(-.8)}Q${X(-2)} ${Y(1.6)} ${X(-1.8)} ${Y(3.6)}Q${X(-3.6)} ${Y(1.8)} ${X(-4.2)} ${Y(-.6)}Z`, HR)
-      + (o.closed ? ln(`M${X(2.6)} ${Y(-.4)}q.8.6 1.6.1`, '#3a2228', .5) : `<ellipse cx="${X(3.2)}" cy="${Y(-.3)}" rx=".6" ry=".75" fill="#2a1a20"/>`) + `<ellipse cx="${X(3)}" cy="${Y(2.2)}" rx="1.4" ry=".9" fill="#f29aa8" opacity=".55"/>` + ln(`M${X(4.4)} ${Y(3.2)}q.4.2.7-.1`, '#c46a78', .45);
+      + (o.closed ? ln(`M${X(2.6)} ${Y(-.4)}q.8.6 1.6.1`, '#3a2228', .5) : mjA(c, 'mja-blink', `<ellipse cx="${X(3.2)}" cy="${Y(-.3)}" rx=".6" ry=".75" fill="#2a1a20"/>`, 5.2)) + `<ellipse cx="${X(3)}" cy="${Y(2.2)}" rx="1.4" ry=".9" fill="#f29aa8" opacity=".55"/>` + ln(`M${X(4.4)} ${Y(3.2)}q.4.2.7-.1`, '#c46a78', .45);
   };
   const coatTex = box => mjS(c, 9, box, [COS, COL], { ang:88, len:[4, 9], w:[.9, 1.4], op:.6, jit:10 });
   let g = '';
@@ -230,19 +237,22 @@ function mjGirl(c, x, y, s = 1, pose = 'back', o = {}){
     g += arm([-5.2, -34.4], [-7.6, -20], true);
     g += P('M-5.6 -37C-7.4 -33 -9.4 -22 -10.6 -13Q-5 -11.2 0 -11.8Q5 -11.2 10.6 -13C9.4 -22 7.4 -33 5.6 -37Q0 -39.4 -5.6 -37Z', CO) + P('M2.6 -38.4C5.6 -32 7.4 -22 7.6 -11.8Q9.4 -12.2 10.6 -13C9.4 -22 7.4 -33 5.6 -37Z', COS, .75) + ln('M-10.4 -13.2Q0 -10.6 10.4 -13.2', COD, .8, .6) + ln('M-.2 -37.6Q.4 -25 0 -12', COS, .6, .6) + coatTex([-9, -36, 7, -14]);
     if (o.closedUmb) g += `<path d="M8.4 -18.4L10 -1" stroke="#4a3a6a" stroke-width=".9"/>` + P('M8.5 -15.6L7.2 -5.4L9.6 -2.4L10.4 -14.2Z', '#e5739f');
-    g += hood ? hoodBack(-43.2) : P('M-6.6 -37.8Q-7.8 -32.6 -3 -31.2Q0 -30.6 3 -31.2Q7.8 -32.6 6.6 -37.8Z', COS) + hairBack(-44, 18);
+    g += mjA(c, 'mja-look', hood ? hoodBack(-43.2) : P('M-6.6 -37.8Q-7.8 -32.6 -3 -31.2Q0 -30.6 3 -31.2Q7.8 -32.6 6.6 -37.8Z', COS) + hairBack(-44, 18), 11);
+    if (hood) { mjDripAt(-10.2, -12.8); mjDripAt(10.2, -12.8); mjDripAt(-3, -11.6); }
     g += pose === 'reach' ? arm(SH, [12.6, -46.4]) : arm(SH, o.hand || [7.6, -20]);
   } else if (pose === 'side') {
     SH = [.6, -34.2];
     const lg = o.legs !== false;
     g += arm([-1.6, -34.4], [-3.6, -21], true);
-    if (lg) g += P('M-3.6 -12.4H-.8V-8H-3.6ZM.6 -12.4H3.4V-8H.6Z', PA) + bootS(-2.2) + bootS(2);
+    if (lg) g += wk ? G('mja-legB', P('M-3.6 -13.4H-.8V-8H-3.6Z', PA) + bootS(-2.2)) + G('mja-legA', P('M.6 -13.4H3.4V-8H.6Z', PA) + bootS(2))
+      : P('M-3.6 -12.4H-.8V-8H-3.6ZM.6 -12.4H3.4V-8H.6Z', PA) + bootS(-2.2) + bootS(2);
+    if (hood) { mjDripAt(-9.4, -12.8); mjDripAt(8.2, -13.2); }
     g += P('M-4.6 -37.4C-7 -32 -9 -22 -9.8 -13Q-1 -11.4 8.6 -13.4C7.6 -22 6 -32 4.4 -37Q0 -39.2 -4.6 -37.4Z', CO) + P('M-4.6 -37.4C-7 -32 -9 -22 -9.8 -13Q-7.4 -12.4 -5.4 -12.2C-5.6 -22 -4.4 -32 -2.4 -38.2Z', COS, .75) + P('M1.4 -24.6H5.4V-20.4Q3.4 -19.8 1.4 -20.4Z', COS, .8) + ln('M5 -36Q6.4 -25 7.6 -13.4', COD, .6, .6) + ln('M-9.6 -13.2Q-1 -11 8.4 -13.6', COD, .8, .6) + coatTex([-7, -36, 6, -14]);
     if (!hood) g += P('M-5.2 -37.8Q-7.8 -33.6 -5 -31.6Q-3.4 -33.6 -1.4 -36.4Z', COS);
-    g += headSide(1.2, -43.6, 20);
+    g += mjA(c, 'mja-look', headSide(1.2, -43.6, 20), 9);
     if (o.cat) g += mjCat(c, 4.6, -27, .55, 'held', { eyes:o.eyes }) + arm(SH, [7.2, -25.4]);
     if (umbHand) g += arm(SH, umbHand);
-    if (!o.cat || o.hand) g += arm(SH, o.hand || [3.6, -21]);
+    if (!o.cat || o.hand) g += wk && !o.hand ? G('mja-armS', arm(SH, [3.6, -21])) : arm(SH, o.hand || [3.6, -21]);
   } else if (pose === 'kneel') {
     SH = [2.6, -20.6];
     g += bootS(7.4).replace(/V-8\.6/g, 'V-4.6');
@@ -270,13 +280,17 @@ function mjGirl(c, x, y, s = 1, pose = 'back', o = {}){
     if (hd) g += `<circle cx="${_r1(hd[0])}" cy="${_r1(hd[1])}" r="1.55" fill="${K}"/>`;
   }
   if (o.lantern) g += mjLantern(c, ...reach(SH, o.lantern));
-  return `<g transform="translate(${_r1(x)} ${_r1(y)}) scale(${_r1(s * f * 100) / 100} ${_r1(s * 100) / 100})">${mjA(c, 'mja-breath', g)}</g>`;
+  MJ_TF = TF0;
+  // đứng: thở và đổi trọng tâm rất chậm; đi: nhún theo bước
+  const body = wk ? G('mja-step', g) : mjA(c, 'mja-sway', mjA(c, 'mja-breath', g), 8);
+  return `<g transform="translate(${_r1(x)} ${_r1(y)}) scale(${_r1(s * f * 100) / 100} ${_r1(s * 100) / 100})">${body}</g>`;
 }
 // Moon: mèo trắng, đỉnh đầu và hai tai màu cam. Chân ở (0,0), ngồi cao khoảng 22 khi s=1.
 // pose: sitB (ngồi quay lưng), sitF (ngồi nhìn thẳng, mắt cười; eyes:'open' để mở mắt), walk (đi sang phải), curl (cuộn tròn ngủ), held (đầu và hai chân trước, để bế)
 function mjCat(c, x, y, s = 1, pose = 'sitB', o = {}){
-  const N = MJN, F = N.fur, S = N.furS, L = N.furL, O = N.orange, f = o.flip ? -1 : 1, ln = mjLn;
-  const earsB = (hx, hy, r) => `<path d="M${_r1(hx - r * .92)} ${_r1(hy - r * .2)}L${_r1(hx - r * .86)} ${_r1(hy - r * 1.36)}L${_r1(hx - r * .2)} ${_r1(hy - r * .78)}Z" fill="${O}"/><path d="M${_r1(hx + r * .92)} ${_r1(hy - r * .2)}L${_r1(hx + r * .86)} ${_r1(hy - r * 1.36)}L${_r1(hx + r * .2)} ${_r1(hy - r * .78)}Z" fill="${O}"/>`;
+  const N = MJN, F = N.fur, S = N.furS, L = N.furL, O = N.orange, f = o.flip ? -1 : 1, ln = mjLn, ph = _r1(c.r() * 2), G = (cls, inner) => `<g class="mja ${cls}" style="animation-delay:-${ph}s">${inner}</g>`;
+  // tai phải thỉnh thoảng giật nhẹ
+  const earsB = (hx, hy, r) => `<path d="M${_r1(hx - r * .92)} ${_r1(hy - r * .2)}L${_r1(hx - r * .86)} ${_r1(hy - r * 1.36)}L${_r1(hx - r * .2)} ${_r1(hy - r * .78)}Z" fill="${O}"/>` + mjA(c, 'mja-ear', `<path d="M${_r1(hx + r * .92)} ${_r1(hy - r * .2)}L${_r1(hx + r * .86)} ${_r1(hy - r * 1.36)}L${_r1(hx + r * .2)} ${_r1(hy - r * .78)}Z" fill="${O}"/>`, 7);
   const faceF = (hx, hy, r, eyes) => `${earsB(hx, hy, r)}<path d="M${hx - r * .62} ${hy - r * .55}L${hx - r * .76} ${hy - r * 1.12}L${hx - r * .34} ${hy - r * .74}Z" fill="${N.pink}"/><path d="M${hx + r * .62} ${hy - r * .55}L${hx + r * .76} ${hy - r * 1.12}L${hx + r * .34} ${hy - r * .74}Z" fill="${N.pink}"/>
     <ellipse cx="${hx}" cy="${hy}" rx="${r * 1.04}" ry="${r * .94}" fill="${F}" stroke="${L}" stroke-width=".45"/>
     <path d="M${hx - r * .98} ${hy - r * .3}C${hx - r * .8} ${hy - r * 1.06} ${hx + r * .8} ${hy - r * 1.06} ${hx + r * .98} ${hy - r * .3}C${hx + r * .6} ${hy - r * .62} ${hx + r * .22} ${hy - r * .56} ${hx} ${hy - r * .36}C${hx - r * .22} ${hy - r * .56} ${hx - r * .6} ${hy - r * .62} ${hx - r * .98} ${hy - r * .3}Z" fill="${O}"/>
@@ -293,8 +307,9 @@ function mjCat(c, x, y, s = 1, pose = 'sitB', o = {}){
     if (pose === 'sitB') g += `${earsB(0, -16.4, 5.7)}<circle cx="0" cy="-16.4" r="5.7" fill="${F}" stroke="${L}" stroke-width=".45"/><path d="M-5.5 -17.6C-4.6 -22.6 4.6 -22.6 5.5 -17.6C3 -19.4 -3 -19.4 -5.5 -17.6Z" fill="${O}"/><path d="M2.2 -21.6C4.6 -20.6 5.8 -18 5.4 -15.4" stroke="${S}" stroke-width=".9" fill="none" opacity=".7"/>`;
     else g += `<ellipse cx="-2.3" cy="-.9" rx="2.1" ry="1.3" fill="${F}" stroke="${L}" stroke-width=".45"/><ellipse cx="2.3" cy="-.9" rx="2.1" ry="1.3" fill="${F}" stroke="${L}" stroke-width=".45"/>${ln('M0 -11.6v2.4', S, .6, .7)}` + faceF(0, -16.8, 6.2, o.eyes);
   } else if (pose === 'walk') {
-    const tail = 'M-7 -8.4Q-12.4 -10 -11.8 -16Q-11.4 -18.6 -9.6 -18.4', legs = 'M-5 -6L-6 -.6M-2.4 -6L-1.8 -.6M3 -6L2.4 -.6M5.6 -6L6.6 -.6';
-    g += mjA(c, 'mja-tailw', ln(tail, L, 3.2) + ln(tail, F, 2.2)) + ln(legs, L, 2.8) + ln(legs, F, 1.9);
+    const tail = 'M-7 -8.4Q-12.4 -10 -11.8 -16Q-11.4 -18.6 -9.6 -18.4', leg = (d, cls) => G(cls, ln(d, L, 2.8) + ln(d, F, 1.9));
+    // bốn chân bước chéo nhịp: chân sau gần với chân trước xa đi cùng nhau
+    g += mjA(c, 'mja-tailw', ln(tail, L, 3.2) + ln(tail, F, 2.2)) + leg('M-2.4 -6L-2.1 -.6', 'mja-pawA') + leg('M5.6 -6L5.9 -.6', 'mja-pawB') + leg('M-5 -6L-5.3 -.6', 'mja-pawB') + leg('M3 -6L2.7 -.6', 'mja-pawA');
     g += `<ellipse cx="0" cy="-8.6" rx="8.2" ry="4.6" fill="${F}" stroke="${L}" stroke-width=".45"/><path d="M-6 -6.2Q0 -3.8 6 -6.2Q3 -4.6 0 -4.4Q-3 -4.6 -6 -6.2Z" fill="${S}" opacity=".7"/>`;
     g += `<path d="M5 -14.6L5.6 -19.8L8.2 -16.4Z" fill="${O}"/><path d="M8.8 -16.8L11.4 -20.2L11.8 -15.2Z" fill="${O}"/><circle cx="8.4" cy="-12.6" r="4.6" fill="${F}" stroke="${L}" stroke-width=".45"/><path d="M4.1 -13.8C5 -17.8 10.8 -18.4 12.6 -14.4C10.2 -15.8 6.4 -15.6 4.1 -13.8Z" fill="${O}"/>
       ${ln('M9.6 -12.6q.7-.8 1.4 0', N.eye, .55)}<circle cx="12.7" cy="-11.4" r=".55" fill="#ee8fa1"/><ellipse cx="10.4" cy="-10.6" rx=".9" ry=".55" fill="${N.pink}" opacity=".7"/>`;
@@ -305,7 +320,19 @@ function mjCat(c, x, y, s = 1, pose = 'sitB', o = {}){
   } else if (pose === 'held') {
     g += `<ellipse cx="0" cy="2" rx="6.4" ry="6" fill="${F}" stroke="${L}" stroke-width=".45"/><ellipse cx="-2.6" cy="5.6" rx="2" ry="1.4" fill="${F}" stroke="${L}" stroke-width=".45"/><ellipse cx="2.6" cy="5.6" rx="2" ry="1.4" fill="${F}" stroke="${L}" stroke-width=".45"/>` + faceF(0, -5.4, 6, o.eyes);
   }
-  return `<g transform="translate(${_r1(x)} ${_r1(y)}) scale(${_r1(s * f * 100) / 100} ${_r1(s * 100) / 100})">${mjA(c, 'mja-breath', g, 5)}</g>`;
+  return `<g transform="translate(${_r1(x)} ${_r1(y)}) scale(${_r1(s * f * 100) / 100} ${_r1(s * 100) / 100})">${pose === 'walk' ? G('mja-catstep', g) : mjA(c, 'mja-breath', g, 5)}</g>`;
+}
+// nhân vật đi tới theo hướng (gx,gy) rồi mờ đi và quay lại từ đầu (vòng lặp dài, xem mjaGo trong app.css)
+const mjGo = (gx, gy, inner) => `<g class="mja-go" style="--gx:${gx}px;--gy:${gy}px">${inner}</g>`;
+// các khóm cỏ nhỏ lay theo gió, mỗi khóm một nhịp
+function mjTufts(c, n, box, cols){
+  let s = '';
+  for (let i = 0; i < n; i++) {
+    const x = box[0] + c.r() * (box[2] - box[0]), y = box[1] + c.r() * (box[3] - box[1]), h = 3 + c.r() * 4 * (y / 250), col = cols[i % cols.length];
+    let d = ''; for (let k = -1; k <= 1; k++) d += `M${_r1(x + k * 1.2)} ${_r1(y)}q${_r1(k * .8 + .4)} ${_r1(-h * .6)} ${_r1(k * 2 + .8)} ${_r1(-h * (1 - Math.abs(k) * .25))}`;
+    s += mjA(c, 'mja-grass', `<path d="${d}" stroke="${col}" stroke-width=".9" fill="none" stroke-linecap="round" opacity=".55"/>`, 3.6);
+  }
+  return s;
 }
 // dấu chân người và dấu chân mèo dọc theo một đường (mảng điểm)
 function mjPrints(pts, kind = 'foot', col = '#0a1a3d', op = .7, sz = 1){
@@ -323,10 +350,10 @@ const mjPoly = P => 'M' + P.map(p => p.map(_r1).join(' ')).join('L');
 // dây leo có lá dọc theo đường cong
 function mjVine(P, col = '#1e4a3e'){
   let s = `<path d="${mjPoly(P)}" stroke="${col}" stroke-width="2" fill="none"/>`;
-  P.forEach(([x, y], i) => { if (i % 2) { const lx = x + (i % 4 ? 5 : -5); s += `<ellipse cx="${_r1(lx)}" cy="${_r1(y)}" rx="4.6" ry="2.4" fill="${i % 3 ? '#245a49' : '#2f6e58'}" transform="rotate(${i % 4 ? 30 : -30} ${_r1(lx)} ${_r1(y)})"/>`; } });
+  P.forEach(([x, y], i) => { if (i % 2) { const lx = x + (i % 4 ? 5 : -5); s += `<g class="mja mja-leaf" style="animation-delay:-${_r1((x * .37 + y * .11) % 6)}s"><ellipse cx="${_r1(lx)}" cy="${_r1(y)}" rx="4.6" ry="2.4" fill="${i % 3 ? '#245a49' : '#2f6e58'}" transform="rotate(${i % 4 ? 30 : -30} ${_r1(lx)} ${_r1(y)})"/></g>`; } });
   return s;
 }
-const mjMini = (x, y, col, z = 1) => `<g transform="translate(${_r1(x)} ${_r1(y)}) scale(${z})">${[0, 72, 144, 216, 288].map(a => `<circle cx="${_r1(Math.cos(a * Math.PI / 180) * 1.7)}" cy="${_r1(Math.sin(a * Math.PI / 180) * 1.7)}" r="1.3" fill="${col}"/>`).join('')}<circle r=".8" fill="#ffe08a"/></g>`;
+const mjMini = (x, y, col, z = 1) => `<g class="mja mja-grass" style="animation-delay:-${_r1((x * .29 + y * .13) % 4)}s"><g transform="translate(${_r1(x)} ${_r1(y)}) scale(${z})">${[0, 72, 144, 216, 288].map(a => `<circle cx="${_r1(Math.cos(a * Math.PI / 180) * 1.7)}" cy="${_r1(Math.sin(a * Math.PI / 180) * 1.7)}" r="1.3" fill="${col}"/>`).join('')}<circle r=".8" fill="#ffe08a"/></g></g>`;
 const mjMirror = (y, inner, op = .25) => `<g opacity="${op}" transform="translate(0 ${y * 2}) scale(1 -1)">${inner}</g>`;
 
 /* ---------- 21 cảnh, mỗi trạm một nơi khác nhau ----------
@@ -347,6 +374,7 @@ const MJ_SCENES = {
     const gy = 198; let bg = `<rect width="400" height="${gy}" fill="${mjLin(c, [[0, '#0b1430'], [1, '#132347']])}"/>` + mjS(c, 260, [0, 0, 400, gy], ['#16244a', '#1c2c56', '#0f1a39'], { ang:0, len:[10, 18], w:[5, 6.5], op:.5, jit:1, bend:0 });
     bg += mjGlow(c, 70, 74, 120, 'w', .65) + `<rect x="28" y="30" width="86" height="88" rx="3" fill="#0a1126"/><rect x="34" y="36" width="74" height="76" fill="${mjLin(c, [[0, '#ffe7a8'], [1, '#f2b25e']])}"/><path d="M71 36v76M34 74h74" stroke="#0a1126" stroke-width="3"/><path d="M38 40q12 20 4 70" stroke="#f6c98a" stroke-width="6" opacity=".6" fill="none"/>`;
     bg += `<path d="M34 112L108 112L190 ${gy}L-10 ${gy}Z" fill="${mjLin(c, [[0, '#ffd98a', .22], [1, '#ffd98a', 0]])}"/>`;
+    for (let x = 140; x < 400; x += 17 + c.r() * 14) mjDripAt(x, 75, gy + 4 + c.r() * 30);
     bg += `<path d="M130 58H410V74H130Z" fill="#081022"/><path d="M130 74H410" stroke="#2c4071" stroke-width="1.4"/>` + mjS(c, 30, [134, 76, 400, 84], ['#9fb8e6'], { ang:90, len:[2, 5], w:[1.2], op:.5, jit:2 });
     bg += `<rect y="${gy}" width="400" height="${250 - gy}" fill="${mjLin(c, [[0, '#121e40'], [1, '#090f24']])}"/>` + mjS(c, 120, [-10, gy, 410, 250], ['#1d2d58', '#26396a', '#0c152f'], { ang:0, len:[14, 50], w:[1.6, 2.8], op:.6, jit:2 }) + mjReflect(c, [[71, 74, 3]], gy, '#ffd98a', .4);
     bg += `<ellipse cx="320" cy="228" rx="60" ry="8" fill="#0a1330"/>` + mjS(c, 16, [270, 222, 370, 234], ['#3a5486'], { ang:0, len:[6, 14], w:[.8], op:.7, jit:2 });
@@ -381,7 +409,7 @@ const MJ_SCENES = {
     bg += mjGlow(c, 420, -20, 260, 'm', .55) + mjDots(c, 80, [0, 0, 400, 250], ['#cfe0ff', '#fff3cf'], [.6, 1.2], .5);
     const P = mjCurve([[20, 260], [90, 200], [170, 150], [272, 82]], 26), Q = mjCurve([[60, 270], [120, 220], [190, 170], [240, 112]], 22);
     const sh = (x, y, len, w) => `<ellipse cx="${x - len * .45}" cy="${y + len * .3}" rx="${len * .55}" ry="${w}" transform="rotate(32 ${x - len * .45} ${y + len * .3})" fill="#061031" opacity=".45"/>`;
-    return [bg, mjPrints(P.slice(0, -2), 'foot', '#061133', .85, 1.5) + mjPrints(Q.slice(0, -2), 'paw', '#061133', .8, 1.5) + sh(274, 94, 80, 8) + sh(238, 122, 32, 5) + mjCat(c, 236, 122, 1.5, 'walk') + mjGirl(c, 274, 94, 1.3, 'side', { wind:4 })];
+    return [bg, mjPrints(P.slice(0, -2), 'foot', '#061133', .85, 1.5) + mjPrints(Q.slice(0, -2), 'paw', '#061133', .8, 1.5) + mjGo(15, -10, sh(274, 94, 80, 8) + sh(238, 122, 32, 5) + mjCat(c, 236, 122, 1.5, 'walk') + mjGirl(c, 274, 94, 1.3, 'side', { wind:4, walk:true }))];
   },
   // Mặt nước xoáy: mặt nước tối cuộn sóng, trăng khuyết, cô gái nhỏ đứng giữa
   d14:c => {
@@ -433,7 +461,7 @@ const MJ_SCENES = {
     bg += mjS(c, 900, [-20, -20, 420, 270], ['#123330', '#1a443d', '#225448', '#0d2827'], { fa, len:[16, 38], w:[1.4, 2.2, 3], op:.8, jit:6, bend:.45 });
     bg += mjS(c, 300, [-20, -20, 420, 270], ['#3a7a63', '#4f9378', '#2e6852'], { fa, len:[12, 30], w:[.9, 1.4], op:.7, jit:6, bend:.5 });
     bg += mjGlow(c, 380, -10, 230, 'm', .4) + mjDots(c, 120, [0, 0, 400, 250], ['#e9f1ff', '#bcd6ff', '#9fc4ff'], [1.2, 2.4], .8) + mjFlies(c, 46, [0, 0, 400, 250]);
-    return [bg, `<ellipse cx="216" cy="150" rx="22" ry="5" fill="#04110f" opacity=".5" transform="rotate(30 216 150)"/>` + mjCat(c, 176, 180, 1.2, 'walk') + mjGirl(c, 230, 150, 1.15, 'side', { wind:10, hand:[-4.4, -28] })];
+    return [bg, mjTufts(c, 34, [0, 60, 400, 250], ['#2e6852', '#3a7a63', '#4f9378']) + mjGo(16, -6, `<ellipse cx="216" cy="150" rx="22" ry="5" fill="#04110f" opacity=".5" transform="rotate(30 216 150)"/>` + mjCat(c, 176, 180, 1.2, 'walk') + mjGirl(c, 230, 150, 1.15, 'side', { wind:10, hand:[-4.4, -28], walk:true }))];
   },
   // Tiếng gọi cửa: trước cánh cửa hé sáng, Moon ngồi chờ
   d80:c => {
@@ -596,8 +624,8 @@ const MJ_RAINY = { start:.84, d1:.86, d3:.9, d250:.86 };
 // full: bộ lọc chất liệu phủ lên mọi thứ (đẹp nhất, dùng cho ảnh xuất và phim). Trên web dùng lớp chất liệu tĩnh đặt chồng lên
 // (pha trộn soft-light) để các chuyển động CSS bên trong không bắt máy tính lại bộ lọc mỗi khung hình.
 function mjScene(id, seed = 7, full = false){
-  const k = 'mjs' + (++_mjN), c = mjCtx(seed, k); MJ_HOOD = !!MJ_RAINY[id]; const [bg, fg] = (MJ_SCENES[id] || MJ_SCENES.after)(c); MJ_HOOD = false;
-  return `<svg class="mj-scene" viewBox="0 0 400 250" role="img" aria-label="${esc(mjTitle(mjStop(id)))}" preserveAspectRatio="xMidYMid slice"><defs>${mjTexDefs(k, seed % 50)}${c.d}</defs>
+  const k = 'mjs' + (++_mjN), c = mjCtx(seed, k); MJ_HOOD = !!MJ_RAINY[id]; MJ_DRIP = MJ_HOOD ? [] : null; const [bg, fg] = (MJ_SCENES[id] || MJ_SCENES.after)(c), drip = MJ_DRIP && [...new Set(MJ_DRIP.map(p => p.join(',')))]; MJ_HOOD = false; MJ_DRIP = null;
+  return `<svg class="mj-scene" viewBox="0 0 400 250"${drip && drip.length ? ` data-drip="${drip.join(' ')}"` : ''} role="img" aria-label="${esc(mjTitle(mjStop(id)))}" preserveAspectRatio="xMidYMid slice"><defs>${mjTexDefs(k, seed % 50)}${c.d}</defs>
     ${full ? `<g filter="url(#${k}P)">` : '<g>'}<rect width="400" height="250" fill="${MJN.navy}"/><g class="mj-bg"><g filter="url(#${k}w)">${bg}</g></g><g class="mj-fg">${fg}</g><rect width="400" height="250" fill="url(#${k}v)"/></g>
     ${full ? '' : `<g pointer-events="none"><rect width="400" height="250" filter="url(#${k}B)" style="mix-blend-mode:soft-light" opacity=".55"/><rect width="400" height="250" filter="url(#${k}T)" style="mix-blend-mode:soft-light"/></g>`}</svg>`;
 }
