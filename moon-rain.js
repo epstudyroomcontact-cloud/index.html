@@ -51,13 +51,17 @@ function mjrStep(st, dt, t){
     if (p.st === 0) { p.a += dt; if (p.a >= p.grow) { p.st = 1; p.vy = 0; p.yy = p.y; } }
     else { p.vy += 300 * k * dt; p.yy += p.vy * dt; if (p.yy >= p.gy) { mjrSplash(st, { x:p.x, end:p.gy, z:1 }); p.st = 0; p.a = 0; p.grow = .5 + Math.random() * 1.6; } }
   }
+  // mưa bắn tung trên mặt ô
+  for (const u of st.um) { u.acc += dt * u.rate; while (u.acc > 1) { u.acc--; const a = Math.PI * (.12 + Math.random() * .76), lx = -Math.cos(a) * u.R, ly = -Math.sin(a) * u.R * .62, x = u.x + lx * u.co - ly * u.si, y = u.y + lx * u.si + ly * u.co;
+    for (let i = 0; i < 2; i++) st.bits.push({ x, y, vx:(lx / u.R * 30 + (Math.random() - .5) * 30) * k, vy:-(14 + Math.random() * 22) * k, age:0, dur:.22 + Math.random() * .14 }); } }
   for (const f of st.fog) { f.x += f.v * dt; if (f.x > st.w + f.r) f.x = -f.r; if (f.x < -f.r) f.x = st.w + f.r; }
 }
 // toạ độ tranh 400x250 -> điểm ảnh (tranh phủ kín khung, cắt bớt mép như preserveAspectRatio slice)
 function mjrDrips(st){
-  const sv = st.host.querySelector('svg.mj-scene'), raw = sv && sv.dataset.drip; st.dp = []; st.fog = [];
+  const sv = st.host.querySelector('svg.mj-scene'), raw = sv && sv.dataset.drip, ur = sv && sv.dataset.umb; st.dp = []; st.fog = []; st.um = [];
   const k = Math.max(st.w / 400, st.h / 250), ox = (st.w - 400 * k) / 2, oy = (st.h - 250 * k) / 2; st.k = k;
   if (raw) raw.split(' ').forEach(t => { const [x, y, g] = t.split(',').map(Number); if (isFinite(g)) st.dp.push({ x:ox + x * k, y:oy + y * k, gy:oy + g * k, st:0, a:Math.random() * 1.5, grow:.5 + Math.random() * 1.6, vy:0, yy:0 }); });
+  if (ur) ur.split(' ').forEach(t => { const [x, y, R, r] = t.split(',').map(Number); if (!isFinite(r)) return; const a = r * Math.PI / 180; st.um.push({ x:ox + x * k, y:oy + y * k, R:R * k, co:Math.cos(a), si:Math.sin(a), rate:R * .9, acc:0 }); });
   if (!st.map) for (let i = 0; i < 3; i++) st.fog.push({ x:Math.random() * st.w, y:st.h * (st.gy - .02 + i * .05), r:st.w * (.28 + Math.random() * .2), v:(6 + Math.random() * 8) * k * (i % 2 ? 1 : -1) * .4, a:.05 + Math.random() * .04 });
 }
 function mjrDraw(st){
@@ -94,7 +98,7 @@ function mjrKick(){ if (!MJR.raf && !mjrReduced() && MJR.list.size) MJR.raf = re
 function mjrAttach(host){
   if (host._mjr) return; const v = host.dataset.mjrain, cv = document.createElement('canvas');
   cv.className = 'mj-rainfx'; cv.setAttribute('aria-hidden', 'true'); host.appendChild(cv);
-  const st = { host, cv, ctx:cv.getContext('2d'), map:v === 'map', gy:+v || .8, drops:[], rip:[], bits:[], dp:[], fog:[], k:1, w:0, h:0, vis:true };
+  const st = { host, cv, ctx:cv.getContext('2d'), map:v === 'map', gy:+v || .8, drops:[], rip:[], bits:[], dp:[], fog:[], um:[], k:1, w:0, h:0, vis:true };
   host._mjr = st; MJR.list.add(st); mjrSize(st); mjrDrips(st);
   mjrIO && mjrIO.observe(host); mjrRO && mjrRO.observe(host);
   if (mjrReduced()) mjrStill(st); else mjrKick();

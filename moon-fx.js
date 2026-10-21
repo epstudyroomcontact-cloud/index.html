@@ -4,6 +4,7 @@
    - data-mjburst="1" : trạm vừa mở lần đầu, chạy thêm một màn "mở trạm" (vòng sáng loé ra và bụi sao bung).
    - Trạm gặp lại Moon (finale) là màn lớn nhất: ánh vàng lan ra, trái tim bằng bụi sao, đom đóm bay lên,
      cánh hoa rơi và sao băng, sau đó giữ nhịp sáng ấm.
+   - Thêm: sương mù trôi (fog), hơi mưa (haze), tia sáng xiên (rays), mây trôi che trăng (clouds), lá rơi (leaves), hạt bồ công anh (seeds).
    - Máy bật "giảm chuyển động" thì chỉ vẽ một khung đứng yên (không có màn mở trạm). Ngoài màn hình thì dừng vẽ.
    ========================================================= */
 const MJF = { list:new Set(), raf:0, last:0 };
@@ -11,9 +12,9 @@ const mjfReduced = () => !!(window.matchMedia && matchMedia('(prefers-reduced-mo
 const mjfIO = 'IntersectionObserver' in window ? new IntersectionObserver(es => { es.forEach(e => { const st = e.target._mjf; if (st) st.vis = e.isIntersecting; }); mjfKick(); }) : null;
 const mjfR = (a, b) => a + Math.random() * (b - a);
 const MJ_FX = {
-  start:'', d1:'', d3:'', d7:'motes', d10:'fireflies', d14:'ripples,glints', d21:'starfall', d30:'glints,meteors', d45:'motes', d60:'fireflies,stars',
-  d80:'motes,fireflies', d100:'ripples,fireflies', d130:'petals', d200:'stars,meteors', d250:'fireflies', d300:'ripples,fireflies', d365:'finale',
-  d400:'dreamdust', d450:'dreamdust,stars', after:'meteorshower,stars'
+  start:'fog,haze', d1:'fog,haze', d3:'fog,leaves,haze', d7:'clouds,motes', d10:'fireflies,fog', d14:'ripples,glints,fog', d21:'starfall,clouds', d30:'glints,meteors,clouds',
+  d45:'motes,rays', d60:'fireflies,stars,seeds', d80:'motes,fireflies,fog', d100:'ripples,fireflies,fog', d130:'petals,rays', d200:'stars,meteors',
+  d250:'fireflies,rays,leaves,fog', d300:'ripples,fireflies,seeds', d365:'finale', d400:'dreamdust,rays', d450:'dreamdust,stars,clouds', after:'meteorshower,stars,fog'
 };
 
 // ----- từng loại hạt: make tạo hạt, step cập nhật, draw vẽ -----
@@ -40,6 +41,30 @@ const MJF_KIND = {
   dreamdust:{ n:st => st.w * st.h / 3500, make:(st, first) => ({ x:mjfR(0, st.w), y:first ? mjfR(0, st.h) : st.h + 4, v:mjfR(4, 9), p:mjfR(0, 9), r:mjfR(.6, 1.6), c:Math.random() < .5 ? '255,230,170' : '220,200,255' }),
     step:(q, st, dt, t) => { q.y -= q.v * dt; q.x += Math.sin(t * .6 + q.p) * 5 * dt; if (q.y < -4) Object.assign(q, MJF_KIND.dreamdust.make(st)); },
     draw:(g, q, st, t) => { const a = .3 + .5 * Math.abs(Math.sin(t + q.p)); mjfGlow(g, q.x, q.y, q.r * 4, `rgba(${q.c},${(a * .3).toFixed(3)})`); g.fillStyle = `rgba(${q.c},${a.toFixed(3)})`; g.beginPath(); g.arc(q.x, q.y, q.r * .7, 0, 7); g.fill(); } },
+  // sương mù: vài dải mờ trôi chậm sát mặt đất và lưng chừng
+  fog:{ n:() => 5, make:st => ({ x:mjfR(-st.w * .2, st.w * 1.2), y:st.h * mjfR(.55, .98), r:st.w * mjfR(.22, .42), v:mjfR(4, 10) * (Math.random() < .5 ? -1 : 1), p:mjfR(0, 9) }),
+    step:(q, st, dt) => { q.x += q.v * dt * st.w / 700; if (q.x > st.w + q.r) q.x = -q.r; if (q.x < -q.r) q.x = st.w + q.r; },
+    draw:(g, q, st, t) => { const a = .045 + .025 * Math.sin(t * .3 + q.p); g.save(); g.translate(q.x, q.y); g.scale(1, .22); mjfGlow(g, 0, 0, q.r, `rgba(170,190,230,${a.toFixed(3)})`); g.restore(); } },
+  // hơi mưa bốc lên quanh đèn và cửa sổ: lớp mờ rất nhẹ phía trên
+  haze:{ n:() => 3, make:st => ({ x:mjfR(0, st.w), y:st.h * mjfR(.1, .5), r:st.w * mjfR(.3, .5), v:mjfR(2, 5), p:mjfR(0, 9) }),
+    step:(q, st, dt) => { q.x += q.v * dt * st.w / 700; if (q.x > st.w + q.r) q.x = -q.r; },
+    draw:(g, q, st, t) => { g.save(); g.translate(q.x, q.y); g.scale(1, .35); mjfGlow(g, 0, 0, q.r, `rgba(150,170,215,${(.03 + .015 * Math.sin(t * .4 + q.p)).toFixed(3)})`); g.restore(); } },
+  // tia sáng xiên chiếu xuống, khẽ đổi độ sáng và lệch chậm
+  rays:{ n:() => 4, make:st => ({ x:mjfR(st.w * .15, st.w * .9), w:st.w * mjfR(.04, .09), p:mjfR(0, 9), sk:mjfR(.25, .4) }),
+    step:() => {}, draw:(g, q, st, t) => { const a = .035 + .03 * Math.sin(t * .35 + q.p), dx = Math.sin(t * .08 + q.p) * st.w * .02, x = q.x + dx, gr = g.createLinearGradient(0, 0, 0, st.h);
+      gr.addColorStop(0, `rgba(255,236,190,${a.toFixed(3)})`); gr.addColorStop(1, 'rgba(255,236,190,0)'); g.fillStyle = gr; g.beginPath(); g.moveTo(x, 0); g.lineTo(x + q.w, 0); g.lineTo(x + q.w + st.h * q.sk, st.h); g.lineTo(x + st.h * q.sk - q.w * .6, st.h); g.closePath(); g.fill(); } },
+  // mây mỏng trôi ngang bầu trời, có lúc che bớt trăng
+  clouds:{ over:true, n:() => 4, make:(st, first) => ({ x:first ? mjfR(0, st.w) : -st.w * .3, y:st.h * mjfR(.04, .36), r:st.w * mjfR(.12, .22), v:mjfR(5, 11), p:mjfR(0, 9) }),
+    step:(q, st, dt) => { q.x += q.v * dt * st.w / 700; if (q.x > st.w + q.r * 1.6) Object.assign(q, MJF_KIND.clouds.make(st)); },
+    draw:(g, q, st, t) => { g.save(); g.translate(q.x, q.y); g.scale(1.6, .42); for (let k = -1; k <= 1; k++) mjfGlow(g, k * q.r * .45, Math.abs(k) * q.r * .12, q.r * (1 - Math.abs(k) * .25), 'rgba(22,32,66,.55)'); g.restore(); } },
+  // lá cây rơi chao nghiêng theo gió
+  leaves:{ over:true, n:st => Math.max(6, st.w * st.h / 16000), make:(st, first) => ({ x:mjfR(-20, st.w), y:first ? mjfR(0, st.h) : -12, v:mjfR(14, 26), p:mjfR(0, 9), s:mjfR(2.6, 4.4) * st.h / 250, rot:mjfR(0, 6), c:Math.random() < .5 ? '#2f6e58' : '#1f4f45' }),
+    step:(q, st, dt, t) => { q.y += q.v * dt; q.x += (Math.sin(t * 1.1 + q.p) * 22 + 12) * dt; q.rot += Math.sin(t + q.p) * 2.4 * dt; if (q.y > st.h + 10) Object.assign(q, MJF_KIND.leaves.make(st)); },
+    draw:(g, q, st, t) => { g.save(); g.translate(q.x, q.y); g.rotate(q.rot); g.scale(1, .35 + .6 * Math.abs(Math.sin(t * 1.7 + q.p))); g.fillStyle = q.c; g.beginPath(); g.moveTo(-q.s, 0); g.quadraticCurveTo(0, -q.s * .7, q.s, 0); g.quadraticCurveTo(0, q.s * .7, -q.s, 0); g.fill(); g.restore(); } },
+  // hạt bồ công anh bay lơ lửng
+  seeds:{ n:st => Math.max(8, st.w * st.h / 12000), make:(st, first) => ({ x:first ? mjfR(0, st.w) : -8, y:mjfR(st.h * .2, st.h * .9), v:mjfR(8, 16), p:mjfR(0, 9), s:mjfR(1.6, 2.6) * st.h / 250 }),
+    step:(q, st, dt, t) => { q.x += q.v * dt; q.y += Math.sin(t * .9 + q.p) * 8 * dt - 2 * dt; if (q.x > st.w + 8) Object.assign(q, MJF_KIND.seeds.make(st)); },
+    draw:(g, q, st, t) => { g.strokeStyle = 'rgba(235,240,255,.5)'; g.lineWidth = .6; for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2 + t * .3; g.beginPath(); g.moveTo(q.x, q.y); g.lineTo(q.x + Math.cos(a) * q.s, q.y + Math.sin(a) * q.s); g.stroke(); } g.fillStyle = 'rgba(255,255,255,.7)'; g.beginPath(); g.arc(q.x, q.y, .7, 0, 7); g.fill(); } },
   meteors:{ n:() => 1, make:st => mjfMeteor(st, mjfR(3, 7)), step:(q, st, dt) => mjfMeteorStep(q, st, dt, () => mjfR(4, 9)), draw:(g, q) => mjfMeteorDraw(g, q) },
   meteorshower:{ n:() => 7, make:st => mjfMeteor(st, mjfR(0, 4)), step:(q, st, dt) => mjfMeteorStep(q, st, dt, () => mjfR(.4, 2.6)), draw:(g, q) => mjfMeteorDraw(g, q) }
 };
@@ -93,8 +118,10 @@ function mjfFinaleDraw(g, st, dt, t){
 function mjfSize(st){ const r = st.host.getBoundingClientRect(), d = Math.min(2, window.devicePixelRatio || 1); st.w = Math.max(1, r.width); st.h = Math.max(1, r.height); st.cv.width = Math.round(st.w * d); st.cv.height = Math.round(st.h * d); st.ctx.setTransform(d, 0, 0, d, 0, 0); }
 function mjfFill(st){ st.parts = []; for (const k of st.kinds) { const K = MJF_KIND[k]; if (!K) continue; const n = Math.round(K.n(st)); for (let i = 0; i < n; i++) st.parts.push([K, K.make(st, true)]); } }
 function mjfFrame(st, dt, t){
-  const g = st.ctx; g.clearRect(0, 0, st.w, st.h); g.globalCompositeOperation = 'lighter';
-  for (const [K, q] of st.parts) { if (dt) K.step(q, st, dt, t); K.draw(g, q, st, t); }
+  const g = st.ctx; g.clearRect(0, 0, st.w, st.h);
+  // lớp tối (mây, lá) vẽ thường trước, lớp sáng cộng màu sau
+  g.globalCompositeOperation = 'source-over'; for (const [K, q] of st.parts) if (K.over) { if (dt) K.step(q, st, dt, t); K.draw(g, q, st, t); }
+  g.globalCompositeOperation = 'lighter'; for (const [K, q] of st.parts) if (!K.over) { if (dt) K.step(q, st, dt, t); K.draw(g, q, st, t); }
   if (st.fin) mjfFinaleDraw(g, st, dt, t);
   g.globalCompositeOperation = 'source-over'; if (st.burst) mjfBurstDraw(g, st, dt);
 }
