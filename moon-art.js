@@ -219,7 +219,7 @@ function mjGirl(c, x, y, s = 1, pose = 'back', o = {}){
     if (hood) return P(`M${X(-6.6)} ${Y(5.4)}C${X(-8.2)} ${Y(-.6)} ${X(-6.2)} ${Y(-7.6)} ${X(.4)} ${Y(-8)}C${X(5.4)} ${Y(-8)} ${X(7.4)} ${Y(-3.8)} ${X(7)} ${Y(.6)}C${X(6.8)} ${Y(3.2)} ${X(6)} ${Y(4.8)} ${X(4.6)} ${Y(5.6)}Q${X(-1)} ${Y(7.2)} ${X(-6.6)} ${Y(5.4)}Z`, CO)
       + P(`M${X(-6.6)} ${Y(5.4)}C${X(-8.2)} ${Y(-.6)} ${X(-6.2)} ${Y(-7.6)} ${X(.4)} ${Y(-8)}C${X(-3)} ${Y(-5)} ${X(-4.4)} ${Y(1)} ${X(-3.4)} ${Y(6.4)}Z`, COS, .6)
       + P(`M${X(4.6)} ${Y(-3.8)}C${X(7.2)} ${Y(-3.6)} ${X(7.8)} ${Y(-.6)} ${X(7.6)} ${Y(1.8)}Q${X(7.4)} ${Y(4.4)} ${X(5)} ${Y(4.8)}C${X(3.4)} ${Y(3)} ${X(3.2)} ${Y(-1.6)} ${X(4.6)} ${Y(-3.8)}Z`, K) + P(`M${X(7.4)} ${Y(-.2)}L${X(8.4)} ${Y(1.2)}L${X(7.4)} ${Y(1.6)}Z`, K)
-      + `<ellipse cx="${X(6)}" cy="${Y(2.4)}" rx="1.1" ry=".7" fill="#f29aa8" opacity=".55"/>` + ln(`M${X(4.2)} ${Y(-3.4)}C${X(3)} ${Y(1)} ${X(3.8)} ${Y(5)} ${X(2.4)} ${Y(9)}`, HR, 1.4) + ln(`M${X(-2)} ${Y(-7.2)}Q${X(2.6)} ${Y(-8.2)} ${X(5.4)} ${Y(-5.6)}`, COL, 1, .55) + ln(`M${X(4.4)} ${Y(-4.4)}Q${X(6)} ${Y(-4)} ${X(7)} ${Y(-2)}`, COS, .8, .7);
+      + `<ellipse cx="${X(6)}" cy="${Y(2.4)}" rx="1.1" ry=".7" fill="#f29aa8" opacity=".55"/>` + mjA(c, 'mja-blink', `<ellipse cx="${X(6.3)}" cy="${Y(.3)}" rx=".5" ry=".66" fill="#2a1a20"/>`, 5.2) + ln(`M${X(-2)} ${Y(-7.2)}Q${X(2.6)} ${Y(-8.2)} ${X(5.4)} ${Y(-5.6)}`, COL, 1, .55) + ln(`M${X(4.4)} ${Y(-4.4)}Q${X(6)} ${Y(-4)} ${X(7)} ${Y(-2)}`, COS, .8, .7);
     const hair = P(`M${X(4.6)} ${Y(-3.6)}C${X(4.4)} ${Y(-7.6)} ${X(-2.6)} ${Y(-8.4)} ${X(-5.4)} ${Y(-4.6)}C${X(-7.2)} ${Y(-1.6)} ${X(-6.8)} ${Y(3)} ${X(-7.2)} ${Y(len * .35)}C${X(-7.6)} ${Y(len * .65)} ${X(-8.4)} ${Y(len * .86)} ${X(-9.6)} ${Y(len)}Q${X(-7.4)} ${Y(len * .98)} ${X(-6.4)} ${Y(len * .88)}Q${X(-5.8)} ${Y(len * 1.02)} ${X(-4.2)} ${Y(len * .94)}C${X(-3.4)} ${Y(len * .6)} ${X(-2.2)} ${Y(len * .3)} ${X(-1.6)} ${Y(3)}C${X(-1)} ${Y(.4)} ${X(.8)} ${Y(-2)} ${X(2.4)} ${Y(-2.6)}Q${X(3.6)} ${Y(-2.6)} ${X(4.6)} ${Y(-3.6)}Z`, HR)
       + ln(`M${X(-4.8)} ${Y(-2)}C${X(-5.6)} ${Y(len * .3)} ${X(-6)} ${Y(len * .6)} ${X(-7.4)} ${Y(len * .9)}M${X(-2.8)} ${Y(1)}C${X(-3.2)} ${Y(len * .4)} ${X(-3.6)} ${Y(len * .65)} ${X(-4.6)} ${Y(len * .88)}`, HM, .7, .9) + ln(`M${X(-3.6)} ${Y(-6.2)}Q${X(.8)} ${Y(-8)} ${X(3.6)} ${Y(-5.4)}`, HL, .9, .75);
     return wind(hy, hair) + P(`M${X(-3.6)} ${Y(-.6)}C${X(-3.8)} ${Y(-5.6)} ${X(-.6)} ${Y(-6.4)} ${X(1.6)} ${Y(-6)}C${X(4.4)} ${Y(-5.6)} ${X(5.6)} ${Y(-3.6)} ${X(5.6)} ${Y(-1.4)}L${X(6.6)} ${Y(.6)}Q${X(6.4)} ${Y(1.2)} ${X(5.6)} ${Y(1.2)}Q${X(5.8)} ${Y(3.4)} ${X(4.2)} ${Y(4.6)}C${X(2.4)} ${Y(5.8)} ${X(-.4)} ${Y(5.8)} ${X(-2)} ${Y(4.4)}C${X(-3.2)} ${Y(3.2)} ${X(-3.6)} ${Y(1.6)} ${X(-3.6)} ${Y(-.6)}Z`, K)
@@ -244,7 +244,8 @@ function mjGirl(c, x, y, s = 1, pose = 'back', o = {}){
   } else if (pose === 'side') {
     SH = [.6, -34.2];
     const lg = o.legs !== false;
-    g += arm([-1.6, -34.4], [-3.6, -21], true);
+    // tay xa (sau thân) cầm ô khi tay gần đang bế Moon hay làm việc khác, để mỗi tay mọc từ một vai
+    g += arm([-1.6, -34.4], umbHand || [-3.6, -21], true);
     if (lg) g += wk ? G('mja-legB', P('M-3.6 -13.4H-.8V-8H-3.6Z', PA) + bootS(-2.2)) + G('mja-legA', P('M.6 -13.4H3.4V-8H.6Z', PA) + bootS(2))
       : P('M-3.6 -12.4H-.8V-8H-3.6ZM.6 -12.4H3.4V-8H.6Z', PA) + bootS(-2.2) + bootS(2);
     if (hood) { mjDripAt(-9.4, -12.8); mjDripAt(8.2, -13.2); }
@@ -252,16 +253,15 @@ function mjGirl(c, x, y, s = 1, pose = 'back', o = {}){
     if (!hood) g += P('M-5.2 -37.8Q-7.8 -33.6 -5 -31.6Q-3.4 -33.6 -1.4 -36.4Z', COS);
     g += mjA(c, 'mja-look', headSide(1.2, -43.6, 20), 9);
     if (o.cat) g += mjCat(c, 4.6, -27, .55, 'held', { eyes:o.eyes }) + arm(SH, [7.2, -25.4]);
-    if (umbHand) g += arm(SH, umbHand);
     if (!o.cat || o.hand) g += wk && !o.hand ? G('mja-armS', arm(SH, [3.6, -21])) : arm(SH, o.hand || [3.6, -21]);
   } else if (pose === 'kneel') {
     SH = [2.6, -20.6];
     g += bootS(7.4).replace(/V-8\.6/g, 'V-4.6');
+    if (umbHand) g += arm([-.6, -21.4], umbHand, true);
     g += P('M-8.8 0C-9.6 -8 -7.6 -16 -3.6 -22.6Q1 -25.4 5.4 -22.4C9 -16 10 -8 9.6 -.6Q0 1 -8.8 0Z', CO) + P('M-8.8 0C-9.6 -8 -7.6 -16 -3.6 -22.6Q-2 -23.6 -.6 -24C-3.6 -17 -4.6 -8 -4.2 .4Z', COS, .75) + ln('M-8.6 -.2Q0 1.2 9.4 -.6', COD, .8, .6) + coatTex([-6, -22, 8, -2]);
     if (!hood) g += P('M-2.4 -23.6Q-5.4 -19.6 -2.6 -17.6Q-1 -19.8 1.2 -22.4Z', COS);
     g += headSide(3.4, -29.6, 18);
     if (o.cat) g += mjCat(c, 6.4, -13.4, .6, 'held', { eyes:o.eyes }) + arm(SH, [9.4, -10.4]);
-    if (umbHand) g += arm(SH, umbHand);
     if (!o.cat || o.hand) g += arm(SH, o.hand || [8.6, -9]);
   } else if (pose === 'sit') {
     g += arm([-4.6, -18.6], [-8.6, -4.6], true) + arm([4.6, -18.6], [8.6, -4.6], true);
@@ -367,7 +367,7 @@ const MJ_SCENES = {
     bg += mjReflect(c, T.lights, gy) + `<path d="M-5 ${gy + 1}H405" stroke="#2c4071" stroke-width="2" opacity=".8"/>` + mjLampN(c, 300, gy + 10, 136, { cone:58, R:100 }) + mjReflect(c, [[300, gy - 124, 2.2]], gy + 10, '#ffe3a0', .5);
     bg += `<ellipse cx="236" cy="218" rx="70" ry="10" fill="#0b1532"/>` + mjS(c, 30, [170, 210, 300, 226], ['#2a4278', '#ffd98a'], { ang:0, len:[6, 16], w:[1], op:.6, jit:2, in:(x, y) => ((x - 236) / 70) ** 2 + ((y - 218) / 10) ** 2 < .8 });
     const id = c.id(); c.def(`<clipPath id="${id}"><ellipse cx="236" cy="218" rx="70" ry="10"/></clipPath>`);
-    const girl = sh => mjGirl(c, 250, 206, 1.4, 'back', { umb:{ hand:[5.6, -41.6], R:30, rot:-6, lights:true, shaft:.82 }, hand:[5.6, -41.6], shadow:sh });
+    const girl = sh => mjGirl(c, 250, 206, 1.4, 'back', { umb:{ hand:[8.6, -47.4], R:30, rot:-6, lights:true, shaft:.6 }, hand:[8.6, -47.4], shadow:sh });
     return [bg, `<g clip-path="url(#${id})">${mjMirror(206, girl(false), .3)}</g>${girl(true)}`];
   },
   // Đêm mưa ấy: hộp các-tông dưới mái hiên, Moon bé xíu ướt mưa, cô gái quỳ xuống che ô
@@ -381,7 +381,7 @@ const MJ_SCENES = {
     bg += `<ellipse cx="320" cy="228" rx="60" ry="8" fill="#0a1330"/>` + mjS(c, 16, [270, 222, 370, 234], ['#3a5486'], { ang:0, len:[6, 14], w:[.8], op:.7, jit:2 });
     const box = `<path d="M118 ${gy}V${gy - 32}H180V${gy}Z" fill="#6a5442"/><path d="M118 ${gy - 32}L104 ${gy - 44}L126 ${gy - 40}Z" fill="#7d6450"/><path d="M180 ${gy - 32}L196 ${gy - 42}L176 ${gy - 39}Z" fill="#5d4838"/>
       <path d="M118 ${gy - 32}H180" stroke="#8d735c" stroke-width="1.4"/>${mjS(c, 24, [120, gy - 30, 178, gy - 2], ['#7a604c', '#57432f'], { ang:90, len:[6, 14], w:[1.4], op:.5, jit:6 })}<path d="M150 ${gy - 26}v18" stroke="#4e3c2e" stroke-width="1" opacity=".7"/>`;
-    return [bg, mjGlow(c, 149, gy - 40, 34, 'w', .5) + mjCat(c, 149, gy - 18, 1.2, 'sitF', { eyes:'open', shadow:false, tail:'M4 -1Q9 -1 9 -4' }) + box + mjGirl(c, 212, gy, 1.6, 'kneel', { flip:true, hand:[14, -18.6], umb:{ hand:[16.4, -34.4], R:28, rot:40, shaft:.5, handle:false } })];
+    return [bg, mjGlow(c, 149, gy - 40, 34, 'w', .5) + mjCat(c, 149, gy - 18, 1.2, 'sitF', { eyes:'open', shadow:false, tail:'M4 -1Q9 -1 9 -4' }) + box + mjGirl(c, 212, gy, 1.6, 'kneel', { flip:true, hand:[14, -18.6], umb:{ hand:[16.6, -23], R:28, rot:40, shaft:1.1, handle:false } })];
   },
   // Chiếc ô cong gọng: ôm Moon đi về dưới mưa, ô nghiêng về phía em
   d3:c => {
@@ -389,7 +389,7 @@ const MJ_SCENES = {
     bg += T.svg + `<rect y="${gy}" width="400" height="${250 - gy}" fill="${mjLin(c, [[0, '#111c3c'], [1, '#080f24']])}"/>` + mjS(c, 150, [-10, gy, 410, 250], ['#1a2a52', '#22355f', '#0c152f'], { ang:0, len:[14, 54], w:[1.6, 2.8], op:.6, jit:2 }) + mjReflect(c, T.lights, gy, '#ffcf73', .35);
     bg += mjLampN(c, 60, gy + 6, 118, { R:70 }) + mjReflect(c, [[60, gy - 110, 1.6]], gy + 6, '#ffe3a0', .45);
     [[120, 222, 34], [300, 236, 40], [360, 206, 22]].forEach(([x, y, w]) => { bg += `<ellipse cx="${x}" cy="${y}" rx="${w}" ry="${w * .16}" fill="#0a1330"/><ellipse cx="${x - w * .2}" cy="${y}" rx="${w * .3}" ry="${w * .06}" fill="none" stroke="#5a78b3" stroke-width=".7" opacity=".7"/><ellipse cx="${x + w * .3}" cy="${y + 1}" rx="${w * .18}" ry="${w * .04}" fill="none" stroke="#5a78b3" stroke-width=".6" opacity=".6"/>`; });
-    return [bg, mjGo(18, 0, mjGirl(c, 214, 224, 1.6, 'side', { cat:true, umb:{ hand:[11.4, -50.4], R:30, rot:22, bent:true, shaft:.5, handle:false }, wind:6, walk:true }))];
+    return [bg, mjGo(18, 0, mjGirl(c, 214, 224, 1.6, 'side', { cat:true, umb:{ hand:[10.4, -31.6], R:30, rot:22, bent:true, shaft:1.25, handle:false }, wind:6, walk:true }))];
   },
   // Ngọn đèn ở góc phố: mưa tạnh, trăng ló khỏi mây, Moon ngồi nhìn trăng
   d7:c => {
@@ -428,7 +428,7 @@ const MJ_SCENES = {
   d21:c => {
     let bg = `<rect width="400" height="250" fill="${mjRad(c, [[0, '#121a3a'], [.6, '#080d22'], [1, '#04060f']], .5, .45, .7)}"/>` + mjStarfield(c, 320, [0, 0, 400, 250], { sz:[.4, 1.3], sparks:14, op:.7 }) + mjGlow(c, 200, 120, 120, 'w', .45);
     let drip = ''; for (let i = 0; i < 9; i++) { const a = Math.PI * (.04 + i * .115), px = 200 + Math.cos(a) * 56, py = 128 - Math.sin(a) * 18 + 4; for (let k = 0; k < 6 + c.r() * 8; k++) { const yy = py + k * (4 + c.r() * 3); drip += mjGlow(c, px + (c.r() - .5) * 2, yy, 4, 'f', .7 - k * .05) + `<circle cx="${_r1(px)}" cy="${_r1(yy)}" r="${_r1(.5 + c.r() * .8)}" fill="#fff3c0"/>`; } }
-    return [bg, drip + mjGirl(c, 196, 222, 1.45, 'back', { umb:{ hand:[5.6, -41.6], R:40, rot:-4, lights:true, stars:18, shaft:.62, handle:false }, hand:[5.6, -41.6] }) + mjCat(c, 236, 222, 1.35, 'sitB')];
+    return [bg, drip + mjGirl(c, 196, 222, 1.45, 'back', { umb:{ hand:[8.6, -47.4], R:40, rot:-4, lights:true, stars:18, shaft:.5, handle:false }, hand:[8.6, -47.4] }) + mjCat(c, 236, 222, 1.35, 'sitB')];
   },
   // Đêm trăng tròn: trăng tròn trên biển, đường trăng lấp lánh, hai bóng nhỏ đi trên đó
   d30:c => {
@@ -462,7 +462,7 @@ const MJ_SCENES = {
     bg += mjS(c, 900, [-20, -20, 420, 270], ['#123330', '#1a443d', '#225448', '#0d2827'], { fa, len:[16, 38], w:[1.4, 2.2, 3], op:.8, jit:6, bend:.45 });
     bg += mjS(c, 300, [-20, -20, 420, 270], ['#3a7a63', '#4f9378', '#2e6852'], { fa, len:[12, 30], w:[.9, 1.4], op:.7, jit:6, bend:.5 });
     bg += mjGlow(c, 380, -10, 230, 'm', .4) + mjDots(c, 120, [0, 0, 400, 250], ['#e9f1ff', '#bcd6ff', '#9fc4ff'], [1.2, 2.4], .8) + mjFlies(c, 46, [0, 0, 400, 250]);
-    return [bg, mjTufts(c, 34, [0, 60, 400, 250], ['#2e6852', '#3a7a63', '#4f9378']) + mjGo(16, -6, `<ellipse cx="216" cy="150" rx="22" ry="5" fill="#04110f" opacity=".5" transform="rotate(30 216 150)"/>` + mjCat(c, 176, 180, 1.2, 'walk') + mjGirl(c, 230, 150, 1.15, 'side', { wind:10, hand:[-4.4, -28], walk:true }))];
+    return [bg, mjTufts(c, 34, [0, 60, 400, 250], ['#2e6852', '#3a7a63', '#4f9378']) + mjGo(16, -6, `<ellipse cx="216" cy="150" rx="22" ry="5" fill="#04110f" opacity=".5" transform="rotate(30 216 150)"/>` + mjCat(c, 176, 180, 1.2, 'walk') + mjGirl(c, 230, 150, 1.15, 'side', { wind:10, walk:true }))];
   },
   // Tiếng gọi cửa: trước cánh cửa hé sáng, Moon ngồi chờ
   d80:c => {
