@@ -136,7 +136,12 @@ async function tabOverview(){
 
 /* ---------------- Giao diện & Menu ---------------- */
 let adminNav = [], adminSocial = [], adminVideos = [];
-const HOME_SECTIONS = [['hero', 'Khối chào (hero)'], ['stats', 'Thẻ thống kê'], ['today', 'Buổi live hôm nay'], ['blog', 'Bài viết mới'], ['shop', 'Sản phẩm nổi bật'], ['reviews', 'Đánh giá'], ['challenge', 'Đăng ký Challenge 30 ngày'], ['thanks', 'Lời cảm ơn người đồng hành']];
+const HOME_SECTIONS = [['about', 'Giới thiệu chủ kênh'], ['hero', 'Khối chào (hero)'], ['stats', 'Thẻ thống kê'], ['today', 'Buổi live hôm nay'], ['blog', 'Bài viết mới'], ['shop', 'Sản phẩm nổi bật'], ['thanks', 'Lời cảm ơn người đồng hành'], ['challenge', 'Đăng ký Challenge 30 ngày'], ['faq', 'Câu hỏi thường gặp & đánh giá']];
+const homeOn = k => { const hs = branding.homeSections || {}; return k === 'faq' && hs.faq === undefined ? hs.about !== false : hs[k] !== false; };
+function homeRows(order){
+  const lab = Object.fromEntries(HOME_SECTIONS);
+  return order.map((k, i) => `<div class="nav-edit" data-hk="${k}"><span class="row" style="gap:2px;flex-wrap:nowrap"><button type="button" class="btn ghost icon sm" data-act="homeMove" data-i="${i}" data-d="-1" aria-label="up">${ic('up', 'sm')}</button><button type="button" class="btn ghost icon sm" data-act="homeMove" data-i="${i}" data-d="1" aria-label="down">${ic('down', 'sm')}</button></span><label class="row small" style="font-weight:600;flex:1"><input type="checkbox" data-hs="${k}" ${homeOn(k) ? 'checked' : ''}> ${lab[k]}</label></div>`).join('');
+}
 const SWATCHES = ['#ff3d9a', '#ff2d55', '#ff4fd8', '#b45cff', '#4d7cff', '#00d4e6', '#2ee66b', '#ffb21f'];
 function imgField(label, id, v, hint){ return `<div class="field"><label class="label" for="${id}">${label}</label><div class="row" style="flex-wrap:nowrap"><input class="input" id="${id}" value="${esc(v || '')}" placeholder="https://… hoặc bấm Chọn ảnh"><button type="button" class="btn secondary" data-act="pickInto" data-target="${id}">${ic('image', 'sm')} Chọn ảnh</button></div>${hint ? `<div class="hint">${hint}</div>` : ''}</div>`; }
 function tabSite(){
@@ -147,7 +152,7 @@ function tabSite(){
       <div class="f2 mt-s">${imgField('Logo (ảnh vuông)', 'ad-logo', branding.logoUrl, 'Để trống = chữ viết tắt tên trang')}${imgField('Ảnh bìa trang chủ (hero)', 'ad-mascot', branding.mascotUrl, 'Để trống = tranh phong cảnh vẽ sẵn. Bạn cũng có thể đổi ảnh của từng trang bằng nút ✏️ (sửa trực tiếp)')}</div>
       <div class="row mt"><button class="btn primary" data-act="saveBrand">Lưu thương hiệu</button></div>`)}
     ${aCard('Menu điều hướng (thanh bên)', `<div id="nav-list">${navRows()}</div><div class="row mt"><button class="btn secondary sm" data-act="navAddLink">${ic('plus', 'sm')} Thêm liên kết ngoài</button><button class="btn primary" data-act="saveNav">Lưu menu</button></div><p class="hint">Bỏ tích để ẩn mục. Ô tên để trống = dùng tên mặc định theo ngôn ngữ của khách.</p>`)}
-    ${aCard('Các khối ở trang chủ', `<div class="grid g2">${HOME_SECTIONS.map(([k, l]) => `<label class="row small" style="font-weight:600"><input type="checkbox" data-hs="${k}" ${(branding.homeSections || {})[k] !== false ? 'checked' : ''}> ${l}</label>`).join('')}</div><div class="row mt"><button class="btn primary" data-act="saveHome">Lưu</button></div>`)}
+    ${aCard('Bố cục trang chủ', `<p class="hint" style="margin-top:0">Dùng mũi tên để đổi vị trí từng khối, bỏ tích để ẩn. Chữ và ảnh trong mỗi khối sửa trực tiếp bằng nút ✏️ ở góc trang.</p><div id="home-list">${homeRows(homeOrder())}</div><div class="row mt"><button class="btn secondary sm" data-act="homeReset">Về thứ tự mặc định</button><button class="btn primary" data-act="saveHome">Lưu bố cục</button></div>`)}
     ${aCard('Quyền truy cập (bắt buộc đăng nhập)', `<label class="row" style="font-weight:700;align-items:flex-start"><input type="checkbox" id="ad-reqlogin" style="margin-top:4px" ${branding.requireLogin !== false ? 'checked' : ''}> <span>Khách phải đăng nhập / tạo tài khoản để tham gia<br><span class="hint">Khách chưa đăng nhập vẫn thấy tất cả các mục trong menu (có biểu tượng ổ khoá), nhưng khi mở mục bị khoá thì chỉ thấy tiêu đề và lời mời đăng nhập hoặc tạo tài khoản miễn phí.</span></span></label>
       <label class="label mt">Những mục cần đăng nhập (tích = khoá với khách)</label><div class="grid g3">${LOCKABLE.map(k => `<label class="row small" style="font-weight:600"><input type="checkbox" data-lp="${k}" ${lockedPages().includes(k) ? 'checked' : ''}> ${esc(t('nav_' + k))}</label>`).join('')}</div>
       <div class="row mt"><button class="btn primary" data-act="saveAccess">Lưu</button></div>`)}
@@ -618,7 +623,9 @@ Object.assign(ACTIONS, {
     const requireLogin = $('ad-reqlogin').checked, lockedPages = [...document.querySelectorAll('[data-lp]')].filter(c => c.checked).map(c => c.dataset.lp);
     dbSet('settings', 'branding', { requireLogin, lockedPages }).then(() => { branding.requireLogin = requireLogin; branding.lockedPages = lockedPages; renderChrome(); ok(requireLogin ? 'Đã lưu: khách phải đăng nhập để vào các mục đã tích ✔' : 'Đã tắt: ai cũng dùng được mọi mục ✔'); }).catch(fail);
   },
-  saveHome: () => { const hs = {}; document.querySelectorAll('[data-hs]').forEach(c => hs[c.dataset.hs] = c.checked); dbSet('settings', 'branding', { homeSections:hs }).then(() => { branding.homeSections = hs; ok(); }).catch(fail); },
+  homeMove: el => { const l = $('home-list'), rows = [...l.children], i = +el.dataset.i, j = i + +el.dataset.d; if (j < 0 || j >= rows.length) return; l.insertBefore(rows[Math.min(i, j) + 1], rows[Math.min(i, j)]); [...l.children].forEach((r, n) => r.querySelectorAll('[data-i]').forEach(b => b.dataset.i = n)); },
+  homeReset: () => { $('home-list').innerHTML = homeRows(HOME_KEYS); },
+  saveHome: () => { const hs = {}, order = []; document.querySelectorAll('#home-list [data-hk]').forEach(r => { const c = r.querySelector('[data-hs]'); hs[c.dataset.hs] = c.checked; order.push(r.dataset.hk); }); dbSet('settings', 'branding', { homeSections:hs, homeOrder:order }).then(() => { branding.homeSections = hs; branding.homeOrder = order; ok(); }).catch(fail); },
   socialAdd: () => { adminSocial = readSocial(); adminSocial.push(['', '']); $('social-list').innerHTML = socialRows(); },
   socialDel: el => { adminSocial = readSocial(); adminSocial.splice(+el.dataset.i, 1); $('social-list').innerHTML = socialRows(); },
   saveSocial: el => withTranslate(el, async () => {

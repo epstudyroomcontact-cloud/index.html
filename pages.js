@@ -89,13 +89,15 @@ function challengeCard(){
   return `<section class="card pad" style="margin-top:34px"><div class="grid g2" style="align-items:center"><div><span class="badge">${ic('check', 'sm')} 30 days</span><h2 style="font-size:1.5rem;margin:10px 0 6px" ${cms('ch_title')}>${esc(ctext('ch_title'))}</h2><p class="muted" ${cms('ch_desc')}>${esc(ctext('ch_desc'))}</p></div>
     <form class="stack" data-form="challenge"><input class="input" id="ch-name" placeholder="${esc(t('ch_name'))}" required maxlength="60" value="${esc(state.user ? displayName() : '')}"><input class="input" id="ch-email" type="email" placeholder="${esc(t('ch_email'))}" required maxlength="160" value="${esc(state.user ? state.user.email : '')}"><button class="btn primary" type="submit" id="ch-btn">${esc(t('ch_btn'))}</button></form></div></section>`;
 }
+const HOME_KEYS = ['about', 'hero', 'stats', 'today', 'blog', 'shop', 'thanks', 'challenge', 'faq'];
+function homeOrder(){ const o = (Array.isArray(branding.homeOrder) ? branding.homeOrder : []).filter(k => HOME_KEYS.includes(k)); return [...new Set(o), ...HOME_KEYS.filter(k => !o.includes(k))]; }
 PAGES.home = function(){
   const hs = branding.homeSections || {}, on = k => hs[k] !== false, nowUser = DT.now().setZone(userTZ), hr = nowUser.hour;
   const hello = t(hr < 12 ? 'hello_m' : hr < 18 ? 'hello_a' : 'hello_e') + (state.user ? ', ' + displayName() : '');
   const wk = getItems(0, weekDocs[0]).filter(x => !x.cancelled), hours = wk.reduce((a, x) => a + x.mins, 0) / 60, fm = focusToday(), avg = ratingAvg(), tItems = todayItems();
   const heroImg = cimg('hero_img') || branding.mascotUrl;
-  let html = '';
-  if (on('about')) html += `<div style="margin-bottom:34px">${aboutIntroHTML()}</div>`;   // giới thiệu về chủ kênh ở đầu trang
+  const S = {}; let html = '';   // mỗi khối vào S[khoá] rồi ghép theo thứ tự admin chọn (branding.homeOrder)
+  if (on('about')) { html += `<div style="margin-bottom:34px">${aboutIntroHTML()}</div>`; S.about = html; html = ''; }   // giới thiệu về chủ kênh ở đầu trang
   if (on('hero')) html += `<section class="hero" data-cms-img="hero_img">${heroImg ? `<img class="art" alt="" src="${esc(heroImg)}">` : paint('moonwalk', { crop:'full', seed:1 })}<div class="hero-copy">
       <span class="badge">${esc(hello)}</span>
       <h1 ${cms('home_title')}>${esc(ctext('home_title'))}</h1>
@@ -103,11 +105,13 @@ PAGES.home = function(){
       <div class="cta"><a class="btn primary lg" href="#/watch">${ic('play', 'sm')} ${esc(t('btn_watch_live'))}</a><a class="btn secondary lg" href="#/schedule">${ic('calendar', 'sm')} ${esc(t('btn_see_schedule'))}</a></div>
       <div class="clock mt" data-clock>--:--:--</div></div>
       <div class="next-card" id="next-card"><span class="live-pill" style="padding:5px 8px"><i></i></span><div><small></small><b>—</b></div></div></section>`;
+  S.hero = html; html = '';
   if (on('stats')) html += `<div class="grid g4 keep2 mt">
       <div class="card tile"><span class="t-ic">${ic('calendar')}</span><span class="t-l">${esc(t('stat_lives'))}</span><span class="t-v">${wk.length}</span></div>
       <div class="card tile"><span class="t-ic">${ic('timer')}</span><span class="t-l">${esc(t('stat_hours'))}</span><span class="t-v">${+hours.toFixed(1)}<small style="font-size:.9rem;font-weight:600"> ${esc(t('h'))}</small></span></div>
       <div class="card tile"><span class="t-ic">${ic('check')}</span><span class="t-l">${esc(t('stat_focus_today'))}</span><span class="t-v">${fm}<small style="font-size:.9rem;font-weight:600"> ${esc(t('min'))}</small></span></div>
       <div class="card tile"><span class="t-ic">${ic('star')}</span><span class="t-l">${esc(t('stat_rating'))}</span><span class="t-v">${avg ? avg.toFixed(1) : '—'}</span><span class="t-s">${reviews.length ? reviews.length + ' ' + esc(t('reviews_title')).toLowerCase() : ''}</span></div></div>`;
+  S.stats = html; html = '';
   if (on('today')) {
     const v0 = videos[0];
     html += `<div class="grid g-main mt">
@@ -120,11 +124,13 @@ PAGES.home = function(){
         ${v0 ? `<a class="card vcard" href="#/watch" data-act="playVideo" data-id="${esc(v0.id)}" style="padding:12px"><div class="th"><img loading="lazy" alt="" src="https://i.ytimg.com/vi/${esc(v0.id)}/hqdefault.jpg"></div><h4>${esc(v0.title || t('latest_videos'))}</h4></a>` : ''}
       </div></div>`;
   }
-  if (on('blog') && livePosts().length) html += secHead('sec_blog', '#/blog') + `<div class="pgrid">${livePosts().slice(0, 3).map(blogCard).join('')}</div>`;
-  if (on('shop') && products.length) html += secHead('sec_shop', '#/shop') + `<div class="pgrid">${products.slice(0, 3).map(prodCard).join('')}</div>`;
-  if (on('thanks') && thanksList().length) html += thanksCard();
-  if (on('challenge')) html += clubPromo();
-  if (on('about')) html += aboutFaqHTML() + aboutReviewsHTML();   // FAQ rồi đánh giá nằm cuối trang
+  S.today = html; html = '';
+  if (on('blog') && livePosts().length) S.blog = secHead('sec_blog', '#/blog') + `<div class="pgrid">${livePosts().slice(0, 3).map(blogCard).join('')}</div>`;
+  if (on('shop') && products.length) S.shop = secHead('sec_shop', '#/shop') + `<div class="pgrid">${products.slice(0, 3).map(prodCard).join('')}</div>`;
+  if (on('thanks') && thanksList().length) S.thanks = thanksCard();
+  if (on('challenge')) S.challenge = clubPromo();
+  if (hs.faq !== undefined ? hs.faq : on('about')) S.faq = aboutFaqHTML() + aboutReviewsHTML();   // FAQ rồi đánh giá (mặc định nằm cuối trang)
+  html = homeOrder().map(k => S[k] || '').join('');
   page(html);
 };
 
