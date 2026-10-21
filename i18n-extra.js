@@ -129,4 +129,14 @@
     es:{"mr_teaser": "Llega a {n} días para ganar un {p}% de descuento en un plan Compañero.", "mr_title": "Recompensa del Viaje lunar", "mr_can": "¡Llegaste a 60 días! Reclama un {p}% de descuento en un pago de Compañero por transferencia bancaria (VND). Es válido {d} días desde que lo reclamas.", "mr_claim": "Reclamar mi recompensa", "mr_have": "Tienes un {p}% de descuento, válido hasta el {d}.", "mr_use": "Usarlo en la página de Apoyo", "mr_used": "Ya usaste esta recompensa. ¡Gracias!", "mr_expired": "Esta recompensa ha caducado.", "mr_note": "Un uso por cuenta. Solo para pagos de Compañero por transferencia bancaria (VND).", "mr_got": "¡Ganaste un {p}% de descuento en un plan Compañero! Úsalo en la página de Apoyo.", "mr_banner": "Recompensa del Viaje lunar: {p}% de descuento, válido hasta el {d}. El importe de abajo ya lo incluye."}
   };
   Object.keys(MR).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], MR[l]); });
+  /* Khuyến mãi gói 3 / 12 tháng */
+  const PM = {
+    hi:{"promo_default": "विशेष ऑफ़र", "promo_b3": "3 महीने के प्लान पर अतिरिक्त {p}% छूट", "promo_b12": "12 महीने के प्लान पर अतिरिक्त {p}% छूट", "promo_banner": "{name}: {parts}।", "promo_until": " {d} को समाप्त।", "promo_nostack": "अगर आपके पास मून जर्नी इनाम भी है, तो जो बेहतर होगा वही अपने-आप लगेगा (दोनों जुड़ते नहीं)।"},
+    ja:{"promo_default": "特別オファー", "promo_b3": "3か月プランがさらに{p}%オフ", "promo_b12": "12か月プランがさらに{p}%オフ", "promo_banner": "{name}：{parts}。", "promo_until": " {d}まで。", "promo_nostack": "ムーンジャーニーの特典もある場合は、お得なほうが自動で適用されます（併用はできません）。"},
+    ko:{"promo_default": "특별 혜택", "promo_b3": "3개월 플랜 추가 {p}% 할인", "promo_b12": "12개월 플랜 추가 {p}% 할인", "promo_banner": "{name}: {parts}.", "promo_until": " {d}까지.", "promo_nostack": "문 저니 보상도 있다면 더 유리한 쪽이 자동으로 적용돼요(중복 적용은 안 돼요)."},
+    zh:{"promo_default": "特别优惠", "promo_b3": "3 个月套餐再减 {p}%", "promo_b12": "12 个月套餐再减 {p}%", "promo_banner": "{name}：{parts}。", "promo_until": " {d} 结束。", "promo_nostack": "如果你同时有月亮之旅奖励，系统会自动采用更划算的一个（不叠加）。"},
+    fr:{"promo_default": "Offre spéciale", "promo_b3": "{p} % de réduction supplémentaire sur la formule 3 mois", "promo_b12": "{p} % de réduction supplémentaire sur la formule 12 mois", "promo_banner": "{name} : {parts}.", "promo_until": " Se termine le {d}.", "promo_nostack": "Si vous avez aussi une récompense Parcours lunaire, la meilleure offre s’applique automatiquement (elles ne se cumulent pas)."},
+    es:{"promo_default": "Oferta especial", "promo_b3": "{p}% de descuento extra en el plan de 3 meses", "promo_b12": "{p}% de descuento extra en el plan de 12 meses", "promo_banner": "{name}: {parts}.", "promo_until": " Termina el {d}.", "promo_nostack": "Si también tienes una recompensa del Viaje lunar, se aplica automáticamente la mejor oferta (no se acumulan)."}
+  };
+  Object.keys(PM).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], PM[l]); });
 })();

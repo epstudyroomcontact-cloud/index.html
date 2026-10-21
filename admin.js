@@ -480,6 +480,12 @@ function tabPayments(){
       <div class="f2">${fld('Các mức tiền gợi ý — VND (cách nhau dấu phẩy)', 'py-dvnd', p.donateVND, '', 'VD: 20000, 50000, 100000, 200000')}${fld('Các mức tiền gợi ý — USD', 'py-dusd', p.donateUSD, '', 'VD: 3, 5, 10, 25')}</div>
       <div class="f2">${fld('Giá "Người đồng hành" 1 tháng — VND', 'py-cvnd', p.companionVND, '', 'VD: 59000. Để trống = 59000. Gói 3 tháng tự giảm 10%, 12 tháng giảm 25%.')}${fld('Giá "Người đồng hành" 1 tháng — USD', 'py-cusd', p.companionUSD, '', 'VD: 3. Để trống = 3. Gói 3 tháng giảm 10%, 12 tháng giảm 25% (trả một lần qua PayPal.me). Giá tier trên Ko-fi bạn đặt bằng đúng số này trong Ko-fi.')}</div>
       ${fld('Link đăng ký hằng tháng cho "Người đồng hành"', 'py-comp', p.companionUrl, '', 'VD: link Ko-fi Membership hoặc Patreon. Để trống = ẩn nút. PayPal.me nên có dạng https://paypal.me/tencuaban')}`)}
+    ${aCard('Khuyến mãi gói Người đồng hành 3 tháng / 12 tháng', `<p class="hint" style="margin-bottom:10px">Giảm <b>thêm</b> trên giá gói (gói 3 tháng đã giảm sẵn 10%, 12 tháng giảm sẵn 25%). Khi bật, trang Ủng hộ hiện giá gốc gạch ngang + giá sau giảm, mã QR chuyển khoản VND tự dùng giá đã giảm, và ở tab <b>Thành viên</b> yêu cầu chờ duyệt ghi rõ <b>số tiền đúng cần nhận</b>. Nếu khách cũng có ưu đãi Hành trình trăng thì tự lấy cái <b>lợi hơn</b> (không cộng gộp). Với PayPal.me giá cũng tự giảm; <b>Ko-fi và link PayPal khác không đổi được giá</b> (giá do nền tảng đặt nên khuyến mãi không áp dụng ở đó).</p>
+      <label class="row" style="font-weight:700"><input type="checkbox" id="pm-on" ${p.promoOn === true ? 'checked' : ''}> Bật khuyến mãi</label>
+      <div class="f2 mt-s">${fld('Tên chương trình (hiện cho khách)', 'pm-label', p.promoLabel || '', 'maxlength="40"', 'VD: Khuyến mãi tháng 11. Để trống = “Ưu đãi đặc biệt”')}<div></div></div>
+      <div class="f2 mt-s">${fld('Giảm thêm cho gói 3 tháng (%)', 'pm-3', +p.promo3 || 0, 'type="number" min="0" max="50"', '0 = không khuyến mãi gói này')}${fld('Giảm thêm cho gói 12 tháng (%)', 'pm-12', +p.promo12 || 0, 'type="number" min="0" max="50"', '0 = không khuyến mãi gói này')}</div>
+      <div class="f2 mt-s">${fld('Bắt đầu từ ngày (tuỳ chọn)', 'pm-start', p.promoStart || '', 'type="date"', 'Để trống = áp dụng ngay')}${fld('Kết thúc vào ngày (tuỳ chọn)', 'pm-end', p.promoEnd || '', 'type="date"', 'Để trống = không giới hạn. Tính theo giờ Việt Nam, gồm cả ngày này')}</div>
+      <div class="row mt-s"><button class="btn primary" data-act="saveCompPromo">Lưu khuyến mãi</button></div>`)}
     ${aCard('Ưu đãi Hành trình trăng (mốc 60 ngày điểm danh)', `<p class="hint" style="margin-bottom:10px">Khi khách điểm danh đủ <b>60 ngày liên tiếp</b>, họ nhận <b>một ưu đãi giảm giá gói Người đồng hành</b>, dùng được <b>một lần</b>, chỉ áp dụng khi trả bằng <b>chuyển khoản VND</b> (số tiền trong mã QR tự trừ sẵn). Khi khách bấm “Tôi đã thanh toán”, ở tab <b>Thành viên</b> bạn sẽ thấy dòng 🎁 ghi rõ <b>số tiền đúng cần nhận</b> và tình trạng ưu đãi; bấm Duyệt thì ưu đãi tự đánh dấu đã dùng.</p>
       <label class="row" style="font-weight:700"><input type="checkbox" id="mr-on" ${p.moonRewardOn !== false ? 'checked' : ''}> Bật ưu đãi</label>
       <div class="f2 mt-s">${fld('Giảm bao nhiêu % (1–50)', 'mr-pct', moonRewardCfg(p).pct, 'type="number" min="1" max="50"', 'Mặc định 10%')}${fld('Có hiệu lực bao nhiêu ngày kể từ lúc khách nhận (1–365)', 'mr-days', moonRewardCfg(p).days, 'type="number" min="1" max="365"', 'Mặc định 30 ngày. Hết hạn thì ưu đãi không dùng được nữa')}</div>
@@ -520,12 +526,15 @@ function adminWatchRequests(){
 }
 function stopAdminWatch(){ if (reqUnsub) { reqUnsub(); reqUnsub = null; } state.compPending = 0; reqFirst = true; }
 const METHOD_VI = { kofi:'Ko-fi', bank:'Chuyển khoản', paypal:'PayPal', momo:'MoMo', other:'Khác' };
-/* Dòng 🎁 trong yêu cầu chờ duyệt: số tiền đúng cần nhận khi khách dùng ưu đãi Hành trình trăng (so với số tiền thật trong ngân hàng) */
+/* Dòng giá trong yêu cầu chờ duyệt: số tiền đúng cần nhận (so với tiền thật trong ngân hàng), theo khuyến mãi gói và ưu đãi Hành trình trăng tại thời điểm khách báo */
 function rewardLine(r){
-  const w = r._rw, m = +r.months || 1, full = compPrice(m); if (!w) return r.reward ? '<div class="small" style="color:var(--danger);margin-top:2px">⚠ Khách báo dùng ưu đãi Hành trình trăng nhưng KHÔNG có ưu đãi nào trong hệ thống: thu đủ ' + money(full, 'VND') + '</div>' : '';
-  const live = w.status === 'unused' && tsMs(w.expires) > Date.now();
-  if (!live) return `<div class="small" style="color:var(--danger);margin-top:2px">🎁 Ưu đãi Hành trình trăng ${w.status === 'used' ? 'đã dùng rồi' : 'đã hết hạn'}: thu đủ ${money(full, 'VND')}</div>`;
-  return `<div class="small" style="margin-top:2px">🎁 Có ưu đãi Hành trình trăng −${esc(String(w.pct))}% (đến ${esc(DT.fromMillis(tsMs(w.expires)).toISODate())}): ${r.reward ? 'khách báo đã dùng' : 'khách chưa báo dùng'}. Số tiền đúng nếu dùng: <b>${money(rewardPrice(full, w), 'VND')}</b> (giá gốc ${money(full, 'VND')})</div>`;
+  const w = r._rw, m = +r.months || 1, ms = tsMs(r.createdAt), live = !!w && w.status === 'unused' && tsMs(w.expires) > ms, b = compBest(m, live ? w : null, ms), warn = s => `<div class="small" style="color:var(--danger);margin-top:2px">${s}</div>`;
+  let out = '';
+  if (r.reward && !w) out += warn('⚠ Khách báo dùng ưu đãi Hành trình trăng nhưng KHÔNG có ưu đãi nào trong hệ thống: không giảm theo ưu đãi này');
+  else if (w && !live) out += warn(`🎁 Ưu đãi Hành trình trăng ${w.status === 'used' ? 'đã dùng rồi' : 'đã hết hạn'}: không giảm theo ưu đãi này`);
+  else if (w) out += `<div class="small" style="margin-top:2px">🎁 Có ưu đãi Hành trình trăng −${esc(String(w.pct))}% (đến ${esc(DT.fromMillis(tsMs(w.expires)).toISODate())}), ${b.reward ? 'lợi hơn khuyến mãi gói nên được áp dụng' : 'không lợi hơn khuyến mãi gói nên không dùng (không cộng gộp)'}.</div>`;
+  if (m > 1 || b.price !== b.list) out += `<div class="small" style="margin-top:2px">💰 Số tiền VND đúng: <b>${money(b.price, 'VND')}</b> (giá gói ${money(b.list, 'VND')}${b.promo ? `, khuyến mãi −${b.promo}%` : ''}${b.reward ? `, ưu đãi trăng −${esc(String(w.pct))}%` : ''})${r.amount && +r.amount !== b.price ? ` · <span style="color:var(--danger)">khách báo ${money(+r.amount, 'VND')}</span>` : ''}</div>`;
+  return out;
 }
 async function approveCompanion(id, name, months = 1, email = ''){
   const ref = db.collection('companions').doc(id), cur = await ref.get(), today = DT.now().toISODate(), old = cur.exists ? cur.data().until : '';
@@ -789,6 +798,11 @@ Object.assign(ACTIONS, {
   },
   clearCode: () => confirm('Tắt mã hiện tại? Người đang dùng mã sẽ bị giới hạn lại.') && dbSet('settings', 'branding', { focusCodeHash:'', focusCodeUntil:'' }).then(() => { branding.focusCodeHash = ''; branding.focusCodeUntil = ''; ok('Đã tắt mã'); tabPayments(); }).catch(fail),
   saveFocusLimit: () => { const n = Math.max(0, Math.min(1440, Math.round(+val('py-flimit') || 0))); dbSet('settings', 'branding', { focusLimit:n }).then(() => { branding.focusLimit = n; ok(n ? 'Đã lưu: ' + n + ' phút/ngày' : 'Đã bỏ giới hạn'); }).catch(fail); },
+  saveCompPromo: () => {
+    const n = id => Math.min(50, Math.max(0, Math.round(+val(id)) || 0)), data = { promoOn:$('pm-on').checked, promoLabel:val('pm-label').slice(0, 40), promo3:n('pm-3'), promo12:n('pm-12'), promoStart:val('pm-start'), promoEnd:val('pm-end') };
+    if (data.promoStart && data.promoEnd && data.promoEnd < data.promoStart) return toast('Ngày kết thúc phải sau ngày bắt đầu');
+    dbSet('settings', 'payments', data).then(() => { Object.assign(payments, data); $('pm-3').value = data.promo3; $('pm-12').value = data.promo12; ok(); }).catch(fail);
+  },
   saveMoonReward: () => {
     const c = moonRewardCfg({ moonRewardPct:val('mr-pct'), moonRewardDays:val('mr-days') }), data = { moonRewardOn:$('mr-on').checked, moonRewardPct:c.pct, moonRewardDays:c.days };     // ép về khoảng hợp lệ để khớp với rules
     dbSet('settings', 'payments', data).then(() => { Object.assign(payments, data); $('mr-pct').value = c.pct; $('mr-days').value = c.days; ok(); }).catch(fail);
