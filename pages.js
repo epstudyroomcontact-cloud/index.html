@@ -131,16 +131,36 @@ PAGES.home = function(){
 /* =========================================================
    WATCH
    ========================================================= */
-let playingId = null;
+let playingId = null, watchLive = false;
+/* Chưa tới giờ live: đừng nhúng khung live (YouTube báo "video không hoạt động"). Thay vào đó chiếu video đã live gần nhất mà YouTube cho nhúng (hỏi oEmbed, nhớ kết quả trong phiên); không có video nào dùng được thì hiện thông báo chưa phát sóng. */
+const ytOK = (() => { try { return JSON.parse(sessionStorage.getItem('yt_ok') || '{}'); } catch (e) { return {}; } })();
+let ytBusy = false;
+function pickPlayable(){
+  const ids = videos.filter(v => v.id).slice(0, 6).map(v => v.id), good = ids.find(id => ytOK[id] === true); if (good) return good;
+  const pending = ids.filter(id => ytOK[id] === undefined);
+  if (pending.length && !ytBusy) {
+    ytBusy = true;
+    (async () => {
+      for (const id of pending) {
+        try { const r = await fetch('https://www.youtube.com/oembed?format=json&url=' + encodeURIComponent('https://www.youtube.com/watch?v=' + id)); ytOK[id] = r.ok; }
+        catch (e) { ytOK[id] = true; }                          // không hỏi được (mạng / chặn) thì cứ thử phát
+        if (ytOK[id]) break;
+      }
+      ytBusy = false; try { sessionStorage.setItem('yt_ok', JSON.stringify(ytOK)); } catch (e) {}
+      if (route.name === 'watch' || route.name === 'focus') render(true);
+    })();
+  }
+  return null;
+}
 const liveEmbedSrc = () => branding.ytLiveId ? `https://www.youtube.com/embed/${youTubeId(branding.ytLiveId)}?rel=0` : (branding.ytChannelId ? `https://www.youtube.com/embed/live_stream?channel=${encodeURIComponent(branding.ytChannelId)}` : '');
 PAGES.watch = function(){
-  const liveSrc = liveEmbedSrc();
-  const src = playingId ? `https://www.youtube-nocookie.com/embed/${playingId}?autoplay=1&rel=0` : liveSrc, { live, next } = liveState(), url = watchUrl();
+  const liveSrc = liveEmbedSrc(), { live, next } = liveState(), url = watchUrl(), replay = !playingId && !live && !watchLive, pv = replay ? pickPlayable() : null;
+  const src = playingId ? `https://www.youtube-nocookie.com/embed/${playingId}?autoplay=1&rel=0` : (live || watchLive) ? liveSrc : pv ? `https://www.youtube-nocookie.com/embed/${pv}?rel=0` : '';
   page(`${head('watch_title', 'watch_sub', url ? `<a class="btn secondary" target="_blank" rel="noopener" href="${esc(url)}">${ic('link', 'sm')} ${esc(t('open_youtube'))}</a>` : '', 'gaze', 5)}
-    <div class="grid g-main"><div class="player">${src ? `<iframe src="${esc(src)}" title="YouTube" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe>` : `<div class="ph">${paint('gaze', { crop:'banner', seed:4 })}<div class="glass" style="position:relative"><h3 style="margin-bottom:4px">${esc(t('offline'))}</h3><p class="muted small">${esc(t('offline_sub'))}</p></div></div>`}</div>
+    <div class="grid g-main"><div><div class="player">${src ? `<iframe src="${esc(src)}" title="YouTube" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe>` : `<div class="ph">${paint('gaze', { crop:'banner', seed:4 })}<div class="glass" style="position:relative"><h3 style="margin-bottom:4px">${esc(t('offline'))}</h3><p class="muted small">${esc(t('offline_sub'))}</p></div></div>`}</div>${replay && pv ? `<p class="small muted mt-s">${esc(t('stream_replay'))}</p>` : ''}</div>
       <aside class="card pad stack"><div class="row between"><b>${esc(live ? t('live_now') : t('nav_schedule'))}</b>${live ? `<span class="badge live">LIVE</span>` : ''}</div>
         <div class="card pad" style="background:var(--surface2)"><div class="small muted">${esc(live ? t('live_now') : next ? t('next_live') : t('no_next'))}</div><div class="mono" id="next-card-w" style="font-size:1.5rem;font-weight:700;color:var(--accent-strong)">${live ? `${live.start.setZone(userTZ).toFormat('HH:mm')} – ${live.end.setZone(userTZ).toFormat('HH:mm')}` : next ? `${next.start.setZone(userTZ).toFormat('ccc HH:mm')}` : '—'}</div></div>
-        ${playingId ? `<button class="btn secondary" data-act="playLive">${ic('play', 'sm')} ${esc(t('nav_watch'))}</button>` : ''}
+        ${playingId ? `<button class="btn secondary" data-act="playLive">${ic('play', 'sm')} ${esc(t('nav_watch'))}</button>` : replay ? `<button class="btn secondary" data-act="watchCheckLive">${ic('play', 'sm')} ${esc(t('watch_check_live'))}</button>` : ''}
         <a class="btn primary" href="#/schedule">${ic('calendar', 'sm')} ${esc(t('btn_see_schedule'))}</a><a class="btn secondary" href="#/focus">${ic('timer', 'sm')} ${esc(t('btn_start_focus'))}</a></aside></div>
     <h2 style="font-size:1.2rem;margin:30px 0 14px">${esc(t('latest_videos'))}</h2>
     ${videos.length ? `<div class="vgrid">${videos.map(v => `<button type="button" class="vcard" data-act="playVideo" data-id="${esc(v.id)}"><div class="th"><img loading="lazy" alt="" src="https://i.ytimg.com/vi/${esc(v.id)}/hqdefault.jpg"></div><h4>${esc(v.title || 'YouTube')}</h4></button>`).join('')}</div>` : emptyBox('video', t('no_videos'), '')}`);
@@ -205,6 +225,7 @@ function musicCard(){
     <div class="label mt">${esc(t('music_more'))}</div><div class="row">${MOODS.map(([k, q]) => `<a class="chip" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent(q)}">${esc(t('mood_' + k))}</a>`).join('')}</div></section>`;
 }
 Object.assign(ACTIONS, {
+  passToggle: el => { const i = el.closest('.pass-wrap').querySelector('input'), show = i.type === 'password'; i.type = show ? 'text' : 'password'; el.setAttribute('aria-pressed', show); el.setAttribute('aria-label', t(show ? 'pass_hide' : 'pass_show')); el.title = t(show ? 'pass_hide' : 'pass_show'); el.innerHTML = ic(show ? 'eye-off' : 'eye'); i.focus(); },
   hintOff: el => { store.set('hint_' + el.dataset.key, true); const n = el.closest('.hint-note'); if (n && !el.href) n.remove(); },
   phoneNoteOff: el => { store.set('phone_note_off', true); const n = el.closest('.phone-note'); if (n) n.remove(); },
   ambSet: el => setAmbient(el.dataset.k),
@@ -311,9 +332,9 @@ function streamCard(){
   const open = store.get('fs_open', true), liveSrc = liveEmbedSrc(), url = watchUrl(), { live } = liveState();
   const vids = videos.filter(v => v.id).slice(0, 12);
   let pick = fsPick;
-  if (pick === 'auto') pick = (live && liveSrc) || !vids.length ? 'live' : vids[0].id;       // chưa live → hiện video đã live gần nhất, khỏi trống
-  if (pick !== 'live' && !vids.some(v => v.id === pick)) pick = 'live';
-  const src = pick === 'live' ? liveSrc : `https://www.youtube-nocookie.com/embed/${pick}?rel=0${fsPick === 'auto' ? '' : '&autoplay=1'}`;
+  if (pick === 'auto') pick = live && liveSrc ? 'live' : (pickPlayable() || 'none');       // chưa live → chiếu video đã live gần nhất dùng được; không có thì báo chưa phát sóng (không nhúng khung live chết)
+  if (pick !== 'live' && pick !== 'none' && !vids.some(v => v.id === pick)) pick = 'none';
+  const src = pick === 'live' ? liveSrc : pick === 'none' ? '' : `https://www.youtube-nocookie.com/embed/${pick}?rel=0${fsPick === 'auto' ? '' : '&autoplay=1'}`;
   const sel = vids.length ? `<select class="select fs-sel" data-change="fsPick" aria-label="${esc(t('focus_stream'))}"><option value="live" ${pick === 'live' ? 'selected' : ''}>● ${esc(t('focus_stream_live'))}</option><optgroup label="${esc(t('focus_stream_past'))}">${vids.map(v => `<option value="${esc(v.id)}" ${pick === v.id ? 'selected' : ''}>${esc((v.title || 'YouTube').slice(0, 64))}</option>`).join('')}</optgroup></select>` : '';
   return `<section class="card pad fstream"><div class="row between"><b class="row" style="gap:8px">${ic('play', 'sm')} ${esc(t('focus_stream'))} ${live && pick === 'live' ? '<span class="badge live">LIVE</span>' : ''}</b>
     <span class="row" style="gap:4px"><button type="button" class="btn ghost sm" data-act="fsToggle">${esc(open ? t('focus_stream_hide') : t('focus_stream_show'))}</button>${url ? `<a class="btn ghost sm" target="_blank" rel="noopener" href="${esc(url)}" aria-label="${esc(t('open_youtube'))}" title="${esc(t('open_youtube'))}">${ic('link', 'sm')}</a>` : ''}</span></div>
@@ -562,7 +583,7 @@ let authTab = 'signin', myOrders = null;
 const authCard = (title, sub, strip = true) => `<div class="card">${strip ? `<div class="art-strip">${paint('moonwalk', { crop:'banner', seed:7 })}</div>` : ''}<div class="stack"><div style="text-align:center"><h2 style="font-size:1.4rem">${esc(title)}</h2><p class="muted small mt-s">${esc(sub)}</p></div>
       <div class="seg" style="align-self:center"><button type="button" class="${authTab === 'signin' ? 'on' : ''}" data-act="authTab" data-t="signin">${esc(t('signin'))}</button><button type="button" class="${authTab === 'signup' ? 'on' : ''}" data-act="authTab" data-t="signup">${esc(t('signup'))}</button></div>
       <form class="stack" data-form="${authTab}">${authTab === 'signup' ? `<input class="input" id="au-name" placeholder="${esc(t('name_ph'))}" required maxlength="60" autocomplete="nickname">` : ''}
-        <input class="input" id="au-email" type="email" placeholder="${esc(t('email'))}" required autocomplete="email"><input class="input" id="au-pass" type="password" placeholder="${esc(t('password'))}" required minlength="6" autocomplete="${authTab === 'signup' ? 'new-password' : 'current-password'}">
+        <input class="input" id="au-email" type="email" placeholder="${esc(t('email'))}" required autocomplete="email"><div class="pass-wrap"><input class="input" autocapitalize="off" spellcheck="false" id="au-pass" type="password" placeholder="${esc(t('password'))}" required minlength="6" autocomplete="${authTab === 'signup' ? 'new-password' : 'current-password'}"><button type="button" class="pass-eye" data-act="passToggle" aria-label="${esc(t('pass_show'))}" title="${esc(t('pass_show'))}" aria-pressed="false">${ic('eye')}</button></div>
         <button class="btn primary lg" type="submit">${esc(authTab === 'signin' ? t('signin') : t('signup'))}</button><div class="small" style="color:var(--danger)" id="au-err"></div>
         ${authTab === 'signin' ? `<button type="button" class="link" style="align-self:center" data-act="forgot">${esc(t('forgot'))}</button>` : ''}</form></div></div>`;
 // mục đang bị khoá với khách chưa đăng nhập: vẫn hiện tiêu đề + tranh của mục đó, kèm lời mời đăng nhập / tạo tài khoản
@@ -633,7 +654,8 @@ Object.assign(ACTIONS, {
   checkout: startCheckout,
   copy: el => { try { navigator.clipboard.writeText(el.dataset.v); } catch (e) {} toast(t('copied')); },
   playVideo: el => { playingId = el.dataset.id; if (route.name === 'watch') { render(true); window.scrollTo({ top:0, behavior:'smooth' }); } },
-  playLive: () => { playingId = null; render(true); },
+  playLive: () => { playingId = null; watchLive = true; render(true); },
+  watchCheckLive: () => { playingId = null; watchLive = true; render(true); },
   pstart: () => pomo.running ? pomoPause() : pomoStart(),
   'preset-reset': pomoReset,
   pskip: () => pomoComplete(false),

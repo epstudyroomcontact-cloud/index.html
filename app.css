@@ -521,3 +521,4 @@ html[data-font="serif"] h1,html[data-font="serif"] h2,html[data-font="serif"] h3
 
 .pl-li{flex-wrap:wrap}.pl-li-x{flex-basis:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;padding-left:30px}.pl-li-x .btn{opacity:1}
 .todo-prog{margin-bottom:6px}.todo-item.cur{background:rgba(var(--accent-rgb),.08);border-radius:10px}.todo-item .btn.on{color:var(--accent-strong)}
+.pass-wrap{position:relative;display:block}.pass-wrap .input{width:100%;padding-right:46px}.pass-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:36px;height:36px;display:grid;place-items:center;border:0;background:transparent;color:var(--ink3);border-radius:10px;cursor:pointer}.pass-eye:hover,.pass-eye[aria-pressed=true]{color:var(--accent-strong)}.pass-eye .ic{width:20px;height:20px}
