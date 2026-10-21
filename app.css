@@ -426,6 +426,43 @@ html[data-font="serif"] h1,html[data-font="serif"] h2,html[data-font="serif"] h3
 .mj-toggle::before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:currentColor;margin-right:6px;vertical-align:1px;opacity:.5}
 .mj-toggle.on{background:#1b2a57;color:#fff2c4;border-color:#ffd27a}.mj-toggle.on::before{background:#ffd27a;opacity:1;box-shadow:0 0 6px #ffd27a}
 .mj-frame{position:relative}
+.mja{transform-box:fill-box}
+.mja-breath{transform-origin:50% 100%;animation:mjaBreath 4.2s ease-in-out infinite}
+.mja-sleep{transform-origin:50% 100%;animation:mjaBreath 5.6s ease-in-out infinite}
+@keyframes mjaBreath{0%,100%{transform:scale(1,1)}50%{transform:scale(1.006,1.018)}}
+.mja-hair{transform-origin:50% 0;animation:mjaHair 5.4s ease-in-out infinite}
+@keyframes mjaHair{0%,100%{transform:rotate(-1.4deg)}50%{transform:rotate(1.8deg)}}
+.mja-umb{transform-origin:50% 100%;animation:mjaUmb 6.2s ease-in-out infinite}
+@keyframes mjaUmb{0%,100%{transform:rotate(-1.6deg)}50%{transform:rotate(1.8deg)}}
+.mja-tail{transform-origin:0 100%;animation:mjaTail 3.4s ease-in-out infinite}
+.mja-tailw{transform-origin:100% 100%;animation:mjaTail 2.6s ease-in-out infinite}
+@keyframes mjaTail{0%,100%{transform:rotate(-7deg)}45%{transform:rotate(9deg)}70%{transform:rotate(4deg)}}
+.mja-blink{transform-origin:50% 50%;animation:mjaBlink 5.6s infinite}
+@keyframes mjaBlink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+.mja-tw{animation:mjaTw 3.2s ease-in-out infinite}
+@keyframes mjaTw{0%,100%{opacity:1}50%{opacity:.25}}
+.mja-fly{animation:mjaFly 7s ease-in-out infinite}
+@keyframes mjaFly{0%,100%{transform:translate(0,0);opacity:1}25%{transform:translate(3px,-4px);opacity:.45}50%{transform:translate(6px,-1px);opacity:1}75%{transform:translate(2px,3px);opacity:.6}}
+.mja-flick{animation:mjaFlick 4.6s ease-in-out infinite}
+@keyframes mjaFlick{0%,100%{opacity:1}18%{opacity:.86}24%{opacity:.97}52%{opacity:.9}60%{opacity:1}81%{opacity:.84}}
+.mja-breathe{transform-origin:50% 50%;animation:mjaGlowB 7.5s ease-in-out infinite}
+@keyframes mjaGlowB{0%,100%{opacity:.82;transform:scale(1)}50%{opacity:1;transform:scale(1.04)}}
+.mja-drift{animation:mjaDrift 40s ease-in-out infinite alternate}
+@keyframes mjaDrift{from{transform:translateX(6px)}to{transform:translateX(-10px)}}
+.mja-flow{animation:mjaFlow 14s ease-in-out infinite alternate}
+@keyframes mjaFlow{from{transform:translateX(-3px)}to{transform:translateX(4px)}}
+.mja-shim{animation:mjaShim 2.6s ease-in-out infinite}
+@keyframes mjaShim{0%,100%{opacity:1;transform:translateX(0)}50%{opacity:.5;transform:translateX(1.2px)}}
+.mja-beam{transform-origin:100% 50%;animation:mjaBeam 9s ease-in-out infinite}
+@keyframes mjaBeam{0%,100%{transform:rotate(-3deg);opacity:.8}50%{transform:rotate(3deg);opacity:1}}
+.mja-bob{transform-origin:50% 100%;animation:mjaBob 4.8s ease-in-out infinite}
+@keyframes mjaBob{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(1.6px) rotate(1deg)}}
+.mja-zzz{animation:mjaZzz 3.8s ease-in-out infinite}
+@keyframes mjaZzz{0%{transform:translate(0,4px);opacity:0}30%{opacity:.9}100%{transform:translate(6px,-10px);opacity:0}}
+.mja-walk{animation:mjaWalk 1.1s ease-in-out infinite}
+@keyframes mjaWalk{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.4px)}}
+.mj-map .lit-flow path{fill:none;stroke:#fffbe6;stroke-width:3;stroke-linecap:round;stroke-dasharray:4 44;opacity:.75;animation:mjaFlowRoad 5s linear infinite}
+@keyframes mjaFlowRoad{to{stroke-dashoffset:-48}}
 .mj-rainfx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2}
 .mj-art{position:relative}
 .mj-scroll{height:min(72vh,660px);overflow-y:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:#2c3d70 transparent;background:#0a1228}

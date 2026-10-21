@@ -83,9 +83,9 @@ function mjMap(n, best, preview){
   });
   // Moon chờ ở bờ biển cạnh trạm gặp lại; khi đã tới ngày 365 thì Moon ngồi sát bên trạm
   const [rx, ry] = mjXY(MJ_STOPS.findIndex(s => s.id === 'd365')), ms = rx < 170 ? 1 : -1, moonCat = best >= 365 ? mjGlow(c, rx - ms * 44, ry + 26, 30, 'w', .7) + mjCat(c, rx - ms * 44, ry + 36, 1.3, 'sitF') : `<g opacity=".8">${mjGlow(c, rx + ms * 150, ry + 26, 26, 'm', .8)}${mjCat(c, rx + ms * 150, ry + 34, 1.1, 'sitB')}</g>`;
-  const [wx, wy] = si >= MJ_STOPS.length - 1 ? mjXY(si) : mjAt(si, sf), walker = state.user && n ? `<g class="mj-walker" transform="translate(${_r1(wx)} ${_r1(wy)})"><circle r="22" class="pulse"/>${mjGirl(c, 0, 12, .5, 'back', { hand:[10.4, -28.4], lantern:[10.4, -28.4] })}${sf > .18 && sf < .82 ? `<text x="${wx < 170 ? 26 : -26}" y="4" text-anchor="${wx < 170 ? 'start' : 'end'}" class="here">${esc(t('mjs_here'))}</text>` : ''}</g>` : '';
+  const [wx, wy] = si >= MJ_STOPS.length - 1 ? mjXY(si) : mjAt(si, sf), walker = state.user && n ? `<g class="mj-walker" transform="translate(${_r1(wx)} ${_r1(wy)})"><circle r="22" class="pulse"/><g class="mja mja-walk">${mjGirl(c, 0, 12, .5, 'back', { hand:[10.4, -28.4], lantern:[10.4, -28.4] })}</g>${sf > .18 && sf < .82 ? `<text x="${wx < 170 ? 26 : -26}" y="4" text-anchor="${wx < 170 ? 'start' : 'end'}" class="here">${esc(t('mjs_here'))}</text>` : ''}</g>` : '';
   return `<svg class="mj-map" viewBox="0 0 ${MJ_W} ${H}" data-wy="${_r1(wy)}" role="group" aria-label="${esc(t('mjs_road'))}"><defs>${c.d}</defs>
-    ${deco}<g class="road-edge">${road}</g><g class="road">${road}</g><g class="road-dash">${road}</g><g class="lit-glow">${lit}</g><g class="lit">${lit}</g><g class="days">${dots}</g>${moonCat}${stops}${walker}</svg>`;
+    ${deco}<g class="road-edge">${road}</g><g class="road">${road}</g><g class="road-dash">${road}</g><g class="lit-glow">${lit}</g><g class="lit">${lit}</g><g class="lit-flow">${lit.split('<path').filter(x => x && !x.includes('pathLength')).map(x => '<path' + x).join('')}</g><g class="days">${dots}</g>${moonCat}${stops}${walker}</svg>`;
 }
 
 /* ---------- các khối trên trang ---------- */
