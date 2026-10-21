@@ -434,6 +434,18 @@ html[data-font="serif"] h1,html[data-font="serif"] h2,html[data-font="serif"] h3
 /* gió nhẹ: tóc và nơ nghiêng theo gió rồi lơi ra, vạt áo lay chậm */
 .mja-hairw{transform-origin:50% 0;animation:mjaHairW 4.8s ease-in-out infinite}
 @keyframes mjaHairW{0%,100%{transform:rotate(1deg)}30%{transform:rotate(4deg)}55%{transform:rotate(2deg)}78%{transform:rotate(4.8deg)}}
+.mja-hairstep{transform-origin:50% 0;animation:mjaHairStep .65s ease-in-out infinite alternate}
+@keyframes mjaHairStep{from{transform:rotate(.6deg)}to{transform:rotate(2.2deg)}}
+.mja-hemstep{transform-origin:50% 0;animation:mjaHemStep .65s ease-in-out infinite alternate}
+@keyframes mjaHemStep{from{transform:skewX(.4deg)}to{transform:skewX(-1.4deg)}}
+/* vươn tay chạm sao: hạ tay lấy đà, vươn lên, giữ, thả về (ease in/out) */
+.mja-reach{animation:mjaReach 6s cubic-bezier(.45,0,.3,1) infinite}
+@keyframes mjaReach{0%,18%{transform:rotate(0)}28%{transform:rotate(5deg)}42%,58%{transform:rotate(-7deg)}74%,100%{transform:rotate(0)}}
+.mja-starhit{transform-box:fill-box;transform-origin:center;animation:mjaStarHit 6s ease-out infinite;opacity:0}
+@keyframes mjaStarHit{0%,40%{opacity:0;transform:scale(.4)}46%{opacity:1;transform:scale(1.25)}60%{opacity:.85;transform:scale(1)}80%,100%{opacity:0;transform:scale(.7)}}
+/* Moon nhảy vồ: nhún lấy đà (dẹt), bật lên (dãn), tiếp đất (dẹt), về dáng cũ */
+.mja-hop{transform-box:fill-box;transform-origin:50% 100%;animation:mjaHop 5s ease-in-out infinite}
+@keyframes mjaHop{0%,62%{transform:none}68%{transform:scale(1.08,.88)}74%{transform:translateY(-7px) scale(.94,1.08)}80%{transform:translateY(-8px) scale(1)}86%{transform:scale(1.1,.86)}92%{transform:scale(.98,1.03)}96%,100%{transform:none}}
 .mja-hem{transform-origin:50% 0;animation:mjaHem 6s ease-in-out infinite}
 @keyframes mjaHem{0%,100%{transform:skewX(0)}35%{transform:skewX(-2.2deg)}60%{transform:skewX(-.6deg)}80%{transform:skewX(-1.6deg)}}
 @keyframes mjaHair{0%,100%{transform:rotate(-2.2deg)}30%{transform:rotate(1.6deg)}55%{transform:rotate(3.2deg)}78%{transform:rotate(.4deg)}}
