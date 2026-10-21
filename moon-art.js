@@ -4,7 +4,7 @@
    - Màu đêm hợp với web: xanh navy, xanh lam đậm, ánh trăng vàng nhạt, ánh đom đóm và đèn vàng ấm.
    - Chất sáp mịn: nền là nhiều lớp nét ngắn theo hướng (sóng nước, cỏ theo gió, mây), mép hơi run tay (bộ lọc w),
      phủ một lớp hạt sáng và hạt tối rất nhẹ (bộ lọc g, d). Nhân vật vẽ ngoài bộ lọc run tay cho mặt rõ nét.
-   - Trân: cô gái thanh mảnh tỉ lệ người thật, tóc nâu sẫm dài, áo sơ mi trắng, váy hồng; chiếc ô màu hồng.
+   - Trân: cô bé mặc áo mưa hồng dáng chữ A, ủng hồng đậm, tóc nâu dài; trời mưa thì trùm mũ áo; chiếc ô hồng 8 gọng.
    - Moon: mèo cái trắng, đỉnh đầu và hai tai màu cam, mắt cười, má hồng.
    - Mỗi trạm một cảnh riêng (MJ_SCENES). Admin có thể thay từng cảnh bằng tranh vẽ tay: bật bút chì, mở trạm, bấm vào tranh.
    ========================================================= */
@@ -139,26 +139,28 @@ function mjLampN(c, x, gy, h = 120, o = {}){
 function mjLantern(c, lx, ly){
   return mjGlow(c, lx, ly + 7, 34, 'w', .95) + `<path d="M${lx} ${ly}v3" stroke="#2a2440" stroke-width=".8"/><path d="M${lx - 3.4} ${ly + 3}h6.8l-.8 9h-5.2z" fill="#ffe7a6"/><path d="M${lx - 4} ${ly + 2.6}h8M${lx - 3.4} ${ly + 12.2}h6.8" stroke="#2a2440" stroke-width="1.1"/>` + mjGlow(c, lx, ly + 7.5, 7, 'f', 1);
 }
-// chiếc ô màu hồng (tán 6 múi, gọng, đầu nhọn trên đỉnh), x,y là tâm mép dưới tán; o.lights: đèn nhỏ quanh mép, o.stars: sao trên tán, o.bent: một gọng cong
+// chiếc ô màu hồng nhìn hơi nghiêng từ trên xuống: tán vòm 8 gọng, mép trước lượn giữa các đầu gọng, cán thẳng và móc cong.
+// x,y là tâm vành tán; o.shaft: độ dài cán dưới vành (theo R), o.handle:false bỏ móc, o.lights: đèn nhỏ quanh mép, o.stars: sao trên tán, o.bent: một gọng gãy
 function mjUmbC(c, x, y, R = 26, rot = 0, o = {}){
-  const h = R * .66, tips = [-1, -.62, -.21, .21, .62, 1].map(t => t * R), top = `0 ${_r1(-h)}`;
-  const dome = `M${-R} 0C${_r1(-R)} ${_r1(-h * .62)} ${_r1(-R * .58)} ${_r1(-h)} ${top}C${_r1(R * .58)} ${_r1(-h)} ${R} ${_r1(-h * .62)} ${R} 0`;
-  const fill = mjLin(c, [[0, '#ffc4da'], [.55, '#f58db4'], [1, '#e2689a']]);
-  // tán: vòm + mép lượn sóng (đi ngược từ phải sang trái)
-  let g, back = ''; for (let i = tips.length - 1; i > 0; i--) back += `Q${_r1((tips[i - 1] + tips[i]) / 2)} ${_r1(-h * .2)} ${_r1(tips[i - 1])} 0`;
-  g = `<path d="${dome}${back}Z" fill="${fill}"/>`;
-  // các múi tối xen kẽ cho có khối
-  for (let i = 0; i < tips.length - 1; i += 2) g += `<path d="M${top}C${_r1(tips[i] * .5)} ${_r1(-h * .9)} ${_r1(tips[i] * .9)} ${_r1(-h * .5)} ${_r1(tips[i])} 0Q${_r1((tips[i] + tips[i + 1]) / 2)} ${_r1(-h * .2)} ${_r1(tips[i + 1])} 0C${_r1(tips[i + 1] * .9)} ${_r1(-h * .5)} ${_r1(tips[i + 1] * .5)} ${_r1(-h * .9)} ${top}Z" fill="#c9507f" opacity=".28"/>`;
-  g += tips.slice(1, -1).map(t => `<path d="M${top}C${_r1(t * .5)} ${_r1(-h * .9)} ${_r1(t * .9)} ${_r1(-h * .5)} ${_r1(t)} 0" fill="none" stroke="#b8406f" stroke-width=".7" opacity=".7"/>`).join('');
-  if (o.bent) g += `<path d="M${_r1(tips[4])} 0l${_r1(R * .06)} ${_r1(R * .14)}l${_r1(R * .1)} ${_r1(-R * .02)}" fill="none" stroke="#b8406f" stroke-width="1" stroke-linecap="round"/>`;
-  g += `<path d="M${_r1(-R * .72)} ${_r1(-h * .5)}C${_r1(-R * .6)} ${_r1(-h * .86)} ${_r1(-R * .3)} ${_r1(-h * .98)} ${_r1(-R * .06)} ${_r1(-h * .98)}" fill="none" stroke="#ffe3ee" stroke-width="${_r1(R * .07)}" stroke-linecap="round" opacity=".55"/>`;
-  g += mjDots(c, Math.round(R * .8), [-R, -h, R, 0], ['#ffffff', '#ffe3ee'], [.5, 1.1], .45, (px, py) => py < -2 && Math.abs(px) / R + Math.abs(py) / h < 1.05);
-  g += tips.map(t => `<circle cx="${_r1(t)}" cy="0" r="${_r1(R * .03 + .4)}" fill="#7a3352"/>`).join('');
-  if (o.lights) tips.forEach(t => { g += mjGlow(c, t, 1.5, 6, 'f', .8) + `<circle cx="${_r1(t)}" cy="1.5" r=".9" fill="#fff6c8"/>`; });
-  if (o.stars) for (let i = 0; i < o.stars; i++) { const px = (c.r() - .5) * R * 1.5, py = -h * (.15 + c.r() * .7); if (Math.abs(px) / R + Math.abs(py) / h > .95) continue; const z = 1.3 + c.r() * 2; g += mjGlow(c, px, py, z * 3.2, 'f', .7) + mjSpark(px, py, z, '#fff3b0'); }
+  const ry = R * .27, A = [0, -R * .6], T = a => [R * Math.cos(a * Math.PI / 180), ry * Math.sin(a * Math.PI / 180)];
+  const front = [180, 135, 90, 45, 0].map(T), P = p => `${_r1(p[0])} ${_r1(p[1])}`;
+  const rib = t => `Q${_r1(t[0] * .97)} ${_r1(t[1] + (A[1] - t[1]) * .74)} ${P(t)}`, ribBack = t => `Q${_r1(t[0] * .97)} ${_r1(t[1] + (A[1] - t[1]) * .74)} ${P(A)}`;
+  const scal = (a, b) => { const m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; return `Q${_r1(m[0] + (A[0] - m[0]) * .1)} ${_r1(m[1] + (A[1] - m[1]) * .16)} ${P(b)}`; };
+  const cols = ['#ffadc9', '#f791b8', '#e5739f', '#c85987'];
+  let g = `<path d="M${P(front[0])}Q${_r1(-R * .98)} ${_r1(A[1] * .78)} ${P(A)}Q${_r1(R * .98)} ${_r1(A[1] * .78)} ${P(front[4])}L${P(front[0])}Z" fill="#9c3f69"/>`;
+  for (let i = 0; i < 4; i++) g += `<path d="M${P(A)}${rib(front[i])}${scal(front[i], front[i + 1])}${ribBack(front[i + 1])}Z" fill="${cols[i]}"/>`;
+  // ánh sáng mềm trên vòm và bóng tối dọc mép
+  g += `<path d="M${_r1(-R * .78)} ${_r1(-R * .18)}Q${_r1(-R * .62)} ${_r1(-R * .5)} ${_r1(-R * .14)} ${_r1(-R * .56)}" stroke="#ffe0ec" stroke-width="${_r1(R * .09)}" stroke-linecap="round" fill="none" opacity=".45"/>`;
+  g += `<path d="M${P(front[0])}${front.slice(1).map((t, i) => scal(front[i], t)).join('')}" stroke="#8e3460" stroke-width="${_r1(R * .05)}" fill="none" opacity=".55" stroke-linejoin="round"/>`;
+  g += front.slice(1, 4).map(t => `<path d="M${P(A)}${rib(t)}" stroke="#a9446f" stroke-width=".6" fill="none" opacity=".75"/>`).join('');
+  g += front.map(t => `<path d="M${P(t)}l0 ${_r1(R * .05)}" stroke="#5a2a40" stroke-width="1.1" stroke-linecap="round"/>`).join('');
+  if (o.bent) { const t = front[3]; g += `<path d="M${P(t)}l${_r1(R * .05)} ${_r1(R * .16)}" stroke="#8e3460" stroke-width="1" stroke-linecap="round"/>`; }
+  g += mjDots(c, Math.round(R * .7), [-R, A[1], R, ry], ['#ffffff', '#ffe3ee'], [.4, .9], .4, (px, py) => py < ry * .4 && Math.pow(px / R, 2) + Math.pow((py - ry * .2) / (A[1] - ry * .2), 2) < .8);
+  if (o.lights) front.forEach(t => { g += mjGlow(c, t[0], t[1] + 2, 6, 'f', .8) + `<circle cx="${_r1(t[0])}" cy="${_r1(t[1] + 2)}" r=".9" fill="#fff6c8"/>`; });
+  if (o.stars) for (let i = 0; i < o.stars; i++) { const px = (c.r() - .5) * R * 1.5, py = A[1] * (.15 + c.r() * .7); if (Math.pow(px / R, 2) + Math.pow(py / A[1], 2) > .75) continue; const z = 1.3 + c.r() * 2; g += mjGlow(c, px, py, z * 3.2, 'f', .7) + mjSpark(px, py, z, '#fff3b0'); }
   const sh = R * (o.shaft ?? .9);
-  if (o.shaft !== 0) g = `<path d="M0 ${_r1(-h)}V${_r1(sh)}" stroke="#4a3a4e" stroke-width="1.2"/>` + g + `<path d="M0 0V${_r1(sh)}" stroke="#4a3a4e" stroke-width="1.2"/>${o.handle === false ? '' : `<path d="M0 ${_r1(sh)}q0 3.4-3.2 3.4q-2.2 0-2.4-2.2" fill="none" stroke="#7a3352" stroke-width="1.8" stroke-linecap="round"/>`}`;
-  return `<g transform="translate(${_r1(x)} ${_r1(y)}) rotate(${rot})">${g}<path d="M-.9 ${_r1(-h)}L0 ${_r1(-h - R * .14)}L.9 ${_r1(-h)}Z" fill="#4a3a4e"/></g>`;
+  if (o.shaft !== 0) g += `<path d="M0 ${_r1(ry * .9)}V${_r1(sh)}" stroke="#3e3550" stroke-width="1.1" stroke-linecap="round"/>${o.handle === false ? '' : `<path d="M0 ${_r1(sh)}v1.6q0 3.6 3.4 3.6q2.6 0 2.8-2.6" fill="none" stroke="#4a3a6a" stroke-width="1.9" stroke-linecap="round"/>`}`;
+  return `<g transform="translate(${_r1(x)} ${_r1(y)}) rotate(${rot})">${g}<path d="M-.8 ${_r1(A[1] + .4)}L0 ${_r1(A[1] - R * .16)}L.8 ${_r1(A[1] + .4)}Z" fill="#3e3550"/></g>`;
 }
 // cây thông tối nhiều tầng
 function mjPine(x, gy, h, col = '#0a1430', w = .42){
@@ -173,90 +175,99 @@ function mjBush(c, x, y, rx, ry, cols, n = 60, o = {}){
 
 /* ---------- nhân vật ---------- */
 const mjLn = (d, col, w, op = 1) => `<path d="${d}" stroke="${col}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="${op}"/>`;
-// Trân: cô gái thanh mảnh, tỉ lệ người thật (khoảng 7 đầu), tóc nâu sẫm dài tới thắt lưng, áo sơ mi trắng, váy hồng xoè, giày hồng đậm.
-// Vẽ kiểu tranh minh hoạ mềm: không viền đen, tách khối bằng sắc độ cùng màu và một chút ánh sáng viền. Chân ở (0,0), cao khoảng 60 khi s=1.
-// pose: back (đứng quay lưng), side (đi sang phải), kneel (ngồi thụp, nhìn sang phải), sit (ngồi quay lưng), perch (ngồi thả chân, nhìn sang phải), reach (quay lưng, giơ tay)
-// o: flip, wind (tóc bay), hand (điểm bàn tay phải, tay tự gập khuỷu), umb {hand,R,rot,...} (tay thứ hai cầm ô nếu khác hand), lantern [x,y], cat (bế Moon), closedUmb, legs:false, closed, shadow
+// Trân: cô bé mặc áo mưa hồng dáng chữ A, quần xanh than, ủng hồng đậm, tóc nâu dài. Trời mưa (MJ_HOOD) thì trùm mũ áo, lọn tóc lòi ra ngoài.
+// Vẽ kiểu tranh: khối màu mềm, sắc độ cùng màu, không viền đen. Chân ở (0,0), cao khoảng 52 khi s=1.
+// pose: back (đứng quay lưng), side (đứng nghiêng sang phải), kneel (ngồi thụp, nhìn sang phải), sit (ngồi quay lưng), perch (ngồi thả chân, nhìn sang phải), reach (quay lưng, giơ tay)
+// o: flip, wind (tóc bay), hand (điểm bàn tay phải, tay tự gập khuỷu), umb {hand,R,rot,...} (tay thứ hai cầm ô nếu khác hand), lantern [x,y], cat (bế Moon), closedUmb, legs:false, closed, shadow, hood
+let MJ_HOOD = false;
 function mjGirl(c, x, y, s = 1, pose = 'back', o = {}){
-  const K = '#f5dccb', KS = '#dfb3a0', HR = '#33232a', HM = '#4d353b', HL = '#86656a', BL = '#f3eef0', BS = '#cfc3cf', SK = '#f39fbd', SKS = '#d27598', SKL = '#ffc9db', SH = '#c2507a';
-  const f = o.flip ? -1 : 1, ln = mjLn, W = o.wind || 0, P = (d, fill, op) => `<path d="${d}" fill="${fill}"${op ? ` opacity="${op}"` : ''}/>`;
-  // tay: vai -> khuỷu -> bàn tay, khuỷu tính theo độ dài hai đoạn, gập xuống dưới
-  const arm = (S, H, far) => {
-    const L1 = 10.4, L2 = 9.6, dx = H[0] - S[0], dy = H[1] - S[1], d = Math.hypot(dx, dy) || 1;
-    let E;
-    if (d >= L1 + L2 - .2) E = [S[0] + dx * L1 / d, S[1] + dy * L1 / d];
+  const K = '#f7d9c4', KS = '#e0b19a', CO = '#f08db1', COS = '#cc6690', COL = '#ffc2d7', COD = '#a8477a', BO = '#b9395f', BOL = '#e4688f', PA = '#2b3566', HR = '#3b2729', HM = '#5a3b3d', HL = '#8e6866';
+  const f = o.flip ? -1 : 1, ln = mjLn, W = o.wind || 0, hood = o.hood ?? MJ_HOOD, P = (d, fill, op) => `<path d="${d}" fill="${fill}"${op ? ` opacity="${op}"` : ''}/>`;
+  const L1 = 8.2, L2 = 7.8;
+  const reach = (S, H) => { const dx = H[0] - S[0], dy = H[1] - S[1], d = Math.hypot(dx, dy), m = L1 + L2 - .3; return d > m ? [S[0] + dx * m / d, S[1] + dy * m / d] : H; };
+  // tay áo mưa: vai -> khuỷu -> bàn tay, khuỷu gập xuống
+  const arm = (S, H0, far) => {
+    const H = reach(S, H0), dx = H[0] - S[0], dy = H[1] - S[1], d = Math.hypot(dx, dy) || 1;
+    let E; if (d >= L1 + L2 - .4) E = [S[0] + dx * L1 / d, S[1] + dy * L1 / d];
     else { const dd = Math.max(d, Math.abs(L1 - L2) + .5), a = (L1 * L1 - L2 * L2 + dd * dd) / (2 * dd), h = Math.sqrt(Math.max(0, L1 * L1 - a * a)), px = S[0] + dx * a / d, py = S[1] + dy * a / d, nx = -dy / d, ny = dx / d, e1 = [px + nx * h, py + ny * h], e2 = [px - nx * h, py - ny * h]; E = e1[1] > e2[1] ? e1 : e2; }
-    const dpath = `M${_r1(S[0])} ${_r1(S[1])}L${_r1(E[0])} ${_r1(E[1])}L${_r1(H[0])} ${_r1(H[1])}`;
-    return `<path d="${dpath}" fill="none" stroke="${far ? BS : '#b9adbb'}" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round"/>` + (far ? '' : `<path d="${dpath}" fill="none" stroke="${BL}" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>`) + `<circle cx="${_r1(H[0])}" cy="${_r1(H[1])}" r="1.15" fill="${far ? KS : K}"/>`;
+    const dp = `M${_r1(S[0])} ${_r1(S[1])}Q${_r1(E[0])} ${_r1(E[1])} ${_r1(H[0])} ${_r1(H[1])}`, hx = H[0] - (H[0] - E[0]) * .12, hy = H[1] - (H[1] - E[1]) * .12;
+    return `<path d="${dp}" fill="none" stroke="${far ? COD : COS}" stroke-width="4.1" stroke-linecap="round"/>` + (far ? '' : `<path d="${dp}" fill="none" stroke="${CO}" stroke-width="3.1" stroke-linecap="round"/><path d="${dp}" fill="none" stroke="${COL}" stroke-width=".9" stroke-linecap="round" opacity=".45" transform="translate(-.6 -.6)"/>`)
+      + `<circle cx="${_r1(H[0])}" cy="${_r1(H[1])}" r="1.55" fill="${far ? KS : K}"/>` + `<circle cx="${_r1(hx)}" cy="${_r1(hy)}" r="1.9" fill="${far ? COD : COS}"/>`;
   };
-  const leg = (x1, y1, x2, y2) => { const nx = (y2 - y1), ny = -(x2 - x1), l = Math.hypot(nx, ny) || 1, w1 = 1.25, w2 = .7, ux = nx / l, uy = ny / l, mx = (x1 + x2) / 2 + ux * .25, my = (y1 + y2) / 2 + uy * .25;
-    return P(`M${_r1(x1 + ux * w1)} ${_r1(y1 + uy * w1)}Q${_r1(mx + ux * 1.25)} ${_r1(my + uy * 1.25)} ${_r1(x2 + ux * w2)} ${_r1(y2 + uy * w2)}L${_r1(x2 - ux * w2)} ${_r1(y2 - uy * w2)}Q${_r1(mx - ux * 1.05)} ${_r1(my - uy * 1.05)} ${_r1(x1 - ux * w1)} ${_r1(y1 - uy * w1)}Z`, K); };
-  const shoe = (bx, by, dir = 1) => P(`M${_r1(bx - 1 * dir)} ${_r1(by - 1.6)}Q${_r1(bx + 2.4 * dir)} ${_r1(by - 1.8)} ${_r1(bx + 2.6 * dir)} ${_r1(by - .2)}L${_r1(bx - 1.2 * dir)} ${_r1(by)}Z`, SH);
-  const shoeB = bx => P(`M${_r1(bx - 1.2)} 0Q${_r1(bx - 1.3)} -1.8 ${_r1(bx)} -1.9Q${_r1(bx + 1.3)} -1.8 ${_r1(bx + 1.2)} 0Z`, SH);
+  const bootB = bx => P(`M${_r1(bx - 1.9)} 0Q${_r1(bx - 2.1)} -1 ${_r1(bx - 1.9)} -1.8V-8.6H${_r1(bx + 1.9)}V-1.8Q${_r1(bx + 2.1)} -1 ${_r1(bx + 1.9)} 0Z`, BO) + P(`M${_r1(bx - 1.3)} -8.2H${_r1(bx - .4)}V-1.6H${_r1(bx - 1.3)}Z`, BOL, .55);
+  const bootS = bx => P(`M${_r1(bx - 1.9)} 0V-8.6H${_r1(bx + 1.7)}V-2.6Q${_r1(bx + 2.1)} -1.4 ${_r1(bx + 3.6)} -1.2Q${_r1(bx + 4.4)} -.6 ${_r1(bx + 3.8)} 0Z`, BO) + P(`M${_r1(bx - 1.3)} -8.2H${_r1(bx - .5)}V-1.4H${_r1(bx - 1.3)}Z`, BOL, .55);
   const wind = (cy, inner) => `<g transform="translate(0 ${_r1(cy)}) skewX(${-W * 1.4}) translate(0 ${_r1(-cy)})">${inner}</g>`;
-  // đầu nhìn nghiêng sang phải, tâm (hx,hy), tóc dài buông sau lưng dài len
+  // tóc dài nhìn từ sau (đầu tâm 0,hy)
+  const hairBack = (hy, len) => wind(hy, P(`M-5.8 ${hy}C-6.2 ${hy - 8} 6.2 ${hy - 8} 5.8 ${hy}C6.6 ${hy + len * .35} 7.2 ${hy + len * .7} 6.4 ${hy + len * .94}Q5.4 ${hy + len} 4.6 ${hy + len * .9}Q3.8 ${hy + len * 1.06} 2.2 ${hy + len}Q1 ${hy + len * .92} 0 ${hy + len * 1.04}Q-1.2 ${hy + len * .92} -2.4 ${hy + len}Q-3.8 ${hy + len * 1.06} -4.6 ${hy + len * .9}Q-5.6 ${hy + len} -6.4 ${hy + len * .94}C-7.2 ${hy + len * .7} -6.6 ${hy + len * .35} -5.8 ${hy}Z`, HR)
+    + ln(`M-3 ${hy - 4}C-3.6 ${hy + len * .4} -4 ${hy + len * .7} -4.4 ${hy + len * .9}M2.4 ${hy - 4.4}C3 ${hy + len * .4} 3.6 ${hy + len * .7} 4 ${hy + len * .92}M-.2 ${hy - 3}C-.4 ${hy + len * .5} 0 ${hy + len * .8} -.2 ${hy + len}`, HM, .7, .9)
+    + ln(`M-3.4 ${hy - 4.6}Q0 ${hy - 7.4} 3.4 ${hy - 4.6}`, HL, 1, .7));
+  // mũ áo mưa trùm đầu, nhìn từ sau, có lọn tóc lòi ra hai bên
+  const hoodBack = hy => ln(`M-5.6 ${hy + 4}C-6.6 ${hy + 8} -6.2 ${hy + 12} -7 ${hy + 15}M5.4 ${hy + 4}C6.4 ${hy + 8} 6.2 ${hy + 11} 6.8 ${hy + 14}`, HR, 1.6) + P(`M-7.2 ${hy + 5.6}C-8.6 ${hy - .4} -6.8 ${hy - 7.6} 0 ${hy - 8}C6.8 ${hy - 7.6} 8.6 ${hy - .4} 7.2 ${hy + 5.6}Q0 ${hy + 7.8} -7.2 ${hy + 5.6}Z`, CO)
+    + P(`M2 ${hy - 7.8}C6.6 ${hy - 6.6} 8.4 ${hy - .6} 7.2 ${hy + 5.6}Q5.4 ${hy + 6.4} 3.6 ${hy + 6.8}C5 ${hy + 1} 4.6 ${hy - 4} 2 ${hy - 7.8}Z`, COS, .7) + ln(`M0 ${hy - 7.8}Q.6 ${hy - 1} 0 ${hy + 6.6}`, COS, .7, .8) + ln(`M-4.4 ${hy - 5.6}Q-2 ${hy - 7.4} 0 ${hy - 7.6}`, COL, 1.1, .55);
+  // đầu nhìn nghiêng sang phải, tâm (hx,hy)
   const headSide = (hx, hy, len) => {
     const X = d => _r1(hx + d), Y = d => _r1(hy + d);
-    const hair = P(`M${X(3.5)} ${Y(-2.4)}C${X(3.4)} ${Y(-5.8)} ${X(-1.8)} ${Y(-6.6)} ${X(-3.9)} ${Y(-3.8)}C${X(-5.4)} ${Y(-1.4)} ${X(-5)} ${Y(3)} ${X(-5.3)} ${Y(len * .3)}C${X(-5.6)} ${Y(len * .6)} ${X(-6.2)} ${Y(len * .84)} ${X(-7.6)} ${Y(len)}Q${X(-5.6)} ${Y(len * .97)} ${X(-4.6)} ${Y(len * .88)}Q${X(-4.2)} ${Y(len * 1.02)} ${X(-2.8)} ${Y(len * .96)}Q${X(-2.6)} ${Y(len * .86)} ${X(-1.8)} ${Y(len * .8)}C${X(-1.2)} ${Y(len * .5)} ${X(-.6)} ${Y(len * .25)} ${X(-.4)} ${Y(3.4)}C${X(-.4)} ${Y(1)} ${X(.6)} ${Y(-1.2)} ${X(1.6)} ${Y(-1.8)}Q${X(2.6)} ${Y(-1.6)} ${X(3.5)} ${Y(-2.4)}Z`, HR)
-      + ln(`M${X(-3.4)} ${Y(-2)}C${X(-4.2)} ${Y(len * .3)} ${X(-4.4)} ${Y(len * .6)} ${X(-5.6)} ${Y(len * .9)}M${X(-1.8)} ${Y(1)}C${X(-2.2)} ${Y(len * .4)} ${X(-2.6)} ${Y(len * .65)} ${X(-3.2)} ${Y(len * .88)}`, HM, .55, .9)
-      + ln(`M${X(-2.6)} ${Y(-4.8)}Q${X(.6)} ${Y(-6.2)} ${X(2.6)} ${Y(-4.2)}`, HL, .7, .8) + ln(`M${X(-4.6)} ${Y(-1)}C${X(-5)} ${Y(len * .3)} ${X(-5.4)} ${Y(len * .55)} ${X(-6.4)} ${Y(len * .82)}`, HL, .4, .55);
-    return wind(hy, hair) + P(`M${X(-.4)} ${Y(2.8)}L${X(-.2)} ${Y(6.6)}L${X(2)} ${Y(6.6)}L${X(1.9)} ${Y(3.4)}Z`, KS)
-      + P(`M${X(-2.6)} ${Y(-1.2)}C${X(-2.8)} ${Y(-4.6)} ${X(-.6)} ${Y(-5)} ${X(1)} ${Y(-4.8)}C${X(2.8)} ${Y(-4.6)} ${X(3.7)} ${Y(-3.2)} ${X(3.8)} ${Y(-1.6)}L${X(4.5)} ${Y(.1)}Q${X(4.5)} ${Y(.5)} ${X(3.9)} ${Y(.5)}Q${X(4.2)} ${Y(1.2)} ${X(3.8)} ${Y(1.6)}Q${X(3.9)} ${Y(2.3)} ${X(3.3)} ${Y(2.9)}C${X(2.6)} ${Y(3.8)} ${X(1.2)} ${Y(4)} ${X(.2)} ${Y(3.6)}C${X(-1.6)} ${Y(2.8)} ${X(-2.4)} ${Y(1.4)} ${X(-2.6)} ${Y(-1.2)}Z`, K)
-      + P(`M${X(-3)} ${Y(-1)}C${X(-3.4)} ${Y(-4.8)} ${X(-.4)} ${Y(-6)} ${X(1.6)} ${Y(-5.6)}C${X(3.2)} ${Y(-5.2)} ${X(3.9)} ${Y(-4)} ${X(3.9)} ${Y(-2.4)}Q${X(2.6)} ${Y(-3.6)} ${X(1)} ${Y(-3.4)}Q${X(-.6)} ${Y(-2.8)} ${X(-1)} ${Y(-.6)}Q${X(-1.8)} ${Y(1.2)} ${X(-1.6)} ${Y(2.8)}Q${X(-2.6)} ${Y(1.6)} ${X(-3)} ${Y(-1)}Z`, HR)
-      + ln(`M${X(-1.4)} ${Y(-4.6)}Q${X(1)} ${Y(-5.4)} ${X(3)} ${Y(-3.8)}`, HL, .5, .7)
-      + (o.closed ? ln(`M${X(1.8)} ${Y(-.6)}q.7.5 1.4.1`, '#3a2228', .4) : ln(`M${X(1.9)} ${Y(-.9)}q.8-.3 1.4.1`, '#2a1a20', .5) + `<ellipse cx="${X(2.5)}" cy="${Y(-.5)}" rx=".42" ry=".5" fill="#2a1a20"/>`)
-      + ln(`M${X(1.6)} ${Y(-1.9)}q.9-.5 1.9-.1`, HM, .35, .8) + `<ellipse cx="${X(2.1)}" cy="${Y(1.3)}" rx="1.1" ry=".7" fill="#f29aa8" opacity=".5"/>` + ln(`M${X(3.3)} ${Y(2.2)}q.3.1.5-.1`, '#c46a78', .35);
+    if (hood) return P(`M${X(-6.6)} ${Y(5.4)}C${X(-8.2)} ${Y(-.6)} ${X(-6.2)} ${Y(-7.6)} ${X(.4)} ${Y(-8)}C${X(5.4)} ${Y(-8)} ${X(7.4)} ${Y(-3.8)} ${X(7)} ${Y(.6)}C${X(6.8)} ${Y(3.2)} ${X(6)} ${Y(4.8)} ${X(4.6)} ${Y(5.6)}Q${X(-1)} ${Y(7.2)} ${X(-6.6)} ${Y(5.4)}Z`, CO)
+      + P(`M${X(-6.6)} ${Y(5.4)}C${X(-8.2)} ${Y(-.6)} ${X(-6.2)} ${Y(-7.6)} ${X(.4)} ${Y(-8)}C${X(-3)} ${Y(-5)} ${X(-4.4)} ${Y(1)} ${X(-3.4)} ${Y(6.4)}Z`, COS, .6)
+      + P(`M${X(4.6)} ${Y(-3.8)}C${X(7.2)} ${Y(-3.6)} ${X(7.8)} ${Y(-.6)} ${X(7.6)} ${Y(1.8)}Q${X(7.4)} ${Y(4.4)} ${X(5)} ${Y(4.8)}C${X(3.4)} ${Y(3)} ${X(3.2)} ${Y(-1.6)} ${X(4.6)} ${Y(-3.8)}Z`, K) + P(`M${X(7.4)} ${Y(-.2)}L${X(8.4)} ${Y(1.2)}L${X(7.4)} ${Y(1.6)}Z`, K)
+      + `<ellipse cx="${X(6)}" cy="${Y(2.4)}" rx="1.1" ry=".7" fill="#f29aa8" opacity=".55"/>` + ln(`M${X(4.2)} ${Y(-3.4)}C${X(3)} ${Y(1)} ${X(3.8)} ${Y(5)} ${X(2.4)} ${Y(9)}`, HR, 1.4) + ln(`M${X(-2)} ${Y(-7.2)}Q${X(2.6)} ${Y(-8.2)} ${X(5.4)} ${Y(-5.6)}`, COL, 1, .55) + ln(`M${X(4.4)} ${Y(-4.4)}Q${X(6)} ${Y(-4)} ${X(7)} ${Y(-2)}`, COS, .8, .7);
+    const hair = P(`M${X(4.6)} ${Y(-3.6)}C${X(4.4)} ${Y(-7.6)} ${X(-2.6)} ${Y(-8.4)} ${X(-5.4)} ${Y(-4.6)}C${X(-7.2)} ${Y(-1.6)} ${X(-6.8)} ${Y(3)} ${X(-7.2)} ${Y(len * .35)}C${X(-7.6)} ${Y(len * .65)} ${X(-8.4)} ${Y(len * .86)} ${X(-9.6)} ${Y(len)}Q${X(-7.4)} ${Y(len * .98)} ${X(-6.4)} ${Y(len * .88)}Q${X(-5.8)} ${Y(len * 1.02)} ${X(-4.2)} ${Y(len * .94)}C${X(-3.4)} ${Y(len * .6)} ${X(-2.2)} ${Y(len * .3)} ${X(-1.6)} ${Y(3)}C${X(-1)} ${Y(.4)} ${X(.8)} ${Y(-2)} ${X(2.4)} ${Y(-2.6)}Q${X(3.6)} ${Y(-2.6)} ${X(4.6)} ${Y(-3.6)}Z`, HR)
+      + ln(`M${X(-4.8)} ${Y(-2)}C${X(-5.6)} ${Y(len * .3)} ${X(-6)} ${Y(len * .6)} ${X(-7.4)} ${Y(len * .9)}M${X(-2.8)} ${Y(1)}C${X(-3.2)} ${Y(len * .4)} ${X(-3.6)} ${Y(len * .65)} ${X(-4.6)} ${Y(len * .88)}`, HM, .7, .9) + ln(`M${X(-3.6)} ${Y(-6.2)}Q${X(.8)} ${Y(-8)} ${X(3.6)} ${Y(-5.4)}`, HL, .9, .75);
+    return wind(hy, hair) + P(`M${X(-3.6)} ${Y(-.6)}C${X(-3.8)} ${Y(-5.6)} ${X(-.6)} ${Y(-6.4)} ${X(1.6)} ${Y(-6)}C${X(4.4)} ${Y(-5.6)} ${X(5.6)} ${Y(-3.6)} ${X(5.6)} ${Y(-1.4)}L${X(6.6)} ${Y(.6)}Q${X(6.4)} ${Y(1.2)} ${X(5.6)} ${Y(1.2)}Q${X(5.8)} ${Y(3.4)} ${X(4.2)} ${Y(4.6)}C${X(2.4)} ${Y(5.8)} ${X(-.4)} ${Y(5.8)} ${X(-2)} ${Y(4.4)}C${X(-3.2)} ${Y(3.2)} ${X(-3.6)} ${Y(1.6)} ${X(-3.6)} ${Y(-.6)}Z`, K)
+      + P(`M${X(-4.2)} ${Y(-.6)}C${X(-4.6)} ${Y(-6.4)} ${X(-.6)} ${Y(-7.6)} ${X(2)} ${Y(-7.2)}C${X(4.4)} ${Y(-6.8)} ${X(5.6)} ${Y(-5.2)} ${X(5.6)} ${Y(-3.2)}Q${X(3.8)} ${Y(-4.6)} ${X(1.6)} ${Y(-4.2)}Q${X(-.6)} ${Y(-3.4)} ${X(-1.2)} ${Y(-.8)}Q${X(-2)} ${Y(1.6)} ${X(-1.8)} ${Y(3.6)}Q${X(-3.6)} ${Y(1.8)} ${X(-4.2)} ${Y(-.6)}Z`, HR)
+      + (o.closed ? ln(`M${X(2.6)} ${Y(-.4)}q.8.6 1.6.1`, '#3a2228', .5) : `<ellipse cx="${X(3.2)}" cy="${Y(-.3)}" rx=".6" ry=".75" fill="#2a1a20"/>`) + `<ellipse cx="${X(3)}" cy="${Y(2.2)}" rx="1.4" ry=".9" fill="#f29aa8" opacity=".55"/>` + ln(`M${X(4.4)} ${Y(3.2)}q.4.2.7-.1`, '#c46a78', .45);
   };
-  // đầu nhìn từ sau, tâm (0,hy), tóc dài len
-  const headBack = (hy, len) => wind(hy, P(`M-4 ${hy}C-4.3 ${hy - 6.2} 4.3 ${hy - 6.2} 4 ${hy}C4.6 ${hy + len * .3} 5.4 ${hy + len * .62} 5 ${hy + len * .9}Q4.4 ${hy + len * .96} 3.8 ${hy + len * .9}Q3.4 ${hy + len * 1.04} 2 ${hy + len}Q1 ${hy + len * .92} 0 ${hy + len * 1.04}Q-1 ${hy + len * .92} -2 ${hy + len}Q-3.4 ${hy + len * 1.04} -3.8 ${hy + len * .9}Q-4.4 ${hy + len * .96} -5 ${hy + len * .9}C-5.4 ${hy + len * .62} -4.6 ${hy + len * .3} -4 ${hy}Z`, HR)
-    + ln(`M-2 ${hy - 3}C-2.6 ${hy + len * .4} -2.8 ${hy + len * .7} -3.2 ${hy + len * .9}M1.6 ${hy - 3.4}C2.2 ${hy + len * .4} 2.6 ${hy + len * .7} 3 ${hy + len * .92}M-.2 ${hy - 2}C-.4 ${hy + len * .5} 0 ${hy + len * .8} -.2 ${hy + len}`, HM, .55, .9)
-    + ln(`M-2.6 ${hy - 3.4}Q0 ${hy - 5.6} 2.6 ${hy - 3.4}`, HL, .8, .75) + ln(`M3.4 ${hy}C4 ${hy + len * .3} 4.6 ${hy + len * .55} 4.4 ${hy + len * .8}`, HL, .4, .6));
-  const waistTie = (y, x1, x2) => P(`M${x1} ${y - .6}H${x2}V${y + .5}H${x1}Z`, SKS);
+  const coatTex = box => mjS(c, 9, box, [COS, COL], { ang:88, len:[4, 9], w:[.9, 1.4], op:.6, jit:10 });
   let g = '';
-  if (o.shadow !== false && pose !== 'perch') g += `<ellipse cx="0" cy="0" rx="${pose === 'sit' || pose === 'kneel' ? 12 : 8}" ry="1.8" fill="#03060f" opacity=".45"/>`;
+  if (o.shadow !== false && pose !== 'perch') g += `<ellipse cx="0" cy="0" rx="${pose === 'sit' || pose === 'kneel' ? 13 : 10}" ry="2.2" fill="#03060f" opacity=".45"/>`;
   const umbHand = o.umb && o.umb.hand && (!o.hand || o.umb.hand[0] !== o.hand[0] || o.umb.hand[1] !== o.hand[1]) ? o.umb.hand : null;
+  let SH = [0, 0];
   if (pose === 'back' || pose === 'reach') {
-    g += leg(-1.7, -20, -1.5, -1.6) + leg(1.7, -20, 1.5, -1.6) + shoeB(-1.5) + shoeB(1.5);
-    g += P('M-3.4 -34C-5 -29 -7 -23.4 -8.2 -19.4Q-6 -18.4 -4 -19.2Q-2 -18.2 0 -19Q2 -18.2 4 -19.2Q6 -18.4 8.2 -19.4C7 -23.4 5 -29 3.4 -34Z', SK) + P('M1.2 -34C2.8 -29 4.6 -24 5.2 -18.8Q6.8 -18.6 8.2 -19.4C7 -23.4 5 -29 3.4 -34Z', SKS, .7) + ln('M-1.4 -33L-3.6 -19.4M1 -33L1.6 -19M-2.6 -32L-6 -19.6', SKS, .45, .7) + ln('M-2.4 -33.4L-5.4 -21', SKL, .5, .6);
-    g += arm([-4.4, -45.4], [-6.2, -27], true);
-    g += P('M-5 -46.2C-5.4 -42 -4.2 -38 -3.4 -34L3.4 -34C4.2 -38 5.4 -42 5 -46.2Q0 -47.8 -5 -46.2Z', BL) + P('M2 -47C3.6 -42 3.8 -38 3.4 -34Q4.2 -38 5 -42.6Q5.4 -45 5 -46.2Z', BS, .8) + waistTie(-34, -3.6, 3.6);
-    g += P('M-1.1 -49.6H1.1V-46.4H-1.1Z', KS);
-    if (o.closedUmb) g += `<path d="M6.4 -27.4L8 -1" stroke="#5a4a5e" stroke-width=".8"/>` + P('M6.5 -24L5.4 -8L7.6 -3.6L8.4 -22Z', '#f58db4');
-    g += headBack(-53.4, 22);
-    g += pose === 'reach' ? arm([4.4, -45.4], [9.6, -64.6]) : arm([4.4, -45.4], o.hand || [6.2, -27]);
+    SH = [5.2, -34.4];
+    g += P('M-4.2 -12.4H-1.2V-8H-4.2ZM1.2 -12.4H4.2V-8H1.2Z', PA) + bootB(-2.7) + bootB(2.7);
+    g += arm([-5.2, -34.4], [-7.6, -20], true);
+    g += P('M-5.6 -37C-7.4 -33 -9.4 -22 -10.6 -13Q-5 -11.2 0 -11.8Q5 -11.2 10.6 -13C9.4 -22 7.4 -33 5.6 -37Q0 -39.4 -5.6 -37Z', CO) + P('M2.6 -38.4C5.6 -32 7.4 -22 7.6 -11.8Q9.4 -12.2 10.6 -13C9.4 -22 7.4 -33 5.6 -37Z', COS, .75) + ln('M-10.4 -13.2Q0 -10.6 10.4 -13.2', COD, .8, .6) + ln('M-.2 -37.6Q.4 -25 0 -12', COS, .6, .6) + coatTex([-9, -36, 7, -14]);
+    if (o.closedUmb) g += `<path d="M8.4 -18.4L10 -1" stroke="#4a3a6a" stroke-width=".9"/>` + P('M8.5 -15.6L7.2 -5.4L9.6 -2.4L10.4 -14.2Z', '#e5739f');
+    g += hood ? hoodBack(-43.2) : P('M-6.6 -37.8Q-7.8 -32.6 -3 -31.2Q0 -30.6 3 -31.2Q7.8 -32.6 6.6 -37.8Z', COS) + hairBack(-44, 18);
+    g += pose === 'reach' ? arm(SH, [12.6, -46.4]) : arm(SH, o.hand || [7.6, -20]);
   } else if (pose === 'side') {
+    SH = [.6, -34.2];
     const lg = o.legs !== false;
-    if (lg) g += leg(-.6, -20, -3, -1.6) + shoe(-3.2, 0, 1);
-    g += arm([-.6, -45.4], [-3, -28.4], true);
-    if (lg) g += leg(1, -20, 3.4, -1.6) + shoe(3.4, 0, 1);
-    g += wind(-34, P('M-2.6 -34C-4.2 -29 -6 -23 -7 -19.4Q-3 -18.2 0 -18.8Q3.4 -18.2 6.4 -19.6C5 -24 3.6 -29 2.8 -34Z', SK) + P('M-2.6 -34C-4.2 -29 -6 -23 -7 -19.4Q-5 -18.6 -3.4 -18.8C-2.8 -24 -2 -29 -1.2 -34Z', SKS, .7) + ln('M.4 -33L.6 -19M2 -33L4 -19.4', SKS, .45, .7) + ln('M-.6 -33L-2 -19.4', SKL, .5, .6));
-    g += P('M-2.6 -46.4C-3.4 -42 -3.2 -38 -2.6 -34L2.8 -34C3.2 -37 4 -39.6 3.6 -42.6C3.4 -45 2.4 -46.6 1 -47Q-1 -47.4 -2.6 -46.4Z', BL) + P('M-2.6 -46.4C-3.4 -42 -3.2 -38 -2.6 -34L-.6 -34C-1.2 -38 -1.2 -42 -.6 -46.8Z', BS, .8) + waistTie(-34, -2.8, 3);
-    g += headSide(.6, -53.6, 26);
-    if (o.cat) g += mjCat(c, 3.8, -38, .58, 'held', { eyes:o.eyes }) + arm([.4, -45], [6.4, -36.4]);
-    if (umbHand) g += arm([.4, -45], umbHand);
-    if (!o.cat || o.hand) g += arm([.4, -45], o.hand || [2.6, -27]);
+    g += arm([-1.6, -34.4], [-3.6, -21], true);
+    if (lg) g += P('M-3.6 -12.4H-.8V-8H-3.6ZM.6 -12.4H3.4V-8H.6Z', PA) + bootS(-2.2) + bootS(2);
+    g += P('M-4.6 -37.4C-7 -32 -9 -22 -9.8 -13Q-1 -11.4 8.6 -13.4C7.6 -22 6 -32 4.4 -37Q0 -39.2 -4.6 -37.4Z', CO) + P('M-4.6 -37.4C-7 -32 -9 -22 -9.8 -13Q-7.4 -12.4 -5.4 -12.2C-5.6 -22 -4.4 -32 -2.4 -38.2Z', COS, .75) + P('M1.4 -24.6H5.4V-20.4Q3.4 -19.8 1.4 -20.4Z', COS, .8) + ln('M5 -36Q6.4 -25 7.6 -13.4', COD, .6, .6) + ln('M-9.6 -13.2Q-1 -11 8.4 -13.6', COD, .8, .6) + coatTex([-7, -36, 6, -14]);
+    if (!hood) g += P('M-5.2 -37.8Q-7.8 -33.6 -5 -31.6Q-3.4 -33.6 -1.4 -36.4Z', COS);
+    g += headSide(1.2, -43.6, 20);
+    if (o.cat) g += mjCat(c, 4.6, -27, .55, 'held', { eyes:o.eyes }) + arm(SH, [7.2, -25.4]);
+    if (umbHand) g += arm(SH, umbHand);
+    if (!o.cat || o.hand) g += arm(SH, o.hand || [3.6, -21]);
   } else if (pose === 'kneel') {
-    g += shoe(3.6, 0, 1) + leg(6.6, -15.4, 4.4, -1.6);
-    g += P('M-3.4 -21C-6.4 -18 -8 -10 -7.6 -2.6Q-4.4 -1.4 -1 -2.8C1 -6 3 -10 4.6 -13.4Q7.8 -15 8 -17.4C7.6 -20.6 3 -21.6 -3.4 -21Z', SK) + P('M-3.4 -21C-6.4 -18 -8 -10 -7.6 -2.6Q-6 -2 -4.4 -2C-4.6 -9 -3.6 -15 -1 -20.6Z', SKS, .7) + ln('M0 -19.6Q4 -19.4 7.2 -17M-4.6 -18L-5.4 -3', SKL, .5, .6) + ln('M2 -14.6L-1.6 -3.6M-2.4 -17L-3.4 -3', SKS, .45, .6);
-    g += P('M-3.6 -20.6C-4.4 -24 -3.4 -28 -1.4 -30.6Q1.4 -31.8 3.6 -30.4C4.6 -28 4.4 -24 2.8 -21Z', BL) + P('M-3.6 -20.6C-4.4 -24 -3.4 -28 -1.4 -30.6Q-.2 -31.2 .6 -31.2C-1 -28 -1.6 -24 -1 -20.8Z', BS, .8) + waistTie(-21, -3.6, 2.9);
-    g += headSide(3.6, -35.2, 24);
-    if (o.cat) g += mjCat(c, 6.4, -22, .62, 'held', { eyes:o.eyes }) + arm([1.4, -28.8], [8.4, -18.4]);
-    if (umbHand) g += arm([1.4, -28.8], umbHand);
-    if (!o.cat || o.hand) g += arm([1.4, -28.8], o.hand || [8.4, -16.6]);
+    SH = [2.6, -20.6];
+    g += bootS(7.4).replace(/V-8\.6/g, 'V-4.6');
+    g += P('M-8.8 0C-9.6 -8 -7.6 -16 -3.6 -22.6Q1 -25.4 5.4 -22.4C9 -16 10 -8 9.6 -.6Q0 1 -8.8 0Z', CO) + P('M-8.8 0C-9.6 -8 -7.6 -16 -3.6 -22.6Q-2 -23.6 -.6 -24C-3.6 -17 -4.6 -8 -4.2 .4Z', COS, .75) + ln('M-8.6 -.2Q0 1.2 9.4 -.6', COD, .8, .6) + coatTex([-6, -22, 8, -2]);
+    if (!hood) g += P('M-2.4 -23.6Q-5.4 -19.6 -2.6 -17.6Q-1 -19.8 1.2 -22.4Z', COS);
+    g += headSide(3.4, -29.6, 18);
+    if (o.cat) g += mjCat(c, 6.4, -13.4, .6, 'held', { eyes:o.eyes }) + arm(SH, [9.4, -10.4]);
+    if (umbHand) g += arm(SH, umbHand);
+    if (!o.cat || o.hand) g += arm(SH, o.hand || [8.6, -9]);
   } else if (pose === 'sit') {
-    g += P('M-9.4 0C-9 -4 -6.4 -7.4 -3.6 -11L3.6 -11C6.4 -7.4 9 -4 9.4 0Q0 1.4 -9.4 0Z', SK) + P('M2.4 -11C5 -7.4 7 -4 7.4 .6Q8.6 .4 9.4 0C9 -4 6.4 -7.4 3.6 -11Z', SKS, .7) + ln('M-1.6 -10L-4.4 .6M1.4 -10L3 .8', SKS, .45, .7);
-    g += arm([-4.2, -22.4], [-6.8, -5.6], true) + arm([4.2, -22.4], [6.8, -5.6], true);
-    g += P('M-4.8 -23.2C-5.2 -19 -4.2 -15 -3.6 -11L3.6 -11C4.2 -15 5.2 -19 4.8 -23.2Q0 -24.8 -4.8 -23.2Z', BL) + P('M2 -24C3.4 -19 3.8 -15 3.6 -11Q4.4 -15 4.8 -19Q5.2 -22 4.8 -23.2Z', BS, .8) + waistTie(-11, -3.7, 3.7) + P('M-1.1 -26.6H1.1V-23.4H-1.1Z', KS);
-    g += headBack(-30.4, 20);
+    g += arm([-4.6, -18.6], [-8.6, -4.6], true) + arm([4.6, -18.6], [8.6, -4.6], true);
+    g += P('M-10.6 0C-10.6 -6 -8 -14 -5 -20.6Q0 -22.6 5 -20.6C8 -14 10.6 -6 10.6 0Q0 1.4 -10.6 0Z', CO) + P('M2.4 -21.6C5.6 -15 7.6 -7 7.6 .8Q9.4 .5 10.6 0C10.6 -6 8 -14 5 -20.6Z', COS, .75) + ln('M0 -21.4Q.4 -10 0 1', COS, .6, .6) + coatTex([-8, -20, 8, -2]);
+    g += hood ? hoodBack(-26.6) : P('M-6 -21.4Q-7 -16.6 -2.6 -15.4Q0 -15 2.6 -15.4Q7 -16.6 6 -21.4Z', COS) + hairBack(-27.4, 16);
   } else if (pose === 'perch') {
-    if (o.legs !== false) g += leg(5.6, -.6, 6.8, 10.6) + shoe(6.8, 12.2, 1) + leg(3.4, -.4, 3.8, 11) + shoe(3.8, 12.6, 1);
-    g += arm([-1.2, -22.2], [-4.6, -6], true);
-    g += P('M-4.2 -11C-5.8 -7 -6.2 -2 -5.6 1.2Q1 2.4 7.6 1.6Q8.6 -.8 7 -2.6C3 -3.6 1 -6 2.2 -11Z', SK) + P('M-4.2 -11C-5.8 -7 -6.2 -2 -5.6 1.2Q-3.6 1.6 -2 1.6C-3 -3 -2.6 -7 -1.4 -11Z', SKS, .7) + ln('M-1 -5Q3 -2.6 7 -1.6', SKL, .5, .6);
-    g += P('M-3.8 -10.6C-4.6 -14 -4.2 -19 -2.8 -23.2Q-.4 -24.6 1.6 -23.2C3 -20 3.4 -15 2.4 -10.6Z', BL) + P('M-3.8 -10.6C-4.6 -14 -4.2 -19 -2.8 -23.2Q-2 -23.8 -1.2 -23.8C-2 -19 -2.2 -14 -1.8 -10.6Z', BS, .8) + waistTie(-10.8, -3.9, 2.5);
-    g += headSide(.6, -30.2, 24) + arm([-.4, -22], o.hand || [5, -6.4]);
+    SH = [1.4, -17];
+    if (o.legs !== false) g += P('M3.4 0H6.6V6.4H3.4Z', PA) + `<g transform="translate(0 12.6)">${bootS(4.8).replace(/V-8\.6/g, 'V-6.6')}</g>`;
+    g += arm([-1, -17.2], [-4.4, -4.4], true);
+    g += P('M-6 1C-7 -6 -6 -14 -3.4 -19.6Q1 -22 4.6 -19.4C6.6 -14 7 -6 6.4 -1.6Q8.6 -1.4 9.8 .8Q2 2.6 -6 1Z', CO) + P('M-6 1C-7 -6 -6 -14 -3.4 -19.6Q-2 -20.6 -.6 -21C-3 -14 -3.4 -6 -2.6 1.4Z', COS, .75) + ln('M-5.8 1Q2 2.4 9.6 .8', COD, .8, .6) + coatTex([-4, -19, 6, -1]);
+    if (!hood) g += P('M-2.4 -20.4Q-5.4 -16.4 -2.6 -14.6Q-1 -16.6 1.2 -19.2Z', COS);
+    g += headSide(1.8, -26.2, 18) + arm(SH, o.hand || [6.6, -4]);
   }
-  if (o.umb) { const u = o.umb, R = u.R || 24, a = (u.rot || 0) * Math.PI / 180, L = R * (u.shaft ?? .9), [ux, uy] = u.hand ? [u.hand[0] + L * Math.sin(a), u.hand[1] - L * Math.cos(a)] : [u.x, u.y]; g = mjUmbC(c, ux, uy, R, u.rot || 0, u) + g; if (u.hand) g += `<circle cx="${_r1(u.hand[0])}" cy="${_r1(u.hand[1])}" r="1.2" fill="${K}"/>`; }
-  if (o.lantern) g += mjLantern(c, ...o.lantern);
+  if (o.umb) {
+    const u = o.umb, R = (u.R || 24) * .82, a = (u.rot || 0) * Math.PI / 180, L = R * (u.shaft ?? .9), hd = u.hand ? reach(SH, u.hand) : null;
+    g = mjUmbC(c, hd ? hd[0] + L * Math.sin(a) : u.x, hd ? hd[1] - L * Math.cos(a) : u.y, R, u.rot || 0, u) + g;
+    if (hd) g += `<circle cx="${_r1(hd[0])}" cy="${_r1(hd[1])}" r="1.55" fill="${K}"/>`;
+  }
+  if (o.lantern) g += mjLantern(c, ...reach(SH, o.lantern));
   return `<g transform="translate(${_r1(x)} ${_r1(y)}) scale(${_r1(s * f * 100) / 100} ${_r1(s * 100) / 100})">${g}</g>`;
 }
 // Moon: mèo trắng, đỉnh đầu và hai tai màu cam. Chân ở (0,0), ngồi cao khoảng 22 khi s=1.
@@ -547,18 +558,32 @@ const MJ_SCENES = {
     return [bg, mjGlow(c, 138, 180, 50, 'w', .8) + jar + flies + mjGirl(c, 186, 191, 1.25, 'sit') + mjCat(c, 216, 189, 1.3, 'sitB')];
   }
 };
+// chất liệu tranh vẽ phủ lên toàn bộ tranh (bộ lọc SVG, không cần ảnh):
+//  - P: mép khối hơi run như nét cọ; màu loang đậm nhạt theo từng mảng như màu bột; vân nét cọ quét ngang và vân giấy nổi nhẹ
 function mjTexDefs(k, seed){
-  return `<filter id="${k}w" x="-2%" y="-2%" width="104%" height="104%"><feGaussianBlur stdDeviation=".7"/></filter>
-    <radialGradient id="${k}v" cx="50%" cy="46%" r="72%"><stop offset=".55" stop-color="#02040c" stop-opacity="0"/><stop offset="1" stop-color="#02040c" stop-opacity=".62"/></radialGradient>
-    <filter id="${k}g" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="2" seed="${seed + 3}"/><feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 .97  0 0 0 0 .9  7 0 0 0 -4.1"/></filter>
-    <filter id="${k}d" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="${seed + 9}"/><feColorMatrix type="matrix" values="0 0 0 0 .01  0 0 0 0 .02  0 0 0 0 .07  -7 0 0 0 2.9"/></filter>`;
+  return `<filter id="${k}w" x="-2%" y="-2%" width="104%" height="104%"><feGaussianBlur stdDeviation=".6"/></filter>
+    <filter id="${k}P" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency=".045" numOctaves="3" seed="${seed}" result="wob"/>
+      <feDisplacementMap in="SourceGraphic" in2="wob" scale="2.2" xChannelSelector="R" yChannelSelector="G" result="dis"/>
+      <feTurbulence type="fractalNoise" baseFrequency=".011 .03" numOctaves="3" seed="${seed + 1}" result="blot"/>
+      <feColorMatrix in="blot" type="matrix" values=".33 .33 .33 0 0  .33 .33 .33 0 0  .33 .33 .33 0 0  0 0 0 0 1" result="bg"/>
+      <feComposite in="dis" in2="bg" operator="arithmetic" k1=".55" k2=".74" k3="0" k4="0" result="tone"/>
+      <feTurbulence type="fractalNoise" baseFrequency=".014 .26" numOctaves="3" seed="${seed + 2}" result="brush"/>
+      <feTurbulence type="fractalNoise" baseFrequency=".75" numOctaves="2" seed="${seed + 4}" result="paper"/>
+      <feComposite in="brush" in2="paper" operator="arithmetic" k1="0" k2=".7" k3=".45" k4="0" result="hmap"/>
+      <feDiffuseLighting in="hmap" surfaceScale=".95" diffuseConstant="1" lighting-color="#ffffff" result="lit0"><feDistantLight azimuth="235" elevation="58"/></feDiffuseLighting>
+      <feColorMatrix in="lit0" type="matrix" values=".6 0 0 0 0  0 .6 0 0 0  0 0 .6 0 0  0 0 0 0 1" result="lit"/>
+      <feBlend in="lit" in2="tone" mode="soft-light" result="tex"/>
+      <feComposite in="tex" in2="SourceGraphic" operator="in"/>
+    </filter>
+    <radialGradient id="${k}v" cx="50%" cy="46%" r="72%"><stop offset=".55" stop-color="#02040c" stop-opacity="0"/><stop offset="1" stop-color="#02040c" stop-opacity=".55"/></radialGradient>`;
 }
 // tranh có mưa và vị trí mặt đất (tỉ lệ theo chiều cao tranh) để hạt mưa rơi chạm đất; mưa chạy bằng moon-rain.js
 const MJ_RAINY = { start:.84, d1:.86, d3:.9, d250:.86 };
 function mjScene(id, seed = 7){
-  const k = 'mjs' + (++_mjN), c = mjCtx(seed, k), [bg, fg] = (MJ_SCENES[id] || MJ_SCENES.after)(c);
-  return `<svg class="mj-scene" viewBox="0 0 400 250" role="img" aria-label="${esc(mjTitle(mjStop(id)))}" preserveAspectRatio="xMidYMid slice"><defs>${mjTexDefs(k, seed % 50)}${c.d}</defs><rect width="400" height="250" fill="${MJN.navy}"/>
-    <g filter="url(#${k}w)">${bg}</g>${fg}<rect width="400" height="250" fill="url(#${k}v)" pointer-events="none"/><rect width="400" height="250" filter="url(#${k}g)" opacity=".035" pointer-events="none"/><rect width="400" height="250" filter="url(#${k}d)" opacity=".08" pointer-events="none"/></svg>`;
+  const k = 'mjs' + (++_mjN), c = mjCtx(seed, k); MJ_HOOD = !!MJ_RAINY[id]; const [bg, fg] = (MJ_SCENES[id] || MJ_SCENES.after)(c); MJ_HOOD = false;
+  return `<svg class="mj-scene" viewBox="0 0 400 250" role="img" aria-label="${esc(mjTitle(mjStop(id)))}" preserveAspectRatio="xMidYMid slice"><defs>${mjTexDefs(k, seed % 50)}${c.d}</defs>
+    <g filter="url(#${k}P)"><rect width="400" height="250" fill="${MJN.navy}"/><g filter="url(#${k}w)">${bg}</g>${fg}<rect width="400" height="250" fill="url(#${k}v)"/></g></svg>`;
 }
 const mjArt = s => { const u = cimg('mj_art_' + s.id), rain = !u && MJ_RAINY[s.id] && mjRainOn() ? ` data-mjrain="${MJ_RAINY[s.id]}"` : ''; return `<div class="mj-art"${rain} data-cms-img="mj_art_${s.id}">${u ? `<img alt="" src="${esc(u)}" loading="lazy">` : mjScene(s.id, 11 + MJ_STOPS.indexOf(s) * 7)}</div>`; };
 
