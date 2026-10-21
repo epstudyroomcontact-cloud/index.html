@@ -212,7 +212,9 @@ Object.assign(ACTIONS, {
   musicClose: () => { musicSel = null; const b = $('mplayer-box'); if (b) b.innerHTML = ''; }
 });function addFocus(min){
   const k = DT.now().setZone(userTZ).toISODate(), fl = localFocus(), o = fl[k] || { m:0, s:0 };
-  fl[k] = { m:o.m + min, s:o.s + 1 }; store.set('focus', fl); saveProfileSoon();
+  fl[k] = { m:o.m + min, s:o.s + 1 }; store.set('focus', fl);
+  const cur = typeof curTodo === 'function' && curTodo(); if (cur) store.set('todos', todos().map(x => x.id === cur.id ? { ...x, p:(x.p || 0) + 1 } : x));      // phiên tập trung xong: cộng 1 🍅 cho việc đang chọn
+  saveProfileSoon(); if (typeof renderTodos === 'function') renderTodos();
 }
 /* Giới hạn thời gian tập trung mỗi ngày cho người xem miễn phí. Người đồng hành (Companions) và admin không bị giới hạn.
    Đếm bằng bộ nhớ trình duyệt nên đây là giới hạn "nhẹ nhàng" (có thể vượt bằng cách xoá dữ liệu trình duyệt). */
@@ -282,12 +284,15 @@ if (pomo.running && pomo.endAt <= Date.now()) pomoComplete(true, true);     // h
 
 const todos = () => store.get('todos', []);
 const saveTodos = l => { store.set('todos', l); saveProfileSoon(); };
+const dropTodos = ids => { const s = new Set(ids), l = todos(); store.set('todos_gone', [...new Set([...todosGone(), ...ids])].slice(-300)); store.set('todos', l.filter(x => !s.has(x.id))); if (store.get('todo_cur', '') && s.has(store.get('todo_cur', ''))) store.set('todo_cur', ''); saveProfileNow(); };   // xoá thật: ghi ngay lên hồ sơ, kèm dấu "đã xoá"
+const curTodo = () => { const id = store.get('todo_cur', ''); return id ? todos().find(x => x.id === id && !x.done) : null; };
 const plLinked = () => state.companion || state.isAdmin || DEMO;           // có quyền dùng Planner → Focus liên kết với Planner
 function renderTodos(){
   const box = $('todo-list'); if (!box) return;
   if (plLinked() && typeof plFocusEdit !== 'function') { loadPlanner().then(() => renderTodos()).catch(() => {}); }
   const l = todos(), toPl = plLinked() && typeof plFocusEdit === 'function';
-  box.innerHTML = l.length ? l.map(x => `<div class="todo-item ${x.done ? 'done' : ''}"><label><input type="checkbox" data-change="todoToggle" data-id="${esc(x.id)}" ${x.done ? 'checked' : ''}><span>${esc(x.text)}</span></label>${toPl ? `<button type="button" class="btn ghost icon sm" data-act="todoToPl" data-id="${esc(x.id)}" title="${esc(t('todo_to_pl'))}" aria-label="${esc(t('todo_to_pl'))}">${ic('calendar', 'sm')}</button>` : ''}<button type="button" class="btn ghost icon sm" data-act="todoDel" data-id="${esc(x.id)}" aria-label="${esc(t('remove'))}">${ic('trash', 'sm')}</button></div>`).join('') : `<div class="small faint" style="padding:12px 0">${esc(t('todo_empty'))}</div>`;
+  const cur = curTodo(), nDone = l.filter(x => x.done).length, tmc = $('tm-cur'); if (tmc) tmc.innerHTML = cur ? `${ic('timer', 'sm')} ${esc(t('todo_cur_now'))}: <b>${esc(cur.text)}</b>` : '';
+  box.innerHTML = (l.length ? `<div class="todo-prog"><div class="row between small"><span class="muted">${esc(t('todo_progress', { d:nDone, n:l.length }))}</span>${nDone ? `<button type="button" class="btn ghost sm" data-act="todoClear">${esc(t('todo_clear'))}</button>` : ''}</div><div class="progress mt-s"><i style="width:${Math.round(nDone / l.length * 100)}%"></i></div></div>` : '') + (l.length ? l.map(x => `<div class="todo-item ${x.done ? 'done' : ''} ${cur && cur.id === x.id ? 'cur' : ''}"><label><input type="checkbox" data-change="todoToggle" data-id="${esc(x.id)}" ${x.done ? 'checked' : ''}><span>${esc(x.text)}${x.p ? ` <small class="faint" title="${esc(t('todo_pomos'))}">🍅×${x.p}</small>` : ''}</span></label>${x.done ? '' : `<button type="button" class="btn ghost icon sm ${cur && cur.id === x.id ? 'on' : ''}" data-act="todoCur" data-id="${esc(x.id)}" title="${esc(t('todo_cur'))}" aria-label="${esc(t('todo_cur'))}">${ic('timer', 'sm')}</button>`}${toPl ? `<button type="button" class="btn ghost icon sm" data-act="todoToPl" data-id="${esc(x.id)}" title="${esc(t('todo_to_pl'))}" aria-label="${esc(t('todo_to_pl'))}">${ic('calendar', 'sm')}</button>` : ''}<button type="button" class="btn ghost icon sm" data-act="todoDel" data-id="${esc(x.id)}" aria-label="${esc(t('remove'))}">${ic('trash', 'sm')}</button></div>`).join('') : `<div class="small faint" style="padding:12px 0">${esc(t('todo_empty'))}</div>`);
   renderFocusPl();
 }
 /* việc hôm nay của Planner hiện ngay dưới danh sách việc của Focus (chỉ cho người có quyền dùng Planner); tick ở đây = tick bên Planner */
@@ -322,7 +327,7 @@ PAGES.focus = function(){
     <div class="grid g-main"><section class="card timer-card">
       <div class="seg"><button type="button" data-seg="focus" data-act="pmode" data-m="focus">${esc(t('mode_focus'))}</button><button type="button" data-seg="short" data-act="pmode" data-m="short">${esc(t('mode_short'))}</button><button type="button" data-seg="long" data-act="pmode" data-m="long">${esc(t('mode_long'))}</button></div>
       <div class="ring" id="tm-ring"><svg viewBox="0 0 120 120"><circle class="bg" cx="60" cy="60" r="54" stroke-width="7"/><circle class="fg" id="tm-fg" cx="60" cy="60" r="54" stroke-width="7" stroke-dasharray="${RING_C.toFixed(2)}" stroke-dashoffset="0"/></svg><div class="center"><div class="tt" data-pomo-time>25:00</div><div class="md" data-pomo-mode></div></div></div>
-      <div class="cycle" id="tm-cycle"></div>
+      <div class="cycle" id="tm-cycle"></div><div class="small muted" id="tm-cur" style="text-align:center;min-height:1.2em"></div>
       ${focusLimit() ? `<div class="limit-box"><div class="row between small"><b>${esc(t('focus_limit_used', { u:Math.min(focusUsed(), focusLimit()), l:focusLimit() }))}</b><span class="faint">${esc(t('focus_limit_note', { l:focusLimit() }))}</span></div><div class="progress mt-s"><i style="width:${Math.min(100, focusUsed() / focusLimit() * 100)}%"></i></div><div class="mt-s">${unlockBox()}</div></div>` : (state.companion ? `<div class="limit-box"><span class="badge">${ic('heart', 'sm')} ${esc(t('comp_badge'))} · ${esc(t('focus_nolimit'))}</span></div>` : '')}
       <div class="row"><button class="btn primary lg" id="tm-main" data-act="pstart"></button><button class="btn secondary icon" style="width:48px;height:48px" data-act="preset-reset" title="${esc(t('reset'))}">${ic('reset')}</button><button class="btn secondary icon" style="width:48px;height:48px" data-act="pskip" title="${esc(t('skip'))}">${ic('skip')}</button></div>
       <div class="divider" style="width:100%;margin:2px 0"></div>
@@ -639,7 +644,9 @@ Object.assign(ACTIONS, {
     if (await plFocusEdit(ts => { if (ts.length >= PL_MAX) return false; ts.push(plClean({ title:x.text, day:plToday0(), start:'', dur:0, c:0, done:!!x.done })); return true; })) { saveTodos(todos().filter(v => v.id !== x.id)); renderTodos(); toast(t('todo_to_pl_done')); }
     else toast(t('pl_err'));
   },
-  todoDel: el => { saveTodos(todos().filter(x => x.id !== el.dataset.id)); renderTodos(); },
+  todoDel: el => { dropTodos([el.dataset.id]); renderTodos(); },
+  todoClear: () => { dropTodos(todos().filter(x => x.done).map(x => x.id)); renderTodos(); },
+  todoCur: el => { store.set('todo_cur', store.get('todo_cur', '') === el.dataset.id ? '' : el.dataset.id); renderTodos(); },
   rate: el => { reviewRating = +el.dataset.n; document.querySelectorAll('#rev-stars button').forEach(b => b.classList.toggle('on', +b.dataset.n === reviewRating)); },
   authTab: el => { authTab = el.dataset.t; render(true); },
   forgot: async () => { const m = $('au-email').value.trim(); if (!m) return $('au-err').textContent = t('email') + '?'; try { await auth.sendPasswordResetEmail(m); toast(t('reset_sent')); } catch (e) { $('au-err').textContent = authErr(e); } },
