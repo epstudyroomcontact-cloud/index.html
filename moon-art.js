@@ -32,6 +32,8 @@ function mjGlow(c, x, y, R, kind = 'w', op = 1){
 
 /* ---------- nét sáp ---------- */
 // n nét ngắn trong vùng box, theo hướng ang (độ) hoặc theo trường hướng fa(x,y); gom theo màu và độ dày thành ít path
+// nét màu chỉ làm vân nhẹ, khối chính là các mảng chuyển màu mịn
+const MJ_SOFT = .5;
 function mjS(c, n, box, cols, o = {}){
   const r = c.r, [x0, y0, x1, y1] = box, ws = o.w || [1.6, 2.6], L = o.len || [8, 24], bend = o.bend ?? .15, jit = o.jit ?? 8, B = {};
   for (let i = 0, tries = 0; i < n && tries < n * 6; tries++) {
@@ -41,7 +43,7 @@ function mjS(c, n, box, cols, o = {}){
     const dx = Math.cos(a) * l, dy = Math.sin(a) * l, b = (r() - .5) * 2 * bend * l, key = Math.floor(r() * cols.length) + '|' + Math.floor(r() * ws.length);
     B[key] = (B[key] || '') + `M${_r1(x - dx / 2)} ${_r1(y - dy / 2)}q${_r1(dx / 2 - dy / l * b)} ${_r1(dy / 2 + dx / l * b)} ${_r1(dx)} ${_r1(dy)}`;
   }
-  return `<g fill="none" stroke-linecap="round" opacity="${o.op ?? .45}">${Object.entries(B).map(([key, d]) => { const [ci, wi] = key.split('|'); return `<path d="${d}" stroke="${cols[ci]}" stroke-width="${ws[wi]}"/>`; }).join('')}</g>`;
+  return `<g fill="none" stroke-linecap="round" opacity="${_r1((o.op ?? .45) * MJ_SOFT * 100) / 100}">${Object.entries(B).map(([key, d]) => { const [ci, wi] = key.split('|'); return `<path d="${d}" stroke="${cols[ci]}" stroke-width="${ws[wi]}"/>`; }).join('')}</g>`;
 }
 // chấm tròn nhỏ (sao, bụi sáng, hoa li ti)
 function mjDots(c, n, box, cols, sz = [.6, 1.6], op = .85, inFn){
@@ -92,13 +94,15 @@ function mjWater(c, y0, y1, o = {}){
   const r = c.r; let s = `<rect y="${y0}" width="400" height="${y1 - y0}" fill="${mjLin(c, [[0, o.top || '#13234a'], [1, o.bot || '#081129']])}"/>`;
   s += mjS(c, o.n ?? 260, [-20, y0, 420, y1], o.cols || ['#1c3264', '#24407a', '#0d1836', '#2e4f8c'], { ang:0, len:[10, 46], w:[1.4, 2.4, 3.4], op:.55, jit:3, bend:.1 });
   if (o.path !== undefined) {
-    const mx = o.path, sw = o.spread || 120; let d1 = '', d2 = '';
-    for (let i = 0; i < (o.glints || 300); i++) {
-      const t = Math.pow(r(), .8), y = y0 + 2 + (y1 - y0) * t, spread = 6 + t * sw, x = mx + (r() + r() + r() - 1.5) * spread * .9, l = 3 + r() * (6 + t * 18);
+    // vệt trăng trên nước: xa thì vệt mảnh và ngắn, gần thì dày và dài hơn; thêm một cột sáng mờ phía dưới
+    const mx = o.path, sw = o.spread || 120, B = [['', .45, .9], ['', .75, .8], ['', 1.05, .7]];
+    for (let i = 0; i < (o.glints || 300) * 1.3; i++) {
+      const t = Math.pow(r(), .8), y = y0 + 1.5 + (y1 - y0) * t, spread = 5 + t * sw, x = mx + (r() + r() + r() - 1.5) * spread * .9, l = 1.6 + r() * (3 + t * 13);
       if (Math.abs(x - mx) > spread) continue;
-      const seg = `M${_r1(x - l / 2)} ${_r1(y)}h${_r1(l)}`; if (r() < .45) d1 += seg; else d2 += seg;
+      B[t < .3 ? 0 : t < .65 ? 1 : 2][0] += `M${_r1(x - l / 2)} ${_r1(y)}h${_r1(l)}`;
     }
-    s += mjGlow(c, mx, y0 + (y1 - y0) * .5, (y1 - y0) * .9, 'm', .35) + `<path d="${d2}" stroke="#f3e4b0" stroke-width="1.6" stroke-linecap="round" opacity=".55" fill="none"/><path d="${d1}" stroke="#fffbea" stroke-width="1.2" stroke-linecap="round" opacity=".9" fill="none"/>`;
+    const col = mjLin(c, [[0, '#fff3cf', .5], [1, '#fff3cf', 0]]);
+    s += mjGlow(c, mx, y0 + (y1 - y0) * .5, (y1 - y0) * .9, 'm', .3) + `<path d="M${mx - 10} ${y0}L${mx + 10} ${y0}L${mx + sw * .7} ${y1}L${mx - sw * .7} ${y1}Z" fill="${col}" opacity=".35"/>` + B.map(([d, w, op], i) => `<path d="${d}" stroke="${i ? '#fff6dc' : '#f3e4b0'}" stroke-width="${w}" stroke-linecap="round" opacity="${op}" fill="none"/>`).join('');
   }
   return s;
 }
@@ -155,13 +159,6 @@ function mjUmbC(c, x, y, R = 26, rot = 0, o = {}){
   const sh = R * (o.shaft ?? .9);
   if (o.shaft !== 0) g = `<path d="M0 ${_r1(-h)}V${_r1(sh)}" stroke="#4a3a4e" stroke-width="1.2"/>` + g + `<path d="M0 0V${_r1(sh)}" stroke="#4a3a4e" stroke-width="1.2"/>${o.handle === false ? '' : `<path d="M0 ${_r1(sh)}q0 3.4-3.2 3.4q-2.2 0-2.4-2.2" fill="none" stroke="#7a3352" stroke-width="1.8" stroke-linecap="round"/>`}`;
   return `<g transform="translate(${_r1(x)} ${_r1(y)}) rotate(${rot})">${g}<path d="M-.9 ${_r1(-h)}L0 ${_r1(-h - R * .14)}L.9 ${_r1(-h)}Z" fill="#4a3a4e"/></g>`;
-}
-function mjRain(c, n = 70, cls = 'mj-rain', box = [0, -250, 400, 250]){
-  let d = '', e = ''; const r = c.r;
-  for (let i = 0; i < n; i++) { const x = box[0] + r() * (box[2] - box[0]), y = box[1] + r() * (box[3] - box[1]), l = 7 + r() * 9, seg = `M${_r1(x)} ${_r1(y)}l-${_r1(l * .28)} ${_r1(l)}`; if (r() < .7) d += seg; else e += seg; }
-  // vẽ hai lần chồng nhau theo chiều dọc để mưa rơi liên tục khi chạy hiệu ứng
-  const one = `<path d="${d}" stroke="#b9cfff" stroke-width=".9" opacity=".4"/><path d="${e}" stroke="#e6eeff" stroke-width="1.2" opacity=".5"/>`;
-  return `<g class="${cls}" stroke-linecap="round" fill="none">${one}<g transform="translate(0 250)">${one}</g></g>`;
 }
 // cây thông tối nhiều tầng
 function mjPine(x, gy, h, col = '#0a1430', w = .42){
@@ -483,7 +480,7 @@ const MJ_SCENES = {
     bg += trunks(9, 16, '#132247', -10, 196) + mjS(c, 120, [-20, -20, 420, 60], ['#0f1d40', '#162a55', '#1d3366'], { ang:-10, len:[10, 26], w:[4, 6], op:.8, jit:30, bend:.4 });
     bg += `<path d="M150 250Q190 200 196 170Q200 150 210 140L222 140Q214 160 222 180Q240 220 300 250Z" fill="#1d2d5a"/>` + mjS(c, 60, [150, 140, 300, 250], ['#26396a', '#2f4680'], { ang:0, len:[10, 30], w:[2, 3], op:.6, in:(x, y) => Math.abs(x - (205 + (y - 140) * .1)) < 8 + (y - 140) * .6 });
     bg += trunks(5, 34, '#08102a', -20, 250) + mjBush(c, 30, 236, 60, 26, ['#0a1d24', '#123330', '#1a443d'], 90) + mjBush(c, 380, 240, 60, 28, ['#0a1d24', '#123330', '#1a443d'], 90) + mjFlies(c, 22, [0, 60, 400, 230], { sz:.8 });
-    return [bg, mjGlow(c, 210, 190, 90, 'w', .5) + mjS(c, 50, [160, 130, 270, 240], ['#ffe3a0'], { ang:105, len:[6, 12], w:[1], op:.5, jit:3 }) + mjGirl(c, 206, 214, 1.25, 'back', { hand:[10.4, -28.4], lantern:[10.4, -28.4] })];
+    return [bg, mjGlow(c, 210, 190, 90, 'w', .5) + mjGirl(c, 206, 214, 1.25, 'back', { hand:[10.4, -28.4], lantern:[10.4, -28.4] })];
   },
   // Lá thư gửi Moon: gấp lá thư thành thuyền giấy, thả trôi trên mặt nước có ngọn nến nhỏ
   d300:c => {
@@ -551,18 +548,19 @@ const MJ_SCENES = {
   }
 };
 function mjTexDefs(k, seed){
-  return `<filter id="${k}w" x="-2%" y="-2%" width="104%" height="104%"><feTurbulence type="fractalNoise" baseFrequency=".045" numOctaves="2" seed="${seed}" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.6" xChannelSelector="R" yChannelSelector="G"/></filter>
- <filter id="${k}p" x="-2%" y="-2%" width="104%" height="104%"><feTurbulence type="fractalNoise" baseFrequency=".18" numOctaves="2" seed="${seed + 5}" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="1.1" xChannelSelector="R" yChannelSelector="G"/></filter>
+  return `<filter id="${k}w" x="-2%" y="-2%" width="104%" height="104%"><feGaussianBlur stdDeviation=".7"/></filter>
+    <radialGradient id="${k}v" cx="50%" cy="46%" r="72%"><stop offset=".55" stop-color="#02040c" stop-opacity="0"/><stop offset="1" stop-color="#02040c" stop-opacity=".62"/></radialGradient>
     <filter id="${k}g" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="2" seed="${seed + 3}"/><feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 .97  0 0 0 0 .9  7 0 0 0 -4.1"/></filter>
     <filter id="${k}d" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="${seed + 9}"/><feColorMatrix type="matrix" values="0 0 0 0 .01  0 0 0 0 .02  0 0 0 0 .07  -7 0 0 0 2.9"/></filter>`;
 }
-const MJ_RAINY = { start:1, d1:1, d3:1, d250:1 };
+// tranh có mưa và vị trí mặt đất (tỉ lệ theo chiều cao tranh) để hạt mưa rơi chạm đất; mưa chạy bằng moon-rain.js
+const MJ_RAINY = { start:.84, d1:.86, d3:.9, d250:.86 };
 function mjScene(id, seed = 7){
-  const k = 'mjs' + (++_mjN), c = mjCtx(seed, k), [bg, fg] = (MJ_SCENES[id] || MJ_SCENES.after)(c), rain = MJ_RAINY[id] && mjRainOn() ? mjRain(c, 80) : '';
+  const k = 'mjs' + (++_mjN), c = mjCtx(seed, k), [bg, fg] = (MJ_SCENES[id] || MJ_SCENES.after)(c);
   return `<svg class="mj-scene" viewBox="0 0 400 250" role="img" aria-label="${esc(mjTitle(mjStop(id)))}" preserveAspectRatio="xMidYMid slice"><defs>${mjTexDefs(k, seed % 50)}${c.d}</defs><rect width="400" height="250" fill="${MJN.navy}"/>
-    <g filter="url(#${k}w)">${bg}</g>${fg}<rect width="400" height="250" filter="url(#${k}g)" opacity=".06" pointer-events="none"/><rect width="400" height="250" filter="url(#${k}d)" opacity=".16" pointer-events="none"/>${rain}</svg>`;
+    <g filter="url(#${k}w)">${bg}</g>${fg}<rect width="400" height="250" fill="url(#${k}v)" pointer-events="none"/><rect width="400" height="250" filter="url(#${k}g)" opacity=".035" pointer-events="none"/><rect width="400" height="250" filter="url(#${k}d)" opacity=".08" pointer-events="none"/></svg>`;
 }
-const mjArt = s => { const u = cimg('mj_art_' + s.id); return `<div class="mj-art" data-cms-img="mj_art_${s.id}">${u ? `<img alt="" src="${esc(u)}" loading="lazy">` : mjScene(s.id, 11 + MJ_STOPS.indexOf(s) * 7)}</div>`; };
+const mjArt = s => { const u = cimg('mj_art_' + s.id), rain = !u && MJ_RAINY[s.id] && mjRainOn() ? ` data-mjrain="${MJ_RAINY[s.id]}"` : ''; return `<div class="mj-art"${rain} data-cms-img="mj_art_${s.id}">${u ? `<img alt="" src="${esc(u)}" loading="lazy">` : mjScene(s.id, 11 + MJ_STOPS.indexOf(s) * 7)}</div>`; };
 
 /* ---------- nền bản đồ con đường: đi từ dưới lên, qua nhiều cảnh đêm ----------
    yOf(i) = toạ độ y của trạm i. Các vùng: phố mưa (trạm 0–4), mặt nước (5–7), đồng đom đóm (8–10), rừng thông và hồ (11–13),

@@ -19,6 +19,8 @@ const MJ_STOPS = [
 const mjStop = id => MJ_STOPS.find(s => s.id === id);
 const mjTitle = s => ctext('mjc_' + s.id + '_t');
 const mjOpen = (s, best) => s.day <= best;
+// admin chỉ xem trước các trạm chưa mở khi bật bút chì (chế độ sửa); bình thường admin cũng thấy như khách
+const mjPreview = () => !!(state.isAdmin && state.editMode);
 const mjSeenKey = () => 'mj_seen_' + (state.user ? state.user.uid : 'guest');
 const mjSeen = () => +store.get(mjSeenKey(), -1);
 const mjRainOn = () => store.get('mj_rain', true) !== false;
@@ -65,10 +67,10 @@ function mjMap(n, best, preview){
     for (let k = step; k < span; k += step) { const [x, y] = mjAt(i, k / span), on = a + k <= n; dots += `<circle cx="${_r1(x)}" cy="${_r1(y)}" r="${on ? 2.4 : 1.8}" class="${on ? 'on' : ''}"/>`; }
   }
   MJ_STOPS.forEach((s, i) => {
-    const [x, y] = mjXY(i), open = preview || mjOpen(s, best), reached = s.day <= n, isNew = mjOpen(s, best) && s.day > seen && !!state.user, nextUp = !open && MJ_STOPS.filter(z => !mjOpen(z, best))[0] === s;
+    const [x, y] = mjXY(i), open = preview || mjOpen(s, best), reached = s.day <= n, isNew = mjOpen(s, best) && s.day > seen && !!state.user;
     const R = s.big ? 21 : 17, side = i === 0 ? 0 : x < 170 ? 1 : -1, lx = side === 0 ? x : x + side * (R + 10), anchor = side === 0 ? 'middle' : side > 0 ? 'start' : 'end', ly = side === 0 ? y + R + 18 : y - 2;
-    const label = open || nextUp ? esc(mjTitle(s)) : '• • •', cls = `mj-stop ${open ? 'is-open' : 'is-locked'} ${reached ? 'is-reached' : ''} ${s.big ? 'is-big' : ''}`;
-    stops += `<g class="${cls}" data-act="mjOpen" data-id="${s.id}" tabindex="0" role="button" aria-label="${esc(mjTitle(s))} · ${esc(t('mjs_day', { n:s.day }))}">
+    const label = open ? esc(mjTitle(s)) : '• • •', cls = `mj-stop ${open ? 'is-open' : 'is-locked'} ${reached ? 'is-reached' : ''} ${s.big ? 'is-big' : ''}`;
+    stops += `<g class="${cls}" data-act="mjOpen" data-id="${s.id}" tabindex="0" role="button" aria-label="${open ? esc(mjTitle(s)) + ' · ' : ''}${esc(t('mjs_day', { n:s.day }))}">
       <circle cx="${x}" cy="${y}" r="${R + 14}" fill="transparent"/>${open ? mjGlow(c, x, y, R * 2.6, 'w', reached ? .8 : .45) : ''}${reached ? `<circle cx="${x}" cy="${y}" r="${R + 6}" class="halo"/>` : ''}<circle cx="${x}" cy="${y}" r="${R}" class="disc"/>
       <g transform="translate(${x} ${y}) scale(${s.big ? 1.25 : 1})" class="gl">${open ? MJ_GLYPH[s.g] : '<rect x="-5" y="-2" width="10" height="8" rx="1.5"/><path d="M-3-2v-2.5a3 3 0 0 1 6 0V-2" fill="none" stroke="currentColor" stroke-width="1.6"/>'}</g>
       ${isNew ? `<circle cx="${x + R * .72}" cy="${y - R * .72}" r="5" class="new"/>` : ''}
@@ -83,12 +85,12 @@ function mjMap(n, best, preview){
 
 /* ---------- các khối trên trang ---------- */
 function mjMapCard(m){
-  const n = m ? m.days.length : 0, best = m ? m.best : 0, preview = !!state.isAdmin, nxt = MJ_STOPS.find(s => !mjOpen(s, best));
+  const n = m ? m.days.length : 0, best = m ? m.best : 0, preview = mjPreview(), nxt = MJ_STOPS.find(s => !mjOpen(s, best));
   const rain = mjRainOn();
   return `<section class="card mj-road"><div class="mj-road-h"><div><h2>${esc(t('mjs_road'))}</h2><p class="small muted">${esc(t('mjs_road_sub'))}</p></div>
       <button type="button" class="mj-toggle ${rain ? 'on' : ''}" data-act="mjRain" aria-pressed="${rain}">${esc(t('mjs_rain'))}</button></div>
-    <div class="mj-frame ${rain ? 'rain' : ''}"><div class="mj-scroll" id="mj-scroll">${mjMap(n, best, preview)}</div></div>
-    <div class="mj-road-f small">${nxt && state.user ? `<span>${esc(t('mjs_next', { name:mjTitle(nxt), n:nxt.day - best }))}</span>` : ''}${m && m.broken ? `<span class="faint">${esc(t('mjs_kept'))}</span>` : ''}${preview ? `<span class="faint">${esc(t('mjs_preview'))}</span>` : ''}${t('mjs_lang') ? `<span class="faint">${esc(t('mjs_lang'))}</span>` : ''}</div></section>`;
+    <div class="mj-frame"${rain ? ' data-mjrain="map"' : ''}><div class="mj-scroll" id="mj-scroll">${mjMap(n, best, preview)}</div></div>
+    <div class="mj-road-f small">${nxt && state.user ? `<span>${esc(t('mjs_next', { n:nxt.day - best }))}</span>` : ''}${m && m.broken ? `<span class="faint">${esc(t('mjs_kept'))}</span>` : ''}${preview ? `<span class="faint">${esc(t('mjs_preview'))}</span>` : ''}${t('mjs_lang') ? `<span class="faint">${esc(t('mjs_lang'))}</span>` : ''}</div></section>`;
 }
 function mjLatestCard(m){
   const best = m ? m.best : 0, open = MJ_STOPS.filter(s => mjOpen(s, best)), s = open[open.length - 1], isNew = state.user && s.day > mjSeen();
@@ -104,7 +106,7 @@ function mjChapterHTML(s, best, preview){
     <div class="row between mj-ch-nav">${prev ? `<button class="btn ghost sm" data-act="mjOpen" data-id="${prev.id}">${ic('chev-l', 'sm')} ${esc(t('mjs_prev'))}</button>` : '<span></span>'}${next ? `<button class="btn ghost sm" data-act="mjOpen" data-id="${next.id}">${esc(t('mjs_nextc'))} ${ic('chev-r', 'sm')}</button>` : ''}</div></div></article>`;
 }
 function mjOpenChapter(id){
-  const s = mjStop(id); if (!s) return; const m = moonData(), best = m ? m.best : 0, preview = !!state.isAdmin;
+  const s = mjStop(id); if (!s) return; const m = moonData(), best = m ? m.best : 0, preview = mjPreview();
   if (!preview && !mjOpen(s, best)) { toast(t('mjs_lock', { n:s.day, k:s.day - best })); return; }
   openModal(mjChapterHTML(s, best, preview)); $('dialog').classList.add('mj-dialog'); $('dialog').scrollTop = 0;
   if (state.editMode) applyEditable();
