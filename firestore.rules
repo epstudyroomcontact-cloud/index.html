@@ -18,6 +18,20 @@ service cloud.firestore {
         || (int(u.split('-')[0]) * 10000 + int(u.split('-')[1]) * 100 + int(u.split('-')[2])
             >= d.year() * 10000 + d.month() * 100 + d.day());
     }
+    // Cài đặt ưu đãi (admin chỉnh ở tab Thanh toán): bật/tắt, % giảm, số ngày hiệu lực. Mặc định bật, 10%, 30 ngày.
+    function moonCfg() { return get(/databases/$(database)/documents/settings/payments).data; }
+    function moonRewardOk(d) {
+      let c = moonCfg();
+      return c.get('moonRewardOn', true) == true
+        && d.pct == c.get('moonRewardPct', 10)
+        && d.expires is timestamp
+        && d.expires > request.time
+        && d.expires <= request.time + duration.value(int(c.get('moonRewardDays', 30)) + 1, 'd');
+    }
+    function moonStreakOk(uid) {
+      let m = get(/databases/$(database)/documents/users/$(uid)).data.moon;
+      return m.get('best', 0) >= 60 || m.days.size() >= 60;
+    }
     // Giao diện, nội dung chữ/ảnh, thông tin thanh toán hiển thị cho khách, lịch live: ai cũng xem, chỉ admin sửa
     match /settings/{id}         { allow read: if true; allow write: if isAdmin(); }
     match /weekly_schedules/{id} { allow read: if true; allow write: if isAdmin(); }
@@ -82,6 +96,21 @@ service cloud.firestore {
     match /companions/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
       allow write: if isAdmin();
+    }
+
+    // Ưu đãi mốc 60 ngày của Hành trình trăng: mỗi tài khoản chỉ tạo được MỘT lần (tài liệu mang id = uid, người dùng không sửa/xoá được nên không dùng lại).
+    // Rules kiểm: đúng % và hạn theo cài đặt của admin (settings/payments), ưu đãi đang bật, và hồ sơ của chính họ đã ghi chuỗi >= 60 ngày.
+    // Chuỗi do trình duyệt tự ghi nên không thể chống giả mạo tuyệt đối, vì vậy admin vẫn đối chiếu số tiền nhận được khi duyệt (ưu đãi chỉ giảm giá, không mở quyền).
+    match /moon_rewards/{uid} {
+      allow get: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow list, update, delete: if isAdmin();
+      allow create: if isAdmin() || (signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['uid', 'pct', 'expires', 'status', 'createdAt'])
+        && request.resource.data.uid == uid
+        && request.resource.data.status == 'unused'
+        && request.resource.data.createdAt == request.time
+        && moonRewardOk(request.resource.data)
+        && moonStreakOk(uid));
     }
 
     // Báo đã thanh toán Companions: người dùng chỉ ghi được yêu cầu "pending" của chính mình; admin xem và duyệt/từ chối
