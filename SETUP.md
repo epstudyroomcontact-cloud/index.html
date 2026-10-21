@@ -280,16 +280,16 @@ Cần tải lên GitHub: thư mục **js** (các file `core.js`, `pages.js`, `ad
 - **File dự phòng cho web (tuỳ chọn, rất nên làm một lần):** vào **Admin → Tổng quan → "Tải file dự phòng cho web"** để tải `site-fallback.json`, rồi đưa file này lên GitHub **cùng chỗ với file index.html** (Add file → Upload files, kéo file vào, Commit). Nếu Firebase hết hạn mức hoặc gặp sự cố, **người mới** vào web vẫn thấy đủ nội dung (giao diện, bài viết, sản phẩm, lịch live…) từ file này, hoàn toàn không tốn lượt đọc. Khi bạn đăng nhiều bài hoặc đổi lịch nhiều, tải và đưa lên lại để file luôn mới.
 - Nếu muốn tăng thêm hạn mức: nâng lên gói Blaze (trả theo mức dùng, hạn mức miễn phí vẫn giữ nguyên) và đặt cảnh báo ngân sách. Chỉ làm khi thấy "Reads" trong Firebase thường xuyên vượt khoảng 30.000/ngày.
 
-## PHẦN 15 — Hành trình trăng: câu chuyện đi tìm Moon
+## PHẦN 15 — Hành trình trăng: con đường tìm Moon
 
-Trang Hành trình trăng có một con đường uốn lượn. Mỗi ngày trong chuỗi điểm danh là một bước, đường sáng đến đâu là khách đã đi đến đó. Các trạm dừng (ngày 1, 3, 7, 10, 14, 21, 30, 45, 60, 80, 100, 130, 160, 200, 250, 300, 365, 400, 450) mở ra từng chương truyện. Ngày 365 là chương gặp lại Moon; sau đó là hai chương sau khi gặp lại (400, 450), rồi cứ mỗi 30 ngày mở thêm một mẩu "Những đêm sau đó".
+Trang Hành trình trăng có một con đường uốn lượn đi từ đồng hoa lên bầu trời có trăng. Mỗi ngày trong chuỗi điểm danh là một bước, đường sáng đến đâu là khách đã đi đến đó. Các trạm dừng (ngày 0, 1, 3, 7, 10, 14, 21, 30, 45, 60, 80, 100, 130, 160, 200, 250, 300, 365, 400, 450, 480) mỗi trạm mở một bức tranh kiểu bút sáp màu. Ngày 365 là trạm gặp lại Moon.
 
-- Chương mở theo **chuỗi dài nhất**, nên đứt chuỗi vẫn giữ các chương đã đọc (giống huy hiệu). Không cần thêm dữ liệu hay sửa luật Firestore.
-- **Sửa chữ truyện**: bật bút chì (chế độ sửa), mở chương, bấm vào tên chương hoặc nội dung để sửa (Shift+Enter để xuống dòng). Hoặc sửa trong file `moon-story-text.js`.
-- **Thay tranh bằng tranh vẽ thật**: bật bút chì, mở chương, bấm vào tranh rồi tải ảnh lên (khung ngang tỉ lệ 8:5, ví dụ 1600×1000). Bấm "Dùng ảnh mặc định" để quay lại tranh vẽ sẵn.
-- Tài khoản admin đọc được mọi chương (để duyệt trước).
+- Trạm mở theo **chuỗi dài nhất**, nên đứt chuỗi vẫn giữ các trạm đã mở (giống huy hiệu). Không cần thêm dữ liệu hay sửa luật Firestore.
+- **Viết lời cho từng trạm**: bật bút chì (chế độ sửa), mở trạm, bấm vào ô nét đứt dưới tranh để viết (Shift+Enter để xuống dòng). Trạm chưa có lời thì khách chỉ thấy tranh và tên trạm. Tên trạm cũng sửa được như vậy.
+- **Thay tranh bằng tranh vẽ thật**: bật bút chì, mở trạm, bấm vào tranh rồi tải ảnh lên (khung ngang tỉ lệ 8:5, ví dụ 1600×1000). Bấm "Dùng ảnh mặc định" để quay lại tranh vẽ sẵn.
+- Tài khoản admin mở được mọi trạm (để duyệt trước).
 - Xem thử không cần đăng nhập: mở `index.html?demo=1&as=user&days=370#/club` (đổi số `days` để giả lập chuỗi bao nhiêu ngày).
-- Đổi ngày của trạm hoặc thêm trạm: sửa mảng `MJ_STOPS` ở đầu `moon-story.js`.
+- Đổi ngày của trạm: sửa mảng `MJ_STOPS` ở đầu `moon-story.js`. Tranh của từng trạm ở `moon-art.js`.
 
 ## QUY TẮC CẬP NHẬT WEB LÊN GITHUB (đọc cái này khi cần cập nhật)
 Từ bản 8, các file hay thay đổi (`index.html`, `core.js`, `pages.js`, `admin.js`, `i18n-extra.js`, `app.css`) **đều nằm ở trang gốc của repo**, cùng chỗ với `index.html`. Chỉ còn 4 file ít khi đổi nằm trong thư mục `js`: `art.js`, `i18n.js`, `translate.js`, `firebase-config.js`.
