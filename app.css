@@ -460,7 +460,9 @@ html[data-font="serif"] h1,html[data-font="serif"] h2,html[data-font="serif"] h3
 .mja-zzz{animation:mjaZzz 3.8s ease-in-out infinite}
 @keyframes mjaZzz{0%{transform:translate(0,4px);opacity:0}30%{opacity:.9}100%{transform:translate(6px,-10px);opacity:0}}
 .mja-look{transform-origin:50% 100%;animation:mjaLook 11s ease-in-out infinite}
-@keyframes mjaLook{0%,30%,100%{transform:rotate(0)}38%,52%{transform:rotate(-5deg)}60%,72%{transform:rotate(2.5deg)}80%{transform:rotate(0)}}
+@keyframes mjaLook{0%,30%,100%{transform:rotate(0)}38%,52%{transform:rotate(-3deg)}60%,72%{transform:rotate(2deg)}80%{transform:rotate(0)}}
+.mja-tilt{animation:mjaTilt 10s ease-in-out infinite}
+@keyframes mjaTilt{0%,35%,100%{transform:rotate(0)}45%,58%{transform:rotate(-5deg)}68%,78%{transform:rotate(3deg)}88%{transform:rotate(0)}}
 .mja-sway{transform-origin:50% 100%;animation:mjaSway 8s ease-in-out infinite}
 @keyframes mjaSway{0%,100%{transform:rotate(-.7deg)}50%{transform:rotate(.8deg) translateX(.3px)}}
 /* bước đi: chân trước/chân sau đưa lệch nửa nhịp, thân nhún hai lần mỗi chu kỳ */
