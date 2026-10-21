@@ -19,8 +19,8 @@ const MJ_STOPS = [
 const mjStop = id => MJ_STOPS.find(s => s.id === id);
 const mjTitle = s => ctext('mjc_' + s.id + '_t');
 const mjOpen = (s, best) => s.day <= best;
-// admin chỉ xem trước các trạm chưa mở khi bật bút chì (chế độ sửa); bình thường admin cũng thấy như khách
-const mjPreview = () => !!(state.isAdmin && state.editMode);
+// admin luôn xem được mọi trạm (để duyệt và viết lời); khách chỉ thấy trạm đã tới
+const mjPreview = () => !!state.isAdmin;
 const mjSeenKey = () => 'mj_seen_' + (state.user ? state.user.uid : 'guest');
 const mjSeen = () => +store.get(mjSeenKey(), -1);
 const mjRainOn = () => store.get('mj_rain', true) !== false;
@@ -31,9 +31,14 @@ let mjScroll = null;
 /* ---------- bản đồ con đường ---------- */
 const MJ_W = 340, MJ_GAP = 132, MJ_TOP = 190, MJ_BOT = 80;
 const mjH = () => MJ_TOP + (MJ_STOPS.length - 1) * MJ_GAP + MJ_BOT;
-const mjXY = i => [i === 0 ? 170 : i % 2 ? 84 : 256, mjH() - MJ_BOT - i * MJ_GAP];
+// vị trí các trạm: xếp lệch tự nhiên (không đổi bên đều đặn), khoảng cách dọc cũng xê dịch một chút
+const MJ_XS = [170, 98, 212, 262, 150, 80, 128, 248, 190, 86, 238, 122, 264, 156, 84, 214, 238, 118, 226, 150];
+const MJ_YJ = [0, 10, -8, 6, -12, 8, -4, 12, -6, 4, -10, 6, 0, -8, 10, -6, 0, 8, -4, 0];
+const mjXY = i => { const j = Math.max(0, Math.min(MJ_STOPS.length - 1, i)); return [MJ_XS[j % MJ_XS.length], mjH() - MJ_BOT - j * MJ_GAP + MJ_YJ[j % MJ_YJ.length]]; };
 const mjBez = (p, t) => { const u = 1 - t; return [0, 1].map(k => u * u * u * p[0][k] + 3 * u * u * t * p[1][k] + 3 * u * t * t * p[2][k] + t * t * t * p[3][k]); };
-const mjSeg = i => { const a = mjXY(i), b = mjXY(i + 1), c = MJ_GAP * .62; return [a, [a[0], a[1] - c], [b[0], b[1] + c], b]; };
+// đường cong mềm đi qua các trạm (Catmull-Rom), kéo thêm theo chiều dọc để đường uốn như lối đi
+const mjSeg = i => { const p0 = mjXY(i - 1), a = mjXY(i), b = mjXY(i + 1), p3 = mjXY(i + 2), v = MJ_GAP * .24, k = 1 / 3.6;
+  return [a, [a[0] + (b[0] - p0[0]) * k, a[1] - v], [b[0] - (p3[0] - a[0]) * k, b[1] + v], b]; };
 function mjAt(i, f){                         // điểm ở phần f (0–1) theo chiều dài đoạn i
   const p = mjSeg(i), N = 40, pts = [[0, mjBez(p, 0)]]; let L = 0;
   for (let k = 1; k <= N; k++) { const q = mjBez(p, k / N), o = pts[k - 1][1]; L += Math.hypot(q[0] - o[0], q[1] - o[1]); pts.push([L, q]); }

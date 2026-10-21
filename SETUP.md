@@ -287,7 +287,7 @@ Trang Hành trình trăng có một con đường uốn lượn trong đêm, đi
 - Trạm mở theo **chuỗi dài nhất**, nên đứt chuỗi vẫn giữ các trạm đã mở (giống huy hiệu). Không cần thêm dữ liệu hay sửa luật Firestore.
 - **Viết lời cho từng trạm**: bật bút chì (chế độ sửa), mở trạm, bấm vào ô nét đứt dưới tranh để viết (Shift+Enter để xuống dòng). Trạm chưa có lời thì khách chỉ thấy tranh và tên trạm. Tên trạm cũng sửa được như vậy.
 - **Thay tranh bằng tranh vẽ thật**: bật bút chì, mở trạm, bấm vào tranh rồi tải ảnh lên (khung ngang tỉ lệ 8:5, ví dụ 1600×1000). Bấm "Dùng ảnh mặc định" để quay lại tranh vẽ sẵn.
-- Khách chỉ thấy tranh và tên của các trạm đã tới; trạm chưa tới chỉ hiện ổ khoá và số ngày. Admin cũng thấy như khách, muốn xem trước mọi trạm thì bật bút chì (chế độ sửa).
+- Khách chỉ thấy tranh và tên của các trạm đã tới; trạm chưa tới chỉ hiện ổ khoá và số ngày. Tài khoản admin luôn xem được mọi trạm.
 - Mưa ở các tranh mưa và trên bản đồ chạy bằng `moon-rain.js` (canvas, nhiều lớp, có gợn nước). Máy bật "giảm chuyển động" thì mưa đứng yên. Nút "Mưa" trên bản đồ tắt/bật mưa.
 - Xem thử không cần đăng nhập: mở `index.html?demo=1&as=user&days=370#/club` (đổi số `days` để giả lập chuỗi bao nhiêu ngày).
 - Đổi ngày của trạm: sửa mảng `MJ_STOPS` ở đầu `moon-story.js`. Tranh của từng trạm ở `moon-art.js`.
