@@ -139,4 +139,14 @@
     es:{"promo_default": "Oferta especial", "promo_b3": "{p}% de descuento extra en el plan de 3 meses", "promo_b12": "{p}% de descuento extra en el plan de 12 meses", "promo_banner": "{name}: {parts}.", "promo_until": " Termina el {d}.", "promo_nostack": "Si también tienes una recompensa del Viaje lunar, se aplica automáticamente la mejor oferta (no se acumulan)."}
   };
   Object.keys(PM).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], PM[l]); });
+  /* Khuyến mãi: tặng thêm ngày */
+  const PB = {
+    hi:{"promo_off": "अतिरिक्त {p}% छूट", "promo_bonus": "{d} बोनस दिन", "promo_plan3": "3 महीने का प्लान: {x}", "promo_plan12": "12 महीने का प्लान: {x}", "promo_chip_bonus": "+{d} दिन"},
+    ja:{"promo_off": "さらに{p}%オフ", "promo_bonus": "{d}日分をプレゼント", "promo_plan3": "3か月プラン：{x}", "promo_plan12": "12か月プラン：{x}", "promo_chip_bonus": "+{d}日"},
+    ko:{"promo_off": "추가 {p}% 할인", "promo_bonus": "{d}일 보너스", "promo_plan3": "3개월 플랜: {x}", "promo_plan12": "12개월 플랜: {x}", "promo_chip_bonus": "+{d}일"},
+    zh:{"promo_off": "再减 {p}%", "promo_bonus": "额外赠送 {d} 天", "promo_plan3": "3 个月套餐：{x}", "promo_plan12": "12 个月套餐：{x}", "promo_chip_bonus": "+{d} 天"},
+    fr:{"promo_off": "{p} % de réduction en plus", "promo_bonus": "{d} jours offerts", "promo_plan3": "Formule 3 mois : {x}", "promo_plan12": "Formule 12 mois : {x}", "promo_chip_bonus": "+{d} jours"},
+    es:{"promo_off": "{p}% de descuento extra", "promo_bonus": "{d} días de regalo", "promo_plan3": "Plan de 3 meses: {x}", "promo_plan12": "Plan de 12 meses: {x}", "promo_chip_bonus": "+{d} días"}
+  };
+  Object.keys(PB).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], PB[l]); });
 })();
