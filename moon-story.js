@@ -22,7 +22,7 @@ const mjOpen = (s, best) => s.day <= best;
 const mjSeenKey = () => 'mj_seen_' + (state.user ? state.user.uid : 'guest');
 const mjSeen = () => +store.get(mjSeenKey(), -1);
 const mjRainOn = () => store.get('mj_rain', true) !== false;
-let mjScroll = null, _mjN = 0;
+let mjScroll = null;
 
 /* tranh và nhân vật: moon-art.js */
 
@@ -54,38 +54,31 @@ const MJ_GLYPH = {
   paw:'<ellipse cy="3" rx="4" ry="3.4"/><circle cx="-5" cy="-3" r="1.8"/><circle cx="-1.7" cy="-6" r="1.8"/><circle cx="1.7" cy="-6" r="1.8"/><circle cx="5" cy="-3" r="1.8"/>'
 };
 function mjMap(n, best, preview){
-  const H = mjH(), r = mjRng(42), [si, sf] = mjPos(n), seen = mjSeen(); let road = '', lit = '', dots = '', stops = '', deco = '';
-  // nền kiểu bút sáp: đồng cỏ đầy hoa ở dưới, bầu trời đêm xanh có mây, sao và trăng ở trên cùng
-  const gy = Math.round(H * .44);
-  deco += mjHatch(r, 160, [-10, 0, MJ_W + 10, gy], ['#ffffff', '#9fb6f2', '#5b7ee0', '#c8d4fa'], -8, [4, 8], .22, [30, 70]);
-  deco += mjStars(r, 70, [0, 150, MJ_W, gy - 40]);
-  for (let i = 0; i < 9; i++) { const cx = 20 + r() * 300, cy = 200 + r() * (gy - 260); deco += `<g fill="#fff" opacity=".85"><ellipse cx="${_r1(cx)}" cy="${_r1(cy)}" rx="26" ry="10"/><circle cx="${_r1(cx - 9)}" cy="${_r1(cy - 6)}" r="9"/><circle cx="${_r1(cx + 7)}" cy="${_r1(cy - 8)}" r="11"/></g>`; }
-  deco += mjMoon('mjmap', 170, 86, 42, 1);
-  deco += mjHill(r, `M0 ${gy}Q90 ${gy - 30} 170 ${gy - 10}T340 ${gy - 20}V${H}H0z`, [0, gy - 20, MJ_W, H], '#6cc94f', 420);
-  deco += mjField(r, 140, [0, gy, MJ_W, H], [.7, 1.1]);
+  const H = mjH(), c = mjCtx(42, 'mjmap'), [si, sf] = mjPos(n), seen = mjSeen(); let road = '', lit = '', dots = '', stops = '';
+  // nền đêm: phố mưa → mặt nước → đồng đom đóm → rừng thông → biển sao → hải đăng → trên mây (moon-art.js)
+  const deco = mjMapBg(c, MJ_W, H, i => mjXY(i)[1]);
   for (let i = 0; i < MJ_STOPS.length - 1; i++) {
     const p = mjSeg(i), d = `M${p[0].join(' ')}C${p[1].join(' ')} ${p[2].join(' ')} ${p[3].join(' ')}`, a = MJ_STOPS[i].day, b = MJ_STOPS[i + 1].day;
     road += `<path d="${d}"/>`;
     if (i < si) lit += `<path d="${d}"/>`; else if (i === si && sf > 0) lit += `<path d="${d}" pathLength="1000" stroke-dasharray="${Math.round(sf * 1000)} 2000"/>`;
     const span = b - a, step = Math.max(1, Math.ceil((span - 1) / 22));
-    for (let k = step; k < span; k += step) { const [x, y] = mjAt(i, k / span), on = a + k <= n; dots += `<circle cx="${_r1(x)}" cy="${_r1(y)}" r="${on ? 2.6 : 2}" class="${on ? 'on' : ''}"/>`; }
+    for (let k = step; k < span; k += step) { const [x, y] = mjAt(i, k / span), on = a + k <= n; dots += `<circle cx="${_r1(x)}" cy="${_r1(y)}" r="${on ? 2.4 : 1.8}" class="${on ? 'on' : ''}"/>`; }
   }
   MJ_STOPS.forEach((s, i) => {
     const [x, y] = mjXY(i), open = preview || mjOpen(s, best), reached = s.day <= n, isNew = mjOpen(s, best) && s.day > seen && !!state.user, nextUp = !open && MJ_STOPS.filter(z => !mjOpen(z, best))[0] === s;
     const R = s.big ? 21 : 17, side = i === 0 ? 0 : x < 170 ? 1 : -1, lx = side === 0 ? x : x + side * (R + 10), anchor = side === 0 ? 'middle' : side > 0 ? 'start' : 'end', ly = side === 0 ? y + R + 18 : y - 2;
     const label = open || nextUp ? esc(mjTitle(s)) : '• • •', cls = `mj-stop ${open ? 'is-open' : 'is-locked'} ${reached ? 'is-reached' : ''} ${s.big ? 'is-big' : ''}`;
     stops += `<g class="${cls}" data-act="mjOpen" data-id="${s.id}" tabindex="0" role="button" aria-label="${esc(mjTitle(s))} · ${esc(t('mjs_day', { n:s.day }))}">
-      <circle cx="${x}" cy="${y}" r="${R + 14}" fill="transparent"/>${reached ? `<circle cx="${x}" cy="${y}" r="${R + 9}" class="halo"/>` : ''}<circle cx="${x}" cy="${y}" r="${R}" class="disc"/>
+      <circle cx="${x}" cy="${y}" r="${R + 14}" fill="transparent"/>${open ? mjGlow(c, x, y, R * 2.6, 'w', reached ? .8 : .45) : ''}${reached ? `<circle cx="${x}" cy="${y}" r="${R + 6}" class="halo"/>` : ''}<circle cx="${x}" cy="${y}" r="${R}" class="disc"/>
       <g transform="translate(${x} ${y}) scale(${s.big ? 1.25 : 1})" class="gl">${open ? MJ_GLYPH[s.g] : '<rect x="-5" y="-2" width="10" height="8" rx="1.5"/><path d="M-3-2v-2.5a3 3 0 0 1 6 0V-2" fill="none" stroke="currentColor" stroke-width="1.6"/>'}</g>
       ${isNew ? `<circle cx="${x + R * .72}" cy="${y - R * .72}" r="5" class="new"/>` : ''}
       <text x="${lx}" y="${ly}" text-anchor="${anchor}" class="lb">${label}</text><text x="${lx}" y="${ly + 14}" text-anchor="${anchor}" class="dy">${esc(s.day ? t('mjs_day', { n:s.day }) : t('mjs_start'))}</text></g>`;
   });
-  const [wx, wy] = si >= MJ_STOPS.length - 1 ? mjXY(si) : mjAt(si, sf), walker = state.user && n ? `<g class="mj-walker" transform="translate(${_r1(wx)} ${_r1(wy)})"><circle r="22" class="pulse"/>${mjGirl(0, 8, .62, 'umb')}${sf > .18 && sf < .82 ? `<text x="${wx < 170 ? 26 : -26}" y="4" text-anchor="${wx < 170 ? 'start' : 'end'}" class="here">${esc(t('mjs_here'))}</text>` : ''}</g>` : '';
-  return `<svg class="mj-map" viewBox="0 0 ${MJ_W} ${H}" data-wy="${_r1(wy)}" role="group" aria-label="${esc(t('mjs_road'))}"><defs>
-    <linearGradient id="mjmapbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a55c0"/><stop offset=".3" stop-color="#7b96ea"/><stop offset=".44" stop-color="#c3cff8"/><stop offset=".45" stop-color="#6cc94f"/><stop offset="1" stop-color="#5fbf4b"/></linearGradient>
-    <pattern id="mjspk" width="23" height="19" patternUnits="userSpaceOnUse"><circle cx="3" cy="4" r=".9" fill="#fff"/><circle cx="14" cy="2" r=".6" fill="#fff"/><circle cx="19" cy="12" r="1" fill="#fff"/><circle cx="8" cy="15" r=".7" fill="#fff"/><circle cx="11" cy="9" r=".5" fill="#fff"/></pattern></defs>
-    <rect width="${MJ_W}" height="${H}" fill="url(#mjmapbg)"/>
-    ${deco}<g class="road-edge">${road}</g><g class="road">${road}</g><g class="road-dash">${road}</g><g class="lit-glow">${lit}</g><g class="lit">${lit}</g><g class="days">${dots}</g><rect width="${MJ_W}" height="${H}" fill="url(#mjspk)" opacity=".55" pointer-events="none"/>${stops}${walker}</svg>`;
+  // Moon chờ ở bờ biển cạnh trạm gặp lại; khi đã tới ngày 365 thì Moon ngồi sát bên trạm
+  const [rx, ry] = mjXY(MJ_STOPS.findIndex(s => s.id === 'd365')), moonCat = best >= 365 ? mjGlow(c, rx - 44, ry + 26, 30, 'w', .7) + mjCat(c, rx - 44, ry + 36, 1.3, 'sitF') : `<g opacity=".8">${mjGlow(c, rx + 150, ry + 26, 26, 'm', .8)}${mjCat(c, rx + 150, ry + 34, 1.1, 'sitB')}</g>`;
+  const [wx, wy] = si >= MJ_STOPS.length - 1 ? mjXY(si) : mjAt(si, sf), walker = state.user && n ? `<g class="mj-walker" transform="translate(${_r1(wx)} ${_r1(wy)})"><circle r="22" class="pulse"/>${mjGirl(c, 0, 12, .5, 'back', { arm:'M6 -42.5Q10 -36 13 -32', hand:[13, -32], lantern:[13, -32] })}${sf > .18 && sf < .82 ? `<text x="${wx < 170 ? 26 : -26}" y="4" text-anchor="${wx < 170 ? 'start' : 'end'}" class="here">${esc(t('mjs_here'))}</text>` : ''}</g>` : '';
+  return `<svg class="mj-map" viewBox="0 0 ${MJ_W} ${H}" data-wy="${_r1(wy)}" role="group" aria-label="${esc(t('mjs_road'))}"><defs>${c.d}</defs>
+    ${deco}<g class="road-edge">${road}</g><g class="road">${road}</g><g class="road-dash">${road}</g><g class="lit-glow">${lit}</g><g class="lit">${lit}</g><g class="days">${dots}</g>${moonCat}${stops}${walker}</svg>`;
 }
 
 /* ---------- các khối trên trang ---------- */

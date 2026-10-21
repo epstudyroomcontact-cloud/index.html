@@ -1,172 +1,586 @@
 'use strict';
 /* =========================================================
-   MOON JOURNEY — TRANH KIỂU BÚT SÁP MÀU (vẽ bằng SVG, không cần file ảnh)
-   - Chất liệu sáp: bộ lọc mjCrayon làm mép hơi run tay và lốm đốm hạt giấy trắng, cộng thêm các nét sáp ngắn chồng lên nhau.
-   - Moon: mèo trắng tròn trĩnh, tai và đỉnh đầu màu cam, mắt tròn to có điểm sáng, má hồng.
-   - Mỗi trạm một cảnh (MJ_SCENES). Admin có thể thay từng cảnh bằng tranh vẽ tay: bật bút chì, mở trạm, bấm vào tranh.
+   MOON JOURNEY — TRANH ĐÊM KIỂU SÁP MÀU (vẽ bằng SVG, không cần file ảnh)
+   - Màu đêm hợp với web: xanh navy, xanh lam đậm, ánh trăng vàng nhạt, ánh đom đóm và đèn vàng ấm.
+   - Chất sáp mịn: nền là nhiều lớp nét ngắn theo hướng (sóng nước, cỏ theo gió, mây), mép hơi run tay (bộ lọc w),
+     phủ một lớp hạt sáng và hạt tối rất nhẹ (bộ lọc g, d). Nhân vật vẽ ngoài bộ lọc run tay cho mặt rõ nét.
+   - Trân: cô gái tóc đen dài tới eo, váy trắng, nơ xanh nhạt sau đầu.
+   - Moon: mèo cái trắng, đỉnh đầu và hai tai màu cam, mắt cười, má hồng.
+   - Mỗi trạm một cảnh riêng (MJ_SCENES). Admin có thể thay từng cảnh bằng tranh vẽ tay: bật bút chì, mở trạm, bấm vào tranh.
    ========================================================= */
 const _r1 = n => Math.round(n * 10) / 10;
 function mjRng(seed){ let a = seed >>> 0 || 1; return () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const mjPick = (r, a) => a[Math.floor(r() * a.length)];
-const MJC = {
-  paper:'#fffaf0', line:'#3b4a86', white:'#fffdf8', fur:'#fffdf8', furLine:'#aab6d3', orange:'#f6a65c', orangeD:'#e07f35', cheek:'#f8a3b7', eye:'#3a2b28',
-  hair:'#2f2734', skin:'#ffe3cf', blue:'#86bdf5', blueD:'#2f6fd6', pink:'#f6a2c9', pinkD:'#d45893', purple:'#b48ae0', purpleD:'#7b4fbf',
-  yellow:'#ffd84a', yellowD:'#f2a91d', moon:'#fff2a8', moonD:'#f2c13a', grass:['#5fbf4b', '#86d15a', '#a9e06a', '#3f9e3c', '#6cc94f'], umb:'#ff7fb4', umbD:'#e0447f'
+const MJN = {
+  navy:'#0d1633', moon:'#fff2c4', dress:'#eef2fb', dressS:'#a9b6d6', hair:'#16132b', hairH:'#45427a', skin:'#f6dccd', cheek:'#f3a3ad', ribbon:'#9fc4ff',
+  fur:'#fdfaf3', furS:'#c9d1e6', furL:'#aab4d0', orange:'#f2a15c', pink:'#f4a9b6', eye:'#29203a'
 };
-const MJ_SKIES = { dusk:['#5b7ee0', '#b9c6f7'], night:['#3c58c4', '#8aa2ec'], rain:['#6a86d0', '#b8c7ee'], deep:['#2f45a8', '#6f86df'], room:['#ffe9c8', '#ffd9a8'] };
+let _mjN = 0;
+
+/* ---------- khung vẽ: mỗi tranh có một bộ đếm id và chỗ gom <defs> ---------- */
+function mjCtx(seed, k){ const c = { r:mjRng(seed), k, u:0, d:'', g:{} }; c.id = () => k + '_' + (++c.u); c.def = s => { c.d += s; }; return c; }
+const mjStops = stops => stops.map(([o, col, a = 1]) => `<stop offset="${o}" stop-color="${col}" stop-opacity="${a}"/>`).join('');
+function mjClip(c, shape){ const id = c.id(); c.def(`<clipPath id="${id}">${shape}</clipPath>`); return `url(#${id})`; }
+function mjLin(c, stops, x2 = 0, y2 = 1, x1 = 0, y1 = 0){ const id = c.id(); c.def(`<linearGradient id="${id}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}">${mjStops(stops)}</linearGradient>`); return `url(#${id})`; }
+function mjRad(c, stops, cx = .5, cy = .5, r = .5){ const id = c.id(); c.def(`<radialGradient id="${id}" cx="${cx}" cy="${cy}" r="${r}">${mjStops(stops)}</radialGradient>`); return `url(#${id})`; }
+const MJ_GLOWS = { w:['#ffd27a', .8], m:['#fff1c0', .55], f:['#ffe9a0', .95], c:['#9fc0ff', .4], p:['#ffb0cf', .45], v:['#b9a6ff', .45] };
+// quầng sáng tròn: w đèn vàng ấm, m ánh trăng, f đom đóm, c ánh xanh lạnh, p hồng, v tím
+function mjGlow(c, x, y, R, kind = 'w', op = 1){
+  if (!c.g[kind]) { const [col, a] = MJ_GLOWS[kind]; c.g[kind] = mjRad(c, [[0, col, a], [.25, col, a * .55], [.6, col, a * .14], [1, col, 0]]); }
+  return `<circle cx="${_r1(x)}" cy="${_r1(y)}" r="${_r1(R)}" fill="${c.g[kind]}" opacity="${op}"/>`;
+}
 
 /* ---------- nét sáp ---------- */
-// nét sáp ngắn, hơi nghiêng, chồng lên nhau (tạo cảm giác tô bằng bút sáp)
-function mjHatch(r, n, box, cols, ang = -20, w = [2, 4], op = .35, len = [8, 22]){
-  const [x0, y0, x1, y1] = box; let s = '';
-  for (let i = 0; i < n; i++) {
-    const x = x0 + r() * (x1 - x0), y = y0 + r() * (y1 - y0), l = len[0] + r() * (len[1] - len[0]), a = (ang + (r() - .5) * 16) * Math.PI / 180;
-    s += `<path d="M${_r1(x)} ${_r1(y)}l${_r1(Math.cos(a) * l)} ${_r1(Math.sin(a) * l)}" stroke="${mjPick(r, cols)}" stroke-width="${_r1(w[0] + r() * (w[1] - w[0]))}" opacity="${_r1(op * (.6 + r() * .8) * 100) / 100}"/>`;
+// n nét ngắn trong vùng box, theo hướng ang (độ) hoặc theo trường hướng fa(x,y); gom theo màu và độ dày thành ít path
+function mjS(c, n, box, cols, o = {}){
+  const r = c.r, [x0, y0, x1, y1] = box, ws = o.w || [1.6, 2.6], L = o.len || [8, 24], bend = o.bend ?? .15, jit = o.jit ?? 8, B = {};
+  for (let i = 0, tries = 0; i < n && tries < n * 6; tries++) {
+    const x = x0 + r() * (x1 - x0), y = y0 + r() * (y1 - y0);
+    if (o.in && !o.in(x, y)) continue; i++;
+    const a = ((o.fa ? o.fa(x, y) : (o.ang || 0)) + (r() - .5) * 2 * jit) * Math.PI / 180, l = L[0] + r() * (L[1] - L[0]);
+    const dx = Math.cos(a) * l, dy = Math.sin(a) * l, b = (r() - .5) * 2 * bend * l, key = Math.floor(r() * cols.length) + '|' + Math.floor(r() * ws.length);
+    B[key] = (B[key] || '') + `M${_r1(x - dx / 2)} ${_r1(y - dy / 2)}q${_r1(dx / 2 - dy / l * b)} ${_r1(dy / 2 + dx / l * b)} ${_r1(dx)} ${_r1(dy)}`;
   }
-  return `<g fill="none" stroke-linecap="round">${s}</g>`;
+  return `<g fill="none" stroke-linecap="round" opacity="${o.op ?? .45}">${Object.entries(B).map(([key, d]) => { const [ci, wi] = key.split('|'); return `<path d="${d}" stroke="${cols[ci]}" stroke-width="${ws[wi]}"/>`; }).join('')}</g>`;
 }
-function mjSky(r, k, kind = 'dusk', h = 250){
-  const c = MJ_SKIES[kind];
-  return `<rect width="400" height="${h}" fill="url(#${k}${kind})"/>${mjHatch(r, 90, [-10, 0, 410, h], kind === 'room' ? ['#fff4dc', '#ffd59c', '#ffe2b8'] : ['#ffffff', c[0], c[1], '#9fb6f2'], kind === 'room' ? -70 : -8, [3, 6], .22, [20, 50])}`;
+// chấm tròn nhỏ (sao, bụi sáng, hoa li ti)
+function mjDots(c, n, box, cols, sz = [.6, 1.6], op = .85, inFn){
+  const r = c.r, [x0, y0, x1, y1] = box, B = {};
+  for (let i = 0, tries = 0; i < n && tries < n * 6; tries++) {
+    const x = x0 + r() * (x1 - x0), y = y0 + r() * (y1 - y0); if (inFn && !inFn(x, y)) continue; i++;
+    const key = Math.floor(r() * cols.length) + '|' + Math.floor(r() * 3); B[key] = (B[key] || '') + `M${_r1(x)} ${_r1(y)}h0`;
+  }
+  return `<g fill="none" stroke-linecap="round" opacity="${op}">${Object.entries(B).map(([key, d]) => { const [ci, si] = key.split('|'); return `<path d="${d}" stroke="${cols[ci]}" stroke-width="${_r1(sz[0] + (sz[1] - sz[0]) * si / 2)}"/>`; }).join('')}</g>`;
 }
-function mjStars(r, n, box){
-  const [x0, y0, x1, y1] = box; let s = '';
-  for (let i = 0; i < n; i++) {
-    const x = _r1(x0 + r() * (x1 - x0)), y = _r1(y0 + r() * (y1 - y0)), z = r();
-    s += z < .3 ? `<path d="M${x} ${_r1(y - 5)}Q${_r1(x + 1)} ${_r1(y - 1)} ${_r1(x + 5)} ${y}Q${_r1(x + 1)} ${_r1(y + 1)} ${x} ${_r1(y + 5)}Q${_r1(x - 1)} ${_r1(y + 1)} ${_r1(x - 5)} ${y}Q${_r1(x - 1)} ${_r1(y - 1)} ${x} ${_r1(y - 5)}Z" fill="${MJC.yellow}" stroke="#fff" stroke-width="1"/>`
-      : `<circle cx="${x}" cy="${y}" r="${_r1(1 + z * 1.4)}" fill="#fffbe0"/>`;
+// ngôi sao lấp lánh 4 cánh
+const mjSpark = (x, y, s, col = '#fff6d6', op = 1) => { const q = s * .16; return `<path d="M${_r1(x)} ${_r1(y - s)}Q${_r1(x + q)} ${_r1(y - q)} ${_r1(x + s)} ${_r1(y)}Q${_r1(x + q)} ${_r1(y + q)} ${_r1(x)} ${_r1(y + s)}Q${_r1(x - q)} ${_r1(y + q)} ${_r1(x - s)} ${_r1(y)}Q${_r1(x - q)} ${_r1(y - q)} ${_r1(x)} ${_r1(y - s)}Z" fill="${col}" opacity="${op}"/>`; };
+function mjStarfield(c, n, box, o = {}){
+  const r = c.r, [x0, y0, x1, y1] = box; let s = mjDots(c, n, box, o.cols || ['#ffffff', '#fff3cf', '#cfe0ff', '#e9e4ff'], o.sz || [.5, 1.5], o.op ?? .8, o.in);
+  for (let i = 0; i < (o.sparks ?? Math.round(n / 14)); i++) { const x = x0 + r() * (x1 - x0), y = y0 + r() * (y1 - y0); if (o.in && !o.in(x, y)) continue; const z = 2 + r() * 3.4; s += mjGlow(c, x, y, z * 3, 'm', .7) + mjSpark(x, y, z, r() < .3 ? '#ffe7a0' : '#fffbea'); }
+  return s;
+}
+// đom đóm: chấm sáng có quầng
+function mjFlies(c, n, box, o = {}){
+  const r = c.r, [x0, y0, x1, y1] = box; let s = '';
+  for (let i = 0, tries = 0; i < n && tries < n * 6; tries++) {
+    const x = x0 + r() * (x1 - x0), y = y0 + r() * (y1 - y0); if (o.in && !o.in(x, y)) continue; i++;
+    const z = (o.sz || 1) * (.7 + r() * .9); s += mjGlow(c, x, y, 7 * z, 'f', .45 + r() * .5) + `<circle cx="${_r1(x)}" cy="${_r1(y)}" r="${_r1(1.1 * z)}" fill="#fffbe0"/>`;
   }
   return s;
 }
-// trăng: f = độ tròn (1 = trăng tròn, nhỏ hơn = trăng khuyết)
-function mjMoon(k, x, y, R, f = 1){
-  const id = k + 'm' + Math.round(x) + Math.round(y), off = _r1(R * 2 * f + R * .2);
-  return `<circle cx="${x}" cy="${y}" r="${_r1(R * 1.9)}" fill="#fff6c9" opacity=".22"/><circle cx="${x}" cy="${y}" r="${_r1(R * 1.4)}" fill="#fff6c9" opacity=".3"/>
-    ${f < 1 ? `<mask id="${id}"><circle cx="${x}" cy="${y}" r="${R + 3}" fill="#fff"/><circle cx="${_r1(x - off)}" cy="${_r1(y - R * .15)}" r="${R + 1}" fill="#000"/></mask>` : ''}
-    <g ${f < 1 ? `mask="url(#${id})"` : ''}><circle cx="${x}" cy="${y}" r="${R}" fill="${MJC.moon}" stroke="${MJC.moonD}" stroke-width="2.2"/><circle cx="${_r1(x + R * .3)}" cy="${_r1(y - R * .25)}" r="${_r1(R * .18)}" fill="#ffe27a" opacity=".7"/><circle cx="${_r1(x - R * .25)}" cy="${_r1(y + R * .3)}" r="${_r1(R * .12)}" fill="#ffe27a" opacity=".7"/></g>`;
+
+/* ---------- cảnh nền dùng chung ---------- */
+// bầu trời đêm: nền chuyển màu + vệt mây sáp nằm ngang + sao
+function mjSkyN(c, top, bot, h = 250, o = {}){
+  let s = `<rect width="400" height="${h}" fill="${mjLin(c, [[0, top], [1, bot]])}"/>`;
+  s += mjS(c, o.streaks ?? 70, [-30, 0, 430, h], o.cols || ['#1a2b57', '#22366a', '#101c3e', '#2b4378'], { ang:o.ang ?? -3, len:[40, 120], w:[5, 9, 13], op:o.sop ?? .35, jit:4, bend:.06 });
+  if (o.stars !== 0) s += mjStarfield(c, o.stars || 90, [0, 0, 400, h * (o.starH || .8)], { sparks:o.sparks });
+  return s;
 }
-// đồi cỏ: phần tô + nét cỏ
-function mjHill(r, d, box, base = '#6cc94f', blades = 70){
-  return `<path d="${d}" fill="${base}"/>${mjHatch(r, blades, box, MJC.grass, -80, [2, 3.5], .7, [6, 14])}`;
+function mjMoonN(c, x, y, R, o = {}){
+  const id = c.id(); let s = mjGlow(c, x, y, R * (o.halo || 4.2), 'm', .9) + mjGlow(c, x, y, R * 1.7, 'w', .35);
+  const cl = mjClip(c, `<circle cx="${x}" cy="${y}" r="${R}"/>`);
+  let disk = `<circle cx="${x}" cy="${y}" r="${R}" fill="${MJN.moon}"/><g clip-path="${cl}">${mjS(c, Math.round(R * 2), [x - R, y - R, x + R, y + R], ['#ffe39a', '#fffbea', '#f6dc95'], { ang:-25, len:[R * .3, R * .7], w:[R * .1, R * .16], op:.55 })}</g>`;
+  if (o.cres) {
+    const [dx, dy] = o.cres; c.def(`<mask id="${id}"><circle cx="${x}" cy="${y}" r="${R + 1}" fill="#fff"/><circle cx="${_r1(x + dx * R)}" cy="${_r1(y + dy * R)}" r="${_r1(R * (o.cut || .9))}" fill="#000"/></mask>`);
+    disk = `<g mask="url(#${id})">${disk}</g>`;
+  }
+  return s + disk;
 }
-// hoa lưu ly 5 cánh như tranh mẫu: cánh xanh viền đậm, nhuỵ vàng, viền trắng lốm đốm
-const MJ_FL = { blue:[MJC.blue, MJC.blueD], pink:[MJC.pink, MJC.pinkD], purple:[MJC.purple, MJC.purpleD], white:['#ffffff', '#9fb0d8'], yellow:['#ffe680', MJC.yellowD] };
-function mjFlower(x, y, s, col = 'blue', rot = 0){
-  const [f, d] = MJ_FL[col]; let p = '';
-  for (let i = 0; i < 5; i++) { const a = (i * 72 - 90) * Math.PI / 180; p += `<circle cx="${_r1(Math.cos(a) * 5.4)}" cy="${_r1(Math.sin(a) * 5.4)}" r="5.2"/>`; }
-  return `<g transform="translate(${_r1(x)} ${_r1(y)}) rotate(${Math.round(rot)}) scale(${_r1(s * 100) / 100})"><circle r="11.5" fill="#fff" opacity=".75"/><g fill="${f}" stroke="${d}" stroke-width="1.3">${p}</g>
-    <path d="M0-4.6V4.6M-4.4-1.4L4.4 1.4M-2.7 3.7L2.7-3.7M4.4-1.4L-4.4 1.4M2.7 3.7L-2.7-3.7" stroke="#fff" stroke-width="1.1" opacity=".9"/><circle r="2.4" fill="${MJC.yellow}"/><circle r="1" fill="${MJC.yellowD}"/></g>`;
+// nước: nền + nét sóng ngang + (tuỳ chọn) đường trăng lấp lánh dưới mặt trăng ở x = o.path
+function mjWater(c, y0, y1, o = {}){
+  const r = c.r; let s = `<rect y="${y0}" width="400" height="${y1 - y0}" fill="${mjLin(c, [[0, o.top || '#13234a'], [1, o.bot || '#081129']])}"/>`;
+  s += mjS(c, o.n ?? 260, [-20, y0, 420, y1], o.cols || ['#1c3264', '#24407a', '#0d1836', '#2e4f8c'], { ang:0, len:[10, 46], w:[1.4, 2.4, 3.4], op:.55, jit:3, bend:.1 });
+  if (o.path !== undefined) {
+    const mx = o.path, sw = o.spread || 120; let d1 = '', d2 = '';
+    for (let i = 0; i < (o.glints || 300); i++) {
+      const t = Math.pow(r(), .8), y = y0 + 2 + (y1 - y0) * t, spread = 6 + t * sw, x = mx + (r() + r() + r() - 1.5) * spread * .9, l = 3 + r() * (6 + t * 18);
+      if (Math.abs(x - mx) > spread) continue;
+      const seg = `M${_r1(x - l / 2)} ${_r1(y)}h${_r1(l)}`; if (r() < .45) d1 += seg; else d2 += seg;
+    }
+    s += mjGlow(c, mx, y0 + (y1 - y0) * .5, (y1 - y0) * .9, 'm', .35) + `<path d="${d2}" stroke="#f3e4b0" stroke-width="1.6" stroke-linecap="round" opacity=".55" fill="none"/><path d="${d1}" stroke="#fffbea" stroke-width="1.2" stroke-linecap="round" opacity=".9" fill="none"/>`;
+  }
+  return s;
 }
-function mjBud(x, y, s, col = 'pink'){ const [f, d] = MJ_FL[col]; return `<g transform="translate(${_r1(x)} ${_r1(y)}) scale(${_r1(s * 100) / 100})"><ellipse rx="3.4" ry="4.6" fill="${f}" stroke="${d}" stroke-width="1"/><path d="M0 4v7" stroke="#4fa840" stroke-width="1.4"/></g>`; }
-// cánh đồng hoa: hoa xa nhỏ, hoa gần to, sắp theo chiều sâu
-function mjField(r, n, box, sz = [.5, 1.3], cols = ['blue', 'blue', 'blue', 'pink', 'purple', 'white']){
-  const [x0, y0, x1, y1] = box, items = [];
-  for (let i = 0; i < n; i++) { const y = y0 + r() * (y1 - y0), t = (y - y0) / Math.max(1, y1 - y0), x = x0 + r() * (x1 - x0), s = sz[0] + (sz[1] - sz[0]) * t * (.7 + r() * .5); items.push([y, r() < .22 ? mjBud(x, y, s * 1.1, mjPick(r, ['pink', 'purple'])) : `<path d="M${_r1(x)} ${_r1(y)}v${_r1(10 * s)}" stroke="#4fa840" stroke-width="${_r1(1.6 * s)}"/>${mjFlower(x, y, s, mjPick(r, cols), r() * 70)}`]); }
-  return items.sort((a, b) => a[0] - b[0]).map(i => i[1]).join('');
+// phản chiếu ánh đèn trên mặt đất ướt: vệt ngang chồng xuống dưới
+function mjReflect(c, L, gy, col = '#ffcf73', op = .45){
+  let d = ''; L.forEach(([x, y, k = 1]) => { const depth = Math.min(250 - gy, (gy - y) * .7 + 10); for (let t = 3; t < depth; t += 2.5 + c.r() * 3) { const w = (2 + c.r() * 6) * k * (1 - t / depth * .6); d += `M${_r1(x - w / 2 + (c.r() - .5) * 3)} ${_r1(gy + t)}h${_r1(w)}`; } });
+  return `<path d="${d}" stroke="${col}" stroke-width="1.5" stroke-linecap="round" opacity="${op}" fill="none"/>`;
 }
-function mjLamp(x, gy, h = 110){
-  const t = gy - h;
-  return `<circle cx="${x}" cy="${t + 6}" r="30" fill="#fff3b0" opacity=".35"/><circle cx="${x}" cy="${t + 6}" r="18" fill="#fff3b0" opacity=".45"/><ellipse cx="${x}" cy="${gy}" rx="34" ry="7" fill="#fff3b0" opacity=".5"/>
-    <path d="M${x} ${gy}V${t + 12}" stroke="#4b7d8f" stroke-width="5" stroke-linecap="round"/><path d="M${x - 10} ${t + 12}h20l-4-14h-12z" fill="#ffe36b" stroke="#4b7d8f" stroke-width="2.4" stroke-linejoin="round"/><path d="M${x - 7} ${t - 2}h14l-7-6z" fill="#4b7d8f"/>`;
+// dãy nhà về đêm, cửa sổ sáng ngẫu nhiên; trả về svg và vị trí các ô sáng (để vẽ bóng phản chiếu)
+function mjTown(c, gy, o = {}){
+  const r = c.r, cols = o.cols || ['#0e1834', '#121e40', '#0b142d', '#15214a'], lights = []; let s = '', x = o.x0 ?? -12;
+  while (x < (o.x1 ?? 412)) {
+    const w = 30 + r() * 42, hh = o.h[0] + r() * (o.h[1] - o.h[0]), col = mjPick(r, cols), roof = r() < .55, top = gy - hh;
+    s += `<path d="M${_r1(x)} ${gy}V${_r1(top)}${roof ? `L${_r1(x + w / 2)} ${_r1(top - w * .38)}L${_r1(x + w)} ${_r1(top)}` : `H${_r1(x + w)}`}V${gy}Z" fill="${col}"/>`;
+    if (!roof && r() < .5) s += `<rect x="${_r1(x + w * .7)}" y="${_r1(top - 10)}" width="5" height="10" fill="${col}"/>`;
+    for (let wy = top + 8; wy < gy - 12; wy += 15) for (let wx = x + 6; wx < x + w - 9; wx += 12) {
+      if (r() < (o.lit ?? .3)) { s += mjGlow(c, wx + 2.5, wy + 3.5, 11, 'w', .55) + `<rect x="${_r1(wx)}" y="${_r1(wy)}" width="5" height="7" rx=".6" fill="${r() < .3 ? '#ffe9b0' : '#ffcb6b'}"/>`; lights.push([wx + 2.5, wy + 3.5, .8]); }
+      else if (r() < .35) s += `<rect x="${_r1(wx)}" y="${_r1(wy)}" width="5" height="7" rx=".6" fill="#1d2c55"/>`;
+    }
+    x += w - 1 + r() * 3;
+  }
+  return { svg:s, lights };
 }
-const MJ_UMB = 'M-30 0Q-30-26 0-28Q30-26 30 0Q22.5-6 15 0Q7.5-6 0 0Q-7.5-6-15 0Q-22.5-6-30 0Z';
-function mjUmbrella(x, y, s = 1, rot = 0, handle = true){
-  return `<g transform="translate(${_r1(x)} ${_r1(y)}) rotate(${rot}) scale(${s})"><path d="${MJ_UMB}" fill="${MJC.umb}" stroke="${MJC.umbD}" stroke-width="1.8" stroke-linejoin="round"/><path d="M0-28Q-10-14-15 0M0-28Q10-14 15 0" fill="none" stroke="${MJC.umbD}" stroke-width="1.2" opacity=".7"/><path d="M-22-14Q-20-22-10-25" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity=".7" fill="none"/>${handle ? `<path d="M0 0V22q0 6-6 6" fill="none" stroke="#8a5a3c" stroke-width="2.4" stroke-linecap="round"/>` : ''}</g>`;
+function mjLampN(c, x, gy, h = 120, o = {}){
+  const top = gy - h; let s = '';
+  if (o.cone) s += `<path d="M${x - 5} ${top + 8}L${x + 5} ${top + 8}L${x + o.cone} ${gy}L${x - o.cone} ${gy}Z" fill="${mjLin(c, [[0, '#ffd98a', .38], [1, '#ffd98a', 0]])}"/>` + `<ellipse cx="${x}" cy="${gy}" rx="${o.cone * 1.1}" ry="9" fill="${mjRad(c, [[0, '#ffd98a', .45], [1, '#ffd98a', 0]])}"/>`;
+  s += mjGlow(c, x, top + 2, o.R || 80, 'w', .9);
+  s += `<path d="M${x - 2.2} ${gy}L${x - 1.4} ${top + 10}H${x + 1.4}L${x + 2.2} ${gy}Z" fill="#0a1128"/><path d="M${x - 4.5} ${gy}h9l-1.5-6h-6z" fill="#0a1128"/><path d="M${x + .6} ${gy - 6}V${top + 12}" stroke="#34497e" stroke-width=".8"/>
+    <path d="M${x - 6.5} ${top + 9}L${x - 5} ${top - 4}H${x + 5}L${x + 6.5} ${top + 9}Z" fill="#fff0c0"/><path d="M${x} ${top - 4}V${top + 9}" stroke="#e8b45a" stroke-width=".7"/>
+    <path d="M${x - 9} ${top - 3.5}L${x} ${top - 11}L${x + 9} ${top - 3.5}Z" fill="#0a1128"/><rect x="${x - 7.5}" y="${top + 8.5}" width="15" height="2.6" rx="1" fill="#0a1128"/>`;
+  return s + mjGlow(c, x, top + 2, 16, 'f', .9);
 }
-function mjRain(r, W, H, n = 26, cls = 'mj-rain'){
-  let s = '';
-  for (let i = 0; i < n; i++) { const x = r() * (W + 30) - 15, y0 = r() * 60, l = 6 + r() * 6; for (let y = y0 - 60; y < H; y += 60) s += `M${_r1(x)} ${_r1(y)}l-1.6 ${_r1(l)}`; }
-  return `<g class="${cls}"><path d="${s}" stroke="#fff" stroke-width="3.4" stroke-linecap="round" opacity=".55"/><path d="${s}" stroke="#7fa4e8" stroke-width="1.6" stroke-linecap="round"/></g>`;
+// đèn lồng nhỏ cầm tay, móc ở (lx,ly)
+function mjLantern(c, lx, ly){
+  return mjGlow(c, lx, ly + 7, 34, 'w', .95) + `<path d="M${lx} ${ly}v3" stroke="#2a2440" stroke-width=".8"/><path d="M${lx - 3.4} ${ly + 3}h6.8l-.8 9h-5.2z" fill="#ffe7a6"/><path d="M${lx - 4} ${ly + 2.6}h8M${lx - 3.4} ${ly + 12.2}h6.8" stroke="#2a2440" stroke-width="1.1"/>` + mjGlow(c, lx, ly + 7.5, 7, 'f', 1);
+}
+// ô trong suốt (kiểu ô nilon), x,y là tâm mép dưới tán
+function mjUmbC(c, x, y, R = 26, rot = 0, o = {}){
+  const h = R * 1.02, dome = `M${-R} 0C${-R} ${-h * .72} ${-R * .56} ${-h} 0 ${-h}C${R * .56} ${-h} ${R} ${-h * .72} ${R} 0`;
+  let rim = `M${-R} 0`; for (let i = 0; i < 8; i++) rim += `Q${_r1(-R + R * (i * .25 + .125))} ${_r1(-R * .14)} ${_r1(-R + R * (i + 1) * .25)} 0`;
+  let s = `<path d="${dome}Z" fill="${o.col || '#dfe9ff'}" opacity="${o.fill ?? .17}"/><path d="${dome}" fill="none" stroke="#eef4ff" stroke-width="1" opacity=".8"/><path d="${rim}" fill="none" stroke="#eef4ff" stroke-width=".8" opacity=".7"/>`;
+  s += `<path d="M0 ${-h}C${-R * .3} ${-h * .8} ${-R * .48} ${-h * .4} ${-R * .5} 0M0 ${-h}C${R * .3} ${-h * .8} ${R * .48} ${-h * .4} ${R * .5} 0M0 ${-h}C${-R * .7} ${-h * .9} ${-R * .95} ${-h * .4} ${-R} 0M0 ${-h}C${R * .7} ${-h * .9} ${R * .95} ${-h * .4} ${R} 0" fill="none" stroke="#eef4ff" stroke-width=".6" opacity=".45"/>`;
+  if (o.bent) s += `<path d="M${R * .5} 0l${R * .1} ${-R * .2}l${R * .12} ${R * .16}" fill="none" stroke="#eef4ff" stroke-width=".9" opacity=".7"/>`;
+  if (o.lights) for (let i = 0; i <= 16; i++) { const a = Math.PI * (1 - i / 16), px = Math.cos(a) * R * .98, py = -Math.sin(a) * h * .98; s += mjGlow(c, px, py, 5, 'f', .7) + `<circle cx="${_r1(px)}" cy="${_r1(py)}" r=".9" fill="#fff6c8"/>`; }
+  if (o.stars) for (let i = 0; i < o.stars; i++) { const a = Math.PI * (.12 + c.r() * .76), rr = .2 + c.r() * .7, px = Math.cos(a) * R * rr, py = -Math.sin(a) * h * rr * .95, z = 1.6 + c.r() * 2.6; s += mjGlow(c, px, py, z * 3.5, 'f', .8) + mjSpark(px, py, z, '#ffe58f'); }
+  if (o.shaft !== 0) s += `<path d="M0 ${-h}V${R * (o.shaft ?? .9)}" stroke="#e8eefc" stroke-width="1.1"/>${o.handle === false ? '' : `<path d="M0 ${R * (o.shaft ?? .9)}q0 3.2-3 3.2q-2.2 0-2.4-2" fill="none" stroke="#e8eefc" stroke-width="1.6" stroke-linecap="round"/>`}`;
+  return `<g transform="translate(${_r1(x)} ${_r1(y)}) rotate(${rot})">${s}<circle cy="${_r1(-h - 1)}" r="1.2" fill="#e8eefc"/></g>`;
+}
+function mjRain(c, n = 70, cls = 'mj-rain', box = [0, -250, 400, 250]){
+  let d = '', e = ''; const r = c.r;
+  for (let i = 0; i < n; i++) { const x = box[0] + r() * (box[2] - box[0]), y = box[1] + r() * (box[3] - box[1]), l = 7 + r() * 9, seg = `M${_r1(x)} ${_r1(y)}l-${_r1(l * .28)} ${_r1(l)}`; if (r() < .7) d += seg; else e += seg; }
+  // vẽ hai lần chồng nhau theo chiều dọc để mưa rơi liên tục khi chạy hiệu ứng
+  const one = `<path d="${d}" stroke="#b9cfff" stroke-width=".9" opacity=".4"/><path d="${e}" stroke="#e6eeff" stroke-width="1.2" opacity=".5"/>`;
+  return `<g class="${cls}" stroke-linecap="round" fill="none">${one}<g transform="translate(0 250)">${one}</g></g>`;
+}
+// cây thông tối nhiều tầng
+function mjPine(x, gy, h, col = '#0a1430', w = .42){
+  let d = `M${_r1(x - 1.2)} ${gy}V${_r1(gy - h * .2)}H${_r1(x + 1.2)}V${gy}Z`;
+  for (let i = 0; i < 5; i++) { const y0 = gy - h * .12 - i * h * .17, ww = h * w * (1 - i / 5.6); d += `M${_r1(x - ww / 2)} ${_r1(y0)}Q${_r1(x - ww * .2)} ${_r1(y0 - h * .1)} ${_r1(x)} ${_r1(y0 - h * .3)}Q${_r1(x + ww * .2)} ${_r1(y0 - h * .1)} ${_r1(x + ww / 2)} ${_r1(y0)}Q${_r1(x)} ${_r1(y0 - h * .04)} ${_r1(x - ww / 2)} ${_r1(y0)}Z`; }
+  return `<path d="${d}" fill="${col}"/>`;
+}
+// cụm lá tròn (bụi cây, tán cây) bằng nhiều nét sáp xoay quanh tâm
+function mjBush(c, x, y, rx, ry, cols, n = 60, o = {}){
+  return `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${cols[0]}"/>` + mjS(c, n, [x - rx, y - ry, x + rx, y + ry], cols.slice(1), { fa:(px, py) => Math.atan2(py - y, px - x) * 180 / Math.PI + 90, len:[4, 11], w:[1.6, 2.6], op:o.op ?? .8, jit:20, bend:.4, in:(px, py) => ((px - x) / rx) ** 2 + ((py - y) / ry) ** 2 < 1 });
 }
 
 /* ---------- nhân vật ---------- */
-// Moon: (0,0) = chân. pose: sit (mắt mở), happy (mắt cười), sleep (cuộn tròn ngủ)
-function mjCat(x, y, s = 1, pose = 'sit', o = {}){
-  const L = MJC.furLine, F = MJC.fur, O = MJC.orange, flip = o.flip ? -1 : 1;
-  const ears = (hx, hy) => `<path d="M${hx - 12} ${hy - 6}Q${hx - 13} ${hy - 19} ${hx - 9} ${hy - 20}Q${hx - 5} ${hy - 17} ${hx - 2} ${hy - 12}Z" fill="${O}" stroke="${MJC.orangeD}" stroke-width="1.3" stroke-linejoin="round"/><path d="M${hx + 12} ${hy - 6}Q${hx + 13} ${hy - 19} ${hx + 9} ${hy - 20}Q${hx + 5} ${hy - 17} ${hx + 2} ${hy - 12}Z" fill="${O}" stroke="${MJC.orangeD}" stroke-width="1.3" stroke-linejoin="round"/>
-    <path d="M${hx - 9} ${hy - 9}l1-7 3 4zM${hx + 9} ${hy - 9}l-1-7-3 4z" fill="#ffc2cf"/>`;
-  const head = (hx, hy, eyes) => `${ears(hx, hy)}<circle cx="${hx}" cy="${hy}" r="13.5" fill="${F}" stroke="${L}" stroke-width="1.5"/><path d="M${hx - 10} ${hy - 7}Q${hx} ${hy - 16} ${hx + 10} ${hy - 7}Q${hx + 5} ${hy - 9} ${hx} ${hy - 6.5}Q${hx - 5} ${hy - 9} ${hx - 10} ${hy - 7}Z" fill="${O}"/>
-    ${eyes === 'open' ? `<circle cx="${hx - 5}" cy="${hy + 1}" r="3" fill="${MJC.eye}"/><circle cx="${hx + 5}" cy="${hy + 1}" r="3" fill="${MJC.eye}"/><circle cx="${hx - 4}" cy="${hy - .2}" r="1.1" fill="#fff"/><circle cx="${hx + 6}" cy="${hy - .2}" r="1.1" fill="#fff"/>`
-      : `<path d="M${hx - 7.5} ${hy + 1.5}q2.5-3 5 0M${hx + 2.5} ${hy + 1.5}q2.5-3 5 0" stroke="${MJC.eye}" stroke-width="1.4" fill="none" stroke-linecap="round"/>`}
-    <ellipse cx="${hx - 8.5}" cy="${hy + 5}" rx="2.6" ry="1.6" fill="${MJC.cheek}" opacity=".85"/><ellipse cx="${hx + 8.5}" cy="${hy + 5}" rx="2.6" ry="1.6" fill="${MJC.cheek}" opacity=".85"/>
-    <path d="M${hx - 1.2} ${hy + 3.6}h2.4l-1.2 1.4z" fill="#f08aa0"/><path d="M${hx - 2.4} ${hy + 6}q1.2 1.3 2.4 0q1.2 1.3 2.4 0" stroke="#8a6a62" stroke-width=".9" fill="none" stroke-linecap="round"/>`;
-  let b;
-  if (pose === 'sleep') b = `<path d="M14-6q12 2 8 10q-10 4-26 1" fill="none" stroke="${L}" stroke-width="7.4" stroke-linecap="round"/><path d="M14-6q12 2 8 10q-10 4-26 1" fill="none" stroke="${F}" stroke-width="5" stroke-linecap="round"/>
-      <ellipse cx="2" cy="-9" rx="19" ry="10.5" fill="${F}" stroke="${L}" stroke-width="1.5"/><ellipse cx="9" cy="-14" rx="6" ry="3.4" fill="${O}" opacity=".9"/>${head(-11, -14, 'closed')}`;
-  else b = `<path d="M10-4q16 1 13-15" fill="none" stroke="${L}" stroke-width="7.4" stroke-linecap="round"/><path d="M10-4q16 1 13-15" fill="none" stroke="${F}" stroke-width="5" stroke-linecap="round"/><path d="M22-17q2-3 0-4" stroke="${O}" stroke-width="5" stroke-linecap="round" fill="none"/>
-      <ellipse cx="0" cy="-10" rx="12.5" ry="11" fill="${F}" stroke="${L}" stroke-width="1.5"/><ellipse cx="-5" cy="-1" rx="4" ry="2.6" fill="${F}" stroke="${L}" stroke-width="1.2"/><ellipse cx="5" cy="-1" rx="4" ry="2.6" fill="${F}" stroke="${L}" stroke-width="1.2"/>${head(0, -28, pose === 'happy' ? 'closed' : 'open')}`;
-  return `<g transform="translate(${_r1(x)} ${_r1(y)}) scale(${_r1(s * flip * 100) / 100} ${_r1(s * 100) / 100})">${o.heart ? '<path d="M14-52c-2-4-8-3-7 2c1 3 7 7 7 7s6-4 7-7c1-5-5-6-7-2z" fill="#ff7fa8" stroke="#fff" stroke-width="1"/>' : ''}${b}</g>`;
+const mjLn = (d, col, w, op = 1) => `<path d="${d}" stroke="${col}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="${op}"/>`;
+// Trân: tóc đen dài tới eo, váy trắng, nơ xanh nhạt. Toạ độ: chân ở (0,0), cao khoảng 60 khi s=1.
+// pose: back (đứng quay lưng), side (đi sang phải), kneel (quỳ, nhìn sang phải), sit (ngồi quay lưng), perch (ngồi thả chân, nhìn sang phải), reach (quay lưng, giơ tay)
+// o: flip, wind (tóc bay), arm (đường tay phải tuỳ chỉnh), hand [x,y], umb {x,y,R,rot,...}, lantern [x,y], cat (bế Moon), closed (nhắm mắt), shadow
+function mjGirl(c, x, y, s = 1, pose = 'back', o = {}){
+  const N = MJN, H = N.hair, HH = N.hairH, D = o.dress || N.dress, DS = o.dressS || N.dressS, K = N.skin, RB = N.ribbon, f = o.flip ? -1 : 1, ln = mjLn;
+  const shoe = (sx, sy) => `<ellipse cx="${sx}" cy="${sy}" rx="2.1" ry="1.2" fill="#2a2a4c"/>`;
+  const hand = (hx, hy) => `<circle cx="${hx}" cy="${hy}" r="1.35" fill="${K}"/>`;
+  const bow = (bx, by) => `<path d="M${bx} ${by}l-3.6-2.3v4.6zM${bx} ${by}l3.6-2.3v4.6z" fill="${RB}"/><circle cx="${bx}" cy="${by}" r="1" fill="#cfe2ff"/>${ln(`M${bx - .5} ${by + .6}l-1.3 3.6M${bx + .5} ${by + .6}l1.3 3.6`, RB, .7)}`;
+  const skew = (cy, inner) => `<g transform="translate(0 ${cy}) skewX(${-(o.wind || 0)}) translate(0 ${-cy})">${inner}</g>`;
+  // đầu nhìn nghiêng sang phải, tâm (hx,hy)
+  const headSide = (hx, hy) => `<circle cx="${hx}" cy="${hy}" r="6.8" fill="${K}"/>
+    <path d="M${hx - 6.8} ${hy + 1.5}C${hx - 7.6} ${hy - 6.6} ${hx - .6} ${hy - 8.6} ${hx + 3.4} ${hy - 7.4}C${hx + 6.4} ${hy - 6.4} ${hx + 7.6} ${hy - 3.6} ${hx + 7.1} ${hy - .3}Q${hx + 5.8} ${hy - 2.8} ${hx + 3.8} ${hy - 2.6}Q${hx + 2.2} ${hy - .6} ${hx + .6} ${hy - 1.8}Q${hx - .4} ${hy + .7} ${hx - 2} ${hy + 1.4}C${hx - 2.8} ${hy + 3.4} ${hx - 4} ${hy + 5} ${hx - 5} ${hy + 5.8}Z" fill="${H}"/>
+    ${o.closed ? ln(`M${hx + 3.4} ${hy + .8}q.8.7 1.7 0`, N.eye, .7) : `<ellipse cx="${hx + 4.2}" cy="${hy + .6}" rx=".75" ry="1.05" fill="${N.eye}"/><circle cx="${hx + 4.4}" cy="${hy + .2}" r=".28" fill="#fff"/>`}
+    <ellipse cx="${hx + 4.3}" cy="${hy + 3.2}" rx="1.5" ry=".9" fill="${N.cheek}" opacity=".75"/>${ln(`M${hx - 2} ${hy - 6.6}C${hx - 5} ${hy - 4.6} ${hx - 6} ${hy - 1} ${hx - 6} ${hy + 3}`, HH, .7, .9)}${bow(hx - 4.6, hy - 4.6)}`;
+  let g = '';
+  if (o.shadow !== false && pose !== 'perch') g += `<ellipse cx="0" cy="0" rx="${pose === 'sit' || pose === 'kneel' ? 17 : 12}" ry="2.6" fill="#03060f" opacity=".45"/>`;
+  if (pose === 'back' || pose === 'reach') {
+    const hair = skew(-51, `<path d="M-7.2 -52C-8.8 -44 -9.6 -36 -8.6 -28C-8.2 -24.5 -6.6 -22.4 -4 -21.8Q0 -21 4 -21.8C6.6 -22.4 8.2 -24.5 8.6 -28C9.6 -36 8.8 -44 7.2 -52Z" fill="${H}"/>
+      ${ln('M-2.6 -56C-4.6 -46 -4.8 -36 -4.2 -25.5M2 -56.5C3.6 -46 3.9 -36 3.3 -24.6M-.2 -57C-.4 -46 .3 -36 -.2 -22.6', HH, .7, .9)}${ln('M5.8 -54C7.6 -46 8.3 -36 7.6 -28', '#6b70ad', .8, .6)}${ln('M-6.6 -24.5l-1.2 2.6M6.4 -24.5l1.4 2.4', H, 1.2)}`);
+    g += ln('M-3 -13L-3.2 -1.2M3 -13L3.2 -1.2', K, 2.4) + shoe(-3.3, -.7) + shoe(3.3, -.7);
+    g += ln('M-6 -42.5Q-9.2 -36 -10 -28.6', K, 2.3) + hand(-10, -28.2);
+    g += pose === 'reach' ? ln('M6 -43Q10.4 -50 13.6 -60', K, 2.3) + hand(13.8, -60.6) : ln(o.arm || 'M6 -42.5Q9.2 -36 10 -28.6', K, 2.3) + hand(...(o.hand || [10, -28.2]));
+    if (o.closedUmb) g += `<path d="M10.4 -28L12.4 -1" stroke="#cfdcff" stroke-width="1"/><path d="M10.8 -24.5L9.4 -9L12 -3.6L13.4 -22Z" fill="#9fb4e6" opacity=".85"/>`;
+    g += `<path d="M-5.8 -44C-7 -38 -8.5 -31 -10.5 -24C-12 -19 -13.5 -15 -14 -12.5Q-7 -10.5 0 -11Q7 -10.5 14 -12.5C13.5 -15 12 -19 10.5 -24C8.5 -31 7 -38 5.8 -44Q0 -46.2 -5.8 -44Z" fill="${D}"/>
+      <path d="M3 -45C6 -38 9 -26 14 -12.5Q11 -11.4 7.5 -11C8 -22 6 -36 3 -45Z" fill="${DS}" opacity=".75"/>${ln('M-3 -30Q-4 -20 -5.2 -11.6M3.5 -28Q4.5 -20 5 -11.6', DS, .6, .7)}${ln('M-14 -12.5Q-10.5 -10 -7 -11Q-3.5 -9.5 0 -10.8Q3.5 -9.5 7 -11Q10.5 -10 14 -12.5', DS, .8)}
+      <ellipse cx="-6.2" cy="-42" rx="2.9" ry="2.4" fill="${D}"/><ellipse cx="6.2" cy="-42" rx="2.9" ry="2.4" fill="${D}"/><circle cx="0" cy="-51" r="7.2" fill="${H}"/>${hair}${bow(0, -53.6)}`;
+  } else if (pose === 'side') {
+    g += skew(-51, `<path d="M-1.5 -57C-6.5 -55 -8.2 -48 -8.2 -40C-8.4 -33 -9.6 -27.5 -11.5 -23.5Q-8 -24 -5.6 -27C-4 -32 -3 -40 -1.5 -46Z" fill="${H}"/>`);
+    g += ln(o.legs || 'M-.8 -12L-3.6 -1.2M1.2 -12L4.2 -1.4', K, 2.4) + shoe(-3.8, -.7) + shoe(4.6, -.8);
+    g += `<path d="M-3.6 -44.5C-4.6 -36 -6.6 -24 -10.5 -12.5Q-.5 -9.8 9.6 -12C7 -24 5.4 -36 4.4 -44.5Q.4 -46.2 -3.6 -44.5Z" fill="${D}"/><path d="M-3.6 -44.5C-4.6 -36 -6.6 -24 -10.5 -12.5Q-8 -11.5 -5.5 -11.2C-3.5 -24 -2.5 -36 -1.6 -45.4Z" fill="${DS}" opacity=".7"/>${ln('M-10.5 -12.5Q-6 -10.2 -1.5 -11.2Q3 -9.8 9.6 -12', DS, .8)}`;
+    g += ln('M.8 -45v-3', K, 2.4) + headSide(1.2, -51);
+    if (o.cat) g += (o.arm ? ln(o.arm, K, 2.3) : '') + mjCat(c, 6.5, -27, .62, 'held') + ln('M1.4 -42Q3 -33 9 -30.6', K, 2.3) + hand(9.4, -30.4);
+    else g += ln(o.arm || 'M1.6 -42.4Q2.8 -35 4.4 -29', K, 2.3) + hand(...(o.hand || [4.5, -28.6]));
+    g += `<ellipse cx="1.2" cy="-42.2" rx="2.7" ry="2.3" fill="${D}"/>`;
+  } else if (pose === 'kneel') {
+    // ngồi thụp xuống, lưng hơi cúi về phía trước
+    g += skew(-37, `<path d="M3 -43.6C-2.6 -42.6 -5 -36.6 -5.6 -29C-6.2 -23 -7.4 -18 -8.8 -14.6Q-5.4 -15.2 -3.6 -18.4C-2.2 -24.4 -.8 -32 1.8 -37.6Z" fill="${H}"/>`);
+    g += `<ellipse cx="-9.6" cy="-.9" rx="2.4" ry="1.3" fill="#2a2a4c"/><path d="M-11.4 0C-12.4 -8 -8.4 -15.4 0 -16.2C8.4 -16.4 13.4 -9.4 12.4 0Q0 1.6 -11.4 0Z" fill="${D}"/><path d="M-11.4 0C-12.4 -8 -8.4 -15.4 -2 -16.2C-5.6 -11 -6.4 -5 -5.4 .6Q-8.6 .4 -11.4 0Z" fill="${DS}" opacity=".6"/>${ln('M-11.4 0Q-6 1.6 0 1Q6 1.6 12.4 0', DS, .8)}`;
+    g += `<path d="M-5.4 -12.4C-5.6 -20 -3.2 -27.4 1.2 -31.4Q5.2 -32.6 7.4 -29.4C7.6 -22.6 6.6 -16.6 6.4 -12.4Z" fill="${D}"/><path d="M-5.4 -12.4C-5.6 -20 -3.2 -27.4 1.2 -31.4Q2 -31.8 3 -31.8C-.4 -26 -1.6 -19 -1.4 -12.4Z" fill="${DS}" opacity=".65"/>`;
+    g += ln('M5 -32.6l1.4-2.6', K, 2.4) + headSide(6.6, -38.4);
+    if (o.cat) g += mjCat(c, 11.6, -16, 1, 'held', { eyes:o.eyes }) + ln('M4.6 -29.4Q15.6 -25 15.4 -14.6', K, 2.4) + hand(15, -14.2);
+    else g += ln(o.arm || 'M4.6 -29.2Q9 -23 13 -19.6', K, 2.3) + hand(...(o.hand || [13.2, -19.4]));
+    g += ln(o.arm2 || '', K, 2.3) + `<ellipse cx="4.4" cy="-29.4" rx="2.7" ry="2.3" fill="${D}"/>`;
+  } else if (pose === 'sit') {
+    g += `<path d="M-15.5 0C-15 -6 -11 -10.5 -8 -13C-7 -20 -6.4 -26 -5.6 -30.5Q0 -32.6 5.6 -30.5C6.4 -26 7 -20 8 -13C11 -10.5 15 -6 15.5 0Q0 2 -15.5 0Z" fill="${D}"/><path d="M3 -31.5C6 -26 7.4 -18 8 -13C11 -10.5 15 -6 15.5 0Q11 .8 7 1C8.4 -10 6 -22 3 -31.5Z" fill="${DS}" opacity=".7"/>`;
+    g += ln('M-5.6 -29Q-9 -22 -9.6 -15.6M5.6 -29Q9 -22 9.6 -15.6', K, 2.2) + hand(-9.6, -15.2) + hand(9.6, -15.2) + `<ellipse cx="-5.8" cy="-29" rx="2.8" ry="2.3" fill="${D}"/><ellipse cx="5.8" cy="-29" rx="2.8" ry="2.3" fill="${D}"/>`;
+    g += `<circle cx="0" cy="-37.6" r="7.2" fill="${H}"/>` + skew(-37.6, `<path d="M-7.2 -38.6C-8.8 -30 -9.4 -20 -8.4 -9C-6 -7.6 -3 -7 0 -7.2C3 -7 6 -7.6 8.4 -9C9.4 -20 8.8 -30 7.2 -38.6Z" fill="${H}"/>${ln('M-2.6 -43C-4.4 -32 -4.6 -20 -4 -9M2 -43.4C3.6 -32 3.8 -20 3.2 -8.4M-.2 -44C-.4 -32 .2 -20 -.2 -7.6', HH, .7, .9)}${ln('M5.8 -41C7.6 -32 8.2 -20 7.6 -10', '#6b70ad', .8, .6)}`) + bow(0, -40.2);
+  } else if (pose === 'perch') {
+    g += `<path d="M-1.6 -39C-6.6 -37 -8.2 -30 -8.4 -22C-8.6 -14 -9.6 -7 -11 -2Q-7.6 -3 -5.6 -6.6C-4.6 -13 -3.6 -22 -2 -29Z" fill="${H}"/>`;
+    if (o.legs !== false) g += ln('M7.4 1.4L8.6 12.6M4.6 1.6L5.2 12.8', K, 2.3) + shoe(9, 13) + shoe(5.6, 13.2);
+    g += `<path d="M-7 1C-7 -4 -4 -6.4 0 -6.4L8 -5.6C10.6 -4.6 11.2 -1.4 10.2 1.8Q2 3.2 -7 1Z" fill="${D}"/><path d="M-3.6 -27C-4.4 -20 -5 -12 -5.4 -5L4 -5C3.8 -12 3.4 -20 3 -27Q-.3 -28.6 -3.6 -27Z" fill="${D}"/><path d="M-3.6 -27C-4.4 -20 -5 -12 -5.4 -5L-2 -5C-1.6 -12 -1.2 -20 -.8 -27.8Z" fill="${DS}" opacity=".65"/>`;
+    g += ln('M.2 -29v-3', K, 2.4) + headSide(.6, -35);
+    g += ln(o.arm || 'M.6 -25Q2.4 -17 6 -11.6', K, 2.3) + hand(...(o.hand || [6.2, -11.2]));
+    g += `<ellipse cx=".4" cy="-25.6" rx="2.6" ry="2.2" fill="${D}"/>`;
+  }
+  if (o.umb) { const u = o.umb, R = u.R || 24, a = (u.rot || 0) * Math.PI / 180, L = R * (u.shaft ?? .9), [ux, uy] = u.hand ? [u.hand[0] + L * Math.sin(a), u.hand[1] - L * Math.cos(a)] : [u.x, u.y]; g = mjUmbC(c, ux, uy, R, u.rot || 0, u) + g; if (u.hand) g += `<circle cx="${u.hand[0]}" cy="${u.hand[1]}" r="1.5" fill="${K}"/>`; }
+  if (o.lantern) g += mjLantern(c, ...o.lantern);
+  return `<g transform="translate(${_r1(x)} ${_r1(y)}) scale(${_r1(s * f * 100) / 100} ${_r1(s * 100) / 100})">${g}</g>`;
 }
-// cô bé (Trân): tóc đen ngắn, váy trắng, má hồng, mắt cười. pose: stand, umb (che ô), open (dang tay), hug (ôm Moon), wave
-function mjGirl(x, y, s = 1, pose = 'stand', o = {}){
-  const S = MJC.skin, H = MJC.hair, arm = d => `<path d="${d}" stroke="${S}" stroke-width="3.6" stroke-linecap="round" fill="none"/>`;
-  const arms = { stand:arm('M-7-19l-4 10') + arm('M7-19l4 10'), umb:arm('M-7-19l-4 10') + arm('M7-19l6-8'), open:arm('M-7-19l-12-6') + arm('M7-19l12-6'), hug:arm('M-7-20q-3 9 5 10') + arm('M7-20q3 9-5 10'), wave:arm('M-7-19l-4 10') + arm('M7-19l8-11') }[pose] || '';
-  s *= 1.2;
-  return `<g transform="translate(${_r1(x)} ${_r1(y)}) scale(${s})">${pose === 'umb' ? mjUmbrella(13, -50, .8, 6, false) + '<path d="M13-50V-27" stroke="#8a5a3c" stroke-width="2"/>' : ''}
-    <path d="M-4-3v4M4-3v4" stroke="${S}" stroke-width="3.6" stroke-linecap="round"/>${o.cat ? '' : arms}
-    <path d="M-7-22Q0-25 7-22L11-4Q0 0-11-4Z" fill="${MJC.white}" stroke="#c3cbe2" stroke-width="1.4" stroke-linejoin="round"/>
-    ${o.cat ? mjCat(0, -3, .46, 'happy') + arms : ''}
-    <path d="M-11-31Q-13-47 0-47Q13-47 11-31L12-24Q9-26 8-29L-8-29Q-9-26-12-24Z" fill="${H}"/><circle cx="0" cy="-33" r="10" fill="${S}"/><path d="M-10-35Q-9-45 0-45Q9-45 10-35Q4-40-1-37Q-5-40-10-35Z" fill="${H}"/>
-    <path d="M-6-32q2 1.8 4 0M2-32q2 1.8 4 0" stroke="${H}" stroke-width="1.2" fill="none" stroke-linecap="round"/><ellipse cx="-6.5" cy="-28.5" rx="2.4" ry="1.5" fill="${MJC.cheek}"/><ellipse cx="6.5" cy="-28.5" rx="2.4" ry="1.5" fill="${MJC.cheek}"/><path d="M-1.6-27.6q1.6 1.4 3.2 0" stroke="#b05a5a" stroke-width="1" fill="none" stroke-linecap="round"/></g>`;
+// Moon: mèo trắng, đỉnh đầu và hai tai màu cam. Chân ở (0,0), ngồi cao khoảng 22 khi s=1.
+// pose: sitB (ngồi quay lưng), sitF (ngồi nhìn thẳng, mắt cười; eyes:'open' để mở mắt), walk (đi sang phải), curl (cuộn tròn ngủ), held (đầu và hai chân trước, để bế)
+function mjCat(c, x, y, s = 1, pose = 'sitB', o = {}){
+  const N = MJN, F = N.fur, S = N.furS, L = N.furL, O = N.orange, f = o.flip ? -1 : 1, ln = mjLn;
+  const earsB = (hx, hy, r) => `<path d="M${_r1(hx - r * .92)} ${_r1(hy - r * .2)}L${_r1(hx - r * .86)} ${_r1(hy - r * 1.36)}L${_r1(hx - r * .2)} ${_r1(hy - r * .78)}Z" fill="${O}"/><path d="M${_r1(hx + r * .92)} ${_r1(hy - r * .2)}L${_r1(hx + r * .86)} ${_r1(hy - r * 1.36)}L${_r1(hx + r * .2)} ${_r1(hy - r * .78)}Z" fill="${O}"/>`;
+  const faceF = (hx, hy, r, eyes) => `${earsB(hx, hy, r)}<path d="M${hx - r * .62} ${hy - r * .55}L${hx - r * .76} ${hy - r * 1.12}L${hx - r * .34} ${hy - r * .74}Z" fill="${N.pink}"/><path d="M${hx + r * .62} ${hy - r * .55}L${hx + r * .76} ${hy - r * 1.12}L${hx + r * .34} ${hy - r * .74}Z" fill="${N.pink}"/>
+    <ellipse cx="${hx}" cy="${hy}" rx="${r * 1.04}" ry="${r * .94}" fill="${F}" stroke="${L}" stroke-width=".45"/>
+    <path d="M${hx - r * .98} ${hy - r * .3}C${hx - r * .8} ${hy - r * 1.06} ${hx + r * .8} ${hy - r * 1.06} ${hx + r * .98} ${hy - r * .3}C${hx + r * .6} ${hy - r * .62} ${hx + r * .22} ${hy - r * .56} ${hx} ${hy - r * .36}C${hx - r * .22} ${hy - r * .56} ${hx - r * .6} ${hy - r * .62} ${hx - r * .98} ${hy - r * .3}Z" fill="${O}"/>
+    ${eyes === 'open' ? `<ellipse cx="${hx - r * .4}" cy="${hy + r * .06}" rx="${r * .15}" ry="${r * .19}" fill="${N.eye}"/><ellipse cx="${hx + r * .4}" cy="${hy + r * .06}" rx="${r * .15}" ry="${r * .19}" fill="${N.eye}"/><circle cx="${hx - r * .35}" cy="${hy - r * .02}" r="${r * .06}" fill="#fff"/><circle cx="${hx + r * .45}" cy="${hy - r * .02}" r="${r * .06}" fill="#fff"/>`
+      : ln(`M${hx - r * .58} ${hy + r * .1}q${r * .18} ${-r * .22} ${r * .36} 0M${hx + r * .22} ${hy + r * .1}q${r * .18} ${-r * .22} ${r * .36} 0`, N.eye, r * .11)}
+    <ellipse cx="${hx - r * .62}" cy="${hy + r * .38}" rx="${r * .18}" ry="${r * .11}" fill="${N.pink}" opacity=".75"/><ellipse cx="${hx + r * .62}" cy="${hy + r * .38}" rx="${r * .18}" ry="${r * .11}" fill="${N.pink}" opacity=".75"/>
+    <path d="M${hx - r * .1} ${hy + r * .27}h${r * .2}l${-r * .1} ${r * .11}z" fill="#ee8fa1"/>${ln(`M${hx - r * .18} ${hy + r * .45}q${r * .09} ${r * .08} ${r * .18} 0q${r * .09} ${r * .08} ${r * .18} 0`, '#9b7b80', r * .06)}`;
+  let g = '';
+  if (o.shadow !== false && pose !== 'held') g += `<ellipse cx="0" cy="0" rx="${pose === 'curl' ? 12 : 8.5}" ry="1.8" fill="#03060f" opacity=".4"/>`;
+  if (pose === 'sitB' || pose === 'sitF') {
+    const tail = o.tail || 'M4.5 -1.2Q11.5 -1 11.5 -6.6Q11.5 -10.4 9 -11';
+    g += ln(tail, L, 3.6) + ln(tail, F, 2.6);
+    g += `<path d="M-6.8 0C-7.8 -6 -6.4 -11 -3.2 -12.8Q0 -13.8 3.2 -12.8C6.4 -11 7.8 -6 6.8 0Q0 1 -6.8 0Z" fill="${F}" stroke="${L}" stroke-width=".45"/><path d="M2.4 -12.8C5.6 -11 7.6 -6 6.8 0Q5 .5 3.2 .6C4.6 -4.6 4.4 -9 2.4 -12.8Z" fill="${S}" opacity=".75"/>`;
+    if (pose === 'sitB') g += `${earsB(0, -16.4, 5.7)}<circle cx="0" cy="-16.4" r="5.7" fill="${F}" stroke="${L}" stroke-width=".45"/><path d="M-5.5 -17.6C-4.6 -22.6 4.6 -22.6 5.5 -17.6C3 -19.4 -3 -19.4 -5.5 -17.6Z" fill="${O}"/><path d="M2.2 -21.6C4.6 -20.6 5.8 -18 5.4 -15.4" stroke="${S}" stroke-width=".9" fill="none" opacity=".7"/>`;
+    else g += `<ellipse cx="-2.3" cy="-.9" rx="2.1" ry="1.3" fill="${F}" stroke="${L}" stroke-width=".45"/><ellipse cx="2.3" cy="-.9" rx="2.1" ry="1.3" fill="${F}" stroke="${L}" stroke-width=".45"/>${ln('M0 -11.6v2.4', S, .6, .7)}` + faceF(0, -16.8, 6.2, o.eyes);
+  } else if (pose === 'walk') {
+    const tail = 'M-7 -8.4Q-12.4 -10 -11.8 -16Q-11.4 -18.6 -9.6 -18.4', legs = 'M-5 -6L-6 -.6M-2.4 -6L-1.8 -.6M3 -6L2.4 -.6M5.6 -6L6.6 -.6';
+    g += ln(tail, L, 3.2) + ln(tail, F, 2.2) + ln(legs, L, 2.8) + ln(legs, F, 1.9);
+    g += `<ellipse cx="0" cy="-8.6" rx="8.2" ry="4.6" fill="${F}" stroke="${L}" stroke-width=".45"/><path d="M-6 -6.2Q0 -3.8 6 -6.2Q3 -4.6 0 -4.4Q-3 -4.6 -6 -6.2Z" fill="${S}" opacity=".7"/>`;
+    g += `<path d="M5 -14.6L5.6 -19.8L8.2 -16.4Z" fill="${O}"/><path d="M8.8 -16.8L11.4 -20.2L11.8 -15.2Z" fill="${O}"/><circle cx="8.4" cy="-12.6" r="4.6" fill="${F}" stroke="${L}" stroke-width=".45"/><path d="M4.1 -13.8C5 -17.8 10.8 -18.4 12.6 -14.4C10.2 -15.8 6.4 -15.6 4.1 -13.8Z" fill="${O}"/>
+      ${ln('M9.6 -12.6q.7-.8 1.4 0', N.eye, .55)}<circle cx="12.7" cy="-11.4" r=".55" fill="#ee8fa1"/><ellipse cx="10.4" cy="-10.6" rx=".9" ry=".55" fill="${N.pink}" opacity=".7"/>`;
+  } else if (pose === 'curl') {
+    g += `<ellipse cx="0" cy="-5" rx="10.4" ry="5.6" fill="${F}" stroke="${L}" stroke-width=".45"/><path d="M-2 -10.4C4 -11 9.6 -8.6 10.2 -4.6Q6 -7.6 -.6 -8.2Z" fill="${S}" opacity=".6"/>${ln('M9.6 -2Q3 2 -7.2 -.4', L, 3)}${ln('M9.6 -2Q3 2 -7.2 -.4', F, 2.1)}`;
+    g += `<path d="M-10.6 -7.4L-11.6 -12.2L-8.2 -10Z" fill="${O}"/><path d="M-6.6 -10.4L-4.4 -13.8L-3.4 -9.6Z" fill="${O}"/><ellipse cx="-6.6" cy="-6.6" rx="4.8" ry="4.2" fill="${F}" stroke="${L}" stroke-width=".45"/><path d="M-11 -8C-10 -11.2 -4.2 -12 -2.2 -8.6C-4.6 -9.6 -8.4 -9.6 -11 -8Z" fill="${O}"/>
+      ${ln('M-9.4 -6q.8.7 1.6 0M-6 -6q.8.7 1.6 0', N.eye, .5)}<ellipse cx="-9.8" cy="-4.4" rx=".8" ry=".5" fill="${N.pink}" opacity=".7"/>`;
+  } else if (pose === 'held') {
+    g += `<ellipse cx="0" cy="2" rx="6.4" ry="6" fill="${F}" stroke="${L}" stroke-width=".45"/><ellipse cx="-2.6" cy="5.6" rx="2" ry="1.4" fill="${F}" stroke="${L}" stroke-width=".45"/><ellipse cx="2.6" cy="5.6" rx="2" ry="1.4" fill="${F}" stroke="${L}" stroke-width=".45"/>` + faceF(0, -5.4, 6, o.eyes);
+  }
+  return `<g transform="translate(${_r1(x)} ${_r1(y)}) scale(${_r1(s * f * 100) / 100} ${_r1(s * 100) / 100})">${g}</g>`;
 }
-function mjBunny(x, y, s = 1){ return `<g transform="translate(${x} ${y}) scale(${s})"><ellipse cx="-3" cy="-24" rx="2.6" ry="7" fill="#fff" stroke="${MJC.furLine}" stroke-width="1.2"/><ellipse cx="3" cy="-24" rx="2.6" ry="7" fill="#fff" stroke="${MJC.furLine}" stroke-width="1.2"/><ellipse cx="0" cy="-7" rx="8" ry="7.5" fill="#fff" stroke="${MJC.furLine}" stroke-width="1.2"/><circle cx="0" cy="-16" r="6.4" fill="#fff" stroke="${MJC.furLine}" stroke-width="1.2"/><circle cx="-2.2" cy="-16" r="1" fill="${MJC.eye}"/><circle cx="2.2" cy="-16" r="1" fill="${MJC.eye}"/><ellipse cx="-4" cy="-13.5" rx="1.4" ry=".9" fill="${MJC.cheek}"/><ellipse cx="4" cy="-13.5" rx="1.4" ry=".9" fill="${MJC.cheek}"/></g>`; }
-function mjPuppy(x, y, s = 1){ const c = '#f3c991', d = '#c98d4c'; return `<g transform="translate(${x} ${y}) scale(${s})"><path d="M10-8q8-4 6-12" stroke="${d}" stroke-width="4" stroke-linecap="round" fill="none"/><ellipse cx="0" cy="-8" rx="11" ry="8.5" fill="${c}" stroke="${d}" stroke-width="1.3"/><circle cx="-6" cy="-20" r="9" fill="${c}" stroke="${d}" stroke-width="1.3"/><ellipse cx="-14" cy="-19" rx="3.4" ry="6" fill="${d}"/><ellipse cx="2" cy="-19" rx="3.4" ry="6" fill="${d}"/><circle cx="-9" cy="-21" r="1.4" fill="${MJC.eye}"/><circle cx="-3" cy="-21" r="1.4" fill="${MJC.eye}"/><ellipse cx="-6" cy="-17" rx="2" ry="1.4" fill="${MJC.eye}"/><ellipse cx="-11.5" cy="-16" rx="1.8" ry="1.1" fill="${MJC.cheek}"/><ellipse cx="-.5" cy="-16" rx="1.8" ry="1.1" fill="${MJC.cheek}"/></g>`; }
+// cún nhỏ màu kem (người lạ ở trạm 160)
+function mjPup(c, x, y, s = 1){
+  const B = '#e9d2b0', D = '#b98d62', L = '#8f6d52';
+  return `<g transform="translate(${x} ${y}) scale(${s})"><ellipse cy="0" rx="9" ry="1.8" fill="#03060f" opacity=".4"/><path d="M-6.6 0C-7.6 -6 -6 -10.6 -3 -12Q0 -13 3 -12C6 -10.6 7.6 -6 6.6 0Z" fill="${B}" stroke="${L}" stroke-width=".45"/>
+    <circle cy="-16" r="6" fill="${B}" stroke="${L}" stroke-width=".45"/><path d="M-5.4 -20Q-9.4 -18 -8 -12.4Q-5.6 -14 -4.6 -17Z" fill="${D}"/><path d="M5.4 -20Q9.4 -18 8 -12.4Q5.6 -14 4.6 -17Z" fill="${D}"/>
+    <path d="M-3.4 -16.4q1-1.1 2 0M1.4 -16.4q1-1.1 2 0" stroke="${MJN.eye}" stroke-width=".7" fill="none" stroke-linecap="round"/><ellipse cy="-13.6" rx="1.3" ry=".9" fill="#4a3434"/><ellipse cx="-4" cy="-13.4" rx="1.1" ry=".6" fill="${MJN.pink}" opacity=".7"/><ellipse cx="4" cy="-13.4" rx="1.1" ry=".6" fill="${MJN.pink}" opacity=".7"/>
+    <ellipse cx="-2.4" cy="-.8" rx="2" ry="1.2" fill="${B}" stroke="${L}" stroke-width=".45"/><ellipse cx="2.4" cy="-.8" rx="2" ry="1.2" fill="${B}" stroke="${L}" stroke-width=".45"/></g>`;
+}
+// dấu chân người và dấu chân mèo dọc theo một đường (mảng điểm)
+function mjPrints(pts, kind = 'foot', col = '#0a1a3d', op = .7, sz = 1){
+  let s = '';
+  for (let i = 1; i < pts.length; i++) {
+    const [x0, y0] = pts[i - 1], [x1, y1] = pts[i], a = Math.atan2(y1 - y0, x1 - x0) * 180 / Math.PI, side = i % 2 ? 1 : -1, nx = -(y1 - y0), ny = x1 - x0, L = Math.hypot(nx, ny) || 1, off = (kind === 'foot' ? 2.6 : 1.6) * sz * side;
+    const px = x1 + nx / L * off, py = y1 + ny / L * off;
+    s += kind === 'foot' ? `<ellipse cx="${_r1(px)}" cy="${_r1(py)}" rx="${_r1(2.4 * sz)}" ry="${_r1(1.1 * sz)}" transform="rotate(${_r1(a)} ${_r1(px)} ${_r1(py)})"/>`
+      : `<g transform="translate(${_r1(px)} ${_r1(py)}) rotate(${_r1(a + 90)}) scale(${sz})"><ellipse cy="1" rx="1.3" ry="1.1"/><circle cx="-1.4" cy="-1" r=".55"/><circle cx="0" cy="-1.6" r=".55"/><circle cx="1.4" cy="-1" r=".55"/></g>`;
+  }
+  return `<g fill="${col}" opacity="${op}">${s}</g>`;
+}
+const mjCurve = (p, n) => Array.from({ length:n + 1 }, (_, i) => { const t = i / n, u = 1 - t; return [0, 1].map(k => u * u * u * p[0][k] + 3 * u * u * t * p[1][k] + 3 * u * t * t * p[2][k] + t * t * t * p[3][k]); });
+const mjPoly = P => 'M' + P.map(p => p.map(_r1).join(' ')).join('L');
+// dây leo có lá dọc theo đường cong
+function mjVine(P, col = '#1e4a3e'){
+  let s = `<path d="${mjPoly(P)}" stroke="${col}" stroke-width="2" fill="none"/>`;
+  P.forEach(([x, y], i) => { if (i % 2) { const lx = x + (i % 4 ? 5 : -5); s += `<ellipse cx="${_r1(lx)}" cy="${_r1(y)}" rx="4.6" ry="2.4" fill="${i % 3 ? '#245a49' : '#2f6e58'}" transform="rotate(${i % 4 ? 30 : -30} ${_r1(lx)} ${_r1(y)})"/>`; } });
+  return s;
+}
+const mjMini = (x, y, col, z = 1) => `<g transform="translate(${_r1(x)} ${_r1(y)}) scale(${z})">${[0, 72, 144, 216, 288].map(a => `<circle cx="${_r1(Math.cos(a * Math.PI / 180) * 1.7)}" cy="${_r1(Math.sin(a * Math.PI / 180) * 1.7)}" r="1.3" fill="${col}"/>`).join('')}<circle r=".8" fill="#ffe08a"/></g>`;
+const mjMirror = (y, inner, op = .25) => `<g opacity="${op}" transform="translate(0 ${y * 2}) scale(1 -1)">${inner}</g>`;
 
-/* ---------- khung cảnh hay dùng ---------- */
-const mjMeadow = (r, k, sky = 'dusk', gy = 160, o = {}) => `${mjSky(r, k, sky)}${o.stars !== false ? mjStars(r, o.stars || 16, [0, 0, 400, gy - 30]) : ''}${o.moon ? mjMoon(k, ...o.moon) : ''}
-  ${mjHill(r, `M0 ${gy}Q120 ${gy - 22} 230 ${gy - 6}T400 ${gy - 10}V250H0z`, [0, gy - 20, 400, 250], '#6cc94f', 120)}${o.flowers !== false ? mjField(r, o.flowers || 26, [0, gy - 4, 400, 262], [.55, 2.1]) : ''}`;
-function mjWindowRoom(r, k, o = {}){
-  const wx = o.wx ?? 210, wy = o.wy ?? 26, ww = o.ww ?? 150, wh = o.wh ?? 120;
-  return `${mjSky(r, k, 'room')}<rect x="${wx}" y="${wy}" width="${ww}" height="${wh}" rx="14" fill="url(#${k}night)"/>${mjStars(r, 8, [wx + 8, wy + 8, wx + ww - 8, wy + wh * .7])}${mjMoon(k, wx + ww * .66, wy + wh * .36, o.mr || 17, o.mf ?? 1)}
-    ${o.flowers ? mjField(r, 7, [wx + 6, wy + wh - 26, wx + ww - 6, wy + wh - 10], [.5, .7]) : ''}<rect x="${wx}" y="${wy}" width="${ww}" height="${wh}" rx="14" fill="none" stroke="#c48c56" stroke-width="7"/><path d="M${wx + ww / 2} ${wy}v${wh}" stroke="#c48c56" stroke-width="5"/>
-    <rect x="${wx - 12}" y="${wy + wh}" width="${ww + 24}" height="9" rx="4" fill="#d9a06a" stroke="#b07a46" stroke-width="1.5"/>`;
-}
-
-/* ---------- các cảnh (400×250) ---------- */
+/* ---------- 21 cảnh, mỗi trạm một nơi khác nhau ----------
+   mỗi hàm trả về [nền (có run tay), phía trước (nhân vật, rõ nét)] */
 const MJ_SCENES = {
-  start:(r, k) => `${mjMeadow(r, k, 'rain', 170, { moon:[70, 50, 16, .5], stars:6, flowers:30 })}${mjLamp(320, 182, 118)}${mjGirl(180, 206, 1.7, 'umb')}`,
-  d1:(r, k) => `${mjMeadow(r, k, 'rain', 168, { moon:[320, 50, 22, 1], stars:6, flowers:22 })}${mjLamp(70, 178, 112)}${mjCat(196, 198, 1.25, 'sit')}`,
-  d3:(r, k) => `${mjMeadow(r, k, 'rain', 160, { stars:4, flowers:24 })}${mjUmbrella(200, 150, 2.6, -8)}${mjCat(205, 206, 1.25, 'sleep')}`,
-  d7:(r, k) => `${mjMeadow(r, k, 'dusk', 166, { moon:[86, 48, 18, .7], stars:10, flowers:20 })}${mjLamp(210, 186, 140)}<ellipse cx="290" cy="214" rx="54" ry="13" fill="#8fc1f5" stroke="#4f8be0" stroke-width="2"/><ellipse cx="282" cy="210" rx="16" ry="3" fill="#fff" opacity=".7"/>
-    ${[[270, 212], [292, 206], [314, 212]].map(([x, y]) => `<g transform="translate(${x} ${y})" fill="#fff"><ellipse rx="3.6" ry="3"/><circle cx="-4" cy="-4.5" r="1.4"/><circle cx="-1.3" cy="-6" r="1.4"/><circle cx="1.3" cy="-6" r="1.4"/><circle cx="4" cy="-4.5" r="1.4"/></g>`).join('')}`,
-  d10:(r, k) => `${mjMeadow(r, k, 'dusk', 150, { moon:[330, 46, 18, 1], stars:14, flowers:18 })}<path d="M-10 250Q160 200 210 170T420 150" stroke="#fff1cf" stroke-width="30" fill="none" stroke-linecap="round"/><path d="M-10 250Q160 200 210 170T420 150" stroke="#f3d39a" stroke-width="2" stroke-dasharray="2 8" fill="none"/>${mjGirl(246, 176, 1.35, 'stand')}${mjCat(170, 210, 1.05, 'sit')}`,
-  d14:(r, k) => { let w = ''; for (let i = 1; i <= 7; i++) w += `<ellipse cx="200" cy="196" rx="${i * 24}" ry="${i * 7}" fill="none" stroke="${i % 2 ? '#fff' : '#5c9ae8'}" stroke-width="${i % 2 ? 2.4 : 3}" stroke-dasharray="${18 + i * 4} ${6 + i}" opacity=".85"/>`;
-    return `${mjSky(r, k, 'night')}${mjStars(r, 18, [0, 0, 400, 120])}${mjMoon(k, 300, 52, 22, .5)}${mjHill(r, 'M0 150Q200 132 400 150V250H0z', [0, 140, 400, 250])}<ellipse cx="200" cy="196" rx="180" ry="46" fill="#8cc0f6" stroke="#3f7fdb" stroke-width="3"/>${w}${mjField(r, 10, [0, 228, 400, 250], [.9, 1.2])}${mjCat(200, 196, 1.15, 'sit')}`; },
-  d21:(r, k) => `${mjMeadow(r, k, 'night', 172, { stars:34, flowers:24 })}<circle cx="200" cy="146" r="40" fill="#fff6c9" opacity=".45"/>${mjUmbrella(200, 166, 2, 180, false)}<path d="M200 128Q203 141 216 144Q203 147 200 160Q197 147 184 144Q197 141 200 128Z" fill="${MJC.yellow}" stroke="#fff" stroke-width="2"/>${mjGirl(118, 214, 1.3, 'wave')}`,
-  d30:(r, k) => `${mjMeadow(r, k, 'night', 176, { moon:[200, 80, 44, 1], stars:24, flowers:22 })}${mjGirl(200, 216, 1.6, 'hug', { cat:true })}`,
-  d45:(r, k) => `${mjWindowRoom(r, k, { wx:40, wy:24, ww:150, wh:118, mf:.8 })}<rect x="0" y="196" width="400" height="54" fill="#e9b47f"/>${mjHatch(r, 30, [0, 198, 400, 250], ['#d99a5e', '#f3c897'], -10, [3, 5], .5, [20, 40])}
-    <path d="M232 196q0-30 36-30t36 30z" fill="${MJC.pink}" stroke="${MJC.pinkD}" stroke-width="2"/>${mjFlower(252, 160, 1.2, 'blue', 10)}${mjFlower(272, 154, 1.3, 'white', 40)}${mjFlower(292, 162, 1.1, 'blue', 70)}<rect x="330" y="160" width="14" height="36" rx="3" fill="#fff" stroke="#d8c3a5" stroke-width="1.5"/><path d="M337 160q-7-10 0-20q7 10 0 20z" fill="${MJC.yellow}" stroke="${MJC.yellowD}" stroke-width="1.3"/>`,
-  d60:(r, k) => `${mjMeadow(r, k, 'night', 158, { stars:30, flowers:20 })}${mjStars(r, 16, [0, 168, 400, 240])}${mjPuppy(130, 214, 1.4)}${mjBunny(268, 218, 1.4)}${mjGirl(200, 206, 1.3, 'open')}`,
-  d80:(r, k) => `${mjSky(r, k, 'dusk')}${mjStars(r, 14, [0, 0, 400, 100])}${mjMoon(k, 80, 52, 18, .85)}${mjHill(r, 'M0 250V210Q170 200 250 110Q300 60 420 70V250z', [0, 70, 400, 250], '#6cc94f', 110)}${mjField(r, 16, [60, 150, 400, 250], [.5, 1.1])}
-    <circle cx="318" cy="96" r="40" fill="#fff3b0" opacity=".45"/><path d="M300 118V92a18 18 0 0 1 36 0v26z" fill="#c4874f" stroke="#8a5a3c" stroke-width="2.4"/><path d="M306 118V94a12 12 0 0 1 24 0v24z" fill="#ffe27a"/><circle cx="325" cy="106" r="1.8" fill="#8a5a3c"/>${mjCat(286, 124, .9, 'sit')}`,
-  d100:(r, k) => `${mjSky(r, k, 'night')}${mjStars(r, 18, [0, 0, 400, 90])}${mjMoon(k, 90, 44, 18, .9)}${mjHill(r, 'M0 112Q200 98 400 112V140H0z', [0, 100, 400, 140], '#6cc94f', 40)}${mjField(r, 10, [0, 106, 400, 132], [.35, .5])}
-    <rect y="136" width="400" height="56" fill="#8cc0f6"/>${mjHatch(r, 50, [0, 138, 400, 190], ['#fff', '#5c9ae8', '#b8dafc'], 0, [2, 4], .7, [16, 40])}${mjCat(300, 126, .62, 'sit')}
-    ${mjHill(r, 'M0 194Q200 180 400 196V250H0z', [0, 186, 400, 250])}${mjField(r, 14, [0, 200, 400, 250], [.8, 1.2])}${mjGirl(110, 226, 1.25, 'wave')}`,
-  d130:(r, k) => `${mjWindowRoom(r, k, { wx:110, wy:20, ww:180, wh:130, mr:20 })}<rect x="0" y="196" width="400" height="54" fill="#e9b47f"/>${mjHatch(r, 30, [0, 198, 400, 250], ['#d99a5e', '#f3c897'], -10, [3, 5], .5, [20, 40])}
-    <ellipse cx="190" cy="156" rx="46" ry="6" fill="#fff6c9" opacity=".8"/>${mjCat(190, 158, .95, 'sleep')}<path d="M300 150h40l-5 -22h-30z" fill="${MJC.pink}" stroke="${MJC.pinkD}" stroke-width="2"/>${mjFlower(312, 120, .9, 'blue')}${mjFlower(328, 116, .9, 'purple', 30)}`,
-  d160:(r, k) => `${mjMeadow(r, k, 'rain', 166, { stars:4, flowers:24 })}${mjLamp(70, 176, 110)}${mjUmbrella(214, 140, 2.2, 0, false)}<path d="M214 140v24" stroke="#8a5a3c" stroke-width="2.4"/>${mjGirl(196, 214, 1.4, 'stand')}<g transform="translate(234 214) scale(1.3)"><path d="M-4-3v4M4-3v4" stroke="${MJC.skin}" stroke-width="3.6" stroke-linecap="round"/><path d="M-7-22Q0-25 7-22L11-4Q0 0-11-4Z" fill="#ffd36b" stroke="#e0a83a" stroke-width="1.4"/><circle cx="0" cy="-33" r="10" fill="${MJC.skin}"/><path d="M-10-35Q-9-46 0-46Q9-46 10-35L11-25Q8-28 7-35Q0-40-7-35Q-8-28-11-25Z" fill="#7a4a2a"/><path d="M-6-32q2 1.8 4 0M2-32q2 1.8 4 0" stroke="#4a2a1a" stroke-width="1.2" fill="none"/><ellipse cx="-6.5" cy="-28.5" rx="2.4" ry="1.5" fill="${MJC.cheek}"/><ellipse cx="6.5" cy="-28.5" rx="2.4" ry="1.5" fill="${MJC.cheek}"/><rect x="-14" y="-20" width="9" height="11" rx="2" fill="${MJC.blue}" stroke="${MJC.blueD}" stroke-width="1"/></g>`,
-  d200:(r, k) => { let g = ''; for (let i = 0; i < 200; i++) { const a = i * .12, kk = i % 2 ? Math.PI : 0, rr = 4 + i * .62, x = 200 + Math.cos(a + kk) * rr * 1.5, y = 92 + Math.sin(a + kk) * rr * .6; g += `<circle cx="${_r1(x + (r() - .5) * 8)}" cy="${_r1(y + (r() - .5) * 5)}" r="${_r1(1 + r() * 2.2)}" fill="${mjPick(r, ['#fff6c9', '#ffffff', MJC.yellow, '#c8d8ff', MJC.pink])}"/>`; }
-    return `${mjSky(r, k, 'deep')}${mjStars(r, 26, [0, 0, 400, 200])}<ellipse cx="200" cy="92" rx="150" ry="58" fill="#c8d8ff" opacity=".25"/>${g}${mjStars(r, 3, [180, 80, 220, 100])}
-      ${mjHill(r, 'M0 210Q200 186 400 210V250H0z', [0, 196, 400, 250])}${mjField(r, 12, [0, 210, 400, 250], [.8, 1.2])}${mjGirl(186, 222, 1.3, 'stand')}${mjCat(218, 222, .9, 'sit')}`; },
-  d250:(r, k) => `${mjMeadow(r, k, 'rain', 160, { moon:[316, 54, 20, 1], stars:6, flowers:20 })}<ellipse cx="290" cy="222" rx="70" ry="14" fill="#8fc1f5" stroke="#4f8be0" stroke-width="2"/>${mjMoon(k, 300, 222, 7, 1)}${mjGirl(150, 214, 1.5, 'umb')}`,
-  d300:(r, k) => `${mjMeadow(r, k, 'dusk', 130, { moon:[330, 44, 18, 1], stars:12, flowers:34 })}<g transform="rotate(-6 200 190)"><rect x="140" y="152" width="124" height="80" rx="6" fill="#fffdf8" stroke="#c3cbe2" stroke-width="2"/><path d="M140 156l62 40 62-40" fill="none" stroke="#c3cbe2" stroke-width="2"/>
-    <path d="M202 196c-3-6-12-4-10 3c1 4 10 10 10 10s9-6 10-10c2-7-7-9-10-3z" fill="#ff7fa8"/><g transform="translate(240 222)" fill="${MJC.orange}"><ellipse rx="4" ry="3.2"/><circle cx="-4.5" cy="-4.8" r="1.6"/><circle cx="-1.5" cy="-6.6" r="1.6"/><circle cx="1.5" cy="-6.6" r="1.6"/><circle cx="4.5" cy="-4.8" r="1.6"/></g></g>`,
-  d365:(r, k) => `${mjMeadow(r, k, 'night', 170, { moon:[200, 74, 46, 1], stars:30, flowers:36 })}${mjField(r, 8, [0, 200, 400, 250], [1.6, 2.2])}<path d="M175 130c-3-6-11-5-10 2c1 4 10 9 10 9s9-5 10-9c1-7-7-8-10-2z" fill="#ff7fa8" stroke="#fff" stroke-width="1.2"/><path d="M226 120c-2-4-7-3-6 1c0 3 6 6 6 6s6-3 6-6c1-4-4-5-6-1z" fill="#ff9fc0" stroke="#fff" stroke-width="1"/>${mjGirl(200, 214, 1.7, 'hug', { cat:true })}`,
-  d400:(r, k) => `${mjWindowRoom(r, k, { wx:236, wy:18, ww:130, wh:104, mr:15 })}<rect x="30" y="140" width="330" height="90" rx="16" fill="#c48c56" stroke="#8a5a3c" stroke-width="2"/><rect x="44" y="118" width="96" height="40" rx="16" fill="#fff" stroke="#c3cbe2" stroke-width="1.8"/>
-    <g transform="translate(92 134) scale(1.7)"><circle r="12" fill="${MJC.skin}"/><path d="M-12 0Q-12-14 0-14Q12-14 12 0Q6-6 0-4Q-6-6-12 0Z" fill="${MJC.hair}"/><path d="M-6 2q2 1.6 4 0M2 2q2 1.6 4 0" stroke="${MJC.hair}" stroke-width="1.2" fill="none" stroke-linecap="round"/><ellipse cx="-7" cy="6" rx="2.4" ry="1.4" fill="${MJC.cheek}"/><ellipse cx="7" cy="6" rx="2.4" ry="1.4" fill="${MJC.cheek}"/></g>
-    <path d="M60 156Q170 134 250 150T360 148V222H60z" fill="#ffb347" stroke="#e08a2a" stroke-width="2"/>${mjHatch(r, 40, [64, 154, 356, 218], ['#ffd36b', '#ff9f3a', '#ffe08a'], -30, [3, 5], .6, [10, 24])}${mjCat(270, 160, 1.5, 'sleep')}<text x="296" y="112" font-size="16" font-weight="700" fill="#5b7ee0" font-family="Baloo 2, sans-serif">z z</text>`,
-  d450:(r, k) => `${mjMeadow(r, k, 'night', 176, { moon:[316, 56, 26, 1], stars:28, flowers:30 })}<circle cx="196" cy="168" r="22" fill="#fff6c9" opacity=".6"/><circle cx="196" cy="168" r="9" fill="${MJC.moon}" stroke="${MJC.moonD}" stroke-width="2"/>${mjGirl(180, 214, 1.5, 'wave')}${mjCat(232, 214, 1, 'happy', { heart:true })}`,
-  after:(r, k) => `${mjMeadow(r, k, 'deep', 180, { moon:[310, 52, 20, .8], stars:36, flowers:28 })}${mjGirl(176, 212, 1.3, 'stand')}${mjCat(208, 212, .9, 'sit')}`
+  // Lời mở đầu: phố đêm mưa, cô gái che ô đứng dưới ngọn đèn
+  start:c => {
+    const gy = 176, T = mjTown(c, gy, { h:[46, 112], lit:.32 }); let bg = mjSkyN(c, '#050919', '#15264c', gy, { stars:0, streaks:90 });
+    bg += T.svg + `<rect y="${gy}" width="400" height="${250 - gy}" fill="${mjLin(c, [[0, '#101b3a'], [1, '#080f24']])}"/>` + mjS(c, 170, [-10, gy, 410, 250], ['#1a2a52', '#22355f', '#0c152f', '#2b4170'], { ang:0, len:[14, 54], w:[1.6, 2.6, 3.6], op:.6, jit:2 });
+    bg += mjReflect(c, T.lights, gy) + `<path d="M-5 ${gy + 1}H405" stroke="#2c4071" stroke-width="2" opacity=".8"/>` + mjLampN(c, 300, gy + 10, 136, { cone:58, R:100 }) + mjReflect(c, [[300, gy - 124, 2.2]], gy + 10, '#ffe3a0', .5);
+    bg += `<ellipse cx="236" cy="218" rx="70" ry="10" fill="#0b1532"/>` + mjS(c, 30, [170, 210, 300, 226], ['#2a4278', '#ffd98a'], { ang:0, len:[6, 16], w:[1], op:.6, jit:2, in:(x, y) => ((x - 236) / 70) ** 2 + ((y - 218) / 10) ** 2 < .8 });
+    const id = c.id(); c.def(`<clipPath id="${id}"><ellipse cx="236" cy="218" rx="70" ry="10"/></clipPath>`);
+    const girl = sh => mjGirl(c, 250, 206, 1.4, 'back', { umb:{ hand:[4, -50.4], R:30, rot:-6, lights:true, shaft:.75 }, arm:'M6 -42.5Q8 -48 4 -50', hand:[4, -50.4], shadow:sh });
+    return [bg, `<g clip-path="url(#${id})">${mjMirror(206, girl(false), .3)}</g>${girl(true)}`];
+  },
+  // Đêm mưa ấy: hộp các-tông dưới mái hiên, Moon bé xíu ướt mưa, cô gái quỳ xuống che ô
+  d1:c => {
+    const gy = 198; let bg = `<rect width="400" height="${gy}" fill="${mjLin(c, [[0, '#0b1430'], [1, '#132347']])}"/>` + mjS(c, 260, [0, 0, 400, gy], ['#16244a', '#1c2c56', '#0f1a39'], { ang:0, len:[10, 18], w:[5, 6.5], op:.5, jit:1, bend:0 });
+    bg += mjGlow(c, 70, 74, 120, 'w', .65) + `<rect x="28" y="30" width="86" height="88" rx="3" fill="#0a1126"/><rect x="34" y="36" width="74" height="76" fill="${mjLin(c, [[0, '#ffe7a8'], [1, '#f2b25e']])}"/><path d="M71 36v76M34 74h74" stroke="#0a1126" stroke-width="3"/><path d="M38 40q12 20 4 70" stroke="#f6c98a" stroke-width="6" opacity=".6" fill="none"/>`;
+    bg += `<path d="M34 112L108 112L190 ${gy}L-10 ${gy}Z" fill="${mjLin(c, [[0, '#ffd98a', .22], [1, '#ffd98a', 0]])}"/>`;
+    bg += `<path d="M130 58H410V74H130Z" fill="#081022"/><path d="M130 74H410" stroke="#2c4071" stroke-width="1.4"/>` + mjS(c, 30, [134, 76, 400, 84], ['#9fb8e6'], { ang:90, len:[2, 5], w:[1.2], op:.5, jit:2 });
+    bg += `<rect y="${gy}" width="400" height="${250 - gy}" fill="${mjLin(c, [[0, '#121e40'], [1, '#090f24']])}"/>` + mjS(c, 120, [-10, gy, 410, 250], ['#1d2d58', '#26396a', '#0c152f'], { ang:0, len:[14, 50], w:[1.6, 2.8], op:.6, jit:2 }) + mjReflect(c, [[71, 74, 3]], gy, '#ffd98a', .4);
+    bg += `<ellipse cx="320" cy="228" rx="60" ry="8" fill="#0a1330"/>` + mjS(c, 16, [270, 222, 370, 234], ['#3a5486'], { ang:0, len:[6, 14], w:[.8], op:.7, jit:2 });
+    const box = `<path d="M118 ${gy}V${gy - 32}H180V${gy}Z" fill="#6a5442"/><path d="M118 ${gy - 32}L104 ${gy - 44}L126 ${gy - 40}Z" fill="#7d6450"/><path d="M180 ${gy - 32}L196 ${gy - 42}L176 ${gy - 39}Z" fill="#5d4838"/>
+      <path d="M118 ${gy - 32}H180" stroke="#8d735c" stroke-width="1.4"/>${mjS(c, 24, [120, gy - 30, 178, gy - 2], ['#7a604c', '#57432f'], { ang:90, len:[6, 14], w:[1.4], op:.5, jit:6 })}<path d="M150 ${gy - 26}v18" stroke="#4e3c2e" stroke-width="1" opacity=".7"/>`;
+    return [bg, mjGlow(c, 149, gy - 40, 34, 'w', .5) + mjCat(c, 149, gy - 18, 1.2, 'sitF', { eyes:'open', shadow:false, tail:'M4 -1Q9 -1 9 -4' }) + box + mjGirl(c, 212, gy, 1.6, 'kneel', { flip:true, arm:'M4.6 -29.2Q10 -26 14 -22', hand:[14.2, -21.8], arm2:'M5 -29.6Q9 -33 10.6 -39', umb:{ hand:[10.8, -39.4], R:26, rot:40, shaft:.55, handle:false } })];
+  },
+  // Chiếc ô cong gọng: ôm Moon đi về dưới mưa, ô nghiêng về phía em
+  d3:c => {
+    const gy = 168, T = mjTown(c, gy, { h:[60, 120], lit:.28 }); let bg = mjSkyN(c, '#060b1d', '#172a52', gy, { stars:0, streaks:80 });
+    bg += T.svg + `<rect y="${gy}" width="400" height="${250 - gy}" fill="${mjLin(c, [[0, '#111c3c'], [1, '#080f24']])}"/>` + mjS(c, 150, [-10, gy, 410, 250], ['#1a2a52', '#22355f', '#0c152f'], { ang:0, len:[14, 54], w:[1.6, 2.8], op:.6, jit:2 }) + mjReflect(c, T.lights, gy, '#ffcf73', .35);
+    bg += mjLampN(c, 60, gy + 6, 118, { R:70 }) + mjReflect(c, [[60, gy - 110, 1.6]], gy + 6, '#ffe3a0', .45);
+    [[120, 222, 34], [300, 236, 40], [360, 206, 22]].forEach(([x, y, w]) => { bg += `<ellipse cx="${x}" cy="${y}" rx="${w}" ry="${w * .16}" fill="#0a1330"/><ellipse cx="${x - w * .2}" cy="${y}" rx="${w * .3}" ry="${w * .06}" fill="none" stroke="#5a78b3" stroke-width=".7" opacity=".7"/><ellipse cx="${x + w * .3}" cy="${y + 1}" rx="${w * .18}" ry="${w * .04}" fill="none" stroke="#5a78b3" stroke-width=".6" opacity=".6"/>`; });
+    return [bg, mjGirl(c, 214, 224, 1.6, 'side', { cat:true, arm:'M1.4 -42.4Q6 -48 9 -52', umb:{ hand:[9, -52.4], R:28, rot:22, bent:true, shaft:.6, handle:false }, wind:6 })];
+  },
+  // Ngọn đèn ở góc phố: mưa tạnh, trăng ló khỏi mây, Moon ngồi nhìn trăng
+  d7:c => {
+    const gy = 182; let bg = mjSkyN(c, '#070d24', '#1d3363', gy, { stars:50, streaks:30 }) + mjMoonN(c, 300, 54, 24);
+    bg += mjS(c, 60, [170, 86, 420, 112], ['#1b2b58', '#24386c', '#2f4680'], { ang:-6, len:[50, 120], w:[10, 14], op:.8, jit:3 }) + mjS(c, 40, [200, 106, 420, 136], ['#1b2b58', '#24386c'], { ang:-4, len:[50, 120], w:[10, 14], op:.85, jit:3 }) + mjS(c, 40, [180, 80, 420, 104], ['#e9dcae'], { ang:-5, len:[20, 60], w:[1.2], op:.4, jit:3 });
+    bg += `<path d="M-5 ${gy}V40H34L40 30L120 30V${gy}Z" fill="#0c1531"/><path d="M120 30V${gy}" stroke="#22356a" stroke-width="2"/>` + mjS(c, 140, [0, 32, 120, gy], ['#131f43', '#0a1228'], { ang:0, len:[10, 18], w:[5], op:.55, jit:1, bend:0 });
+    bg += mjGlow(c, 70, 92, 40, 'w', .5) + `<rect x="54" y="74" width="34" height="40" fill="#ffcf73"/><path d="M71 74v40M54 94h34" stroke="#0c1531" stroke-width="2.4"/>`;
+    bg += mjLampN(c, 150, gy + 4, 118, { R:70 });
+    bg += `<rect y="${gy}" width="400" height="${250 - gy}" fill="${mjLin(c, [[0, '#13214a'], [1, '#090f26']])}"/>` + mjS(c, 140, [-10, gy, 410, 250], ['#1d2d58', '#26396a', '#0c152f'], { ang:0, len:[14, 50], w:[1.6, 2.8], op:.6, jit:2 }) + `<path d="M-5 ${gy + 1}H405" stroke="#34497e" stroke-width="2.4"/>`;
+    bg += `<ellipse cx="300" cy="222" rx="74" ry="11" fill="#0d1838"/>` + mjGlow(c, 300, 222, 34, 'm', .6) + mjS(c, 26, [270, 214, 330, 230], ['#fff2c4', '#ffe39a'], { ang:0, len:[4, 14], w:[1.2, 1.8], op:.8, jit:2 }) + mjReflect(c, [[150, gy - 112, 1.4]], gy + 4, '#ffe3a0', .4);
+    return [bg, mjCat(c, 224, gy + 16, 1.8, 'sitB') + mjGirl(c, 264, gy + 20, 1.4, 'back', { closedUmb:true })];
+  },
+  // Cái bóng nhỏ theo sau: nhìn từ trên cao, dấu chân trên nền xanh, Moon lẽo đẽo theo sau
+  d10:c => {
+    let bg = `<rect width="400" height="250" fill="${mjLin(c, [[0, '#0d2150'], [1, '#183c79']], 1, 1)}"/>`;
+    const fa = (x, y) => -30 + 28 * Math.sin(x * .016 + y * .02);
+    bg += mjS(c, 520, [-30, -30, 430, 280], ['#1f4688', '#2a58a0', '#14336b', '#3a6cb5'], { fa, len:[30, 80], w:[2, 3.6, 5], op:.5, jit:4, bend:.2 }) + mjS(c, 90, [-30, -30, 430, 280], ['#6f9ad6', '#8fb3e6'], { fa, len:[30, 90], w:[1], op:.35, jit:3, bend:.2 });
+    bg += mjGlow(c, 420, -20, 260, 'm', .55) + mjDots(c, 80, [0, 0, 400, 250], ['#cfe0ff', '#fff3cf'], [.6, 1.2], .5);
+    const P = mjCurve([[20, 260], [90, 200], [170, 150], [272, 82]], 26), Q = mjCurve([[60, 270], [120, 220], [190, 170], [240, 112]], 22);
+    const sh = (x, y, len, w) => `<ellipse cx="${x - len * .45}" cy="${y + len * .3}" rx="${len * .55}" ry="${w}" transform="rotate(32 ${x - len * .45} ${y + len * .3})" fill="#061031" opacity=".45"/>`;
+    return [bg, mjPrints(P.slice(0, -2), 'foot', '#061133', .85, 1.5) + mjPrints(Q.slice(0, -2), 'paw', '#061133', .8, 1.5) + sh(274, 94, 80, 8) + sh(238, 122, 32, 5) + mjCat(c, 236, 122, 1.5, 'walk') + mjGirl(c, 274, 94, 1.3, 'side', { wind:4 })];
+  },
+  // Mặt nước xoáy: mặt nước tối cuộn sóng, trăng khuyết, cô gái nhỏ đứng giữa
+  d14:c => {
+    const cx = 220, cy = 168; let bg = `<rect width="400" height="250" fill="${mjLin(c, [[0, '#0a1f2e'], [.5, '#103446'], [1, '#081a26']])}"/>`;
+    bg += mjS(c, 420, [-20, -10, 420, 260], ['#0e2a3a', '#174256', '#1f5468', '#0a2230'], { ang:0, len:[30, 90], w:[4, 7, 10], op:.65, jit:5, bend:.12 });
+    bg += mjS(c, 260, [-20, -10, 420, 260], ['#2a6878', '#3a8090', '#1c4e60'], { fa:(x, y) => 10 * Math.sin((x - cx) * .018) * Math.sign(y - cy), len:[20, 60], w:[1.6, 3], op:.55, jit:6, bend:.25 });
+    bg += mjS(c, 120, [-20, -10, 420, 260], ['#7fc4c4', '#9ad6d0'], { ang:0, len:[20, 80], w:[.6], op:.45, jit:1, bend:.02 });
+    bg += mjMoonN(c, 112, 86, 17, { cres:[.42, -.2], halo:3.2 }) + mjDots(c, 50, [80, 54, 144, 118], ['#fff2c4', '#ffe39a'], [.6, 1.4], .8, (x, y) => { const d = Math.hypot(x - 112, y - 86); return d > 19 && d < 30; });
+    bg += mjS(c, 70, [250, 100, 420, 150], ['#fff2c4', '#e9dcae'], { ang:0, len:[10, 40], w:[1, 1.6], op:.55, jit:2 });
+    bg += `<ellipse cx="${cx}" cy="${cy + 2}" rx="20" ry="3.4" fill="none" stroke="#9ad6d0" stroke-width=".8" opacity=".6"/><ellipse cx="${cx}" cy="${cy + 2}" rx="32" ry="5.4" fill="none" stroke="#7fc4c4" stroke-width=".6" opacity=".4"/>`;
+    const g = mjGirl(c, cx, cy, 1.1, 'side', { flip:true, shadow:false, wind:-3 });
+    return [bg, mjMirror(cy, g) + g];
+  },
+  // Ngôi sao rơi vào ô: chiếc ô trong suốt hứng đầy sao, bụi sao chảy xuống
+  d21:c => {
+    let bg = `<rect width="400" height="250" fill="${mjRad(c, [[0, '#121a3a'], [.6, '#080d22'], [1, '#04060f']], .5, .45, .7)}"/>` + mjStarfield(c, 320, [0, 0, 400, 250], { sz:[.4, 1.3], sparks:14, op:.7 }) + mjGlow(c, 200, 120, 120, 'w', .45);
+    let drip = ''; for (let i = 0; i < 9; i++) { const a = Math.PI * (.04 + i * .115), px = 200 + Math.cos(a) * 56, py = 128 - Math.sin(a) * 18 + 4; for (let k = 0; k < 6 + c.r() * 8; k++) { const yy = py + k * (4 + c.r() * 3); drip += mjGlow(c, px + (c.r() - .5) * 2, yy, 4, 'f', .7 - k * .05) + `<circle cx="${_r1(px)}" cy="${_r1(yy)}" r="${_r1(.5 + c.r() * .8)}" fill="#fff3c0"/>`; } }
+    return [bg, drip + mjGirl(c, 196, 222, 1.45, 'back', { umb:{ x:2.6, y:-64, R:40, rot:-4, lights:true, stars:16, fill:.12, shaft:.7, handle:false }, arm:'M6 -42.5Q7 -50 2.8 -56', hand:[2.8, -56.4] }) + mjCat(c, 236, 222, 1.35, 'sitB')];
+  },
+  // Đêm trăng tròn: trăng tròn trên biển, đường trăng lấp lánh, hai bóng nhỏ đi trên đó
+  d30:c => {
+    const hz = 118; let bg = mjSkyN(c, '#08102a', '#1d3461', hz, { stars:60, streaks:40 }) + mjMoonN(c, 200, 70, 30, { halo:4.6 });
+    bg += mjS(c, 90, [-30, 80, 120, 122], ['#16244c', '#1e2f5c', '#0f1b3d'], { ang:-6, len:[30, 90], w:[9, 13], op:.85, jit:4 }) + mjS(c, 90, [282, 74, 430, 122], ['#16244c', '#1e2f5c', '#0f1b3d'], { ang:4, len:[30, 90], w:[9, 13], op:.85, jit:4 });
+    bg += mjS(c, 40, [-20, 76, 110, 100], ['#d9d1a6'], { ang:-6, len:[20, 60], w:[1.2], op:.3, jit:3 }) + mjS(c, 40, [290, 70, 420, 96], ['#d9d1a6'], { ang:4, len:[20, 60], w:[1.2], op:.3, jit:3 });
+    bg += `<path d="M60 26L118 8" stroke="${mjLin(c, [[0, '#fff', 0], [1, '#fff', .9]], 1, 0)}" stroke-width="1.6" stroke-linecap="round"/>` + mjSpark(118, 8, 3);
+    bg += mjWater(c, hz, 250, { top:'#0f1c3e', bot:'#070e24', path:200, spread:150, glints:520 });
+    const who = mjGirl(c, 192, 212, 1.15, 'back', { shadow:false }) + mjCat(c, 217, 212, 1.1, 'sitB', { shadow:false });
+    return [bg, mjMirror(212, who) + who];
+  },
+  // Chiếc bát trên kệ: căn phòng đêm, ánh trăng chiếu lên chiếc bát nhỏ của Moon
+  d45:c => {
+    const fy = 188; let bg = `<rect width="400" height="${fy}" fill="${mjLin(c, [[0, '#0e1736'], [1, '#16244a']])}"/>` + mjS(c, 160, [0, 0, 400, fy], ['#131f43', '#1a2a55', '#0d1633'], { ang:90, len:[20, 50], w:[4, 7], op:.4, jit:2 });
+    bg += `<rect x="262" y="34" width="104" height="112" rx="3" fill="#081022"/><rect x="268" y="40" width="92" height="100" fill="${mjLin(c, [[0, '#0a1430'], [1, '#22397a']])}"/>` + mjStarfield(c, 30, [270, 42, 358, 120], { sparks:2 }) + mjMoonN(c, 330, 66, 11, { cres:[-.4, -.2], halo:2.6 }) + `<path d="M314 40v100M268 90h92" stroke="#081022" stroke-width="3"/>`;
+    bg += `<path d="M258 30Q250 90 262 150" stroke="#2e3f78" stroke-width="10" fill="none"/><path d="M370 30Q378 90 366 150" stroke="#2e3f78" stroke-width="10" fill="none"/>`;
+    for (let i = 0; i < 12; i++) { const x = 250 + i * 11, y = 26 + Math.sin(i * .9) * 3 + (i - 5.5) ** 2 * .12; bg += mjGlow(c, x, y, 7, 'f', .7) + `<circle cx="${_r1(x)}" cy="${_r1(y)}" r="1.4" fill="#ffe7a0"/>`; }
+    bg += `<path d="M240 26Q300 36 386 24" stroke="#0a1126" stroke-width=".7" fill="none"/><path d="M268 140L360 140L230 ${fy + 40}L80 ${fy + 40}Z" fill="${mjLin(c, [[0, '#cfe0ff', .16], [1, '#cfe0ff', .04]])}"/>`;
+    bg += `<rect y="${fy}" width="400" height="${250 - fy}" fill="${mjLin(c, [[0, '#14203f'], [1, '#0a1128']])}"/>` + mjS(c, 90, [-10, fy, 410, 250], ['#1c2b52', '#0f1834', '#243663'], { ang:0, len:[30, 90], w:[2, 3], op:.6, jit:1 }) + `<path d="M0 ${fy}H400" stroke="#24366a" stroke-width="2"/>`;
+    bg += mjGlow(c, 112, 86, 70, 'm', .55) + `<path d="M40 98H184V104H40Z" fill="#3a3150"/><path d="M40 98H184" stroke="#5a4d70" stroke-width="1.2"/><path d="M52 104l6 12M172 104l-6 12" stroke="#2a2440" stroke-width="3"/>`;
+    bg += `<rect x="50" y="70" width="10" height="28" fill="#5b6aa8"/><rect x="61" y="76" width="8" height="22" fill="#a07a8e"/><rect x="70" y="72" width="9" height="26" fill="#3e4f8a"/>`;
+    bg += `<rect x="150" y="70" width="22" height="28" rx="2" fill="#2a2440"/><rect x="153" y="73" width="16" height="22" fill="#1c2f66"/>` + mjCat(c, 161, 94, .7, 'sitB', { shadow:false });
+    bg += `<path d="M86 98q0-6 6-6h28q6 0 6 6z" fill="#e6edf9"/><path d="M84 92h44" stroke="#8fb3e6" stroke-width="2.4" stroke-linecap="round"/><path d="M89 95h34" stroke="#c1d3f2" stroke-width="1"/><g fill="#f2a15c" transform="translate(106 95.6) scale(.55)"><ellipse cy="1" rx="1.6" ry="1.3"/><circle cx="-1.8" cy="-1.4" r=".7"/><circle cx="0" cy="-2.2" r=".7"/><circle cx="1.8" cy="-1.4" r=".7"/></g>`;
+    bg += `<path d="M132 98q2-14 4-16M138 98q-1-12 6-18M134 98q-6-8-10-10" stroke="#3f7d68" stroke-width="2" stroke-linecap="round" fill="none"/><rect x="129" y="92" width="12" height="6" rx="1" fill="#a0675a"/>`;
+    return [bg, mjGirl(c, 186, 226, 1.35, 'sit')];
+  },
+  // Cánh đồng sao: đồng cỏ đêm nhìn từ trên cao, cỏ rạp theo gió, đom đóm khắp nơi
+  d60:c => {
+    const fa = (x, y) => -64 + 24 * Math.sin(x * .02 + y * .016);
+    let bg = `<rect width="400" height="250" fill="${mjLin(c, [[0, '#0b2228'], [1, '#0f2f33']], 1, 1)}"/>`;
+    bg += mjS(c, 900, [-20, -20, 420, 270], ['#123330', '#1a443d', '#225448', '#0d2827'], { fa, len:[16, 38], w:[1.4, 2.2, 3], op:.8, jit:6, bend:.45 });
+    bg += mjS(c, 300, [-20, -20, 420, 270], ['#3a7a63', '#4f9378', '#2e6852'], { fa, len:[12, 30], w:[.9, 1.4], op:.7, jit:6, bend:.5 });
+    bg += mjGlow(c, 380, -10, 230, 'm', .4) + mjDots(c, 120, [0, 0, 400, 250], ['#e9f1ff', '#bcd6ff', '#9fc4ff'], [1.2, 2.4], .8) + mjFlies(c, 46, [0, 0, 400, 250]);
+    return [bg, `<ellipse cx="216" cy="150" rx="22" ry="5" fill="#04110f" opacity=".5" transform="rotate(30 216 150)"/>` + mjCat(c, 176, 180, 1.2, 'walk') + mjGirl(c, 230, 150, 1.15, 'side', { wind:10, arm:'M1.6 -42.4Q-2 -35 -6 -32', hand:[-6.2, -31.8] })];
+  },
+  // Tiếng gọi cửa: trước cánh cửa hé sáng, Moon ngồi chờ
+  d80:c => {
+    const gy = 206; let bg = `<rect width="400" height="${gy}" fill="${mjLin(c, [[0, '#101a3c'], [1, '#18264f']])}"/>` + mjS(c, 220, [0, 0, 400, gy], ['#14214a', '#1c2b58', '#0f1a3c'], { ang:0, len:[30, 70], w:[4, 6], op:.5, jit:1, bend:0 });
+    for (let y = 14; y < gy; y += 13) bg += `<path d="M0 ${y}H400" stroke="#0c1533" stroke-width="1" opacity=".6"/>`;
+    bg += mjGlow(c, 190, 140, 150, 'w', .45) + `<rect x="138" y="58" width="110" height="${gy - 58}" fill="#0a1126"/><rect x="146" y="66" width="94" height="${gy - 66}" fill="#ffd27a"/>`;
+    bg += `<path d="M146 66L226 74V${gy + 2}L146 ${gy}Z" fill="#3a2c3e"/><path d="M146 66L226 74V${gy + 2}" stroke="#5a4660" stroke-width="1.2" fill="none"/>` + mjS(c, 40, [150, 76, 222, gy - 4], ['#46364b', '#2f2434'], { ang:90, len:[20, 50], w:[2], op:.6, jit:2 });
+    bg += `<rect x="158" y="88" width="56" height="44" rx="2" fill="none" stroke="#2a2030" stroke-width="2"/><rect x="158" y="146" width="56" height="44" rx="2" fill="none" stroke="#2a2030" stroke-width="2"/><circle cx="216" cy="140" r="2.6" fill="#f3c25a"/>`;
+    bg += `<path d="M226 74L240 66V${gy}L226 ${gy + 2}Z" fill="#ffe7a8"/><path d="M226 ${gy + 2}L240 ${gy}L330 250H250Z" fill="${mjLin(c, [[0, '#ffd27a', .5], [1, '#ffd27a', 0]])}"/>`;
+    bg += mjGlow(c, 105, 108, 46, 'w', .9) + `<path d="M105 92v4" stroke="#0a1126" stroke-width="2"/><path d="M96 96h18l-2 24h-14z" fill="#0a1126"/><rect x="99" y="99" width="12" height="18" fill="#ffe7a8"/>`;
+    bg += `<rect y="${gy}" width="400" height="${250 - gy}" fill="${mjLin(c, [[0, '#1c2244'], [1, '#0d1230']])}"/><rect x="120" y="${gy}" width="150" height="8" fill="#262d55"/><rect x="104" y="${gy + 8}" width="182" height="8" fill="#20264b"/>` + mjS(c, 80, [-10, gy, 410, 250], ['#262c55', '#151a3a'], { ang:0, len:[20, 60], w:[2, 3], op:.6, jit:1 });
+    [[62, gy], [330, gy]].forEach(([x, y]) => { bg += `<path d="M${x - 12} ${y}l3-16h18l3 16z" fill="#7a4e46"/>` + mjBush(c, x, y - 26, 20, 16, ['#123a33', '#1e5446', '#2a6a55', '#0d2a26'], 70); for (let i = 0; i < 7; i++) bg += mjMini(x - 14 + c.r() * 28, y - 38 + c.r() * 22, mjPick(c.r, ['#9fc4ff', '#cfe0ff', '#f3a3ad'])); });
+    bg += `<ellipse cx="200" cy="${gy + 6}" rx="44" ry="7" fill="#5a3b46"/><ellipse cx="200" cy="${gy + 6}" rx="38" ry="5" fill="none" stroke="#7a5560" stroke-width="1" stroke-dasharray="2 2"/>`;
+    bg += `<rect x="290" y="70" width="54" height="64" rx="3" fill="#081022"/><rect x="295" y="75" width="44" height="54" fill="${mjLin(c, [[0, '#0a1430'], [1, '#22397a']])}"/>` + mjStarfield(c, 16, [296, 76, 338, 128], { sparks:1 }) + mjMoonN(c, 324, 92, 8, { cres:[.4, -.2], halo:2.2 }) + `<path d="M317 75v54M295 102h44" stroke="#081022" stroke-width="2.4"/>`;
+    return [bg, mjGlow(c, 214, gy - 20, 50, 'w', .5) + mjCat(c, 200, gy + 4, 1.9, 'sitB')];
+  },
+  // Bờ bên kia: chiếc thuyền nhỏ trên hồ, đèn lồng ở mũi thuyền, bờ xa có căn nhà sáng đèn
+  d100:c => {
+    const hz = 120; let bg = mjSkyN(c, '#060c22', '#1a2c58', hz, { stars:90 }) + mjMoonN(c, 86, 50, 13, { cres:[.42, -.18], halo:3.6 });
+    for (let x = -10; x < 410; x += 9 + c.r() * 10) bg += mjPine(x, hz + 2, 22 + c.r() * 30, c.r() < .5 ? '#0a1430' : '#0c1736');
+    bg += `<rect x="262" y="${hz - 16}" width="22" height="16" fill="#0c1736"/><path d="M258 ${hz - 16}L273 ${hz - 28}L288 ${hz - 16}Z" fill="#0c1736"/><rect x="268" y="${hz - 12}" width="6" height="6" fill="#ffcf73"/>` + mjGlow(c, 271, hz - 9, 16, 'w', .8);
+    bg += mjWater(c, hz, 250, { top:'#122346', bot:'#070e24', path:86, spread:60, glints:220 }) + mjReflect(c, [[271, hz - 22, 1]], hz, '#ffcf73', .5);
+    bg += mjS(c, 50, [-20, hz - 8, 420, hz + 12], ['#3a5486', '#4f69a0'], { ang:0, len:[40, 120], w:[4, 7], op:.18, jit:2 }) + mjFlies(c, 12, [180, 96, 400, 126], { sz:.7 });
+    const bx = 228, by = 194, boat = `<path d="M${bx - 48} ${by - 8}Q${bx} ${by + 18} ${bx + 52} ${by - 10}L${bx + 46} ${by - 4}Q${bx} ${by + 10} ${bx - 42} ${by - 2}Z" fill="#2a2240"/><path d="M${bx - 48} ${by - 8}Q${bx} ${by + 6} ${bx + 52} ${by - 10}" stroke="#7a6a8e" stroke-width="2" fill="none"/>`;
+    const ripple = `<path d="M${bx - 70} ${by + 10}Q${bx} ${by + 24} ${bx + 74} ${by + 8}" stroke="#5a78b3" stroke-width=".8" fill="none" opacity=".6"/><path d="M${bx - 90} ${by + 18}Q${bx} ${by + 34} ${bx + 96} ${by + 16}" stroke="#5a78b3" stroke-width=".6" fill="none" opacity=".4"/>`;
+    return [bg, ripple + mjMirror(by + 6, boat, .3) + `<path d="M${bx + 44} ${by - 6}L${bx + 50} ${by - 40}" stroke="#4a3d5e" stroke-width="1.6"/>` + mjGirl(c, bx - 4, by - 2, 1.3, 'perch', { legs:false, arm:'M.6 -25Q8 -20 16 -17', hand:[16.4, -17] }) + `<path d="M${bx + 14} ${by - 24}L${bx - 26} ${by + 16}" stroke="#7a6a8e" stroke-width="1.8"/>` + boat + mjLantern(c, bx + 50, by - 40) + mjReflect(c, [[bx + 50, by - 32, 1.2]], by + 6, '#ffd27a', .55)];
+  },
+  // Bậu cửa sổ: cửa sổ sáng đèn, Moon ngồi trên bậu, chậu hoa nhỏ
+  d130:c => {
+    let bg = mjSkyN(c, '#070d24', '#13214a', 40, { stars:24, streaks:6 }) + `<path d="M-10 40L410 34V44L-10 52Z" fill="#070c1d"/>`;
+    bg += `<rect y="48" width="400" height="202" fill="${mjLin(c, [[0, '#121d40'], [1, '#0b132c']])}"/>` + mjS(c, 300, [0, 48, 400, 250], ['#16234c', '#1b2a57', '#0e1835'], { ang:0, len:[10, 18], w:[5, 6.5], op:.5, jit:1, bend:0 });
+    bg += mjGlow(c, 200, 120, 190, 'w', .55) + `<rect x="108" y="58" width="184" height="136" rx="4" fill="#0a1126"/><rect x="116" y="66" width="168" height="124" fill="${mjLin(c, [[0, '#ffe2a0'], [1, '#f2a85a']])}"/>`;
+    bg += mjS(c, 50, [118, 68, 282, 188], ['#ffe9b8', '#f6c27a'], { ang:-60, len:[10, 30], w:[3, 5], op:.4 }) + `<path d="M200 66v124M116 128h168" stroke="#2a2030" stroke-width="3" opacity=".9"/>`;
+    bg += `<g clip-path="${mjClip(c, '<rect x="116" y="66" width="168" height="124"/>')}"><path d="M116 66H158Q146 110 154 190H116Z" fill="#f0b9a6"/><path d="M284 66H242Q254 110 246 190H284Z" fill="#f0b9a6"/>` + mjS(c, 30, [116, 66, 158, 190], ['#d48f84', '#fbd3c2'], { ang:88, len:[30, 70], w:[2, 3], op:.6, jit:3, in:(x, y) => x < 156 - (y - 66) * .05 }) + mjS(c, 30, [242, 66, 284, 190], ['#d48f84', '#fbd3c2'], { ang:92, len:[30, 70], w:[2, 3], op:.6, jit:3, in:(x, y) => x > 244 + (y - 66) * .05 }) + '</g>';
+    bg += `<path d="M150 124q8 4 12 0M250 124q-8 4-12 0" stroke="#9fc4ff" stroke-width="3" fill="none"/>`;
+    bg += `<path d="M96 192H304L298 204H102Z" fill="#33467c"/><path d="M96 192H304" stroke="#5a72b0" stroke-width="2"/><rect x="112" y="206" width="176" height="26" rx="2" fill="#5a3b3b"/>` + mjS(c, 30, [112, 206, 288, 232], ['#6d4848', '#4a2f30'], { ang:0, len:[20, 40], w:[2], op:.5 });
+    bg += mjVine(mjCurve([[60, 250], [40, 180], [90, 120], [70, 50]], 30)) + mjVine(mjCurve([[350, 250], [372, 190], [320, 130], [346, 60]], 30));
+    let fl = ''; for (let i = 0; i < 26; i++) { const x = 118 + i * 6.6 + c.r() * 3, y = 204 - c.r() * 12; fl += `<path d="M${_r1(x)} 208q${_r1((c.r() - .5) * 6)} -6 0 ${_r1(y - 208)}" stroke="#2a6a55" stroke-width="1.2" fill="none"/>`; }
+    for (let i = 0; i < 22; i++) fl += mjMini(118 + c.r() * 164, 190 + c.r() * 14, mjPick(c.r, ['#9fc4ff', '#cfe0ff', '#f3a3ad', '#ffffff']));
+    return [bg, fl + mjCat(c, 200, 193, 3, 'sitF', { shadow:false })];
+  },
+  // Chiếc ô cho người lạ: trạm xe buýt đêm mưa, cô gái để lại chiếc ô che cho chú cún nhỏ
+  d160:c => {
+    const gy = 186; let bg = mjSkyN(c, '#050a1c', '#14244a', gy, { stars:0, streaks:90 });
+    const T = mjTown(c, gy - 30, { h:[30, 80], lit:.25, cols:['#0c1530', '#0f1a3a'] }); bg += T.svg + `<rect y="${gy - 30}" width="400" height="30" fill="#0b1430"/>`;
+    bg += `<rect y="${gy}" width="400" height="${250 - gy}" fill="${mjLin(c, [[0, '#101b3a'], [1, '#080f24']])}"/>` + mjS(c, 150, [-10, gy, 410, 250], ['#1a2a52', '#22355f', '#0c152f'], { ang:0, len:[14, 54], w:[1.6, 2.6], op:.6, jit:2 });
+    bg += mjGlow(c, 110, 130, 110, 'c', .7) + `<rect x="40" y="70" width="150" height="8" fill="#0a1126"/><path d="M46 78V${gy}M184 78V${gy}" stroke="#0a1126" stroke-width="4"/><rect x="60" y="90" width="64" height="80" fill="#bcd4ff" opacity=".55"/><rect x="60" y="90" width="64" height="80" fill="none" stroke="#0a1126" stroke-width="2"/>`;
+    bg += mjS(c, 20, [62, 92, 122, 168], ['#ffffff', '#e2ecff'], { ang:-60, len:[10, 30], w:[3], op:.35 }) + `<rect x="74" y="146" width="96" height="6" rx="2" fill="#2a3560"/><path d="M80 152v14M164 152v14" stroke="#2a3560" stroke-width="3"/>`;
+    bg += `<path d="M210 ${gy}V60" stroke="#0a1126" stroke-width="3"/><circle cx="210" cy="56" r="11" fill="#2f6fd6"/><circle cx="210" cy="56" r="7.5" fill="none" stroke="#e8eefc" stroke-width="1.6"/>` + mjGlow(c, 210, 56, 28, 'c', .7);
+    bg += mjReflect(c, [[110, 120, 3]], gy, '#bcd4ff', .35) + mjReflect(c, T.lights, gy, '#ffcf73', .25) + mjLampN(c, 360, gy + 4, 130, { R:80, cone:40 }) + mjReflect(c, [[360, gy - 122, 1.6]], gy + 4, '#ffe3a0', .4);
+    return [bg, mjUmbC(c, 148, gy + 2, 24, -38, { col:'#ffd56b', fill:.85, shaft:.5, handle:false }) + mjPup(c, 158, gy + 10, 1.3) + mjGirl(c, 288, gy + 30, 1.3, 'side', { arm:'M1.6 -42.4Q4 -50 2.6 -57', hand:[2.4, -57.4], wind:5 })];
+  },
+  // Thiên hà nhỏ: dải ngân hà xoáy, chòm sao hình chú mèo, cô gái giơ tay chạm tới
+  d200:c => {
+    const gx = 296, gy = 150; let bg = `<rect width="400" height="250" fill="${mjRad(c, [[0, '#2a2266'], [.45, '#121640'], [1, '#04060f']], .64, .38, .75)}"/>` + mjGlow(c, gx, gy, 150, 'v', .9);
+    for (let k = 0; k < 2; k++) for (let i = 0; i < 260; i++) { const t = i / 260 * 3.2, rr = 6 + t * 34, a = t * 1.9 + k * Math.PI + (c.r() - .5) * .5, x = gx + Math.cos(a) * rr * 1.3 + (c.r() - .5) * 10, y = gy + Math.sin(a) * rr * .56 + (c.r() - .5) * 6; bg += mjS(c, 1, [x, y, x + .01, y + .01], [mjPick(c.r, ['#6b6fd6', '#9a8be6', '#c7b8ff', '#4a5bc4'])], { ang:(a + Math.PI / 2) * 180 / Math.PI, len:[8, 22], w:[2, 3.4], op:.5, jit:6, bend:.2 }); }
+    bg += mjGlow(c, gx, gy, 40, 'm', 1) + mjDots(c, 220, [gx - 150, gy - 70, gx + 150, gy + 70], ['#e9e4ff', '#ffffff', '#c7b8ff'], [.4, 1.2], .8, (x, y) => ((x - gx) / 170) ** 2 + ((y - gy) / 70) ** 2 < 1) + mjStarfield(c, 160, [0, 0, 400, 250], { sz:[.4, 1.2], sparks:10, op:.7 });
+    const P = [[-16, 30], [-15, 8], [-12, -4], [-14, -16], [-8, -10], [0, -10], [6, -16], [5, -4], [8, 8], [10, 30]].map(([x, y]) => [176 + x * 2.5, 58 + y * 2.5]), T = [P[9][0] + 30, P[9][1] - 26];
+    let cons = `<path d="${mjPoly(P)}M${_r1(P[9][0])} ${_r1(P[9][1])}Q${_r1(P[9][0] + 40)} ${_r1(P[9][1] + 4)} ${_r1(T[0])} ${_r1(T[1])}" stroke="#dbe6ff" stroke-width=".9" fill="none" opacity=".6"/>`;
+    P.concat([T]).forEach(([x, y], i) => { const warm = i >= 3 && i <= 6; cons += mjGlow(c, x, y, 10, warm ? 'w' : 'm', .9) + mjSpark(x, y, warm ? 3.4 : 2.6, warm ? '#ffcf8a' : '#fffbea'); });
+    return [bg, cons + mjGirl(c, 104, 270, 2.2, 'reach', { shadow:false, wind:-4 })];
+  },
+  // Mùa mưa lại về: rừng đêm mưa, cô gái cầm đèn lồng đi giữa những thân cây
+  d250:c => {
+    let bg = `<rect width="400" height="250" fill="${mjLin(c, [[0, '#0a142e'], [.6, '#16284e'], [1, '#0c1530']])}"/>`;
+    const trunks = (n, w, col, y0, y1) => { let s = ''; for (let i = 0; i < n; i++) { const x = (i + c.r() * .8) * 400 / n, ww = w * (.7 + c.r() * .6); s += `<path d="M${_r1(x - ww / 2)} ${y1}C${_r1(x - ww * .4)} ${(y0 + y1) / 2} ${_r1(x - ww * .3)} ${y0} ${_r1(x - ww * .2)} ${y0 - 10}H${_r1(x + ww * .2)}C${_r1(x + ww * .3)} ${y0} ${_r1(x + ww * .4)} ${(y0 + y1) / 2} ${_r1(x + ww / 2)} ${y1}Z" fill="${col}"/>`; } return s; };
+    bg += trunks(14, 8, '#1e3160', -10, 170) + mjS(c, 60, [-20, 120, 420, 180], ['#3a5486', '#4f69a0'], { ang:0, len:[60, 140], w:[8, 14], op:.18, jit:2 });
+    bg += trunks(9, 16, '#132247', -10, 196) + mjS(c, 120, [-20, -20, 420, 60], ['#0f1d40', '#162a55', '#1d3366'], { ang:-10, len:[10, 26], w:[4, 6], op:.8, jit:30, bend:.4 });
+    bg += `<path d="M150 250Q190 200 196 170Q200 150 210 140L222 140Q214 160 222 180Q240 220 300 250Z" fill="#1d2d5a"/>` + mjS(c, 60, [150, 140, 300, 250], ['#26396a', '#2f4680'], { ang:0, len:[10, 30], w:[2, 3], op:.6, in:(x, y) => Math.abs(x - (205 + (y - 140) * .1)) < 8 + (y - 140) * .6 });
+    bg += trunks(5, 34, '#08102a', -20, 250) + mjBush(c, 30, 236, 60, 26, ['#0a1d24', '#123330', '#1a443d'], 90) + mjBush(c, 380, 240, 60, 28, ['#0a1d24', '#123330', '#1a443d'], 90) + mjFlies(c, 22, [0, 60, 400, 230], { sz:.8 });
+    return [bg, mjGlow(c, 210, 190, 90, 'w', .5) + mjS(c, 50, [160, 130, 270, 240], ['#ffe3a0'], { ang:105, len:[6, 12], w:[1], op:.5, jit:3 }) + mjGirl(c, 206, 214, 1.25, 'back', { arm:'M6 -42.5Q10 -36 13 -32', hand:[13, -32], lantern:[13, -32] })];
+  },
+  // Lá thư gửi Moon: gấp lá thư thành thuyền giấy, thả trôi trên mặt nước có ngọn nến nhỏ
+  d300:c => {
+    let bg = `<rect width="400" height="250" fill="${mjLin(c, [[0, '#091535'], [1, '#050b20']])}"/>` + mjS(c, 300, [-20, 0, 420, 250], ['#132652', '#1a3060', '#0c1a3e', '#22397a'], { ang:0, len:[16, 60], w:[1.6, 2.6, 3.6], op:.6, jit:3, bend:.1 });
+    bg += mjGlow(c, 340, 50, 90, 'm', .5) + mjS(c, 60, [290, 30, 400, 70], ['#fff2c4', '#e9dcae'], { ang:0, len:[6, 26], w:[1.2, 1.8], op:.6, jit:3 }) + mjDots(c, 50, [0, 0, 400, 250], ['#cfe0ff'], [.5, 1], .4);
+    const bx = 248, by = 150; for (let i = 1; i <= 5; i++) bg += `<ellipse cx="${bx}" cy="${by + 6}" rx="${i * 22}" ry="${i * 5}" fill="none" stroke="#5a78b3" stroke-width="${_r1(1.1 - i * .15)}" opacity="${_r1(.7 - i * .1)}"/>`;
+    bg += `<path d="M-10 250V196Q40 180 90 192Q130 200 168 250Z" fill="#0c1a22"/>` + mjS(c, 80, [-10, 176, 170, 250], ['#16342f', '#1f4a3c', '#2a5f4c'], { ang:-75, len:[8, 22], w:[1.4, 2], op:.85, jit:12, bend:.3, in:(x, y) => y > 192 + (x - 40) * .2 && y > 186 });
+    for (let i = 0; i < 14; i++) { const x = c.r() * 150, y = 200 + c.r() * 40; if (y > 198 + (x - 40) * .2) bg += mjMini(x, y, mjPick(c.r, ['#9fc4ff', '#cfe0ff', '#f3a3ad'])); }
+    bg += mjFlies(c, 14, [140, 40, 400, 200], { sz:.8 });
+    const boat = `<path d="M${bx - 22} ${by}L${bx + 22} ${by}L${bx + 14} ${by + 8}H${bx - 14}Z" fill="#eef2fb" stroke="#a9b6d6" stroke-width=".7"/><path d="M${bx - 12} ${by}L${bx} ${by - 20}L${bx + 12} ${by}Z" fill="#dde4f4"/><path d="M${bx} ${by - 20}L${bx + 12} ${by}H${bx + 4}Z" fill="#a9b6d6"/>
+      <path d="M${bx - 14} ${by + 3}h20M${bx - 12} ${by + 5.5}h16M${bx - 7} ${by - 6}h8M${bx - 5} ${by - 9}h6" stroke="#7a8ab4" stroke-width=".5" opacity=".8"/><rect x="${bx - 2}" y="${by - 30}" width="4" height="10" rx="1" fill="#fff6dc"/><path d="M${bx} ${by - 31}q-2.6-3.6 0-7.4q2.6 3.8 0 7.4z" fill="#ffd27a"/>`;
+    return [bg, mjGlow(c, bx, by - 34, 50, 'w', .9) + mjReflect(c, [[bx, by - 20, 1.4]], by + 8, '#ffd27a', .55) + boat + mjGlow(c, bx, by - 34, 10, 'f', 1) + mjGirl(c, 104, 200, 1.5, 'kneel', { arm:'M4.6 -29.2Q12 -22 19 -14', hand:[19.4, -13.6] })];
+  },
+  // Gặp lại: bờ cát dưới trăng tròn, ngọn hải đăng quét sáng, ôm Moon trong vòng tay
+  d365:c => {
+    const hz = 128; let bg = mjSkyN(c, '#09122e', '#25396b', hz + 10, { stars:110, sparks:12 }) + mjMoonN(c, 104, 62, 32, { halo:4.8 });
+    bg += `<path d="M330 42L-40 4L-40 96Z" fill="${mjLin(c, [[0, '#ffe7a8', .5], [1, '#ffe7a8', 0]], 0, 0, 1, 0)}"/>`;
+    bg += mjWater(c, hz, 200, { top:'#1a2c58', bot:'#0e1a3a', path:104, spread:90, glints:280, n:160 });
+    bg += `<path d="M300 200L310 130Q340 96 410 86V200Z" fill="#0b1330"/>` + mjS(c, 60, [300, 90, 410, 200], ['#141f45', '#1b2a58', '#070d22'], { ang:-20, len:[8, 20], w:[3, 5], op:.7, jit:20, in:(x, y) => y > 130 - (x - 310) * .5 && y > 88 });
+    bg += `<path d="M322 120L328 50H352L358 120Z" fill="#d5ddf0"/><path d="M340 50H352L358 120H340Z" fill="#9aa8cc"/><path d="M324.4 92H355.6L356.4 102H323.6ZM326.6 66H353.4L354 74H326Z" fill="#3a5492"/><rect x="326" y="34" width="28" height="16" fill="#ffe7a8"/>` + mjGlow(c, 340, 42, 60, 'w', .9) + `<path d="M322 34L340 22L358 34Z" fill="#0b1330"/><rect x="322" y="48" width="36" height="3" fill="#0b1330"/><path d="M330 34v16M340 34v16M350 34v16" stroke="#0b1330" stroke-width="1"/>`;
+    bg += `<path d="M-10 200Q100 188 200 196T410 192V250H-10Z" fill="${mjLin(c, [[0, '#2b3360'], [1, '#1a2048']])}"/>` + mjS(c, 220, [-10, 188, 410, 250], ['#353e6e', '#23295a', '#414b7c'], { ang:-4, len:[6, 20], w:[1.6, 2.4], op:.6, jit:6, in:(x, y) => y > 196 });
+    bg += `<path d="M-10 199Q60 192 120 198T260 196T410 192" stroke="#d5e2ff" stroke-width="1.6" fill="none" opacity=".55"/><path d="M-10 203Q80 197 160 202T410 197" stroke="#9fb8e6" stroke-width="1" fill="none" opacity=".4"/>`;
+    bg += mjPrints(mjCurve([[10, 250], [60, 236], [120, 234], [186, 228]], 12), 'foot', '#11163a', .6, 1.1) + mjPrints(mjCurve([[110, 200], [150, 206], [190, 214], [214, 224]], 12), 'paw', '#11163a', .6, 1.2);
+    return [bg, mjGlow(c, 216, 200, 90, 'w', .6) + mjFlies(c, 12, [130, 130, 300, 240], { sz:.9 }) + mjSpark(252, 150, 4.4, '#ffe7a0') + mjSpark(176, 160, 3.2) + mjSpark(236, 128, 2.4) + mjGirl(c, 206, 242, 2.1, 'kneel', { cat:true })];
+  },
+  // Ngủ cạnh nhau: phòng ngủ đêm, Moon cuộn tròn ngủ sát bên mặt cô gái
+  d400:c => {
+    let bg = `<rect width="400" height="250" fill="${mjLin(c, [[0, '#0f1838'], [1, '#18264f']])}"/>` + mjS(c, 160, [0, 0, 400, 250], ['#141f45', '#1a2a55', '#0e1736'], { ang:90, len:[20, 50], w:[4, 7], op:.4, jit:2 }) + mjDots(c, 40, [0, 0, 400, 150], ['#3a5090'], [1.6, 2.4], .6);
+    bg += `<rect x="30" y="30" width="96" height="100" rx="3" fill="#081022"/><rect x="36" y="36" width="84" height="88" fill="${mjLin(c, [[0, '#0a1430'], [1, '#22397a']])}"/>` + mjStarfield(c, 26, [38, 38, 118, 110], { sparks:2 }) + mjMoonN(c, 92, 62, 12, { halo:2.4 }) + `<path d="M78 36v88M36 80h84" stroke="#081022" stroke-width="3"/>`;
+    bg += `<path d="M24 26Q14 80 26 140" stroke="#2e3f78" stroke-width="12" fill="none"/><path d="M132 26Q142 80 130 140" stroke="#2e3f78" stroke-width="12" fill="none"/><path d="M120 124L36 124L170 250H320Z" fill="${mjLin(c, [[0, '#cfe0ff', .14], [1, '#cfe0ff', .03]])}"/>`;
+    for (let i = 0; i < 16; i++) { const x = 150 + i * 15, y = 22 + Math.sin(i * .7) * 3 + (i - 7.5) ** 2 * .1; bg += mjGlow(c, x, y, 8, 'f', .7) + `<circle cx="${_r1(x)}" cy="${_r1(y)}" r="1.5" fill="#ffe7a0"/>`; }
+    bg += `<path d="M140 20Q260 32 390 18" stroke="#0a1126" stroke-width=".7" fill="none"/><rect x="350" y="84" width="44" height="150" rx="6" fill="#3a2c48"/><rect x="355" y="90" width="34" height="138" rx="4" fill="#4a3a5a"/><rect x="96" y="150" width="12" height="84" rx="3" fill="#3a2c48"/>`;
+    bg += `<rect x="100" y="176" width="256" height="36" fill="#2a2440"/><rect y="226" width="400" height="24" fill="#0c1430"/>` + `<rect x="30" y="182" width="44" height="44" rx="3" fill="#2a2240"/>` + mjGlow(c, 52, 170, 40, 'w', .9) + `<path d="M52 182v-8" stroke="#5a4a6e" stroke-width="2"/><path d="M42 174h20l-4-12h-12z" fill="#ffe7a6"/>`;
+    const N = MJN, hx = 300, hy = 134, Q = `M110 176Q112 156 140 152Q200 140 250 146Q282 150 296 148Q306 150 312 158Q326 166 350 168V214H110Z`;
+    const pillow = `<path d="M282 146Q284 128 304 126H338Q352 128 350 146Q348 156 336 156H296Q284 156 282 146Z" fill="#e9eef8"/><path d="M288 150q24 6 56 0" stroke="#b9c6e4" stroke-width="2" fill="none"/>`;
+    const head = `<g transform="translate(${hx} ${hy}) rotate(-14) scale(1.9)"><path d="M3 -6C12 -9 19 -4 21 3C22 9 18 12 12 12C6 12 3 8 2 5Z" fill="${N.hair}"/>${mjLn('M6 6C12 9 18 10 24 14M8 2C14 4 20 4 25 8', N.hair, 2.2)}${mjLn('M7 -5C13 -6 17 -2 18 3', N.hairH, .5, .9)}
+      <circle r="6.6" fill="${N.skin}"/><path d="M-6.6 -1C-7 -7 -1 -8.6 3 -7.8C6 -7 7.4 -4 6.8 0Q5 -2.6 3 -2.4Q1 -1 -.6 -2.2Q-2.4 -.6 -4 -1.4Q-5.4 0 -6.6 -1Z" fill="${N.hair}"/>${mjLn('M-3.8 1.4q1 .9 2 0M1.4 1.4q1 .9 2 0', N.eye, .6)}
+      <ellipse cx="-3.8" cy="3.4" rx="1.3" ry=".8" fill="${N.cheek}" opacity=".8"/><ellipse cx="3.6" cy="3.4" rx="1.3" ry=".8" fill="${N.cheek}" opacity=".8"/>${mjLn('M-.6 4.2q.6.4 1.2 0', '#b06a6a', .45)}<path d="M5.4 -6.4l-2.6-1.8v3.6zM5.4 -6.4l2.6-1.8v3.6z" fill="${N.ribbon}"/></g>`;
+    const quilt = `<path d="${Q}" fill="#3a59a8"/>` + mjS(c, 120, [110, 140, 350, 214], ['#4a6cc0', '#2f4a92', '#5a7cd0'], { ang:-4, len:[10, 30], w:[2, 3], op:.6, jit:6, in:(x, y) => y > 150 + Math.max(0, (x - 250) * .2) }) + `<path d="M110 176Q112 156 140 152Q200 140 250 146Q282 150 296 148Q306 150 312 158Q326 166 350 168" stroke="#7a96e0" stroke-width="2" fill="none"/>`;
+    let pat = ''; for (let i = 0; i < 10; i++) pat += mjSpark(126 + i * 22 + (i % 2) * 6, 176 + (i % 3) * 12, 2.4, '#ffe7a0', .8);
+    return [bg, pillow + head + quilt + pat + mjCat(c, 262, 152, 1.9, 'curl', { shadow:false }) + `<text x="238" y="118" font-size="13" font-weight="700" fill="#9fc4ff" opacity=".8" font-family="Baloo 2, sans-serif">z z</text>`];
+  },
+  // Mẩu ánh trăng: ngồi trên vầng trăng khuyết giữa biển mây và sao
+  d450:c => {
+    let bg = `<rect width="400" height="250" fill="${mjLin(c, [[0, '#04071a'], [1, '#13204a']])}"/>` + mjStarfield(c, 220, [0, 0, 400, 200], { sparks:16 }) + mjGlow(c, 200, 106, 160, 'm', .7);
+    const cloud = (y, cols, n, op) => mjS(c, n, [-30, y - 14, 430, y + 40], cols, { ang:0, len:[30, 90], w:[10, 16, 22], op, jit:3, bend:.1 });
+    bg += cloud(196, ['#1a2a5c', '#22356e', '#14224c'], 70, .95) + mjS(c, 50, [-20, 186, 420, 200], ['#c9c4e8', '#e9dcae'], { ang:0, len:[20, 60], w:[1.4], op:.35, jit:2 }) + cloud(226, ['#101a40', '#16234e', '#0c1636'], 70, 1);
+    const id = c.id(); c.def(`<mask id="${id}"><circle cx="200" cy="98" r="64" fill="#fff"/><circle cx="200" cy="66" r="62" fill="#000"/></mask>`);
+    bg += `<g mask="url(#${id})"><circle cx="200" cy="98" r="64" fill="${MJN.moon}"/>${mjS(c, 140, [136, 100, 264, 164], ['#ffe39a', '#fffbea', '#f3d98a'], { ang:-10, len:[10, 30], w:[3, 5], op:.6 })}</g>`;
+    bg += `<path d="M146 60l2 22" stroke="#d9cfa4" stroke-width=".8"/>` + mjGlow(c, 148, 88, 22, 'w', .9) + mjSpark(148, 88, 5, '#ffe7a0');
+    return [bg, mjGirl(c, 190, 129, 1.05, 'perch', { arm:'M.6 -25Q8 -20 14 -14', hand:[14.2, -13.8] }) + mjCat(c, 214, 130, 1, 'sitB', { shadow:false })];
+  },
+  // Những đêm sau đó: ngồi trên mái nhà ngắm mưa sao băng, hũ đom đóm bên cạnh
+  after:c => {
+    let bg = mjSkyN(c, '#050a1f', '#1d3061', 200, { stars:130, sparks:10 });
+    for (let i = 0; i < 8; i++) { const x = 60 + c.r() * 320, y = 10 + c.r() * 90, l = 30 + c.r() * 50; bg += `<path d="M${_r1(x)} ${_r1(y)}l${_r1(-l)} ${_r1(l * .45)}" stroke="${mjLin(c, [[0, '#fff', .9], [1, '#fff', 0]], 1, 0)}" stroke-width="1.4" stroke-linecap="round"/>` + mjSpark(x, y, 2.4); }
+    bg += mjDots(c, 70, [0, 150, 400, 200], ['#ffcf73', '#ffe3a0', '#ffb44d'], [1.4, 2.6], .8) + mjGlow(c, 200, 200, 220, 'w', .25);
+    bg += `<path d="M-10 200L410 176V250H-10Z" fill="#141a3a"/>`; for (let i = 0; i < 6; i++) bg += `<path d="M-10 ${208 + i * 9}L410 ${184 + i * 9}" stroke="#0c1130" stroke-width="2"/>`;
+    bg += mjS(c, 160, [-10, 176, 410, 250], ['#1c2348', '#232b55', '#0f1434'], { ang:-3, len:[6, 14], w:[4, 6], op:.6, jit:2, in:(x, y) => y > 200 - x * .057 });
+    bg += `<path d="M-10 200L410 176" stroke="#2c3668" stroke-width="3"/><rect x="330" y="140" width="24" height="44" fill="#1a2046"/><rect x="326" y="136" width="32" height="7" fill="#232a55"/>`;
+    const jar = `<path d="M134 192q-6-2-6-10v-10q0-4 4-5h12q4 1 4 5v10q0 8-6 10z" fill="#ffe08a" opacity=".35"/><rect x="132" y="164" width="12" height="4" rx="1" fill="#8a7a9e"/><path d="M134 192q-6-2-6-10v-10q0-4 4-5h12q4 1 4 5v10q0 8-6 10z" fill="none" stroke="#e9eef8" stroke-width=".8" opacity=".7"/>`;
+    let flies = ''; for (let i = 0; i < 9; i++) { const x = 132 + c.r() * 12, y = 172 + c.r() * 18; flies += mjGlow(c, x, y, 5, 'f', .9) + `<circle cx="${_r1(x)}" cy="${_r1(y)}" r=".9" fill="#fffbe0"/>`; }
+    for (let i = 0; i < 10; i++) { const y = 160 - i * 10 - c.r() * 6, x = 138 + Math.sin(i) * 10 + (c.r() - .5) * 8; flies += mjGlow(c, x, y, 5, 'f', _r1(.8 - i * .06)) + `<circle cx="${_r1(x)}" cy="${_r1(y)}" r=".9" fill="#fffbe0"/>`; }
+    return [bg, mjGlow(c, 138, 180, 50, 'w', .8) + jar + flies + mjGirl(c, 186, 191, 1.25, 'sit') + mjCat(c, 216, 189, 1.3, 'sitB')];
+  }
 };
-function mjCrayonDefs(k, seed){
-  return `<filter id="${k}c" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency=".04" numOctaves="2" seed="${seed}" result="w"/><feDisplacementMap in="SourceGraphic" in2="w" scale="3" xChannelSelector="R" yChannelSelector="G" result="d"/>
-    <feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="${seed + 5}" result="g"/><feColorMatrix in="g" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -8 0 0 0 6.6" result="m"/><feComposite in="d" in2="m" operator="in"/></filter>
-    ${Object.entries(MJ_SKIES).map(([n, c]) => `<linearGradient id="${k}${n}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c[0]}"/><stop offset="1" stop-color="${c[1]}"/></linearGradient>`).join('')}`;
+function mjTexDefs(k, seed){
+  return `<filter id="${k}w" x="-2%" y="-2%" width="104%" height="104%"><feTurbulence type="fractalNoise" baseFrequency=".045" numOctaves="2" seed="${seed}" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.6" xChannelSelector="R" yChannelSelector="G"/></filter>
+    <filter id="${k}g" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="2" seed="${seed + 3}"/><feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 .97  0 0 0 0 .9  7 0 0 0 -4.1"/></filter>
+    <filter id="${k}d" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="${seed + 9}"/><feColorMatrix type="matrix" values="0 0 0 0 .01  0 0 0 0 .02  0 0 0 0 .07  -7 0 0 0 2.9"/></filter>`;
 }
 const MJ_RAINY = { start:1, d1:1, d3:1, d160:1, d250:1 };
 function mjScene(id, seed = 7){
-  const k = 'mjs' + (++_mjN), r = mjRng(seed);
-  return `<svg class="mj-scene" viewBox="0 0 400 250" role="img" aria-label="${esc(mjTitle(mjStop(id)))}" preserveAspectRatio="xMidYMid slice"><defs>${mjCrayonDefs(k, seed % 50)}</defs><rect width="400" height="250" fill="${MJC.paper}"/>
-    <g filter="url(#${k}c)">${(MJ_SCENES[id] || MJ_SCENES.after)(r, k)}</g>${MJ_RAINY[id] && mjRainOn() ? mjRain(r, 400, 250) : ''}</svg>`;
+  const k = 'mjs' + (++_mjN), c = mjCtx(seed, k), [bg, fg] = (MJ_SCENES[id] || MJ_SCENES.after)(c), rain = MJ_RAINY[id] && mjRainOn() ? mjRain(c, 80) : '';
+  return `<svg class="mj-scene" viewBox="0 0 400 250" role="img" aria-label="${esc(mjTitle(mjStop(id)))}" preserveAspectRatio="xMidYMid slice"><defs>${mjTexDefs(k, seed % 50)}${c.d}</defs><rect width="400" height="250" fill="${MJN.navy}"/>
+    <g filter="url(#${k}w)">${bg}</g>${fg}<rect width="400" height="250" filter="url(#${k}g)" opacity=".06" pointer-events="none"/><rect width="400" height="250" filter="url(#${k}d)" opacity=".16" pointer-events="none"/>${rain}</svg>`;
 }
 const mjArt = s => { const u = cimg('mj_art_' + s.id); return `<div class="mj-art" data-cms-img="mj_art_${s.id}">${u ? `<img alt="" src="${esc(u)}" loading="lazy">` : mjScene(s.id, 11 + MJ_STOPS.indexOf(s) * 7)}</div>`; };
+
+/* ---------- nền bản đồ con đường: đi từ dưới lên, qua nhiều cảnh đêm ----------
+   yOf(i) = toạ độ y của trạm i. Các vùng: phố mưa (trạm 0–4), mặt nước (5–7), đồng đom đóm (8–10), rừng thông và hồ (11–13),
+   biển sao (14–16), bờ biển có hải đăng (17, nơi gặp lại Moon), trên mây (18–20). Không dùng bộ lọc để cuộn mượt trên điện thoại. */
+function mjMapBg(c, W, H, yOf, o = {}){
+  const r = c.r, mid = (a, b) => (yOf(a) + yOf(b)) / 2, Z = [H, mid(4, 5), mid(7, 8), mid(10, 11), mid(13, 14), mid(16, 17), mid(17, 18), 0];
+  const band = (i, pad = 0) => [-10, Z[i + 1] - pad, W + 10, Z[i] + pad];
+  const off = y => _r1(Math.min(1, Math.max(0, y / H)));
+  let s = `<rect width="${W}" height="${H}" fill="${mjLin(c, [[0, '#04071a'], [off(Z[6]), '#0d1638'], [off(Z[5] - 40), '#14234c'], [off(Z[5] + 30), '#120f36'], [off(Z[4] + 30), '#0d1a2c'], [off(Z[3] + 30), '#0c2329'], [off(Z[2] + 30), '#0d2340'], [off(Z[1] + 30), '#0e1834'], [1, '#0a1228']])}"/>`;
+  // phố mưa: nhà hai bên đường, cửa sổ sáng, đèn đường
+  for (let y = Z[0] + 10; y > Z[1] + 40; y -= 120 + r() * 40) {
+    [[-14, 70], [W - 70, W + 14]].forEach(([x0, x1]) => { const T = mjTown(c, y, { x0, x1, h:[30, 70], lit:.3 }); s += T.svg + mjReflect(c, T.lights.slice(0, 4), y, '#ffcf73', .3); });
+  }
+  s += mjS(c, 260, band(0), ['#1a2a52', '#22355f', '#0c152f'], { ang:0, len:[14, 50], w:[1.6, 2.6], op:.4, jit:2 });
+  // mặt nước: sóng ngang, đường trăng
+  s += mjS(c, 420, band(1, -20), ['#1c3264', '#24407a', '#10204a', '#2e4f8c'], { ang:0, len:[10, 46], w:[1.4, 2.4, 3.4], op:.55, jit:3, bend:.1 });
+  { const y0 = Z[2] + 40, y1 = Z[1] - 20; s += mjMoonN(c, 270, y0 + 40, 16, { cres:[.42, -.2], halo:3.4 }); let d = ''; for (let i = 0; i < 160; i++) { const t = r(), y = y0 + 70 + t * (y1 - y0 - 70), x = 270 + (r() + r() - 1) * (10 + t * 60), l = 3 + r() * 12; d += `M${_r1(x - l / 2)} ${_r1(y)}h${_r1(l)}`; } s += `<path d="${d}" stroke="#fff2c4" stroke-width="1.3" stroke-linecap="round" opacity=".6"/>`; }
+  // đồng đom đóm: cỏ rạp theo gió, hoa li ti
+  const fa = (x, y) => -64 + 24 * Math.sin(x * .02 + y * .016);
+  s += mjS(c, 700, band(2, -10), ['#123330', '#1a443d', '#225448', '#0d2827'], { fa, len:[14, 34], w:[1.4, 2.2], op:.75, jit:6, bend:.45 }) + mjS(c, 200, band(2, -10), ['#3a7a63', '#4f9378'], { fa, len:[10, 26], w:[1], op:.6, jit:6, bend:.5 });
+  s += mjDots(c, 90, band(2, -20), ['#e9f1ff', '#bcd6ff', '#9fc4ff'], [1.4, 2.4], .8) + mjFlies(c, 40, band(2, -20));
+  // rừng thông, sương mù
+  for (let y = Z[3] - 10; y > Z[4] + 30; y -= 34) { for (let x = -10; x < 72; x += 10 + r() * 10) s += mjPine(x, y, 40 + r() * 34, r() < .5 ? '#10233a' : '#163049'); for (let x = W - 72; x < W + 10; x += 10 + r() * 10) s += mjPine(x, y, 40 + r() * 34, r() < .5 ? '#10233a' : '#163049'); }
+  s += mjS(c, 70, band(3, -20), ['#3a5486', '#4f69a0'], { ang:0, len:[60, 140], w:[8, 14], op:.12, jit:2 }) + mjFlies(c, 24, band(3, -20), { sz:.8 });
+  // biển sao, dải ngân hà xoáy
+  { const gx = W / 2, gy = (Z[4] + Z[5]) / 2; s += mjGlow(c, gx, gy, 220, 'v', .8); for (let k = 0; k < 2; k++) for (let i = 0; i < 140; i++) { const t = i / 140 * 3, rr = 8 + t * 40, a = t * 1.9 + k * Math.PI + (r() - .5) * .5, x = gx + Math.cos(a) * rr * 1.4, y = gy + Math.sin(a) * rr * 1.1; s += mjS(c, 1, [x, y, x + .01, y + .01], [mjPick(r, ['#6b6fd6', '#9a8be6', '#c7b8ff'])], { ang:(a + Math.PI / 2) * 180 / Math.PI, len:[8, 20], w:[2, 3], op:.45, jit:6, bend:.2 }); } }
+  s += mjStarfield(c, 260, band(4, -10), { sparks:18 });
+  // bờ biển và hải đăng (trạm gặp lại)
+  { const y = yOf(17), sea = y - 70; s += mjS(c, 200, [-10, sea, W + 10, y + 40], ['#1c3264', '#24407a', '#2e4f8c'], { ang:0, len:[10, 40], w:[1.4, 2.4], op:.55, jit:3 });
+    s += `<path d="M-10 ${y + 30}Q${W / 2} ${y + 6} ${W + 10} ${y + 26}V${Z[5] + 40}H-10Z" fill="${mjLin(c, [[0, '#262e5c'], [.6, '#1d2450'], [1, '#1d2450', 0]])}"/>` + mjS(c, 120, [-10, y + 6, W + 10, Z[5]], ['#353e6e', '#2b3462'], { ang:-4, len:[6, 18], w:[1.6, 2.4], op:.6, jit:6, in:(px, py) => py > y + 26 }) + `<path d="M-10 ${y + 29}Q${W / 2} ${y + 5} ${W + 10} ${y + 25}" stroke="#d5e2ff" stroke-width="1.4" fill="none" opacity=".5"/>`;
+    const lx = W - 40, ly = y - 40; s += `<path d="M${lx} ${ly - 54}L-60 ${ly - 110}L-60 ${ly - 10}Z" fill="${mjLin(c, [[0, '#ffe7a8', .35], [1, '#ffe7a8', 0]], 0, 0, 1, 0)}"/><path d="M${lx - 24} ${ly + 40}Q${lx} ${ly + 10} ${W + 10} ${ly + 6}V${ly + 60}H${lx - 30}Z" fill="#0b1330"/>`;
+    s += `<path d="M${lx - 9} ${ly + 20}L${lx - 6} ${ly - 46}H${lx + 6}L${lx + 9} ${ly + 20}Z" fill="#d5ddf0"/><path d="M${lx} ${ly - 46}H${lx + 6}L${lx + 9} ${ly + 20}H${lx}Z" fill="#9aa8cc"/><path d="M${lx - 8} ${ly - 4}H${lx + 8}L${lx + 8.4} ${ly + 4}H${lx - 8.4}ZM${lx - 6.6} ${ly - 28}H${lx + 6.6}L${lx + 7} ${ly - 22}H${lx - 7}Z" fill="#3a5492"/><rect x="${lx - 7}" y="${ly - 60}" width="14" height="14" fill="#ffe7a8"/>` + mjGlow(c, lx, ly - 54, 60, 'w', .9) + `<path d="M${lx - 9} ${ly - 60}L${lx} ${ly - 70}L${lx + 9} ${ly - 60}Z" fill="#0b1330"/>`;
+    s += mjMoonN(c, 70, y - 120, 22, { halo:4 });
+  }
+  // trên mây: mây bông, vầng trăng khuyết lớn
+  { const y1 = Z[6]; s += mjStarfield(c, 160, [0, 0, W, y1], { sparks:14 }); for (let k = 0; k < 4; k++) { const cy = y1 - 30 - k * 120; s += mjS(c, 60, [-30, cy - 16, W + 30, cy + 26], ['#1a2a5c', '#22356e', '#14224c'], { ang:0, len:[30, 90], w:[10, 16, 22], op:.85, jit:3, bend:.1 }) + mjS(c, 26, [-20, cy - 18, W + 20, cy - 6], ['#c9c4e8', '#e9dcae'], { ang:0, len:[20, 60], w:[1.4], op:.3, jit:2 }); }
+    s += mjMoonN(c, W / 2, 80, 40, { cres:[.36, -.28], halo:3.6 }); }
+  return s;
+}
