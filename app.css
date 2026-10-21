@@ -410,6 +410,10 @@ html[data-font="serif"] h1,html[data-font="serif"] h2,html[data-font="serif"] h3
 .day-cell.on{background:#ffe44d;border-color:#ffe44d;color:#3d3000}
 .day-cell.next{border-color:var(--accent);color:var(--accent-strong);box-shadow:0 0 0 3px var(--accent-soft)}
 @media(max-width:520px){.days30{grid-template-columns:repeat(6,1fr)}}
+.mj-shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
+.mj-badge{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 6px;border-radius:14px;border:1px solid var(--line2);background:var(--surface2);font-size:1.5rem;text-align:center;filter:grayscale(1);opacity:.55}
+.mj-badge small{font-size:.72rem;font-weight:600;color:var(--ink2);line-height:1.2}
+.mj-badge.on{filter:none;opacity:1;border-color:var(--accent);background:var(--accent-soft)}
 .steps,.perks{margin-left:1.2em;color:var(--ink2)}.steps li,.perks li{margin:5px 0}
 .ad-blocks .blk{display:grid;grid-template-columns:auto minmax(110px,1fr) minmax(90px,1.2fr) 90px auto;gap:8px;align-items:center;margin-bottom:6px}
 .ad-blocks .blk .dot{width:12px;height:12px;border-radius:4px}
