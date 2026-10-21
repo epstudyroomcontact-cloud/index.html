@@ -274,12 +274,14 @@ function mjGirl(c, x, y, s = 1, pose = 'back', o = {}){
     g += hem(P('M-5 -38.4Q-7.4 -38 -7.6 -35.4C-8.6 -28 -9.8 -20 -10.6 -13Q-5 -11.2 0 -11.8Q5 -11.2 10.6 -13C9.8 -20 8.6 -28 7.6 -35.4Q7.4 -38 5 -38.4Q0 -39.6 -5 -38.4Z', CO) + P('M2.6 -38.6C5.6 -32 7.4 -22 7.6 -11.8Q9.4 -12.2 10.6 -13C9.8 -20 8.6 -28 7.6 -35.4Q7.4 -38 5 -38.4Z', COS, .75) + ln('M-10.4 -13.2Q0 -10.6 10.4 -13.2', COD, .8, .6) + ln('M-.2 -37.6Q.4 -25 0 -12', COS, .6, .6) + coatTex([-9, -36, 7, -14]));
     // nhìn từ sau: vai ở hai mép trên thân áo; mọi cánh tay (buông hay giơ) vẽ trước tóc và mũ để tóc, mũ che gốc tay ở vai,
     // tay giơ thì khuỷu chĩa ra ngoài và bàn tay ở ngoài khối đầu
-    const HB = pose === 'reach' ? [14, -47.6] : o.hand || [9.6, -20];
+    const HB = pose === 'reach' ? [14, -47.6] : o.hand || [9.4, -19.2];
     if (o.closedUmb) { const [hx, hy] = reach(SH, HB), tx = hx + 1.5, ty = -1.2, k = t => [_r1(hx + (tx - hx) * t), _r1(hy + (ty - hy) * t)], [ax, ay] = k(.2), [bx, by] = k(.55), [cx, cy] = k(.93);
       // ô gập: tay nắm cán ngay dưới tay cầm cong, cán thẳng xuống đất, vải ô cuộn gọn thành búp thon có đai cài
       g += `<path d="M${_r1(hx)} ${_r1(hy + 1)}L${_r1(tx)} ${ty}" stroke="#4a3a6a" stroke-width=".9" stroke-linecap="round"/>` + ln(`M${_r1(hx)} ${_r1(hy + .4)}V${_r1(hy - 1.2)}Q${_r1(hx)} ${_r1(hy - 3)} ${_r1(hx - 1.6)} ${_r1(hy - 3)}Q${_r1(hx - 3)} ${_r1(hy - 3)} ${_r1(hx - 3)} ${_r1(hy - 1.6)}`, '#6b4a3a', 1.1)
         + P(`M${ax - .5} ${ay}Q${bx - 2} ${by} ${cx - .3} ${cy}L${cx + .3} ${cy}Q${bx + 2} ${by} ${ax + .5} ${ay}Z`, '#e5739f') + ln(`M${ax} ${ay}Q${bx - .6} ${by} ${cx} ${cy}`, '#c9578a', .5, .8) + ln(`M${_r1(bx - 1.5)} ${_r1(by - 1.4)}L${_r1(bx + 1.5)} ${_r1(by - 1.2)}`, '#b9395f', .9) + `<circle cx="${_r1(bx + 1.5)}" cy="${_r1(by - 1.2)}" r=".45" fill="#ffc2d7"/>`; }
-    g += arm([-6.4, -34.6], [-9.6, -20]) + (o.reachAnim ? `<g class="mja mja-reach" style="animation-delay:0s;transform-box:view-box;transform-origin:${SH[0]}px ${SH[1]}px">${arm(SH, HB)}</g>` : arm(SH, HB));
+    // tay buông thẳng từ vai xuống sát hông (không gập khuỷu ra ngoài); khi đi hai tay đánh nhẹ ngược nhịp nhau theo bước
+    const aL = arm([-6.4, -34.6], [-9.4, -19.2]), aR = o.reachAnim ? `<g class="mja mja-reach" style="animation-delay:0s;transform-box:view-box;transform-origin:${SH[0]}px ${SH[1]}px">${arm(SH, HB)}</g>` : arm(SH, HB);
+    g += wk ? G('mja-abA', aL) + G('mja-abB', aR) : aL + aR;
     g += mjA(c, 'mja-look', P('M-6.6 -37.8Q-7.8 -32.6 -3 -31.2Q0 -30.6 3 -31.2Q7.8 -32.6 6.6 -37.8Z', COS) + (hood ? hoodB(-44) : hairBack(-44, 18)), 11, [0, -37]);
     { mjDripAt(-10.2, -12.8); mjDripAt(10.2, -12.8); mjDripAt(-3, -11.6); }
   } else if (pose === 'side') {
@@ -323,7 +325,8 @@ function mjGirl(c, x, y, s = 1, pose = 'back', o = {}){
     if (hd) g += `<circle cx="${_r1(hd[0])}" cy="${_r1(hd[1])}" r="1.55" fill="${K}"/>`;
   }
   // đèn treo dưới bàn tay; vẽ lại nắm tay lên trên quầng sáng để thấy rõ tay đang xách quai đèn
-  if (o.lantern) { const [lx, ly] = reach(SH, o.lantern); g += mjLantern(c, lx, ly) + `<circle cx="${_r1(lx)}" cy="${_r1(ly)}" r="1.7" fill="${K}"/><circle cx="${_r1(lx - .2)}" cy="${_r1(ly - .9)}" r="1.9" fill="${COS}"/>`; }
+  // đèn đung đưa nhẹ quanh nắm tay theo nhịp bước, cùng nhịp với cánh tay cầm đèn
+  if (o.lantern) { const [lx, ly] = reach(SH, o.lantern), lt = `<g class="mja mja-lsw" style="animation-delay:-${ph}s;transform-box:view-box;transform-origin:${_r1(lx)}px ${_r1(ly)}px">${mjLantern(c, lx, ly)}</g><circle cx="${_r1(lx)}" cy="${_r1(ly)}" r="1.7" fill="${K}"/><circle cx="${_r1(lx - .2)}" cy="${_r1(ly - .9)}" r="1.9" fill="${COS}"/>`; g += wk ? G('mja-abB', lt) : lt; }
   MJ_TF = TF0; MJ_DRIP = D0;
   // đứng: thở và đổi trọng tâm rất chậm; đi: nhún theo bước
   if (o.lean) g = `<g transform="rotate(${o.lean})">${g}</g>`;
@@ -403,10 +406,16 @@ function mjPrints(pts, kind = 'foot', col = '#0a1a3d', op = .7, sz = 1){
 const mjCurve = (p, n) => Array.from({ length:n + 1 }, (_, i) => { const t = i / n, u = 1 - t; return [0, 1].map(k => u * u * u * p[0][k] + 3 * u * u * t * p[1][k] + 3 * u * t * t * p[2][k] + t * t * t * p[3][k]); });
 const mjPoly = P => 'M' + P.map(p => p.map(_r1).join(' ')).join('L');
 // dây leo có lá dọc theo đường cong
-function mjVine(P, col = '#1e4a3e'){
-  let s = `<path d="${mjPoly(P)}" stroke="${col}" stroke-width="2" fill="none"/>`;
-  P.forEach(([x, y], i) => { if (i % 2) { const lx = x + (i % 4 ? 5 : -5); s += `<g class="mja mja-leaf" style="animation-delay:-${_r1((x * .37 + y * .11) % 6)}s"><ellipse cx="${_r1(lx)}" cy="${_r1(y)}" rx="4.6" ry="2.4" fill="${i % 3 ? '#245a49' : '#2f6e58'}" transform="rotate(${i % 4 ? 30 : -30} ${_r1(lx)} ${_r1(y)})"/></g>`; } });
-  return s;
+function mjVine(P, col = '#2a5a48'){
+  // thân dây mảnh cong mềm; lá hình giọt nhỏ mọc so le hai bên, mỗi lá rung quanh cuống; cả dây đung đưa quanh gốc
+  let s = `<path d="${mjPoly(P)}" stroke="${col}" stroke-width="1.1" fill="none" stroke-linecap="round"/>`;
+  for (let i = 2; i < P.length - 1; i += 2) {
+    const [x, y] = P[i], [px, py] = P[i - 1], [nx, ny] = P[i + 1], tang = Math.atan2(ny - py, nx - px) * 180 / Math.PI, side = (i / 2) % 2 ? 1 : -1, ang = tang + side * 58, L = 6.6 + ((i * 7) % 5) * .4;
+    s += `<g class="mja mja-leaf" style="animation-delay:-${_r1((x * .37 + y * .11) % 6)}s;transform-box:view-box;transform-origin:${_r1(x)}px ${_r1(y)}px"><g transform="translate(${_r1(x)} ${_r1(y)}) rotate(${_r1(ang)})"><path d="M0 0Q${_r1(L * .4)} ${_r1(-L * .42)} ${_r1(L)} 0Q${_r1(L * .4)} ${_r1(L * .42)} 0 0Z" fill="${i % 3 ? '#2f6e58' : '#3a8268'}"/><path d="M.4 0H${_r1(L * .8)}" stroke="#1d4a3c" stroke-width=".35"/></g></g>`;
+    if (i % 10 === 6) s += `<path d="M${_r1(x)} ${_r1(y)}q${-side * 3} -1 ${-side * 3.4} -3.4q-.2 -1.8 1.4 -1.6" stroke="${col}" stroke-width=".55" fill="none"/>`;
+  }
+  const [rx, ry] = P[0];
+  return `<g class="mja mja-vine" style="animation-delay:-${_r1((rx * .13) % 7)}s;transform-box:view-box;transform-origin:${_r1(rx)}px ${_r1(ry)}px">${s}</g>`;
 }
 const mjMini = (x, y, col, z = 1) => `<g class="mja mja-grass" style="animation-delay:-${_r1((x * .29 + y * .13) % 4)}s"><g transform="translate(${_r1(x)} ${_r1(y)}) scale(${z})">${[0, 72, 144, 216, 288].map(a => `<circle cx="${_r1(Math.cos(a * Math.PI / 180) * 1.7)}" cy="${_r1(Math.sin(a * Math.PI / 180) * 1.7)}" r="1.3" fill="${col}"/>`).join('')}<circle r=".8" fill="#ffe08a"/></g></g>`;
 const mjMirror = (y, inner, op = .25) => `<g opacity="${op}" transform="translate(0 ${y * 2}) scale(1 -1)">${inner}</g>`;
@@ -496,18 +505,27 @@ const MJ_SCENES = {
   },
   // Chiếc bát trên kệ: căn phòng đêm, ánh trăng chiếu lên chiếc bát nhỏ của Moon
   d45:c => {
-    const fy = 188; let bg = `<rect width="400" height="${fy}" fill="${mjLin(c, [[0, '#0e1736'], [1, '#16244a']])}"/>` + mjS(c, 160, [0, 0, 400, fy], ['#131f43', '#1a2a55', '#0d1633'], { ang:90, len:[20, 50], w:[4, 7], op:.4, jit:2 });
-    bg += `<rect x="262" y="34" width="104" height="112" rx="3" fill="#081022"/><rect x="268" y="40" width="92" height="100" fill="${mjLin(c, [[0, '#0a1430'], [1, '#22397a']])}"/>` + mjStarfield(c, 30, [270, 42, 358, 120], { sparks:2 }) + mjMoonN(c, 330, 66, 11, { cres:[-.4, -.2], halo:2.6 }) + `<path d="M314 40v100M268 90h92" stroke="#081022" stroke-width="3"/>`;
-    bg += `<path d="M258 30Q250 90 262 150" stroke="#2e3f78" stroke-width="10" fill="none"/><path d="M370 30Q378 90 366 150" stroke="#2e3f78" stroke-width="10" fill="none"/>`;
-    for (let i = 0; i < 12; i++) { const x = 250 + i * 11, y = 26 + Math.sin(i * .9) * 3 + (i - 5.5) ** 2 * .12; bg += mjGlow(c, x, y, 7, 'f', .7) + `<circle cx="${_r1(x)}" cy="${_r1(y)}" r="1.4" fill="#ffe7a0"/>`; }
-    bg += `<path d="M240 26Q300 36 386 24" stroke="#0a1126" stroke-width=".7" fill="none"/><path d="M268 140L360 140L230 ${fy + 40}L80 ${fy + 40}Z" fill="${mjLin(c, [[0, '#cfe0ff', .16], [1, '#cfe0ff', .04]])}"/>`;
-    bg += `<rect y="${fy}" width="400" height="${250 - fy}" fill="${mjLin(c, [[0, '#14203f'], [1, '#0a1128']])}"/>` + mjS(c, 90, [-10, fy, 410, 250], ['#1c2b52', '#0f1834', '#243663'], { ang:0, len:[30, 90], w:[2, 3], op:.6, jit:1 }) + `<path d="M0 ${fy}H400" stroke="#24366a" stroke-width="2"/>`;
-    bg += mjGlow(c, 112, 86, 70, 'm', .55) + `<path d="M40 98H184V104H40Z" fill="#3a3150"/><path d="M40 98H184" stroke="#5a4d70" stroke-width="1.2"/><path d="M52 104l6 12M172 104l-6 12" stroke="#2a2440" stroke-width="3"/>`;
-    bg += `<rect x="50" y="70" width="10" height="28" fill="#5b6aa8"/><rect x="61" y="76" width="8" height="22" fill="#a07a8e"/><rect x="70" y="72" width="9" height="26" fill="#3e4f8a"/>`;
-    bg += `<rect x="150" y="70" width="22" height="28" rx="2" fill="#2a2440"/><rect x="153" y="73" width="16" height="22" fill="#1c2f66"/>` + mjCat(c, 161, 94, .7, 'sitB', { shadow:false });
-    bg += `<path d="M86 98q0-6 6-6h28q6 0 6 6z" fill="#e6edf9"/><path d="M84 92h44" stroke="#8fb3e6" stroke-width="2.4" stroke-linecap="round"/><path d="M89 95h34" stroke="#c1d3f2" stroke-width="1"/><g fill="#f2a15c" transform="translate(106 95.6) scale(.55)"><ellipse cy="1" rx="1.6" ry="1.3"/><circle cx="-1.8" cy="-1.4" r=".7"/><circle cx="0" cy="-2.2" r=".7"/><circle cx="1.8" cy="-1.4" r=".7"/></g>`;
-    bg += `<path d="M132 98q2-14 4-16M138 98q-1-12 6-18M134 98q-6-8-10-10" stroke="#3f7d68" stroke-width="2" stroke-linecap="round" fill="none"/><rect x="129" y="92" width="12" height="6" rx="1" fill="#a0675a"/>`;
-    return [bg, mjGirl(c, 186, 226, 1.35, 'sit')];
+    // phòng nhỏ nhìn gần: cửa sổ lớn bên phải là nguồn sáng duy nhất (trăng ở cao bên phải), vệt sáng trên sàn đúng hình khung cửa đổ chéo sang trái
+    const fy = 196; let bg = `<rect width="400" height="${fy}" fill="${mjLin(c, [[0, '#0d1532'], [1, '#162246']])}"/>` + mjS(c, 160, [0, 0, 400, fy], ['#121c3f', '#18264f', '#0d1633'], { ang:90, len:[20, 50], w:[4, 7], op:.35, jit:2 });
+    bg += `<rect y="${fy}" width="400" height="${250 - fy}" fill="${mjLin(c, [[0, '#18223f'], [1, '#0c1228']])}"/>` + mjS(c, 70, [-10, fy, 410, 250], ['#1f2c50', '#121a36', '#263559'], { ang:0, len:[30, 90], w:[2, 3], op:.55, jit:1 }) + `<path d="M0 ${fy}H400" stroke="#26365f" stroke-width="3"/><path d="M0 ${fy + 2}H400" stroke="#0a1024" stroke-width="1"/>`;
+    // cửa sổ lớn: khung gỗ, kính thấy trời sao và trăng khuyết, rèm voan hai bên buộc gọn
+    const wx0 = 242, wx1 = 374, wy0 = 26, wy1 = 168, mx = (wx0 + wx1) / 2, my = 92;
+    bg += mjGlow(c, mx, my, 110, 'm', .35) + `<rect x="${wx0 - 6}" y="${wy0 - 6}" width="${wx1 - wx0 + 12}" height="${wy1 - wy0 + 12}" rx="2" fill="#0a1024"/><rect x="${wx0}" y="${wy0}" width="${wx1 - wx0}" height="${wy1 - wy0}" fill="${mjLin(c, [[0, '#0b1636'], [1, '#2a4488']])}"/>`;
+    bg += mjStarfield(c, 34, [wx0 + 2, wy0 + 2, wx1 - 2, wy1 - 30], { sparks:2 }) + mjMoonN(c, 336, 56, 13, { cres:[-.4, -.2], halo:2.6 }) + `<path d="M${mx} ${wy0}V${wy1}M${wx0} ${my}H${wx1}" stroke="#0a1024" stroke-width="3.4"/>`;
+    bg += `<path d="M${wx0 - 10} ${wy1 + 6}H${wx1 + 10}V${wy1 + 12}H${wx0 - 10}Z" fill="#2c3a66"/><path d="M${wx0 - 10} ${wy1 + 6}H${wx1 + 10}" stroke="#4f64a0" stroke-width="1.2"/>`;
+    bg += `<path d="M${wx0 - 14} ${wy0 - 12}Q${wx0 - 2} 70 ${wx0 + 8} 104Q${wx0 - 4} 136 ${wx0 - 10} ${wy1 + 4}H${wx0 - 22}V${wy0 - 12}Z" fill="#8fa6d8" opacity=".55"/><path d="M${wx1 + 14} ${wy0 - 12}Q${wx1 + 2} 70 ${wx1 - 8} 104Q${wx1 + 4} 136 ${wx1 + 10} ${wy1 + 4}H${wx1 + 22}V${wy0 - 12}Z" fill="#8fa6d8" opacity=".55"/><path d="M${wx0 - 22} ${wy0 - 14}H${wx1 + 22}" stroke="#3a3150" stroke-width="2.4" stroke-linecap="round"/>`;
+    // ánh trăng: luồng sáng rất nhạt từ ô kính xuống sàn, vệt sáng có bóng song cửa
+    const P0 = [[214, fy + 4], [340, fy + 4], [276, 250], [120, 250]], q = (A, B, t) => [A[0] + (B[0] - A[0]) * t, A[1] + (B[1] - A[1]) * t], pt = p => `${_r1(p[0])} ${_r1(p[1])}`;
+    bg += `<path d="M${wx0} ${wy1}H${wx1}L${pt(P0[2])}H${pt(P0[3])}Z" fill="${mjLin(c, [[0, '#d6e4ff', .07], [1, '#d6e4ff', .02]])}"/>`;
+    bg += `<path d="M${P0.map(pt).join('L')}Z" fill="${mjLin(c, [[0, '#d6e4ff', .2], [1, '#d6e4ff', .1]])}"/><path d="M${pt(q(P0[0], P0[1], .5))}L${pt(q(P0[3], P0[2], .5))}M${pt(q(P0[0], P0[3], .48))}L${pt(q(P0[1], P0[2], .48))}" stroke="#0c1228" stroke-width="3" opacity=".55"/>`;
+    // kệ gỗ trên tường trái, gần người xem: sách, chiếc bát ăn của Moon, chậu cây nhỏ; ảnh Moon dán trên tường bằng băng dính hồng
+    const sy = 116; bg += `<path d="M22 ${sy}H200V${sy + 8}H22Z" fill="#4a3a58"/><path d="M22 ${sy}H200" stroke="#6a5880" stroke-width="1.4"/><path d="M40 ${sy + 8}l8 14M182 ${sy + 8}l-8 14" stroke="#2a2440" stroke-width="3.4"/>`;
+    bg += `<rect x="30" y="${sy - 38}" width="12" height="38" fill="#5b6aa8"/><rect x="43" y="${sy - 30}" width="10" height="30" fill="#a07a8e"/><rect x="54" y="${sy - 35}" width="11" height="35" fill="#3e4f8a"/><path d="M66 ${sy}l8 -30h9l-8 30z" fill="#6c5a8e"/>`;
+    bg += `<ellipse cx="118" cy="${sy - .5}" rx="28" ry="2.4" fill="#0c1228" opacity=".5"/><path d="M94 ${sy}q0-14 10-15h28q10 1 10 15z" fill="#e6edf9"/><path d="M90 ${sy - 15}h56" stroke="#8fb3e6" stroke-width="3.4" stroke-linecap="round"/><path d="M97 ${sy - 10}h42" stroke="#c1d3f2" stroke-width="1.4"/><g fill="#f2a15c" transform="translate(118 ${sy - 6}) scale(.95)"><ellipse cy="1" rx="1.8" ry="1.4"/><circle cx="-2" cy="-1.6" r=".8"/><circle cx="0" cy="-2.5" r=".8"/><circle cx="2" cy="-1.6" r=".8"/></g>`;
+    bg += `<path d="M164 ${sy - 12}q2-18 5-22M170 ${sy - 12}q-1-15 8-24M166 ${sy - 12}q-8-10-13-12" stroke="#3f7d68" stroke-width="2.4" stroke-linecap="round" fill="none"/><path d="M159 ${sy - 13}h20l-2 13h-16z" fill="#a0675a"/>`;
+    const ph = mjCat(c, -1, 16, .95, 'sitF', { shadow:false });
+    bg += `<g transform="translate(104 58) rotate(-5)"><rect x="-21" y="-22" width="42" height="50" rx="1.6" fill="#eef2fb"/><rect x="-17" y="-18" width="34" height="34" fill="${mjLin(c, [[0, '#2a3f7a'], [1, '#4a62a8']])}"/><g clip-path="${mjClip(c, '<rect x="-17" y="-18" width="34" height="34"/>')}"><circle cx="9" cy="-11" r="3" fill="#fff3c8"/>${ph}</g><rect x="-8" y="-26" width="16" height="7" rx="1" fill="#f4a8c6" opacity=".9" transform="rotate(4)"/></g>`;
+    return [bg, mjGirl(c, 214, 238, 1.55, 'sit')];
   },
   // Cánh đồng sao: đồng cỏ đêm nhìn từ trên cao, cỏ rạp theo gió, đom đóm khắp nơi
   d60:c => {
@@ -549,15 +567,19 @@ const MJ_SCENES = {
   d130:c => {
     let bg = mjSkyN(c, '#070d24', '#13214a', 40, { stars:24, streaks:6 }) + `<path d="M-10 40L410 34V44L-10 52Z" fill="#070c1d"/>`;
     bg += `<rect y="48" width="400" height="202" fill="${mjLin(c, [[0, '#121d40'], [1, '#0b132c']])}"/>` + mjS(c, 300, [0, 48, 400, 250], ['#16234c', '#1b2a57', '#0e1835'], { ang:0, len:[10, 18], w:[5, 6.5], op:.5, jit:1, bend:0 });
-    bg += mjGlow(c, 200, 120, 190, 'w', .55) + `<rect x="108" y="58" width="184" height="136" rx="4" fill="#0a1126"/><rect x="116" y="66" width="168" height="124" fill="${mjLin(c, [[0, '#ffe2a0'], [1, '#f2a85a']])}"/>`;
-    bg += mjS(c, 50, [118, 68, 282, 188], ['#ffe9b8', '#f6c27a'], { ang:-60, len:[10, 30], w:[3, 5], op:.4 }) + `<path d="M200 66v124M116 128h168" stroke="#2a2030" stroke-width="3" opacity=".9"/>`;
-    bg += `<g clip-path="${mjClip(c, '<rect x="116" y="66" width="168" height="124"/>')}"><path d="M116 66H158Q146 110 154 190H116Z" fill="#f0b9a6"/><path d="M284 66H242Q254 110 246 190H284Z" fill="#f0b9a6"/>` + mjS(c, 30, [116, 66, 158, 190], ['#d48f84', '#fbd3c2'], { ang:88, len:[30, 70], w:[2, 3], op:.6, jit:3, in:(x, y) => x < 156 - (y - 66) * .05 }) + mjS(c, 30, [242, 66, 284, 190], ['#d48f84', '#fbd3c2'], { ang:92, len:[30, 70], w:[2, 3], op:.6, jit:3, in:(x, y) => x > 244 + (y - 66) * .05 }) + '</g>';
-    bg += `<path d="M150 124q8 4 12 0M250 124q-8 4-12 0" stroke="#9fc4ff" stroke-width="3" fill="none"/>`;
-    bg += `<path d="M96 192H304L298 204H102Z" fill="#33467c"/><path d="M96 192H304" stroke="#5a72b0" stroke-width="2"/><rect x="112" y="206" width="176" height="26" rx="2" fill="#5a3b3b"/>` + mjS(c, 30, [112, 206, 288, 232], ['#6d4848', '#4a2f30'], { ang:0, len:[20, 40], w:[2], op:.5 });
-    bg += mjVine(mjCurve([[60, 250], [40, 180], [90, 120], [70, 50]], 30)) + mjVine(mjCurve([[350, 250], [372, 190], [320, 130], [346, 60]], 30));
-    let fl = ''; for (let i = 0; i < 26; i++) { const x = 118 + i * 6.6 + c.r() * 3, y = 204 - c.r() * 12; fl += `<path d="M${_r1(x)} 208q${_r1((c.r() - .5) * 6)} -6 0 ${_r1(y - 208)}" stroke="#2a6a55" stroke-width="1.2" fill="none"/>`; }
-    for (let i = 0; i < 22; i++) fl += mjMini(118 + c.r() * 164, 190 + c.r() * 14, mjPick(c.r, ['#9fc4ff', '#cfe0ff', '#f3a3ad', '#ffffff']));
-    return [bg, fl + mjCat(c, 200, 193, 3, 'sitF', { shadow:false })];
+    // cửa sổ lớn sáng ấm; nguồn sáng là chiếc đèn bàn trong phòng phía sau Moon
+    const x0 = 96, x1 = 304, y0 = 58, y1 = 190;
+    bg += mjGlow(c, 200, 130, 170, 'w', .5) + `<rect x="${x0 - 8}" y="${y0 - 8}" width="${x1 - x0 + 16}" height="${y1 - y0 + 10}" rx="4" fill="#0a1126"/><rect x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}" fill="${mjLin(c, [[0, '#ffe6ae'], [1, '#f4b468']])}"/>`;
+    bg += `<g clip-path="${mjClip(c, `<rect x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}"/>`)}">` + mjS(c, 50, [x0, y0, x1, y1], ['#ffefc4', '#f8cd8a'], { ang:-60, len:[10, 30], w:[3, 5], op:.35 })
+      + `<rect x="${x0}" y="150" width="${x1 - x0}" height="40" fill="#e8a868" opacity=".5"/><path d="M210 150h46v-4h-46z" fill="#b27a52"/><path d="M226 146h12l2-12h-16z" fill="#8a5a48"/><path d="M219 120h26l-6-16h-14z" fill="#fff4d2"/>` + mjGlow(c, 232, 116, 34, 'w', 1)
+      + `<path d="M${x0} ${y0}H${x0 + 46}Q${x0 + 34} 110 ${x0 + 40} ${y1}H${x0}Z" fill="#f0b9a6"/><path d="M${x1} ${y0}H${x1 - 46}Q${x1 - 34} 110 ${x1 - 40} ${y1}H${x1}Z" fill="#f0b9a6"/>` + mjS(c, 30, [x0, y0, x0 + 44, y1], ['#d48f84', '#fbd3c2'], { ang:88, len:[30, 70], w:[2, 3], op:.55, jit:3, in:(x, y) => x < x0 + 42 - (y - y0) * .04 }) + mjS(c, 30, [x1 - 44, y0, x1, y1], ['#d48f84', '#fbd3c2'], { ang:92, len:[30, 70], w:[2, 3], op:.55, jit:3, in:(x, y) => x > x1 - 42 + (y - y0) * .04 }) + '</g>';
+    bg += `<path d="M200 ${y0}v${y1 - y0}M${x0} 124h${x1 - x0}" stroke="#2a2030" stroke-width="3" opacity=".9"/><path d="M${x0 + 40} 122q8 5 13 0M${x1 - 40} 122q-8 5-13 0" stroke="#9fc4ff" stroke-width="3" fill="none"/>`;
+    // bậu cửa và bồn hoa; ánh ấm hắt xuống tường dưới bậu
+    bg += `<path d="M${x0 - 14} ${y1 + 2}H${x1 + 14}L${x1 + 8} ${y1 + 14}H${x0 - 8}Z" fill="#33467c"/><path d="M${x0 - 14} ${y1 + 2}H${x1 + 14}" stroke="#ffd9a0" stroke-width="1.6" opacity=".7"/><rect x="${x0 + 6}" y="${y1 + 16}" width="${x1 - x0 - 12}" height="24" rx="2" fill="#5a3b3b"/>` + mjS(c, 30, [x0 + 6, y1 + 16, x1 - 6, y1 + 40], ['#6d4848', '#4a2f30'], { ang:0, len:[20, 40], w:[2], op:.5 }) + mjGlow(c, 200, y1 + 30, 120, 'w', .3);
+    bg += mjVine(mjCurve([[66, 250], [52, 186], [86, 124], [70, 52]], 44)) + mjVine(mjCurve([[336, 250], [352, 190], [318, 128], [334, 56]], 44));
+    let fl = ''; for (let i = 0; i < 26; i++) { const x = x0 + 10 + i * 7.4 + c.r() * 3, y = y1 + 14 - c.r() * 10; fl += `<path d="M${_r1(x)} ${y1 + 18}q${_r1((c.r() - .5) * 6)} -6 0 ${_r1(y - y1 - 18)}" stroke="#2a6a55" stroke-width="1.2" fill="none"/>`; }
+    for (let i = 0; i < 22; i++) fl += mjMini(x0 + 10 + c.r() * (x1 - x0 - 20), y1 + 2 + c.r() * 12, mjPick(c.r, ['#9fc4ff', '#cfe0ff', '#f3a3ad', '#ffffff']));
+    return [bg, mjCat(c, 186, y1 + 1, 2.1, 'sitF', { shadow:false }) + fl];
   },
   // Chiếc ô cho người lạ: trạm xe buýt đêm mưa, cô gái để lại chiếc ô che cho chú cún nhỏ
   d200:c => {
@@ -577,7 +599,7 @@ const MJ_SCENES = {
     bg += trunks(9, 16, '#132247', -10, 196) + mjS(c, 120, [-20, -20, 420, 60], ['#0f1d40', '#162a55', '#1d3366'], { ang:-10, len:[10, 26], w:[4, 6], op:.8, jit:30, bend:.4 });
     bg += `<path d="M150 250Q190 200 196 170Q200 150 210 140L222 140Q214 160 222 180Q240 220 300 250Z" fill="#1d2d5a"/>` + mjS(c, 60, [150, 140, 300, 250], ['#26396a', '#2f4680'], { ang:0, len:[10, 30], w:[2, 3], op:.6, in:(x, y) => Math.abs(x - (205 + (y - 140) * .1)) < 8 + (y - 140) * .6 });
     bg += trunks(5, 34, '#08102a', -20, 250) + mjBush(c, 30, 236, 60, 26, ['#0a1d24', '#123330', '#1a443d'], 90) + mjBush(c, 380, 240, 60, 28, ['#0a1d24', '#123330', '#1a443d'], 90) + mjFlies(c, 22, [0, 60, 400, 230], { sz:.8 });
-    return [bg, mjGo(0, -7, mjGlow(c, 210, 190, 90, 'w', .5) + mjGirl(c, 206, 214, 1.25, 'back', { hand:[10.8, -20.6], lantern:[10.8, -20.6], walk:true }))];
+    return [bg, mjGo(0, -7, mjGlow(c, 210, 190, 90, 'w', .5) + mjGirl(c, 206, 214, 1.25, 'back', { hand:[10.4, -19.4], lantern:[10.4, -19.4], walk:true }))];
   },
   // Lá thư gửi Moon: gấp lá thư thành thuyền giấy, thả trôi trên mặt nước có ngọn nến nhỏ
   d300:c => {

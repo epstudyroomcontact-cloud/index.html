@@ -508,8 +508,16 @@ html[data-font="serif"] h1,html[data-font="serif"] h2,html[data-font="serif"] h3
 @keyframes mjaEar{0%,80%,88%,100%{transform:rotate(0)}82%{transform:rotate(-16deg)}84%{transform:rotate(4deg)}86%{transform:rotate(-8deg)}}
 .mja-grass{transform-origin:50% 100%;animation:mjaGrass 3.6s ease-in-out infinite}
 @keyframes mjaGrass{0%,100%{transform:skewX(-6deg)}40%{transform:skewX(7deg)}65%{transform:skewX(2deg)}}
-.mja-leaf{transform-origin:0 50%;animation:mjaLeaf 4.4s ease-in-out infinite}
-@keyframes mjaLeaf{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(7deg)}}
+.mja-leaf{animation:mjaLeaf 4.4s ease-in-out infinite}
+@keyframes mjaLeaf{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(8deg)}}
+.mja-vine{animation:mjaVine 7s ease-in-out infinite}
+@keyframes mjaVine{0%,100%{transform:rotate(-.9deg)}50%{transform:rotate(1.1deg)}}
+.mja-abA,.mja-abB{animation:mjaAbA 1.3s ease-in-out infinite}
+.mja-abB{animation-name:mjaAbB}
+@keyframes mjaAbA{0%,100%{transform:translateY(-.35px)}50%{transform:translateY(.35px)}}
+@keyframes mjaAbB{0%,100%{transform:translateY(.35px)}50%{transform:translateY(-.35px)}}
+.mja-lsw{animation:mjaLsw 1.3s ease-in-out infinite}
+@keyframes mjaLsw{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)}}
 /* đi tới chậm rồi mờ đi, quay lại đầu đường (24 giây một vòng) */
 .mja-go{animation:mjaGo 24s linear infinite}
 @keyframes mjaGo{0%{transform:translate(0,0);opacity:0}5%{opacity:1}86%{opacity:1}94%,100%{transform:translate(var(--gx),var(--gy));opacity:0}}
