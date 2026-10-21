@@ -1,0 +1,123 @@
+/* =========================================================
+   HIỆU ỨNG CHUYỂN ĐỘNG CHO TỪNG TRẠM (canvas đè lên tranh)
+   - <div class="mj-art" data-mjfx="fireflies,petals"> : các hiệu ứng nền chạy liên tục, mỗi trạm một kiểu (MJ_FX ở cuối file).
+   - data-mjburst="1" : trạm vừa mở lần đầu, chạy thêm một màn "mở trạm" (vòng sáng loé ra và bụi sao bung).
+   - Trạm gặp lại Moon (finale) là màn lớn nhất: ánh vàng lan ra, trái tim bằng bụi sao, đom đóm bay lên,
+     cánh hoa rơi và sao băng, sau đó giữ nhịp sáng ấm.
+   - Máy bật "giảm chuyển động" thì chỉ vẽ một khung đứng yên (không có màn mở trạm). Ngoài màn hình thì dừng vẽ.
+   ========================================================= */
+const MJF = { list:new Set(), raf:0, last:0 };
+const mjfReduced = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+const mjfIO = 'IntersectionObserver' in window ? new IntersectionObserver(es => { es.forEach(e => { const st = e.target._mjf; if (st) st.vis = e.isIntersecting; }); mjfKick(); }) : null;
+const mjfR = (a, b) => a + Math.random() * (b - a);
+const MJ_FX = {
+  start:'', d1:'', d3:'', d7:'motes', d10:'fireflies', d14:'ripples,glints', d21:'starfall', d30:'glints,meteors', d45:'motes', d60:'fireflies,stars',
+  d80:'motes,fireflies', d100:'ripples,fireflies', d130:'petals', d200:'stars,meteors', d250:'fireflies', d300:'ripples,fireflies', d365:'finale',
+  d400:'dreamdust', d450:'dreamdust,stars', after:'meteorshower,stars'
+};
+
+// ----- từng loại hạt: make tạo hạt, step cập nhật, draw vẽ -----
+const MJF_KIND = {
+  fireflies:{ n:st => Math.max(10, st.w * st.h / 7000), make:st => ({ x:mjfR(0, st.w), y:mjfR(st.h * .25, st.h), p:mjfR(0, 9), sp:mjfR(.25, .6), r:mjfR(1.2, 2.4) }),
+    step:(q, st, dt, t) => { q.x += Math.sin(t * q.sp + q.p) * 9 * dt; q.y += Math.cos(t * q.sp * .8 + q.p * 1.7) * 6 * dt - 2.4 * dt; if (q.y < st.h * .15) q.y = st.h; },
+    draw:(g, q, st, t) => { const a = .35 + .65 * Math.pow(.5 + .5 * Math.sin(t * 1.6 + q.p * 3), 2); mjfGlow(g, q.x, q.y, q.r * 5, `rgba(255,228,140,${(a * .5).toFixed(3)})`); g.fillStyle = `rgba(255,246,200,${a.toFixed(3)})`; g.beginPath(); g.arc(q.x, q.y, q.r * .55, 0, 7); g.fill(); } },
+  motes:{ n:st => st.w * st.h / 4500, make:st => ({ x:mjfR(0, st.w), y:mjfR(0, st.h), p:mjfR(0, 9), r:mjfR(.5, 1.3), v:mjfR(2, 6) }),
+    step:(q, st, dt, t) => { q.y -= q.v * dt; q.x += Math.sin(t * .4 + q.p) * 3 * dt; if (q.y < -4) { q.y = st.h + 4; q.x = mjfR(0, st.w); } },
+    draw:(g, q, st, t) => { const a = .25 + .3 * Math.sin(t * .9 + q.p); g.fillStyle = `rgba(255,236,190,${Math.max(0, a).toFixed(3)})`; g.beginPath(); g.arc(q.x, q.y, q.r, 0, 7); g.fill(); } },
+  petals:{ n:st => Math.max(12, st.w * st.h / 5000), make:(st, first) => ({ x:mjfR(-20, st.w), y:first ? mjfR(0, st.h) : mjfR(-40, -10), p:mjfR(0, 9), v:mjfR(10, 20), s:mjfR(3, 5.4), rot:mjfR(0, 6) }),
+    step:(q, st, dt, t) => { q.y += q.v * dt; q.x += (Math.sin(t * .8 + q.p) * 14 + 6) * dt; q.rot += dt * 1.2; if (q.y > st.h + 10) Object.assign(q, MJF_KIND.petals.make(st)); },
+    draw:(g, q, st, t) => { g.save(); g.translate(q.x, q.y); g.rotate(q.rot); g.scale(1, .45 + .4 * Math.abs(Math.sin(t * 1.3 + q.p))); g.fillStyle = 'rgba(255,170,200,.85)'; g.beginPath(); g.ellipse(0, 0, q.s, q.s * .62, 0, 0, 7); g.fill(); g.fillStyle = 'rgba(255,220,232,.6)'; g.beginPath(); g.ellipse(-q.s * .25, -q.s * .1, q.s * .4, q.s * .25, 0, 0, 7); g.fill(); g.restore(); } },
+  stars:{ n:st => st.w * st.h / 6000, make:st => ({ x:mjfR(0, st.w), y:mjfR(0, st.h * .65), p:mjfR(0, 9), sp:mjfR(.6, 1.6), s:mjfR(1.6, 3.4) }),
+    step:() => {}, draw:(g, q, st, t) => { const a = Math.max(0, Math.sin(t * q.sp + q.p)); if (a < .05) return; mjfSpark(g, q.x, q.y, q.s * a, `rgba(255,248,215,${(a * .9).toFixed(3)})`); } },
+  glints:{ n:st => st.w * st.h / 3000, make:st => ({ x:mjfR(st.w * .2, st.w * .8), y:mjfR(st.h * .55, st.h), p:mjfR(0, 9), sp:mjfR(1.2, 2.6) }),
+    step:() => {}, draw:(g, q, st, t) => { const a = Math.max(0, Math.sin(t * q.sp + q.p)); if (a < .2) return; const l = 2 + 5 * (q.y / st.h); g.strokeStyle = `rgba(255,248,220,${(a * .7).toFixed(3)})`; g.lineWidth = 1; g.beginPath(); g.moveTo(q.x - l, q.y); g.lineTo(q.x + l, q.y); g.stroke(); } },
+  ripples:{ n:st => 7, make:st => ({ x:mjfR(0, st.w), y:mjfR(st.h * .62, st.h), age:mjfR(0, 3), dur:mjfR(2.4, 3.6), m:mjfR(8, 18) * st.h / 250 }),
+    step:(q, st, dt) => { q.age += dt; if (q.age > q.dur) Object.assign(q, MJF_KIND.ripples.make(st), { age:0 }); },
+    draw:(g, q) => { const u = q.age / q.dur, a = (1 - u) * .4; for (let k = 0; k < 2; k++) { const r = q.m * (u + k * .25); if (r <= 0) continue; g.strokeStyle = `rgba(200,220,255,${(a * (1 - k * .4)).toFixed(3)})`; g.lineWidth = .8; g.beginPath(); g.ellipse(q.x, q.y, r, r * .28, 0, 0, 7); g.stroke(); } } },
+  starfall:{ n:st => Math.max(12, st.w * st.h / 8000), make:(st, first) => ({ x:mjfR(st.w * .2, st.w * .8), y:first ? mjfR(0, st.h) : -10, v:mjfR(12, 26), p:mjfR(0, 9), s:mjfR(1.6, 3) }),
+    step:(q, st, dt, t) => { q.y += q.v * dt; q.x += Math.sin(t + q.p) * 4 * dt; if (q.y > st.h * .85) Object.assign(q, MJF_KIND.starfall.make(st)); },
+    draw:(g, q, st, t) => { const a = .6 + .4 * Math.sin(t * 3 + q.p); mjfGlow(g, q.x, q.y, q.s * 4, `rgba(255,214,120,${(a * .35).toFixed(3)})`); mjfSpark(g, q.x, q.y, q.s, `rgba(255,243,176,${a.toFixed(3)})`); } },
+  dreamdust:{ n:st => st.w * st.h / 3500, make:(st, first) => ({ x:mjfR(0, st.w), y:first ? mjfR(0, st.h) : st.h + 4, v:mjfR(4, 9), p:mjfR(0, 9), r:mjfR(.6, 1.6), c:Math.random() < .5 ? '255,230,170' : '220,200,255' }),
+    step:(q, st, dt, t) => { q.y -= q.v * dt; q.x += Math.sin(t * .6 + q.p) * 5 * dt; if (q.y < -4) Object.assign(q, MJF_KIND.dreamdust.make(st)); },
+    draw:(g, q, st, t) => { const a = .3 + .5 * Math.abs(Math.sin(t + q.p)); mjfGlow(g, q.x, q.y, q.r * 4, `rgba(${q.c},${(a * .3).toFixed(3)})`); g.fillStyle = `rgba(${q.c},${a.toFixed(3)})`; g.beginPath(); g.arc(q.x, q.y, q.r * .7, 0, 7); g.fill(); } },
+  meteors:{ n:() => 1, make:st => mjfMeteor(st, mjfR(3, 7)), step:(q, st, dt) => mjfMeteorStep(q, st, dt, () => mjfR(4, 9)), draw:(g, q) => mjfMeteorDraw(g, q) },
+  meteorshower:{ n:() => 7, make:st => mjfMeteor(st, mjfR(0, 4)), step:(q, st, dt) => mjfMeteorStep(q, st, dt, () => mjfR(.4, 2.6)), draw:(g, q) => mjfMeteorDraw(g, q) }
+};
+function mjfMeteor(st, wait){ const s = st.h / 250; return { wait, x:mjfR(st.w * .1, st.w * .9), y:mjfR(0, st.h * .3), vx:-mjfR(140, 220) * s, vy:mjfR(70, 110) * s, age:0, dur:mjfR(.7, 1.2), len:mjfR(40, 80) * s }; }
+function mjfMeteorStep(q, st, dt, next){ if (q.wait > 0) { q.wait -= dt; return; } q.age += dt; q.x += q.vx * dt; q.y += q.vy * dt; if (q.age > q.dur) Object.assign(q, mjfMeteor(st, next())); }
+function mjfMeteorDraw(g, q){
+  if (q.wait > 0) return; const u = q.age / q.dur, a = Math.sin(Math.PI * Math.min(1, u)), n = Math.hypot(q.vx, q.vy), tx = q.x - q.vx / n * q.len, ty = q.y - q.vy / n * q.len;
+  const gr = g.createLinearGradient(q.x, q.y, tx, ty); gr.addColorStop(0, `rgba(255,250,230,${a.toFixed(3)})`); gr.addColorStop(1, 'rgba(255,250,230,0)');
+  g.strokeStyle = gr; g.lineWidth = 1.4; g.lineCap = 'round'; g.beginPath(); g.moveTo(q.x, q.y); g.lineTo(tx, ty); g.stroke(); mjfGlow(g, q.x, q.y, 5, `rgba(255,240,200,${(a * .6).toFixed(3)})`);
+}
+function mjfGlow(g, x, y, r, col){ const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, col); gr.addColorStop(1, col.replace(/[\d.]+\)$/, '0)')); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }
+function mjfSpark(g, x, y, s, col){ g.fillStyle = col; g.beginPath(); g.moveTo(x, y - s * 2); g.quadraticCurveTo(x, y, x + s * 2, y); g.quadraticCurveTo(x, y, x, y + s * 2); g.quadraticCurveTo(x, y, x - s * 2, y); g.quadraticCurveTo(x, y, x, y - s * 2); g.fill(); }
+
+// ----- màn "mở trạm": vòng sáng loé ra và bụi sao bung, khoảng 2,4 giây -----
+function mjfBurstInit(st, cx = .5, cy = .5, gold = true){
+  const x = st.w * cx, y = st.h * cy, s = st.h / 250; st.burst = { x, y, age:0, dur:2.6, s, bits:[] };
+  for (let i = 0; i < 46; i++) { const a = mjfR(0, Math.PI * 2), v = mjfR(30, 120) * s; st.burst.bits.push({ x, y, vx:Math.cos(a) * v, vy:Math.sin(a) * v - 20 * s, sz:mjfR(1.2, 2.8), c:gold ? (Math.random() < .5 ? '255,232,150' : '255,200,220') : '230,235,255' }); }
+}
+function mjfBurstDraw(g, st, dt){
+  const b = st.burst; if (!b) return; b.age += dt; const u = b.age / b.dur; if (u >= 1) { st.burst = null; return; }
+  const flash = Math.max(0, 1 - u * 2.4); if (flash > 0) { g.fillStyle = `rgba(255,236,190,${(flash * .28).toFixed(3)})`; g.fillRect(0, 0, st.w, st.h); }
+  const r = Math.max(1, b.s * 200 * (1 - Math.pow(1 - Math.min(1, u * 1.4), 3))); g.strokeStyle = `rgba(255,226,150,${((1 - u) * .7).toFixed(3)})`; g.lineWidth = 2.2 * b.s * (1 - u) + .5; g.beginPath(); g.arc(b.x, b.y, r, 0, 7); g.stroke();
+  mjfGlow(g, b.x, b.y, b.s * 90 * (.4 + u), `rgba(255,220,150,${((1 - u) * .45).toFixed(3)})`);
+  for (const q of b.bits) { q.x += q.vx * dt; q.y += q.vy * dt; q.vx *= .985; q.vy = q.vy * .985 + 14 * b.s * dt; mjfSpark(g, q.x, q.y, q.sz * (1 - u * .6), `rgba(${q.c},${(1 - u).toFixed(3)})`); }
+}
+
+// ----- màn lớn nhất: gặp lại Moon -----
+function mjfFinaleInit(st){
+  const s = st.h / 250, cx = st.w * .52, cy = st.h * .52; st.fin = { age:0, s, cx, cy, heart:[], rise:[], petals:[], meteors:[mjfMeteor(st, 2.6), mjfMeteor(st, 3.8), mjfMeteor(st, 5.2)] };
+  for (let i = 0; i < 90; i++) { const t = i / 90 * Math.PI * 2, hx = 16 * Math.pow(Math.sin(t), 3), hy = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)); st.fin.heart.push({ tx:cx + hx * 3.4 * s, ty:cy - 30 * s + hy * 3.4 * s, d:mjfR(0, .5), sz:mjfR(1, 2.2), p:mjfR(0, 9) }); }
+  for (let i = 0; i < Math.max(26, st.w * st.h / 5000); i++) st.fin.rise.push({ x:mjfR(0, st.w), y:mjfR(st.h * .6, st.h * 1.3), v:mjfR(10, 24) * s, p:mjfR(0, 9), r:mjfR(1.2, 2.4) });
+  for (let i = 0; i < 18; i++) st.fin.petals.push(MJF_KIND.petals.make(st, false)), st.fin.petals[i].y -= mjfR(0, st.h);
+}
+function mjfFinaleDraw(g, st, dt, t){
+  const F = st.fin; if (!F) return; F.age += dt; const A = F.age, s = F.s;
+  // ánh vàng ấm lan ra rồi thở nhẹ
+  const glow = Math.min(1, A / 2.2) * (.75 + .25 * Math.sin(t * 1.1));
+  mjfGlow(g, F.cx, F.cy + 40 * s, Math.max(1, (70 + 130 * Math.min(1, A / 3)) * s), `rgba(255,214,140,${(glow * .38).toFixed(3)})`);
+  // trái tim bằng bụi sao: bay từ giữa ra thành hình, sáng một lúc rồi tan thành lấp lánh
+  const hs = Math.min(1, Math.max(0, (A - .6) / 1.8)), fade = A < 6 ? 1 : Math.max(.25, 1 - (A - 6) / 3);
+  if (A > .6) for (const q of F.heart) { const e = 1 - Math.pow(1 - Math.min(1, Math.max(0, hs - q.d * .3) / (1 - q.d * .3)), 3), x = F.cx + (q.tx - F.cx) * e, y = F.cy + (q.ty - F.cy) * e, tw = .55 + .45 * Math.sin(t * 2.4 + q.p), a = e * tw * fade; if (a < .03) continue; mjfGlow(g, x, y, q.sz * 4 * s, `rgba(255,190,210,${(a * .4).toFixed(3)})`); mjfSpark(g, x, y, q.sz * s, `rgba(255,236,200,${a.toFixed(3)})`); }
+  // đom đóm bay lên từ mặt đất
+  if (A > 1.4) for (const q of F.rise) { q.y -= q.v * dt; q.x += Math.sin(t * .7 + q.p) * 8 * dt; if (q.y < -6) { q.y = st.h + mjfR(0, 30); q.x = mjfR(0, st.w); } const a = .4 + .6 * Math.pow(.5 + .5 * Math.sin(t * 1.8 + q.p * 2), 2); mjfGlow(g, q.x, q.y, q.r * 5, `rgba(255,228,140,${(a * .45).toFixed(3)})`); g.fillStyle = `rgba(255,248,210,${a.toFixed(3)})`; g.beginPath(); g.arc(q.x, q.y, q.r * .55, 0, 7); g.fill(); }
+  // cánh hoa hồng rơi
+  if (A > 2) for (const q of F.petals) { MJF_KIND.petals.step(q, st, dt, t); MJF_KIND.petals.draw(g, q, st, t); }
+  // vài vệt sao băng
+  for (const q of F.meteors) { mjfMeteorStep(q, st, dt, () => mjfR(5, 11)); mjfMeteorDraw(g, q); }
+}
+
+// ----- vòng lặp chung -----
+function mjfSize(st){ const r = st.host.getBoundingClientRect(), d = Math.min(2, window.devicePixelRatio || 1); st.w = Math.max(1, r.width); st.h = Math.max(1, r.height); st.cv.width = Math.round(st.w * d); st.cv.height = Math.round(st.h * d); st.ctx.setTransform(d, 0, 0, d, 0, 0); }
+function mjfFill(st){ st.parts = []; for (const k of st.kinds) { const K = MJF_KIND[k]; if (!K) continue; const n = Math.round(K.n(st)); for (let i = 0; i < n; i++) st.parts.push([K, K.make(st, true)]); } }
+function mjfFrame(st, dt, t){
+  const g = st.ctx; g.clearRect(0, 0, st.w, st.h); g.globalCompositeOperation = 'lighter';
+  for (const [K, q] of st.parts) { if (dt) K.step(q, st, dt, t); K.draw(g, q, st, t); }
+  if (st.fin) mjfFinaleDraw(g, st, dt, t);
+  g.globalCompositeOperation = 'source-over'; if (st.burst) mjfBurstDraw(g, st, dt);
+}
+function mjfLoop(now){
+  MJF.raf = 0; const dt = Math.min(.05, MJF.last ? (now - MJF.last) / 1000 : .016); MJF.last = now; let any = false;
+  for (const st of MJF.list) {
+    if (!st.host.isConnected) { MJF.list.delete(st); mjfIO && mjfIO.unobserve(st.host); continue; }
+    if (!st.vis || document.hidden) continue; any = true; st.t += dt; mjfFrame(st, dt, st.t);
+  }
+  if (any) MJF.raf = requestAnimationFrame(mjfLoop); else MJF.last = 0;
+}
+function mjfKick(){ if (!MJF.raf && !mjfReduced() && MJF.list.size) MJF.raf = requestAnimationFrame(mjfLoop); }
+function mjfAttach(host){
+  if (host._mjf) return; const cv = document.createElement('canvas'); cv.className = 'mj-rainfx mj-fx'; cv.setAttribute('aria-hidden', 'true'); host.appendChild(cv);
+  const kinds = (host.dataset.mjfx || '').split(',').filter(Boolean), st = { host, cv, ctx:cv.getContext('2d'), kinds:kinds.filter(k => k !== 'finale'), parts:[], w:0, h:0, vis:true, t:Math.random() * 50 };
+  host._mjf = st; MJF.list.add(st); mjfSize(st); mjfFill(st);
+  const still = mjfReduced();
+  if (kinds.includes('finale')) { mjfFinaleInit(st); if (still) st.fin.age = 6; }
+  if (host.dataset.mjburst && !still) mjfBurstInit(st, .5, .5);
+  mjfIO && mjfIO.observe(host);
+  if (still) mjfFrame(st, 0, st.t); else mjfKick();
+}
+function mjfScan(){ document.querySelectorAll('[data-mjfx],[data-mjburst]').forEach(mjfAttach); }
+new MutationObserver(() => mjfScan()).observe(document.documentElement, { childList:true, subtree:true });
+document.addEventListener('visibilitychange', mjfKick);
+window.addEventListener('resize', () => MJF.list.forEach(st => { mjfSize(st); if (mjfReduced()) mjfFrame(st, 0, st.t); }));

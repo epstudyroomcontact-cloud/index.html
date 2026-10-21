@@ -106,7 +106,7 @@ function mjLatestCard(m){
 function mjChapterHTML(s, best, preview){
   const list = MJ_STOPS.filter(z => preview || mjOpen(z, best)), i = list.indexOf(s), prev = list[i - 1], next = list[i + 1];
   const body = ctext('mjc_' + s.id + '_b');                               // trống thì khách chỉ thấy tranh và tên trạm; admin bật bút chì sẽ thấy ô để viết
-  return `<article class="mj-chapter">${mjArt(s)}<div class="mj-ch-body"><span class="label">${esc(s.day ? t('mjs_day', { n:s.day }) : t('mjs_start'))}${preview && !mjOpen(s, best) ? ' · ' + esc(t('mjs_preview')) : ''}</span>
+  return `<article class="mj-chapter">${mjArt(s, !!state.user && mjOpen(s, best) && s.day > mjSeen())}<div class="mj-ch-body"><span class="label">${esc(s.day ? t('mjs_day', { n:s.day }) : t('mjs_start'))}${preview && !mjOpen(s, best) ? ' · ' + esc(t('mjs_preview')) : ''}</span>
     <h2 ${cms('mjc_' + s.id + '_t')}>${esc(mjTitle(s))}</h2>${body || state.editMode ? `<div class="mj-text" ${cms('mjc_' + s.id + '_b')} data-ph="${esc(t('mjs_write'))}">${esc(body)}</div>` : ''}
     <div class="row between mj-ch-nav">${prev ? `<button class="btn ghost sm" data-act="mjOpen" data-id="${prev.id}">${ic('chev-l', 'sm')} ${esc(t('mjs_prev'))}</button>` : '<span></span>'}${next ? `<button class="btn ghost sm" data-act="mjOpen" data-id="${next.id}">${esc(t('mjs_nextc'))} ${ic('chev-r', 'sm')}</button>` : ''}</div></div></article>`;
 }
