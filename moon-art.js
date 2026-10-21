@@ -190,9 +190,9 @@ const mjDripAt = (lx, ly, gy) => { if (!MJ_DRIP) return; const T = MJ_TF || { x:
 function mjGirl(c, x, y, s = 1, pose = 'back', o = {}){
   const K = '#f7d9c4', KS = '#e0b19a', CO = '#f08db1', COS = '#cc6690', COL = '#ffc2d7', COD = '#a8477a', BO = '#b9395f', BOL = '#e4688f', PA = '#2b3566', HR = '#3b2729', HM = '#5a3b3d', HL = '#8e6866';
   const f = o.flip ? -1 : 1, ln = mjLn, W = o.wind || 0, hood = o.hood ?? MJ_HOOD, P = (d, fill, op) => `<path d="${d}" fill="${fill}"${op ? ` opacity="${op}"` : ''}/>`;
-  const L1 = 8.2, L2 = 7.8, TF0 = MJ_TF; MJ_TF = { x, y, sx:s * f, sy:s, gy:y };
+  const L1 = 8.2, L2 = 7.8, TF0 = MJ_TF; MJ_TF = { x, y, sx:s * f, sy:s, gy:y }; if (o.walk) MJ_DRIP = null;   // người đang đi thì không gắn điểm nhỏ giọt cố định
   // o.walk: bước đi (hai chân đưa lệch nhịp, thân nhún theo bước, tay đánh nhẹ); cả nhóm dùng chung một pha
-  const wk = !!o.walk, ph = _r1(c.r() * 2), G = (cls, inner) => `<g class="mja ${cls}" style="animation-delay:-${ph}s">${inner}</g>`;
+  const wk = !!o.walk, D0 = MJ_DRIP, ph = _r1(c.r() * 2), G = (cls, inner) => `<g class="mja ${cls}" style="animation-delay:-${ph}s">${inner}</g>`;
   const reach = (S, H) => { const dx = H[0] - S[0], dy = H[1] - S[1], d = Math.hypot(dx, dy), m = L1 + L2 - .3; return d > m ? [S[0] + dx * m / d, S[1] + dy * m / d] : H; };
   // tay áo mưa: vai -> khuỷu -> bàn tay, khuỷu gập xuống
   const arm = (S, H0, far) => {
@@ -233,7 +233,8 @@ function mjGirl(c, x, y, s = 1, pose = 'back', o = {}){
   let SH = [0, 0];
   if (pose === 'back' || pose === 'reach') {
     SH = [5.2, -34.4];
-    g += P('M-4.2 -12.4H-1.2V-8H-4.2ZM1.2 -12.4H4.2V-8H1.2Z', PA) + bootB(-2.7) + bootB(2.7);
+    g += wk ? G('mja-bkA', P('M-4.2 -13.4H-1.2V-8H-4.2Z', PA) + bootB(-2.7)) + G('mja-bkB', P('M1.2 -13.4H4.2V-8H1.2Z', PA) + bootB(2.7))
+      : P('M-4.2 -12.4H-1.2V-8H-4.2ZM1.2 -12.4H4.2V-8H1.2Z', PA) + bootB(-2.7) + bootB(2.7);
     g += arm([-5.2, -34.4], [-7.6, -20], true);
     g += P('M-5.6 -37C-7.4 -33 -9.4 -22 -10.6 -13Q-5 -11.2 0 -11.8Q5 -11.2 10.6 -13C9.4 -22 7.4 -33 5.6 -37Q0 -39.4 -5.6 -37Z', CO) + P('M2.6 -38.4C5.6 -32 7.4 -22 7.6 -11.8Q9.4 -12.2 10.6 -13C9.4 -22 7.4 -33 5.6 -37Z', COS, .75) + ln('M-10.4 -13.2Q0 -10.6 10.4 -13.2', COD, .8, .6) + ln('M-.2 -37.6Q.4 -25 0 -12', COS, .6, .6) + coatTex([-9, -36, 7, -14]);
     if (o.closedUmb) g += `<path d="M8.4 -18.4L10 -1" stroke="#4a3a6a" stroke-width=".9"/>` + P('M8.5 -15.6L7.2 -5.4L9.6 -2.4L10.4 -14.2Z', '#e5739f');
@@ -280,7 +281,7 @@ function mjGirl(c, x, y, s = 1, pose = 'back', o = {}){
     if (hd) g += `<circle cx="${_r1(hd[0])}" cy="${_r1(hd[1])}" r="1.55" fill="${K}"/>`;
   }
   if (o.lantern) g += mjLantern(c, ...reach(SH, o.lantern));
-  MJ_TF = TF0;
+  MJ_TF = TF0; MJ_DRIP = D0;
   // đứng: thở và đổi trọng tâm rất chậm; đi: nhún theo bước
   const body = wk ? G('mja-step', g) : mjA(c, 'mja-sway', mjA(c, 'mja-breath', g), 8);
   return `<g transform="translate(${_r1(x)} ${_r1(y)}) scale(${_r1(s * f * 100) / 100} ${_r1(s * 100) / 100})">${body}</g>`;
@@ -388,7 +389,7 @@ const MJ_SCENES = {
     bg += T.svg + `<rect y="${gy}" width="400" height="${250 - gy}" fill="${mjLin(c, [[0, '#111c3c'], [1, '#080f24']])}"/>` + mjS(c, 150, [-10, gy, 410, 250], ['#1a2a52', '#22355f', '#0c152f'], { ang:0, len:[14, 54], w:[1.6, 2.8], op:.6, jit:2 }) + mjReflect(c, T.lights, gy, '#ffcf73', .35);
     bg += mjLampN(c, 60, gy + 6, 118, { R:70 }) + mjReflect(c, [[60, gy - 110, 1.6]], gy + 6, '#ffe3a0', .45);
     [[120, 222, 34], [300, 236, 40], [360, 206, 22]].forEach(([x, y, w]) => { bg += `<ellipse cx="${x}" cy="${y}" rx="${w}" ry="${w * .16}" fill="#0a1330"/><ellipse cx="${x - w * .2}" cy="${y}" rx="${w * .3}" ry="${w * .06}" fill="none" stroke="#5a78b3" stroke-width=".7" opacity=".7"/><ellipse cx="${x + w * .3}" cy="${y + 1}" rx="${w * .18}" ry="${w * .04}" fill="none" stroke="#5a78b3" stroke-width=".6" opacity=".6"/>`; });
-    return [bg, mjGirl(c, 214, 224, 1.6, 'side', { cat:true, umb:{ hand:[11.4, -50.4], R:30, rot:22, bent:true, shaft:.5, handle:false }, wind:6 })];
+    return [bg, mjGo(18, 0, mjGirl(c, 214, 224, 1.6, 'side', { cat:true, umb:{ hand:[11.4, -50.4], R:30, rot:22, bent:true, shaft:.5, handle:false }, wind:6, walk:true }))];
   },
   // Ngọn đèn ở góc phố: mưa tạnh, trăng ló khỏi mây, Moon ngồi nhìn trăng
   d7:c => {
@@ -420,8 +421,8 @@ const MJ_SCENES = {
     bg += mjMoonN(c, 112, 86, 17, { cres:[.42, -.2], halo:3.2 }) + mjDots(c, 50, [80, 54, 144, 118], ['#fff2c4', '#ffe39a'], [.6, 1.4], .8, (x, y) => { const d = Math.hypot(x - 112, y - 86); return d > 19 && d < 30; });
     bg += mjS(c, 70, [250, 100, 420, 150], ['#fff2c4', '#e9dcae'], { ang:0, len:[10, 40], w:[1, 1.6], op:.55, jit:2 });
     bg += `<ellipse cx="${cx}" cy="${cy + 2}" rx="20" ry="3.4" fill="none" stroke="#9ad6d0" stroke-width=".8" opacity=".6"/><ellipse cx="${cx}" cy="${cy + 2}" rx="32" ry="5.4" fill="none" stroke="#7fc4c4" stroke-width=".6" opacity=".4"/>`;
-    const g = mjGirl(c, cx, cy, 1.1, 'side', { flip:true, shadow:false, wind:-3 });
-    return [bg, mjMirror(cy, g) + g];
+    const g = mjGirl(c, cx, cy, 1.1, 'side', { flip:true, shadow:false, wind:-3, walk:true });
+    return [bg, mjGo(-16, 0, mjMirror(cy, g) + g)];
   },
   // Ngôi sao rơi vào ô: chiếc ô trong suốt hứng đầy sao, bụi sao chảy xuống
   d21:c => {
@@ -487,7 +488,8 @@ const MJ_SCENES = {
     bg += mjS(c, 50, [-20, hz - 8, 420, hz + 12], ['#3a5486', '#4f69a0'], { ang:0, len:[40, 120], w:[4, 7], op:.18, jit:2 }) + mjFlies(c, 12, [180, 96, 400, 126], { sz:.7 });
     const bx = 228, by = 194, boat = `<path d="M${bx - 48} ${by - 8}Q${bx} ${by + 18} ${bx + 52} ${by - 10}L${bx + 46} ${by - 4}Q${bx} ${by + 10} ${bx - 42} ${by - 2}Z" fill="#2a2240"/><path d="M${bx - 48} ${by - 8}Q${bx} ${by + 6} ${bx + 52} ${by - 10}" stroke="#7a6a8e" stroke-width="2" fill="none"/>`;
     const ripple = `<path d="M${bx - 70} ${by + 10}Q${bx} ${by + 24} ${bx + 74} ${by + 8}" stroke="#5a78b3" stroke-width=".8" fill="none" opacity=".6"/><path d="M${bx - 90} ${by + 18}Q${bx} ${by + 34} ${bx + 96} ${by + 16}" stroke="#5a78b3" stroke-width=".6" fill="none" opacity=".4"/>`;
-    return [bg, ripple + mjMirror(by + 6, boat, .3) + mjA(c, 'mja-bob', `<path d="M${bx + 44} ${by - 6}L${bx + 50} ${by - 40}" stroke="#4a3d5e" stroke-width="1.6"/>` + mjGirl(c, bx - 4, by - 2, 1.3, 'perch', { legs:false, hand:[15.4, -14.6] }) + `<path d="M${bx + 14} ${by - 24}L${bx - 26} ${by + 16}" stroke="#7a6a8e" stroke-width="1.8"/>` + boat + mjLantern(c, bx + 50, by - 40)) + mjReflect(c, [[bx + 50, by - 32, 1.2]], by + 6, '#ffd27a', .55)];
+    // thuyền trôi dần sang phải, mái chèo khua nước
+    return [bg, mjGo(24, -2, ripple + mjMirror(by + 6, boat, .3) + mjA(c, 'mja-bob', `<path d="M${bx + 44} ${by - 6}L${bx + 50} ${by - 40}" stroke="#4a3d5e" stroke-width="1.6"/>` + mjGirl(c, bx - 4, by - 2, 1.3, 'perch', { legs:false, hand:[15.4, -14.6] }) + mjA(c, 'mja-row', `<path d="M${bx + 14} ${by - 24}L${bx - 26} ${by + 16}" stroke="#7a6a8e" stroke-width="1.8"/>`) + boat + mjLantern(c, bx + 50, by - 40)) + mjReflect(c, [[bx + 50, by - 32, 1.2]], by + 6, '#ffd27a', .55))];
   },
   // Bậu cửa sổ: cửa sổ sáng đèn, Moon ngồi trên bậu, chậu hoa nhỏ
   d130:c => {
@@ -521,7 +523,7 @@ const MJ_SCENES = {
     bg += trunks(9, 16, '#132247', -10, 196) + mjS(c, 120, [-20, -20, 420, 60], ['#0f1d40', '#162a55', '#1d3366'], { ang:-10, len:[10, 26], w:[4, 6], op:.8, jit:30, bend:.4 });
     bg += `<path d="M150 250Q190 200 196 170Q200 150 210 140L222 140Q214 160 222 180Q240 220 300 250Z" fill="#1d2d5a"/>` + mjS(c, 60, [150, 140, 300, 250], ['#26396a', '#2f4680'], { ang:0, len:[10, 30], w:[2, 3], op:.6, in:(x, y) => Math.abs(x - (205 + (y - 140) * .1)) < 8 + (y - 140) * .6 });
     bg += trunks(5, 34, '#08102a', -20, 250) + mjBush(c, 30, 236, 60, 26, ['#0a1d24', '#123330', '#1a443d'], 90) + mjBush(c, 380, 240, 60, 28, ['#0a1d24', '#123330', '#1a443d'], 90) + mjFlies(c, 22, [0, 60, 400, 230], { sz:.8 });
-    return [bg, mjGlow(c, 210, 190, 90, 'w', .5) + mjGirl(c, 206, 214, 1.25, 'back', { hand:[10.4, -28.4], lantern:[10.4, -28.4] })];
+    return [bg, mjGo(0, -7, mjGlow(c, 210, 190, 90, 'w', .5) + mjGirl(c, 206, 214, 1.25, 'back', { hand:[10.4, -28.4], lantern:[10.4, -28.4], walk:true }))];
   },
   // Lá thư gửi Moon: gấp lá thư thành thuyền giấy, thả trôi trên mặt nước có ngọn nến nhỏ
   d300:c => {
@@ -533,7 +535,7 @@ const MJ_SCENES = {
     bg += mjFlies(c, 14, [140, 40, 400, 200], { sz:.8 });
     const boat = `<path d="M${bx - 22} ${by}L${bx + 22} ${by}L${bx + 14} ${by + 8}H${bx - 14}Z" fill="#eef2fb" stroke="#a9b6d6" stroke-width=".7"/><path d="M${bx - 12} ${by}L${bx} ${by - 20}L${bx + 12} ${by}Z" fill="#dde4f4"/><path d="M${bx} ${by - 20}L${bx + 12} ${by}H${bx + 4}Z" fill="#a9b6d6"/>
       <path d="M${bx - 14} ${by + 3}h20M${bx - 12} ${by + 5.5}h16M${bx - 7} ${by - 6}h8M${bx - 5} ${by - 9}h6" stroke="#7a8ab4" stroke-width=".5" opacity=".8"/><rect x="${bx - 2}" y="${by - 30}" width="4" height="10" rx="1" fill="#fff6dc"/><path d="M${bx} ${by - 31}q-2.6-3.6 0-7.4q2.6 3.8 0 7.4z" fill="#ffd27a"/>`;
-    return [bg, mjA(c, 'mja-bob', mjA(c, 'mja-flick', mjGlow(c, bx, by - 34, 50, 'w', .9)) + boat + mjA(c, 'mja-flick', mjGlow(c, bx, by - 34, 10, 'f', 1))) + mjReflect(c, [[bx, by - 20, 1.4]], by + 8, '#ffd27a', .55) + mjGirl(c, 104, 200, 1.5, 'kneel', { hand:[17.4, -16] })];
+    return [bg, mjGo(26, 0, mjA(c, 'mja-bob', mjA(c, 'mja-flick', mjGlow(c, bx, by - 34, 50, 'w', .9)) + boat + mjA(c, 'mja-flick', mjGlow(c, bx, by - 34, 10, 'f', 1))) + mjReflect(c, [[bx, by - 20, 1.4]], by + 8, '#ffd27a', .55)) + mjGirl(c, 104, 200, 1.5, 'kneel', { hand:[17.4, -16] })];
   },
   // Gặp lại: bờ cát dưới trăng tròn, ngọn hải đăng quét sáng, ôm Moon trong vòng tay
   d365:c => {

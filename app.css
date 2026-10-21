@@ -468,6 +468,12 @@ html[data-font="serif"] h1,html[data-font="serif"] h2,html[data-font="serif"] h3
 .mja-legB{animation-name:mjaLeg2}
 @keyframes mjaLeg{0%,100%{transform:rotate(-20deg)}50%{transform:rotate(18deg) translateY(-.6px)}}
 @keyframes mjaLeg2{0%,100%{transform:rotate(18deg) translateY(-.6px)}50%{transform:rotate(-20deg)}}
+.mja-bkA,.mja-bkB{transform-origin:50% 0;animation:mjaBk 1.1s ease-in-out infinite}
+.mja-bkB{animation-name:mjaBk2}
+@keyframes mjaBk{0%,100%{transform:translateY(0)}25%{transform:translateY(-1.6px) scaleY(.86)}50%{transform:translateY(0)}}
+@keyframes mjaBk2{0%,50%,100%{transform:translateY(0)}75%{transform:translateY(-1.6px) scaleY(.86)}}
+.mja-row{transform-origin:100% 0;animation:mjaRow 2.4s ease-in-out infinite}
+@keyframes mjaRow{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(7deg)}}
 .mja-armS{transform-origin:50% 0;animation:mjaLeg2 1.1s ease-in-out infinite}
 .mja-step{animation:mjaStep .275s ease-in-out infinite alternate}
 @keyframes mjaStep{from{transform:translateY(0)}to{transform:translateY(-1.1px)}}
