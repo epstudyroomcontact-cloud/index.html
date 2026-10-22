@@ -6,15 +6,17 @@
    2. Việc hôm nay chưa xong, sắp bắt đầu (từ LEAD phút trước tới LATE phút sau giờ bắt đầu) mà chưa nhắc → gửi tới các máy của người đó.
    3. 20:00–21:00 còn việc hôm nay chưa xong → nhắc một lần "Hôm nay còn n việc chưa xong" (giống nhắc trong trang).
    Đã nhắc gì thì ghi vào push_admin/planner để không nhắc lặp.
+   4. Người dùng bấm "Gửi thông báo thử" trong Planner (plPush.test = { token, at }) → gửi thử tới đúng máy đó và ghi kết quả vào plPush.testRes
+      để trang báo lại: Google đã nhận (máy không hiện = điện thoại đang chặn) hay mã của máy đã hết hạn.
    ========================================================= */
-import { env, NOW, DRY, DOCS, login, api, getDoc, setDoc, decodeFields, sendOne } from './fcm.mjs';
+import { env, NOW, DRY, DOCS, login, api, getDoc, setDoc, updateFields, decodeFields, sendOne } from './fcm.mjs';
 
 const LEAD = +(env.PL_LEAD_MIN || 12), LATE = +(env.PL_LATE_MIN || 10);   // chạy 5 phút một lần: thường đến tay khoảng 8–12 phút trước giờ bắt đầu
 
 /* ---------- chữ của thông báo (giống pl_rem_title / pl_rem_soon / pl_rem_eve trong planner.js, planner-i18n.js) ---------- */
 const TXT = {
-  en:{ title:'Planner', soon:'{t} starts at {s}', eve:'{n} tasks are still open today.' },
-  vi:{ title:'Planner', soon:'{t} bắt đầu lúc {s}', eve:'Hôm nay còn {n} việc chưa xong.' },
+  en:{ title:'Planner', soon:'{t} starts at {s}', eve:'{n} tasks are still open today.', test:'Test from the server: reminders reach this device.' },
+  vi:{ title:'Planner', soon:'{t} bắt đầu lúc {s}', eve:'Hôm nay còn {n} việc chưa xong.', test:'Thông báo thử từ máy chủ: nhắc việc đến được máy này.' },
   hi:{ title:'प्लानर', soon:'{t} {s} पर शुरू होता है', eve:'आज {n} काम अभी बाकी हैं।' },
   ja:{ title:'プランナー', soon:'{t}は{s}に始まります', eve:'今日はまだ{n}件のタスクが残っています。' },
   ko:{ title:'플래너', soon:'{t}이(가) {s}에 시작해요', eve:'오늘 아직 {n}개의 할 일이 남아 있어요.' },
@@ -58,6 +60,17 @@ const users = await subscribers();
 if (!users.length) { console.log('Chưa ai bật nhắc việc Planner.'); process.exit(0); }
 const state = (await getDoc('push_admin/planner')) || {};
 const sent = state.sent || {};
+
+/* gửi thử theo yêu cầu (mỗi yêu cầu 1 lần, chỉ trong 30 phút sau khi bấm) */
+for (const u of users) {
+  const q = u.test, done = u.testRes && u.testRes.req;
+  if (!q || typeof q.token !== 'string' || q.token.length < 20 || !q.at || q.at === done || NOW - q.at > 30 * 60e3) continue;
+  const T = TXT[u.lang] || TXT.en;
+  const res = await sendOne(q.token, { title:T.title, body:T.test || TXT.en.test, tag:'pl-test', path:'#/planner' }, 30 * 60);
+  console.log('Gửi thử cho', u.uid.slice(0, 6), '→', res);
+  if (res === 'dead') await dropTokens(u.uid, [q.token]);
+  await updateFields(`users/${u.uid}`, { plPush:{ testRes:{ at:NOW, req:q.at, res } } }, ['plPush.testRes']).catch(e => console.warn(e.message.slice(0, 200)));
+}
 const jobs = [];                                                   // { uid, tokens, title, body, tag }
 for (const u of users) {
   const tokens = [...new Set((u.tokens || []).filter(t => typeof t === 'string' && t.length >= 20))];
