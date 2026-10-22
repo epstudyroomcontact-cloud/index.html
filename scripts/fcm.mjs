@@ -63,6 +63,13 @@ export async function setDoc(path, data){
   if (!r.ok) throw new Error(`Ghi ${path}: ${r.status} ${await r.text()}`);
 }
 
+export async function updateFields(path, data, fieldPaths){         // chỉ ghi các trường trong fieldPaths, giữ nguyên phần còn lại của tài liệu
+  if (DRY) return console.log('[thử] sửa', path, fieldPaths.join(','), JSON.stringify(data));
+  const q = fieldPaths.map(f => 'updateMask.fieldPaths=' + encodeURIComponent(f)).join('&');
+  const r = await api(`${DOCS}/${path}?${q}`, { method:'PATCH', body:JSON.stringify({ fields:encode(data).mapValue.fields }) });
+  if (!r.ok) throw new Error(`Sửa ${path}: ${r.status} ${await r.text()}`);
+}
+
 /* ---------- gửi 1 thông báo qua FCM HTTP v1 → 'ok' | 'dead' (token hết hạn / máy đã tắt thông báo) | 'fail' ---------- */
 // Chỉ gửi "data": service worker (sw.js) tự hiện thông báo, nên mọi trình duyệt hiện giống nhau
 export async function sendOne(token, data, ttlSec){
