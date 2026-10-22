@@ -204,7 +204,7 @@ async function plFocusEdit(fn){                                   // fn(tasks) s
   try {
     const key = plKey(0), live = !!(PL.tasks && PL.key === key), tasks = await plWeek0(); if (!tasks || !fn(tasks)) return false;
     if (live) plSave();
-    else { PL.pre = null; plCache(key, tasks); if (state.user) PL.remTasks = { uid:state.user.uid, tasks }; if (!DEMO) await plRef(key).set({ tasks:tasks.map(plClean), updatedAt:TS() }, { merge:true }); }   // merge: giữ nguyên gone
+    else { PL.pre = null; plCache(key, tasks); if (state.user) PL.remTasks = { uid:state.user.uid, tasks }; plPinShow(); if (!DEMO) await plRef(key).set({ tasks:tasks.map(plClean), updatedAt:TS() }, { merge:true }); }   // merge: giữ nguyên gone
     return true;
   } catch (e) { console.warn('focus-planner', e.code); return false; }
 }
@@ -221,7 +221,7 @@ const plCache = (key, tasks, gone) => { if (DEMO || !state.user) return; const o
 function plPrefetch(){                                            // gọi sớm lúc đăng nhập: lấy sẵn tuần này để mở Planner là có ngay
   if (DEMO || !state.user || !plAccess() || (PL.pre && PL.pre.uid === state.user.uid && Date.now() - PL.pre.at < 60000)) return;
   const key = plKey(0), pre = PL.pre = { uid:state.user.uid, key, at:Date.now(), p:plFetch(key) };
-  pre.p.then(r => { plCache(key, r.tasks, r.gone); PL.remTasks = { uid:pre.uid, tasks:r.tasks }; if (store.get('pl_rem', null) === null && PUSH.on) store.set('pl_rem', true); plRemStart(); })   // đã bật thông báo đẩy ở 🔔 từ trước: tự bật nhắc việc.catch(() => { if (PL.pre === pre) PL.pre = null; });
+  pre.p.then(r => { plCache(key, r.tasks, r.gone); PL.remTasks = { uid:pre.uid, tasks:r.tasks }; plPinShow(); if (store.get('pl_rem', null) === null && PUSH.on) store.set('pl_rem', true); plRemStart(); })   // đã bật thông báo đẩy ở 🔔 từ trước: tự bật nhắc việc.catch(() => { if (PL.pre === pre) PL.pre = null; });
 }
 async function plLoad(){
   const key = plKey(PL.off); if ((PL.key === key && PL.tasks) || PL.state === 'loading' || PL.state === 'error') return;
@@ -236,7 +236,7 @@ async function plLoad(){
     const tasks = r.tasks, gone = r.gone.map(plGoneClean);
     if (PL.seq !== seq) return;                                   // đã đổi tuần / bấm thử lại trong lúc tải
     console.info('planner load', Date.now() - t0, 'ms', hit ? '(có bản nhớ)' : '');
-    if (!PL.save) { PL.tasks = tasks.map(plClean); PL.gone = gone; plCache(key, tasks, gone); PL.hist[key] = plStats(PL.tasks, PL.off, PL.gone); if (key === plKey(0)) PL.remTasks = { uid:state.user.uid, tasks:PL.tasks }; }      // bạn đã sửa trong lúc chờ thì giữ bản của bạn
+    if (!PL.save) { PL.tasks = tasks.map(plClean); PL.gone = gone; plCache(key, tasks, gone); PL.hist[key] = plStats(PL.tasks, PL.off, PL.gone); if (key === plKey(0)) { PL.remTasks = { uid:state.user.uid, tasks:PL.tasks }; plPinShow(); } }      // bạn đã sửa trong lúc chờ thì giữ bản của bạn
     else { const mine = new Set(PL.gone.map(g => g.id + '|' + g.day)); PL.gone = [...gone.filter(g => !mine.has(g.id + '|' + g.day)), ...PL.gone].slice(-PL_MAX); }   // …nhưng không làm mất dấu dời/bỏ đã có trên máy chủ
     PL.state = 'ready'; PL.slow = false;
     if (!DEMO) { plHist(); plPrefs(); } else if (!PL.prefs) PL.prefs = {};
@@ -255,7 +255,7 @@ function plFlush(){                                                // lưu ngay 
 function plSave(){
   PL.save = 'saving'; clearTimeout(PL.timer);
   PL.timer = setTimeout(async () => {
-    if (!PL.tasks) return; const key = PL.key, tasks = PL.tasks.map(plClean), gone = (PL.gone || []).map(plGoneClean); plCache(key, tasks, gone); PL.hist[key] = plStats(tasks, PL.off, gone); if (key === plKey(0)) PL.remTasks = { uid:state.user.uid, tasks };
+    if (!PL.tasks) return; const key = PL.key, tasks = PL.tasks.map(plClean), gone = (PL.gone || []).map(plGoneClean); plCache(key, tasks, gone); PL.hist[key] = plStats(tasks, PL.off, gone); if (key === plKey(0)) { PL.remTasks = { uid:state.user.uid, tasks }; plPinShow(); }
     try { if (!DEMO) await plRef(key).set({ tasks, gone, updatedAt:TS() }); if (PL.key === key) PL.save = 'saved'; }
     catch (e) { console.warn('planner save', e.code); PL.save = 'error'; toast(t('pl_err')); }
     const n = $('pl-status'); if (n) n.textContent = PL.save === 'saved' ? '✓ ' + t('pl_saved') : PL.save === 'error' ? t('pl_err') : t('pl_saving');
@@ -369,21 +369,23 @@ async function plNotify(title, body, tag){                          // điện t
 }
 const plPushOk = () => typeof pushSupported === 'function' && pushSupported() && Notification.permission === 'granted';
 async function plPushSync(force){                                   // lưu token của máy này cho máy gửi nhắc việc (ghi lại mỗi tuần, hoặc khi token / ngôn ngữ / múi giờ đổi)
-  const u = state.user; if (!u || DEMO || !plRemOn() || !plPushOk() || !await swRegister()) return false;
+  const u = state.user, rem = plRemOn(), pin = plPinOn(); if (!u || DEMO || !(rem || pin) || !plPushOk() || !await swRegister()) return false;
   const reg = await navigator.serviceWorker.ready, m = await loadMessaging();
   const token = await m.getToken({ vapidKey:PUSH_VAPID, serviceWorkerRegistration:reg }); if (!token) return false;
-  const old = store.get('pl_push', null), sig = u.uid + '|' + token + '|' + state.lang + '|' + userTZ;
+  const old = store.get('pl_push', null), sig = u.uid + '|' + token + '|' + state.lang + '|' + userTZ + '|' + rem + '|' + pin;
   if (!force && old && old.sig === sig && Date.now() - old.t < 7 * 864e5) return true;
   const F = firebase.firestore.FieldValue, ref = db.collection('users').doc(u.uid);
-  if (old && old.uid === u.uid && old.token !== token) await ref.update({ 'plPush.tokens':F.arrayRemove(old.token) }).catch(() => {});   // token cũ (trình duyệt đã đổi token)
-  await ref.set({ plPush:{ on:true, tokens:F.arrayUnion(token), tz:String(userTZ).slice(0, 64), lang:state.lang, at:TS() } }, { merge:true });
+  if (old && old.uid === u.uid && old.token !== token) await ref.update({ 'plPush.tokens':F.arrayRemove(old.token), 'plPush.pinTokens':F.arrayRemove(old.token) }).catch(() => {});   // token cũ (trình duyệt đã đổi token)
+  // tokens = máy nhận nhắc trước giờ làm việc, pinTokens = máy nhận "việc hôm nay" (scripts/push-planner.mjs); mỗi máy bật / tắt riêng
+  await ref.set({ plPush:{ on:true, tokens:rem ? F.arrayUnion(token) : F.arrayRemove(token), pinTokens:pin ? F.arrayUnion(token) : F.arrayRemove(token), tz:String(userTZ).slice(0, 64), lang:state.lang, at:TS() } }, { merge:true });
   store.set('pl_push', { uid:u.uid, token, sig, t:Date.now() });
   return true;
 }
 async function plPushOff(){                                         // tắt nhắc việc / đăng xuất: máy này thôi nhận nhắc khi đã đóng web
   const old = store.get('pl_push', null); store.set('pl_push', null);
   if (!old || DEMO || !state.user || state.user.uid !== old.uid) return;
-  await db.collection('users').doc(old.uid).update({ 'plPush.tokens':firebase.firestore.FieldValue.arrayRemove(old.token) }).catch(() => {});
+  const F = firebase.firestore.FieldValue;
+  await db.collection('users').doc(old.uid).update({ 'plPush.tokens':F.arrayRemove(old.token), 'plPush.pinTokens':F.arrayRemove(old.token) }).catch(() => {});
 }
 const plPushHere = () => { const p = store.get('pl_push', null); return !!(p && state.user && p.uid === state.user.uid && plPushOk()); };
 const plChimeOn = () => store.get('pl_chime', true) !== false;
@@ -403,22 +405,24 @@ function plRemTick(){
 }
 /* Bật / tắt nhắc việc: gọi từ bảng chuông 🔔 (core.js plRemSet), không còn nút riêng trong Planner */
 async function plRemToggle(on, quiet){
-  if (!on) { store.set('pl_rem', false); clearInterval(PL.remT); PL.remT = 0; PL.pushU = ''; await plPushOff(); if (!quiet) toast(t('pl_rem_off')); return; }
+  if (!on) { store.set('pl_rem', false); clearInterval(PL.remT); PL.remT = 0; PL.pushU = ''; await (plPinOn() ? plPushSync(true).catch(() => {}) : plPushOff()); if (!quiet) toast(t('pl_rem_off')); return; }
   let perm = typeof Notification === 'undefined' ? 'denied' : Notification.permission; if (perm === 'default' && !quiet) { try { perm = await Notification.requestPermission(); } catch (e) { perm = 'denied'; } }
   store.set('pl_rem', true); PL.pushU = state.user && state.user.uid; plRemStart();
   if (!quiet && perm !== 'granted') toast(t('pl_rem_inpage'));
   if (perm === 'granted') { try { await plPushSync(true); } catch (e) { console.warn('planner push', e); } }
 }
 const plRemStart = () => {
-  if (!plRemOn()) return;
-  if (!PL.remT) PL.remT = setInterval(plRemTick, 30000);
+  if (!plRemOn() && !plPinOn()) return;
+  if (plRemOn() && !PL.remT) PL.remT = setInterval(plRemTick, 30000);
   const uid = state.user && state.user.uid; if (uid && PL.pushU !== uid) { PL.pushU = uid; plPushSync().then(ok => ok && route.name === 'planner' && render(true)).catch(e => console.warn('planner push', e)); }
 };
 /* ---------- việc hôm nay ngoài màn hình (bật ở bảng chuông 🔔, core.js plPinSet) ----------
-   Web không vẽ chồng lên màn hình khác được, nên cách gần nhất là một thông báo YÊN LẶNG (không chuông, không rung), luôn cùng tag 'pl-today':
-   mỗi lần khách thoát / chuyển khỏi web (trang bị ẩn) thì hiện danh sách việc hôm nay chưa xong ở thanh thông báo / góc màn hình,
-   quay lại web thì tự đóng. Hết ngày thì tự đóng (ở đây khi trang còn chạy, và ở sw.js mỗi khi có thông báo đẩy tới). */
+   Web không vẽ chồng lên màn hình / màn hình khoá được, nên cách gần nhất là một thông báo YÊN LẶNG (không chuông, không rung), luôn cùng tag 'pl-today'.
+   Điện thoại: thông báo nằm luôn trên thanh thông báo / màn hình khoá, tự cập nhật mỗi khi thêm / tick / dời việc và mỗi lần mở / thoát web;
+   khách có vuốt đi thì lần sau lại hiện. Máy tính: chỉ hiện khi thoát / chuyển khỏi web (để không che trang), quay lại thì đóng.
+   Đã đóng hẳn web: máy gửi (scripts/push-planner.mjs) gửi lại danh sách khi đổi và mỗi sáng. Hết ngày thì tự đóng. */
 const PL_PIN_MAX = 6;
+const plPinKeep = () => pwaIOS || /android|mobile/i.test(navigator.userAgent);   // điện thoại / máy tính bảng: giữ luôn, kể cả khi đang mở web
 function plPinText(){
   const u = state.user, tasks = u && plWeekNow(u); if (!tasks) return null;
   const now = DT.now().setZone(userTZ), di = now.weekday - 1;
@@ -430,12 +434,13 @@ function plPinText(){
 async function plPinShow(){
   clearTimeout(PL.pinT);
   if (!plPinOn() || !state.user || !plAccess() || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+  if (!document.hidden && !plPinKeep()) return plPinHide();
   const v = plPinText(); if (!v) return plPinHide();
-  const reg = await swRegister(); if (!reg || !reg.showNotification || !document.hidden) return;   // đã quay lại web trong lúc chờ
+  const reg = await swRegister(); if (!reg || !reg.showNotification) return;
   await reg.showNotification(v.title, { body:v.body, tag:'pl-today', silent:true, renotify:false, icon:'icons/icon-192.png', data:{ url:location.href.split('#')[0] + '#/planner', until:v.until } }).catch(() => {});
-  PL.pinT = setTimeout(plPinShow, Math.min(v.until - Date.now() + 5000, 2147483647));   // qua ngày mới mà vẫn chưa quay lại web: đổi sang việc của ngày mới (hoặc đóng)
+  PL.pinT = setTimeout(plPinShow, Math.min(v.until - Date.now() + 5000, 2147483647));   // qua ngày mới mà trang vẫn còn chạy: đổi sang việc của ngày mới (hoặc đóng)
 }
-document.addEventListener('visibilitychange', () => { if (document.hidden) plPinShow(); else { clearTimeout(PL.pinT); plPinHide(); } });
+document.addEventListener('visibilitychange', plPinShow);
 /* ---------- giao diện ---------- */
 function plPreview(){                                              // giao diện thật với dữ liệu mẫu, chỉ để xem (dùng cho người chưa là Companion)
   const sample = [[0, '07:30', 45, 'vocab', 0], [0, '19:30', 60, 'listen', 0], [1, '09:00', 90, 'read', 0], [1, '18:00', 45, 'gym', 2], [2, '08:00', 120, 'essay', 1], [2, '20:00', 40, 'book', 3], [3, '07:30', 45, 'vocab', 0], [3, '14:00', 60, 'meet', 1], [4, '09:00', 60, 'speak', 0], [4, '19:00', 90, 'movie', 4], [5, '10:00', 60, 'clean', 5], [5, '15:00', 90, 'read', 0], [6, '09:00', 45, 'review', 0]];

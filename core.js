@@ -8,7 +8,7 @@ const loadScript = src => new Promise((res, rej) => { const s = document.createE
 let emailP = null;
 const loadEmailJS = () => emailP || (emailP = loadScript('https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js').then(() => { emailjs.init("JKo4tonk0gQMwrHFZ"); }).catch(e => { emailP = null; console.warn('EmailJS chưa tải được', e); throw e; }));
 let adminP = null;
-const ASSET_V = '80';                                                // đổi cùng số ?v= trong index.html mỗi lần cập nhật, để trình duyệt không trộn file cũ với file mới
+const ASSET_V = '81';                                                // đổi cùng số ?v= trong index.html mỗi lần cập nhật, để trình duyệt không trộn file cũ với file mới
 const loadAdmin = () => typeof PAGES.admin === 'function' ? Promise.resolve() : (adminP || (adminP = loadScript('admin.js?v=' + ASSET_V).catch(e => { adminP = null; throw e; })));
 let plannerP = null;
 const loadPlanner = () => typeof PAGES.planner === 'function' ? Promise.resolve() : (plannerP || (plannerP = Promise.all([loadScript('planner-i18n.js?v=' + ASSET_V).catch(() => {}), loadScript('planner.js?v=' + ASSET_V)]).catch(e => { plannerP = null; throw e; })));   // planner-i18n.js = bản dịch hi/ja/ko/zh/fr/es; thiếu thì dùng tiếng Anh
@@ -781,7 +781,7 @@ async function pushOff(){
 }
 async function pushSet(on){
   PUSH.busy = true; PUSH.err = false; renderLiveRem();
-  try { if (on) await pushSync(true); else await pushOff(); PUSH.on = on; toast(t(on ? 'push_on_toast' : 'push_off_toast')); if (plCan() && (on || plRemIsOn())) plRemSet(true, true); }   // bật thông báo đẩy = bật luôn nhắc việc; tắt thì token cũ bị xoá nên nhắc việc lấy token mới
+  try { if (on) await pushSync(true); else await pushOff(); PUSH.on = on; toast(t(on ? 'push_on_toast' : 'push_off_toast')); if (plCan() && (on || plRemIsOn())) plRemSet(true, true); else if (plCan() && plPinOn()) loadPlanner().then(() => plPushSync(true)).catch(() => {}); }   // bật thông báo đẩy = bật luôn nhắc việc; tắt thì token cũ bị xoá nên nhắc việc lấy token mới
   catch (e) { console.warn('push', e); PUSH.on = false; PUSH.err = NOTIF_OK && Notification.permission !== 'denied'; }
   store.set('push_on', PUSH.on); PUSH.busy = false; renderLiveRem();
 }
@@ -819,14 +819,19 @@ const plPinOn = () => !!store.get('pl_pin', false);
 async function plPinHide(){ try { const reg = await swRegister(); if (reg && reg.getNotifications) (await reg.getNotifications({ tag:'pl-today' })).forEach(n => n.close()); } catch (e) {} }
 function plPinHTML(){
   const perm = NOTIF_OK ? Notification.permission : 'denied', on = plPinOn() && perm === 'granted';
-  const note = pwaIOS && !pwaStandalone() ? 'plp_ios' : !NOTIF_OK ? 'push_unsup' : perm === 'denied' ? 'push_denied' : on ? 'plp_ok' : 'plp_note';
+  const mob = pwaIOS || /android|mobile/i.test(navigator.userAgent);   // giống plPinKeep trong planner.js
+  const note = pwaIOS && !pwaStandalone() ? 'plp_ios' : !NOTIF_OK ? 'push_unsup' : perm === 'denied' ? 'push_denied' : on ? (mob ? 'plp_ok' : 'plp_ok_pc') : 'plp_note';
   return `<div class="switch"><span><b>${esc(t('plp_on'))}</b></span><input type="checkbox" data-change="plPinOn" ${on ? 'checked' : ''} ${NOTIF_OK && perm !== 'denied' ? '' : 'disabled'}></div><p class="lr-note ${on ? 'ok' : ''}">${esc(t(note))}</p><hr class="lr-hr">`;
 }
 async function plPinSet(on){
   if (on && NOTIF_OK && Notification.permission === 'default') { try { await Notification.requestPermission(); } catch (e) {} }
   on = on && NOTIF_OK && Notification.permission === 'granted';
-  store.set('pl_pin', on); if (on) { swRegister(); loadPlanner().catch(() => {}); } else plPinHide();
+  store.set('pl_pin', on); if (!on) plPinHide();
   toast(t(on ? 'plp_on_toast' : 'plp_off_toast')); renderLiveRem();
+  try {                                                              // hiện ngay + báo máy gửi (scripts/push-planner.mjs) để cập nhật cả khi đã đóng web
+    await loadPlanner(); if (on) plPinShow();
+    await (on || plRemIsOn() ? plPushSync(true) : plPushOff());
+  } catch (e) { console.warn('planner pin', e); }
 }
 async function plRemSet(on, quiet){
   try { await loadPlanner(); if (typeof plRemToggle === 'function') await plRemToggle(on, quiet); } catch (e) { console.warn('planner rem', e); }

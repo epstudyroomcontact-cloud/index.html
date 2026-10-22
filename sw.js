@@ -6,7 +6,7 @@
    nên không ai bị kẹt bản cũ. Chỉ lưu sẵn một trang "Bạn đang offline" để hiện khi mất mạng.
    Đổi SW_V mỗi khi sửa file này hoặc offline.html.
    ========================================================= */
-const SW_V = 'v4', OFFLINE_CACHE = 'ep-offline-' + SW_V, OFFLINE_URL = 'offline.html';
+const SW_V = 'v5', OFFLINE_CACHE = 'ep-offline-' + SW_V, OFFLINE_URL = 'offline.html';
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(OFFLINE_CACHE).then(c => c.add(new Request(OFFLINE_URL, { cache:'reload' }))).then(() => self.skipWaiting()));
 });
@@ -27,11 +27,13 @@ self.addEventListener('push', e => {
   const d = j.data || {}, n = j.notification || {};
   // "Việc hôm nay" (tag 'pl-today', planner.js plPinShow) của ngày đã qua: đóng luôn, để không còn danh sách cũ ngoài màn hình
   const stale = self.registration.getNotifications({ tag:'pl-today' }).then(l => l.forEach(x => { if (x.data && x.data.until && Date.now() > x.data.until) x.close(); })).catch(() => {});
-  e.waitUntil(stale.then(() => self.registration.showNotification(d.title || n.title || 'EP Study Room', {
-    body: d.body || n.body || '', tag: d.tag || 'live-now', renotify: true, silent: false, icon: 'icons/icon-192.png',
-    vibrate: [200, 100, 200, 100, 300],                          // rung trên Android (tiếng chuông do cài đặt thông báo của máy quyết định)
-    data: { url: self.registration.scope + (/^#\/[\w-]*$/.test(d.path || '') ? d.path : '#/watch') }   // nhắc việc Planner gửi path '#/planner'
-  })));
+  const url = self.registration.scope + (/^#\/[\w-]*$/.test(d.path || '') ? d.path : '#/watch');   // nhắc việc Planner gửi path '#/planner'
+  // pin = "việc hôm nay" (scripts/push-planner.mjs): yên lặng, không rung, chỉ cập nhật thông báo 'pl-today' đang có
+  const opts = d.pin ? { body: d.body || '', tag: 'pl-today', renotify: false, silent: true, icon: 'icons/icon-192.png', data: { url, until: +d.until || 0 } }
+    : { body: d.body || n.body || '', tag: d.tag || 'live-now', renotify: true, silent: false, icon: 'icons/icon-192.png',
+        vibrate: [200, 100, 200, 100, 300],                      // rung trên Android (tiếng chuông do cài đặt thông báo của máy quyết định)
+        data: { url } };
+  e.waitUntil(stale.then(() => self.registration.showNotification(d.title || n.title || 'EP Study Room', opts)));
 });
 self.addEventListener('notificationclick', e => {
   e.notification.close();
