@@ -8,7 +8,7 @@ const loadScript = src => new Promise((res, rej) => { const s = document.createE
 let emailP = null;
 const loadEmailJS = () => emailP || (emailP = loadScript('https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js').then(() => { emailjs.init("JKo4tonk0gQMwrHFZ"); }).catch(e => { emailP = null; console.warn('EmailJS chưa tải được', e); throw e; }));
 let adminP = null;
-const ASSET_V = '77';                                                // đổi cùng số ?v= trong index.html mỗi lần cập nhật, để trình duyệt không trộn file cũ với file mới
+const ASSET_V = '78';                                                // đổi cùng số ?v= trong index.html mỗi lần cập nhật, để trình duyệt không trộn file cũ với file mới
 const loadAdmin = () => typeof PAGES.admin === 'function' ? Promise.resolve() : (adminP || (adminP = loadScript('admin.js?v=' + ASSET_V).catch(e => { adminP = null; throw e; })));
 let plannerP = null;
 const loadPlanner = () => typeof PAGES.planner === 'function' ? Promise.resolve() : (plannerP || (plannerP = Promise.all([loadScript('planner-i18n.js?v=' + ASSET_V).catch(() => {}), loadScript('planner.js?v=' + ASSET_V)]).catch(e => { plannerP = null; throw e; })));   // planner-i18n.js = bản dịch hi/ja/ko/zh/fr/es; thiếu thì dùng tiếng Anh
@@ -721,6 +721,7 @@ function renderLiveRem(){
     : `<p class="lr-note">${esc(t(perm === 'denied' ? 'lr_perm_denied' : 'lr_perm_none'))}</p>`;
   pop.innerHTML = `<div class="lr-h">${ic('bell', 'sm')} <b>${esc(t('lr_title'))}</b></div>
     <p class="lr-next" id="lr-next">${esc(lrNextText(live, next, now))}</p>
+    ${notifBroken() ? `<p class="lr-note warn">${esc(t('nh_blocked'))}</p>` : ''}
     ${pushHTML()}
     ${plRemHTML()}
     <div class="switch"><span>${esc(t('lr_on'))}</span><input type="checkbox" data-change="lrOn" ${LR.on ? 'checked' : ''}></div>
@@ -732,8 +733,9 @@ function renderLiveRem(){
       ${sessHTML}
       ${LR.on && audioLocked() ? `<p class="lr-note warn">${esc(t('lr_tap'))}</p>` : ''}
       ${permHTML}
-    </div>`;
-  $('btn-notif').classList.toggle('on', LR.on);
+    </div>
+    ${notifHelpHTML()}`;
+  $('btn-notif').classList.toggle('on', LR.on); notifBadge();
 }
 function lrSetOn(on){
   LR.on = on; lrSave(); $('btn-notif').classList.toggle('on', on);
@@ -794,6 +796,15 @@ function pushHTML(){
     : PUSH.err ? `<p class="lr-note warn">${esc(t('push_err'))}</p>`
     : `<p class="lr-note ${on ? 'ok' : ''}">${esc(t(on ? 'push_ok' : 'push_note'))}</p>`;
   return `<div class="switch"><span><b>${esc(t('push_on'))}</b></span><input type="checkbox" data-change="pushOn" ${on ? 'checked' : ''} ${sup && perm !== 'denied' && !PUSH.busy ? '' : 'disabled'}></div>${note}<hr class="lr-hr">`;
+}
+/* Cảnh báo trong bảng chuông: những gì web tự biết được (quyền thông báo, iPhone chưa thêm ra Màn hình chính, chưa cài app)
+   và hướng dẫn ngắn cho phần web không biết được (Không làm phiền, tắt tiếng, pin, kiểu thông báo Im lặng) */
+const notifBroken = () => NOTIF_OK && ((PUSH.on || store.get('pl_rem', false)) && Notification.permission !== 'granted' || LR.on && lrPop() && Notification.permission === 'denied');   // đã bật nhắc mà quyền thông báo bị chặn / bị thu hồi
+const notifBadge = () => { const b = $('btn-notif'); if (b) b.classList.toggle('warn', notifBroken()); };
+function notifHelpHTML(){
+  const app = !pwaStandalone() && !pwaIOS && pushSupported() ? `<p class="lr-note">${esc(t('nh_app'))}</p><button type="button" class="btn ghost sm" data-act="pwaInstall">${ic('download', 'sm')} ${esc(t('pwa_install'))}</button>` : '';
+  const steps = k => `<ol class="lr-steps">${[1, 2, 3].map(i => `<li>${esc(t(k + i))}</li>`).join('')}</ol>`;
+  return `${app}<details class="lr-help"><summary>${esc(t('nh_q'))}</summary><p class="lr-note">${esc(t('nh_intro'))}</p>${pwaIOS ? steps('nh_ios') : steps('nh_and')}</details>`;
 }
 /* Nhắc việc Planner trong bảng chuông (chỉ người dùng được Planner): bật/tắt bằng plRemToggle trong planner.js */
 const plCan = () => !DEMO && !!state.user && (state.companion || state.isAdmin || (typeof trialActive === 'function' && trialActive()));
@@ -943,7 +954,7 @@ window.addEventListener('hashchange', () => { document.body.classList.remove('na
 function boot(){
   state.booted = true;
   applyLook(); renderPrefs(); listenAll(); readRoute(); doRender();
-  $('btn-notif').classList.toggle('on', LR.on);
+  $('btn-notif').classList.toggle('on', LR.on); notifBadge();
   pwaRefresh();
   const afterLoad = () => { swRegister(); setTimeout(pushResync, 3000); };   // pushResync: làm mới token thông báo đẩy (trình duyệt thỉnh thoảng đổi token)
   if (document.readyState === 'complete') afterLoad(); else window.addEventListener('load', afterLoad);   // đăng ký sau khi trang tải xong để không làm chậm lúc mở web
