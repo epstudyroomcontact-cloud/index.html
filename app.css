@@ -705,3 +705,8 @@ html[data-font="serif"] h1,html[data-font="serif"] h2,html[data-font="serif"] h3
 .pwa-box .label{margin-top:0}
 .pwa-box .btn{width:100%;justify-content:center}
 button.sb-item{width:100%;background:none;border:0;font:inherit;font-weight:600;cursor:pointer;text-align:left}
+/* Planner: ô thời lượng giờ + phút, thanh nhiều đoạn (xong / đã dời / đã bỏ), dòng việc đã dời hoặc đã bỏ */
+.pl-dur{display:flex;gap:8px}.pl-dur label{flex:1;display:flex;align-items:center;gap:6px;min-width:0}.pl-dur .input{min-width:0;width:100%}.pl-dur small{color:var(--ink3);font-size:.8rem;white-space:nowrap}
+.pl-mv .pl-dur{flex:1;max-width:240px}
+.pl-bar i.mv{background:var(--accent);opacity:.38;border-radius:0}.pl-bar i.gx{background:var(--ink3);opacity:.32;border-radius:0}
+.pl-li.pl-gone{opacity:.62}.pl-li.pl-gone span{cursor:default}.pl-gi{flex:none;width:18px;height:18px;border-radius:50%;border:2px dashed;display:grid;place-items:center;font-style:normal;font-size:.7rem;color:var(--ink3)}
