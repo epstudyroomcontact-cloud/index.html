@@ -295,6 +295,22 @@ Trang Hành trình trăng có một con đường uốn lượn trong đêm, đi
 - Xem thử không cần đăng nhập: mở `index.html?demo=1&as=user&days=370#/club` (đổi số `days` để giả lập chuỗi bao nhiêu ngày).
 - Đổi ngày của trạm: sửa mảng `MJ_STOPS` ở đầu `moon-story.js`. Tranh của từng trạm ở `moon-art.js`.
 
+## PHẦN 16 — Mã dùng thử cho khách
+
+Khách đã đăng nhập nhập một mã dùng thử → được dùng như **Người đồng hành** (Planner tuần + Phòng tập trung không giới hạn) trong số ngày bạn đặt, tính từ lúc họ bấm kích hoạt. Mỗi tài khoản chỉ dùng thử **một lần**.
+
+**Việc phải làm 1 lần:** dán lại luật `firestore.rules` mới (làm đúng 4 bước ở mục 2.3). Chưa dán luật mới thì khách nhập mã sẽ luôn báo "mã không đúng" và admin không tạo được mã.
+
+**Admin → tab "Mã dùng thử":**
+- **Tạo mã**: gõ mã (chữ in hoa, số, dấu `-`, 4–32 ký tự) hoặc bấm "Tạo mã ngẫu nhiên"; đặt **số ngày dùng thử**, **số lượt tối đa** (0 = không giới hạn), **hạn cuối để nhập mã** (tuỳ chọn), ghi chú, bật/tắt.
+- **Sửa**: đổi số ngày (áp dụng ngay cho cả người đang dùng mã đó), số lượt, hạn nhập, ghi chú, hoặc **đổi chữ của mã** (người đang dùng mã cũ được chuyển sang mã mới, mã cũ hết tác dụng).
+- **Tắt / Xoá mã**: không ai kích hoạt mới được và người đang dùng thử bằng mã đó mất quyền ngay. Bật lại thì ai còn trong hạn dùng tiếp.
+- **Người đã kích hoạt**: xem ai dùng mã nào, đến khi nào; **+7 ngày**, **Đặt ngày hết** (hạn riêng cho một người), **Theo mã** (bỏ hạn riêng), **Dừng ngay**, **Xoá** (cho tài khoản đó dùng thử lại).
+
+**Khách:** đăng nhập → mở **My planner** (hoặc trang **Support**) → ô "Bạn có mã dùng thử?" → nhập mã → **Kích hoạt**. Planner mở ngay, có dòng báo dùng thử đến ngày giờ nào.
+
+**Bảo mật:** danh sách mã chỉ admin đọc được (khách không liệt kê hay đọc thử được mã nào). Việc kiểm tra mã đúng, đang bật, còn hạn nhập, còn lượt, mỗi tài khoản một lần, và giờ bắt đầu lấy theo giờ máy chủ đều do luật Firestore làm trên máy chủ, nên sửa code trên trình duyệt cũng không tự cấp được. Riêng giới hạn phút của Phòng tập trung vốn đếm trên trình duyệt (như trước đây), còn Planner được khoá thật bằng luật Firestore. Nên dùng mã dài (nút tạo ngẫu nhiên) và đặt số lượt tối đa khi chia sẻ công khai.
+
 ## QUY TẮC CẬP NHẬT WEB LÊN GITHUB (đọc cái này khi cần cập nhật)
 Từ bản 8, các file hay thay đổi (`index.html`, `core.js`, `pages.js`, `admin.js`, `i18n-extra.js`, `app.css`) **đều nằm ở trang gốc của repo**, cùng chỗ với `index.html`. Chỉ còn 4 file ít khi đổi nằm trong thư mục `js`: `art.js`, `i18n.js`, `translate.js`, `firebase-config.js`.
 

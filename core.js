@@ -1,5 +1,5 @@
 'use strict';
-const BUILD = '2026-10-21 · bản 32 (Hành trình trăng: Day 250 tay và đèn đưa ra sau theo bước đi)';   // hiện ở Admin để biết web đang chạy bản nào
+const BUILD = '2026-10-22 · bản 33 (Mã dùng thử cho khách: admin quản lý mã, thời hạn, số lượt)';   // hiện ở Admin để biết web đang chạy bản nào
 /* =========================================================
    CORE — cấu hình, trạng thái, dữ liệu realtime, đăng nhập, router, sự kiện
    ========================================================= */
@@ -8,7 +8,7 @@ const loadScript = src => new Promise((res, rej) => { const s = document.createE
 let emailP = null;
 const loadEmailJS = () => emailP || (emailP = loadScript('https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js').then(() => { emailjs.init("JKo4tonk0gQMwrHFZ"); }).catch(e => { emailP = null; console.warn('EmailJS chưa tải được', e); throw e; }));
 let adminP = null;
-const ASSET_V = '64';                                                // đổi cùng số ?v= trong index.html mỗi lần cập nhật, để trình duyệt không trộn file cũ với file mới
+const ASSET_V = '65';                                                // đổi cùng số ?v= trong index.html mỗi lần cập nhật, để trình duyệt không trộn file cũ với file mới
 const loadAdmin = () => typeof PAGES.admin === 'function' ? Promise.resolve() : (adminP || (adminP = loadScript('admin.js?v=' + ASSET_V).catch(e => { adminP = null; throw e; })));
 let plannerP = null;
 const loadPlanner = () => typeof PAGES.planner === 'function' ? Promise.resolve() : (plannerP || (plannerP = Promise.all([loadScript('planner-i18n.js?v=' + ASSET_V).catch(() => {}), loadScript('planner.js?v=' + ASSET_V)]).catch(e => { plannerP = null; throw e; })));   // planner-i18n.js = bản dịch hi/ja/ko/zh/fr/es; thiếu thì dùng tiếng Anh
@@ -68,6 +68,7 @@ const thanksList = () => (supporters.items || []).filter(x => x && x.show !== fa
 /* Tự thêm https:// cho các link thanh toán nếu người dùng quên */
 function fixPayUrls(p) { const o = { ...p }; ['stripe', 'paypal', 'kofi', 'companionUrl', 'momoQr'].forEach(k => { const v = (o[k] || '').trim(); o[k] = v && !/^(https?:)?\/\//i.test(v) && !/^data:/i.test(v) ? 'https://' + v : v; }); return o; }
 state.companion = false; state.companionUntil = ''; state.compReq = null; state.compCheckedAt = 0;
+state.trial = null;                                                  // mã dùng thử: { code, endsAt (ms) } hoặc null — xem loadTrial
 let weekDocs = {}, weekOffset = 0;
 const unsubs = {};
 const route = { name:'home', args:[] };
@@ -398,6 +399,24 @@ function unlockValid(){
   if (!u || !branding.focusCodeHash) return false;
   return u.hash === branding.focusCodeHash && (!u.until || u.until >= today) && (!branding.focusCodeUntil || branding.focusCodeUntil >= today);
 }
+/* Mã dùng thử (trial_redemptions/<uid>): quyền thật do firestore.rules kiểm (Planner); ở đây chỉ để hiện giao diện cho đúng.
+   Hết hạn khi: admin đặt hạn riêng (endsAt), hoặc theo mã: startedAt + số ngày của mã; mã bị tắt/xoá thì hết quyền ngay. */
+const trialActive = () => !!state.trial && state.trial.endsAt > Date.now();
+async function loadTrial(u, force){
+  const k = 'trial_' + u.uid, c = store.get(k, null);
+  if (!force && c && Date.now() - c.t < 30 * 60e3) { state.trial = c.v; return; }     // tiết kiệm lượt đọc: nhớ kết quả 30 phút
+  let v = null;
+  try {
+    const r = await db.collection('trial_redemptions').doc(u.uid).get();
+    if (r.exists) {
+      const d = r.data(); v = { code:d.code, endsAt:0 };
+      if (d.endsAt) v.endsAt = tsMs(d.endsAt);
+      else { const cd = await db.collection('trial_codes').doc(d.code).get().catch(() => null); if (cd && cd.exists && cd.data().active === true) v.endsAt = tsMs(d.startedAt) + (+cd.data().days || 0) * 864e5; }
+    }
+  } catch (e) { console.warn('trial check', e.code); return; }
+  if (state.user !== u) return;
+  state.trial = v; store.set(k, { t:Date.now(), v });
+}
 const localTodos = () => store.get('todos', []);
 const todosGone = () => store.get('todos_gone', []);                  // id các việc đã xoá (để máy khác / lần tải sau không "sống lại" việc đã xoá)
 const localFocus = () => store.get('focus', {});
@@ -406,7 +425,7 @@ auth.onAuthStateChanged(async u => {
   state.authReady = true;
   if (typeof stopAdminWatch === 'function') stopAdminWatch();
   try { Object.keys(localStorage).filter(k => k.startsWith('ep_plw_') && !(u && k.startsWith('ep_plw_' + u.uid + '_'))).forEach(k => localStorage.removeItem(k)); } catch (e) {}   // bản nhớ planner chỉ giữ cho tài khoản đang đăng nhập
-  state.user = u; state.isAdmin = false; state.companion = false; state.compReq = null; state.compCheckedAt = 0; state.moonReward = undefined; state.profileReady = false; state.profileFailed = false; library = []; profile = {};
+  state.user = u; state.isAdmin = false; state.companion = false; state.trial = null; state.compReq = null; state.compCheckedAt = 0; state.moonReward = undefined; state.profileReady = false; state.profileFailed = false; library = []; profile = {};
   if (unsubLib) { unsubLib(); unsubLib = null; }
   if (u) {
     const profileP = db.collection('users').doc(u.uid).get(); profileP.catch(() => {});      // tải hồ sơ song song với làm mới token, không chờ nhau
@@ -429,8 +448,9 @@ auth.onAuthStateChanged(async u => {
     const cc = store.get('comp_' + u.uid, null);                       // tiết kiệm lượt đọc: nhớ kết quả 30 phút
     if (cc && Date.now() - cc.t < 30 * 60e3) state.companion = !!cc.v;
     else { try { const cd = await db.collection('companions').doc(u.uid).get(); state.companion = cd.exists && !(cd.data().until && cd.data().until < DT.now().toISODate()); store.set('comp_' + u.uid, { t:Date.now(), v:state.companion }); } catch (e) {} }
+    await loadTrial(u);
     startLibrary();
-    if (state.companion || state.isAdmin) loadPlanner().then(() => plPrefetch()).catch(() => {});     // tải sẵn planner.js lúc rảnh để mở Planner không phải chờ tải file
+    if (state.companion || state.isAdmin || trialActive()) loadPlanner().then(() => plPrefetch()).catch(() => {});     // tải sẵn planner.js lúc rảnh để mở Planner không phải chờ tải file
   }
   render(true);
 });
@@ -479,7 +499,8 @@ const isLocked = name => loginRequired() && !state.user && lockedPages().include
 /* Hỏi lại Firestore xem người dùng đã là Companion chưa (bỏ qua bản nhớ 30 phút) — gọi khi mở Planner / trang Ủng hộ, để vừa được duyệt là mở khoá ngay */
 async function refreshCompanion(force){
   const u = state.user; if (!u || DEMO || (!force && Date.now() - state.compCheckedAt < 45000)) return false;
-  state.compCheckedAt = Date.now(); const sig = () => state.companion + '|' + state.companionUntil + '|' + (state.compReq && state.compReq.status), before = sig();
+  state.compCheckedAt = Date.now(); const sig = () => state.companion + '|' + state.companionUntil + '|' + (state.compReq && state.compReq.status) + '|' + JSON.stringify(state.trial), before = sig();
+  await loadTrial(u, true);
   try {
     const cd = await db.collection('companions').doc(u.uid).get(), d = cd.exists ? cd.data() : null;
     state.companion = !!d && !(d.until && d.until < DT.now().toISODate()); state.companionUntil = d && d.until || '';
