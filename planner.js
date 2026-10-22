@@ -41,7 +41,7 @@ Object.assign(I18N.vi, {
 
 Object.assign(I18N.en, {
   pl_today:'Today', pl_next:'Next: {t}', pl_none_today:'Nothing planned for today. Tap an empty spot in today\'s column to add a task.',
-  pl_rem_btn:'Remind me before tasks start', pl_rem_on:'Reminders are on', pl_rem_hint:'You get a reminder 10 minutes before a task starts, only while this site is open in your browser.', pl_rem_off:'Reminders off', pl_rem_denied:'Notifications are blocked for this site in your browser settings.', pl_rem_unsup:'This browser does not support notifications.', pl_rem_title:'Planner', pl_rem_test:'Reminders are on.', pl_rem_soon:'{t} starts at {s}', pl_rem_eve:'{n} tasks are still open today.',
+  pl_rem_btn:'Remind me before tasks start', pl_rem_on:'Reminders are on', pl_rem_hint:'You get a reminder about 10 minutes before a task starts, even when this site is closed (it can be a few minutes late). Turn it on on each device you use.', pl_rem_bg:'This device gets reminders even when the site is closed (they can be a few minutes late).', pl_rem_fg:'On this device, reminders only work while the site is open.', pl_rem_ios:'iPhone/iPad: add this site to your Home Screen, open it from there and turn reminders on again to get them when the site is closed.', pl_rem_off:'Reminders off', pl_rem_denied:'Notifications are blocked for this site in your browser settings.', pl_rem_unsup:'This browser does not support notifications.', pl_rem_title:'Planner', pl_rem_test:'Reminders are on.', pl_rem_soon:'{t} starts at {s}', pl_rem_eve:'{n} tasks are still open today.',
   pl_score:'Week score', pl_lv_0:'Getting started', pl_lv_1:'Solid', pl_lv_2:'Great', pl_lv_3:'Outstanding', pl_score_how:'60% tasks done, 25% time done, 15% days with progress',
   pl_trend:'Last 6 weeks', pl_streak:'{n} weeks in a row with 70% or more done', pl_streak_0:'Finish 70% of a week\'s tasks to start a streak.', pl_streak_this:'This week counts once you reach 70%.',
   pl_goal:'Weekly goal', pl_goal_none:'No goal', pl_goal_prog:'{d} of {g} ({p}%)',
@@ -51,7 +51,7 @@ Object.assign(I18N.en, {
 
 Object.assign(I18N.vi, {
   pl_today:'Hôm nay', pl_next:'Tiếp theo: {t}', pl_none_today:'Hôm nay chưa có việc. Bấm vào chỗ trống ở cột hôm nay để thêm.',
-  pl_rem_btn:'Nhắc tôi trước giờ làm việc', pl_rem_on:'Đang bật nhắc việc', pl_rem_hint:'Bạn được nhắc trước giờ bắt đầu 10 phút, chỉ khi trang web này đang mở trong trình duyệt.', pl_rem_off:'Đã tắt nhắc việc', pl_rem_denied:'Trình duyệt đang chặn thông báo của trang này. Bạn mở lại trong phần cài đặt trình duyệt.', pl_rem_unsup:'Trình duyệt này không hỗ trợ thông báo.', pl_rem_title:'Planner', pl_rem_test:'Đã bật nhắc việc.', pl_rem_soon:'{t} bắt đầu lúc {s}', pl_rem_eve:'Hôm nay còn {n} việc chưa xong.',
+  pl_rem_btn:'Nhắc tôi trước giờ làm việc', pl_rem_on:'Đang bật nhắc việc', pl_rem_hint:'Bạn được nhắc trước giờ bắt đầu khoảng 10 phút, kể cả khi đã đóng web (có thể trễ vài phút). Bật riêng trên từng máy bạn dùng.', pl_rem_bg:'Máy này nhận nhắc cả khi đã đóng web (có thể trễ vài phút).', pl_rem_fg:'Trên máy này, nhắc việc chỉ chạy khi web đang mở.', pl_rem_ios:'iPhone/iPad: thêm web ra Màn hình chính, mở web từ biểu tượng đó rồi bật lại nhắc việc để được nhắc cả khi đã đóng web.', pl_rem_off:'Đã tắt nhắc việc', pl_rem_denied:'Trình duyệt đang chặn thông báo của trang này. Bạn mở lại trong phần cài đặt trình duyệt.', pl_rem_unsup:'Trình duyệt này không hỗ trợ thông báo.', pl_rem_title:'Planner', pl_rem_test:'Đã bật nhắc việc.', pl_rem_soon:'{t} bắt đầu lúc {s}', pl_rem_eve:'Hôm nay còn {n} việc chưa xong.',
   pl_score:'Điểm tuần', pl_lv_0:'Đang khởi động', pl_lv_1:'Ổn định', pl_lv_2:'Rất tốt', pl_lv_3:'Xuất sắc', pl_score_how:'60% số việc xong, 25% thời gian xong, 15% số ngày có tiến triển',
   pl_trend:'6 tuần gần nhất', pl_streak:'{n} tuần liên tiếp xong từ 70% việc trở lên', pl_streak_0:'Xong 70% số việc của một tuần để bắt đầu chuỗi.', pl_streak_this:'Tuần này được tính khi bạn đạt 70%.',
   pl_goal:'Mục tiêu tuần', pl_goal_none:'Chưa đặt', pl_goal_prog:'{d} trên {g} ({p}%)',
@@ -260,8 +260,36 @@ function plTrend(){
   const bars = Array.from({ length:6 }, (_, i) => { const k = PL.off - 5 + i, S = k === PL.off ? plStats(PL.tasks, PL.off) : PL.hist[plKey(k)]; return { cur:k === PL.off, w:plWeekStart(k).toFormat('dd/MM'), r:S && S.dn >= (k === 0 ? 3 : 1) ? S.rate : null }; });
   return `<div class="pl-trend">${bars.map(b => `<div class="${b.cur ? 'cur' : ''}"><i style="height:${b.r === null ? 3 : Math.max(6, b.r)}%" class="${b.r === null ? 'none' : ''}"></i><b>${b.r === null ? '–' : b.r + '%'}</b><small>${b.w}</small></div>`).join('')}</div>`;
 }
-/* ---------- nhắc việc (Notification của trình duyệt, chỉ chạy khi trang đang mở) ---------- */
-const plRemOn = () => !!store.get('pl_rem', false);                 // nhắc ngay trong trang (toast + chuông); thông báo của trình duyệt chỉ thêm vào khi đã cho phép
+/* ---------- nhắc việc ----------
+   Khi trang đang mở: plRemTick nhắc ngay trong trang (toast + chuông) và hiện thông báo của trình duyệt nếu đã cho phép.
+   Khi đã đóng web: máy này lưu mã nhận thông báo (FCM token) vào users/<uid>.plPush, GitHub Actions (scripts/push-planner.mjs)
+   đọc Planner khoảng 5 phút một lần và gửi thông báo đẩy. Hai đường dùng cùng tag nên đang mở web cũng chỉ hiện 1 thông báo. */
+const plRemOn = () => !!store.get('pl_rem', false);
+async function plNotify(title, body, tag){                          // điện thoại Android chỉ cho hiện thông báo qua service worker (new Notification bị lỗi)
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+  const opts = { body, tag, silent:true, icon:'icons/icon-192.png', data:{ url:location.href.split('#')[0] + '#/planner' } };
+  try { const reg = await swRegister(); if (reg && reg.showNotification) return await reg.showNotification(title, opts); } catch (e) {}
+  try { new Notification(title, opts); } catch (e) {}
+}
+const plPushOk = () => typeof pushSupported === 'function' && pushSupported() && Notification.permission === 'granted';
+async function plPushSync(force){                                   // lưu token của máy này cho máy gửi nhắc việc (ghi lại mỗi tuần, hoặc khi token / ngôn ngữ / múi giờ đổi)
+  const u = state.user; if (!u || DEMO || !plRemOn() || !plPushOk() || !await swRegister()) return false;
+  const reg = await navigator.serviceWorker.ready, m = await loadMessaging();
+  const token = await m.getToken({ vapidKey:PUSH_VAPID, serviceWorkerRegistration:reg }); if (!token) return false;
+  const old = store.get('pl_push', null), sig = u.uid + '|' + token + '|' + state.lang + '|' + userTZ;
+  if (!force && old && old.sig === sig && Date.now() - old.t < 7 * 864e5) return true;
+  const F = firebase.firestore.FieldValue, ref = db.collection('users').doc(u.uid);
+  if (old && old.uid === u.uid && old.token !== token) await ref.update({ 'plPush.tokens':F.arrayRemove(old.token) }).catch(() => {});   // token cũ (trình duyệt đã đổi token)
+  await ref.set({ plPush:{ on:true, tokens:F.arrayUnion(token), tz:String(userTZ).slice(0, 64), lang:state.lang, at:TS() } }, { merge:true });
+  store.set('pl_push', { uid:u.uid, token, sig, t:Date.now() });
+  return true;
+}
+async function plPushOff(){                                         // tắt nhắc việc / đăng xuất: máy này thôi nhận nhắc khi đã đóng web
+  const old = store.get('pl_push', null); store.set('pl_push', null);
+  if (!old || DEMO || !state.user || state.user.uid !== old.uid) return;
+  await db.collection('users').doc(old.uid).update({ 'plPush.tokens':firebase.firestore.FieldValue.arrayRemove(old.token) }).catch(() => {});
+}
+const plPushHere = () => { const p = store.get('pl_push', null); return !!(p && state.user && p.uid === state.user.uid && plPushOk()); };
 const plChimeOn = () => store.get('pl_chime', true) !== false;
 function plChime(){                                                 // chuông 2 tiếng tự tạo bằng Web Audio (không cần file âm thanh)
   if (!plChimeOn() || typeof audio !== 'function') return;
@@ -271,12 +299,16 @@ function plChime(){                                                 // chuông 2
 function plRemTick(){
   const u = state.user; if (!u || !plAccess() || !plRemOn()) return;
   const tasks = PL.key === plKey(0) && PL.tasks && PL.uid === u.uid ? PL.tasks : (PL.remTasks && PL.remTasks.uid === u.uid ? PL.remTasks.tasks : null); if (!tasks) return;
-  const now = DT.now().setZone(userTZ), di = now.weekday - 1, mins = now.hour * 60 + now.minute, day = now.toISODate(), say = (title, body) => { try { if (typeof Notification !== 'undefined' && Notification.permission === 'granted') new Notification(title, { body, silent:true }); } catch (e) {} toast(body); plChime(); };
-  tasks.forEach(x => { if (x.done || x.day !== di || !x.start) return; const st = hm(x.start), k = x.id + day; if (mins >= st - 10 && mins < st + 5 && !PL.sent[k]) { PL.sent[k] = 1; say(t('pl_rem_title'), t('pl_rem_soon', { t:x.title || '—', s:x.start })); } });
+  const now = DT.now().setZone(userTZ), di = now.weekday - 1, mins = now.hour * 60 + now.minute, day = now.toISODate(), say = (title, body, tag) => { plNotify(title, body, tag); toast(body); plChime(); };
+  tasks.forEach(x => { if (x.done || x.day !== di || !x.start) return; const st = hm(x.start), k = x.id + day; if (mins >= st - 10 && mins < st + 5 && !PL.sent[k]) { PL.sent[k] = 1; say(t('pl_rem_title'), t('pl_rem_soon', { t:x.title || '—', s:x.start }), 'pl-' + x.id + '-' + day); } });
   const left = tasks.filter(x => !x.done && x.day === di).length;
-  if (mins >= 1200 && mins < 1260 && left && !PL.sent['eve' + day]) { PL.sent['eve' + day] = 1; say(t('pl_rem_title'), t('pl_rem_eve', { n:left })); }
+  if (mins >= 1200 && mins < 1260 && left && !PL.sent['eve' + day]) { PL.sent['eve' + day] = 1; say(t('pl_rem_title'), t('pl_rem_eve', { n:left }), 'pl-eve-' + day); }
 }
-const plRemStart = () => { if (!PL.remT && plRemOn()) PL.remT = setInterval(plRemTick, 30000); };
+const plRemStart = () => {
+  if (!plRemOn()) return;
+  if (!PL.remT) PL.remT = setInterval(plRemTick, 30000);
+  const uid = state.user && state.user.uid; if (uid && PL.pushU !== uid) { PL.pushU = uid; plPushSync().then(ok => ok && route.name === 'planner' && render(true)).catch(e => console.warn('planner push', e)); }
+};
 /* ---------- giao diện ---------- */
 function plPreview(){                                              // giao diện thật với dữ liệu mẫu, chỉ để xem (dùng cho người chưa là Companion)
   const sample = [[0, '07:30', 45, 'vocab', 0], [0, '19:30', 60, 'listen', 0], [1, '09:00', 90, 'read', 0], [1, '18:00', 45, 'gym', 2], [2, '08:00', 120, 'essay', 1], [2, '20:00', 40, 'book', 3], [3, '07:30', 45, 'vocab', 0], [3, '14:00', 60, 'meet', 1], [4, '09:00', 60, 'speak', 0], [4, '19:00', 90, 'movie', 4], [5, '10:00', 60, 'clean', 5], [5, '15:00', 90, 'read', 0], [6, '09:00', 45, 'review', 0]];
@@ -340,7 +372,7 @@ function plToday(){
   const verdict = !list.length ? t('pl_dv_empty') : nd === list.length ? t('pl_dv_all') : goal && doneMin >= goal ? t('pl_dv_goal') : nd === 0 ? t(now.hour < 17 ? 'pl_dv_start' : 'pl_dv_none') : t('pl_dv_some', { n:nd, m:list.length });
   const over = plOverdue(), tip = over.length ? { k:t('pl_tip_overdue', { n:over.length }), act:'plMoveToday', btn:t('pl_mv_today') } : planMin > 360 && undone.length ? { k:t('pl_tip_over', { t:fmtMin(planMin) }) } : undone.filter(x => !x.carried).length && now.hour >= 18 ? { k:t('pl_tip_tm'), act:'plMoveTomorrow', btn:t('pl_mv_tm') } : null;
   const row = x => `<div class="pl-li ${x.done ? 'done' : ''}"><button type="button" class="pl-ck sm" style="border-color:${PL_COLORS[x.c]}" data-act="plToggle" data-id="${esc(x.id)}">${x.done ? ic('check', 'sm') : ''}</button><span data-act="plEdit" data-id="${esc(x.id)}">${esc(x.title || '—')}${x.start ? ` <small class="faint">${esc(x.start)}</small>` : ''}</span></div>`;
-  const rem = plRemOn() ? `<div class="row" style="gap:8px;flex-wrap:wrap"><button type="button" class="btn ghost sm" data-act="plRem">${ic('bell', 'sm')} ${esc(t('pl_rem_on'))}</button><button type="button" class="btn ghost sm" data-act="plChimeTog">${ic('volume', 'sm')} ${esc(t(plChimeOn() ? 'pl_chime_on' : 'pl_chime_off'))}</button></div>` : `<button type="button" class="btn secondary sm" data-act="plRem">${ic('bell', 'sm')} ${esc(t('pl_rem_btn'))}</button><p class="small faint" style="margin-top:6px">${esc(t('pl_rem_hint'))}</p>`;
+  const rem = plRemOn() ? `<div class="row" style="gap:8px;flex-wrap:wrap"><button type="button" class="btn ghost sm" data-act="plRem">${ic('bell', 'sm')} ${esc(t('pl_rem_on'))}</button><button type="button" class="btn ghost sm" data-act="plChimeTog">${ic('volume', 'sm')} ${esc(t(plChimeOn() ? 'pl_chime_on' : 'pl_chime_off'))}</button></div><p class="small faint" style="margin-top:6px">${esc(t(plPushHere() ? 'pl_rem_bg' : pwaIOS && !pwaStandalone() ? 'pl_rem_ios' : 'pl_rem_fg'))}</p>` : `<button type="button" class="btn secondary sm" data-act="plRem">${ic('bell', 'sm')} ${esc(t('pl_rem_btn'))}</button><p class="small faint" style="margin-top:6px">${esc(t('pl_rem_hint'))}</p>`;
   const goalSel = plGoalSel('plDayGoal', t('pl_dgoal'), goal, [0, 30, 60, 90, 120, 180, 240], 'width:auto;padding:3px 8px;font-size:.8rem');
   return `<section class="card pad"><div class="row between"><h3>${esc(t('pl_today'))}</h3>${list.length ? `<span class="badge">${esc(t('pl_dlv_' + (frac >= 1 ? 4 : frac >= .6 ? 3 : frac >= .3 ? 2 : frac > 0 ? 1 : 0)))}</span>` : ''}</div>
     <div class="row between" style="margin:8px 0 6px"><small class="faint">${nd}/${list.length}${goal ? ' · ' + esc(fmtMin(doneMin)) + ' / ' + esc(fmtMin(goal)) : ''}</small></div>${plBar(goal ? doneMin : nd, goal || list.length)}
@@ -446,11 +478,12 @@ Object.assign(ACTIONS, {
   plWeek: el => { plFlush(); PL.mday = null; const d = +el.dataset.d; PL.off = d ? PL.off + d : 0; PL.seq++; PL.tasks = null; PL.key = ''; PL.state = 'idle'; render(true); },
   plRetry: () => { PL.seq++; PL.state = 'idle'; PL.key = ''; PL.tasks = null; PL.slow = false; render(true); },
   plRem: async () => {
-    if (plRemOn()) { store.set('pl_rem', false); clearInterval(PL.remT); PL.remT = 0; toast(t('pl_rem_off')); return render(true); }
+    if (plRemOn()) { store.set('pl_rem', false); clearInterval(PL.remT); PL.remT = 0; PL.pushU = ''; plPushOff(); toast(t('pl_rem_off')); return render(true); }
     let perm = typeof Notification === 'undefined' ? 'denied' : Notification.permission; if (perm === 'default') { try { perm = await Notification.requestPermission(); } catch (e) { perm = 'denied'; } }
-    store.set('pl_rem', true); plRemStart(); plChime();
-    if (perm === 'granted') { try { new Notification(t('pl_rem_title'), { body:t('pl_rem_test'), silent:true }); } catch (e) {} } else toast(t('pl_rem_inpage'));
+    store.set('pl_rem', true); PL.pushU = state.user && state.user.uid; plRemStart(); plChime();
+    if (perm === 'granted') plNotify(t('pl_rem_title'), t('pl_rem_test'), 'pl-test'); else toast(t('pl_rem_inpage'));
     render(true);
+    if (perm === 'granted') { try { await plPushSync(true); } catch (e) { console.warn('planner push', e); } render(true); }
   },
   plChimeTog: () => { store.set('pl_chime', !plChimeOn()); if (plChimeOn()) plChime(); render(true); },
   plTplSave: () => {

@@ -21,13 +21,13 @@ self.addEventListener('fetch', e => {
   e.respondWith(Promise.resolve(e.preloadResponse).then(r => r || fetch(e.request)).catch(() => caches.open(OFFLINE_CACHE).then(c => c.match(OFFLINE_URL)).then(r => r || Response.error())));
 });
 // Thông báo đẩy: máy gửi chỉ gửi dữ liệu { title, body, tag } nên tự hiện ở đây (mọi trình duyệt, kể cả iPhone đã cài ra Màn hình chính).
-// Cùng tag 'live-now' với nhắc trong trang, nên đang mở web cũng không bị hiện 2 thông báo giống nhau.
+// Cùng tag với nhắc trong trang ('live-now', nhắc việc Planner 'pl-…'), nên đang mở web cũng không bị hiện 2 thông báo giống nhau.
 self.addEventListener('push', e => {
   let j = {}; try { j = e.data ? e.data.json() : {}; } catch (err) {}
   const d = j.data || {}, n = j.notification || {};
   e.waitUntil(self.registration.showNotification(d.title || n.title || 'EP Study Room', {
     body: d.body || n.body || '', tag: d.tag || 'live-now', renotify: true, icon: 'icons/icon-192.png',
-    data: { url: self.registration.scope + '#/watch' }
+    data: { url: self.registration.scope + (/^#\/[\w-]*$/.test(d.path || '') ? d.path : '#/watch') }   // nhắc việc Planner gửi path '#/planner'
   }));
 });
 self.addEventListener('notificationclick', e => {
