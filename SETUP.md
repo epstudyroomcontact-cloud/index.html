@@ -336,7 +336,8 @@ Khách đã đăng nhập nhập một mã dùng thử → được dùng như *
 
 ### 17.2. Nhắc việc Planner (cũng nhận cả khi đã đóng web)
 Dùng chung máy gửi ở trên (bước **Nhắc việc Planner** trong cùng workflow, file `scripts/push-planner.mjs`), **không cần làm thêm gì** nếu 17.1 đã xong, không cần dán lại luật Firestore.
-- Người dùng mở **Planner** trên **từng máy** (điện thoại, máy tính) và bấm **"Nhắc tôi trước giờ làm việc"**, cho phép thông báo. Máy đó lưu mã nhận thông báo vào hồ sơ của chính họ (`users/<uid>.plPush`, chỉ họ và admin đọc được).
+- Người dùng bấm nút chuông 🔔 trên đầu trang, trên **từng máy** (điện thoại, máy tính). Bật **"Báo khi live bắt đầu…"** là nhắc việc Planner cũng tự bật theo (với người dùng được Planner). Có công tắc riêng **"Nhắc việc Planner…"** để tắt nếu không muốn. Máy đó lưu mã nhận thông báo vào hồ sơ của chính họ (`users/<uid>.plPush`, chỉ họ và admin đọc được). Ai đã bật thông báo live từ trước thì nhắc việc tự bật ở lần mở web tiếp theo.
+- **Không có tiếng chuông?** Tiếng của thông báo do cài đặt của điện thoại quyết định, web không chỉnh được. Android: Cài đặt → Thông báo → app **EP Study** (hoặc **Chrome**) → bật **Âm thanh**, chọn kiểu **Cảnh báo** (không chọn **Im lặng**), tắt **Không làm phiền**.
 - Mỗi lần chạy (khoảng 5 phút), máy gửi đọc Planner tuần này của những người đã bật, việc chưa xong sắp bắt đầu thì nhắc. Thường đến tay **khoảng 8–12 phút trước** giờ bắt đầu, GitHub chạy trễ thì có thể muộn hơn (quá 10 phút sau giờ bắt đầu thì không nhắc nữa). 20:00–21:00 còn việc chưa xong thì nhắc một lần.
 - Đang mở web thì vẫn nhắc ngay trong trang như cũ; hai lời nhắc dùng chung một mã nên chỉ hiện 1 thông báo.
 - iPhone / iPad: giống 17.1, phải **thêm web ra Màn hình chính**, mở từ biểu tượng đó rồi bật nhắc việc.
