@@ -432,7 +432,7 @@ async function plPinShow(){
   if (!plPinOn() || !state.user || !plAccess() || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
   const v = plPinText(); if (!v) return plPinHide();
   const reg = await swRegister(); if (!reg || !reg.showNotification || !document.hidden) return;   // đã quay lại web trong lúc chờ
-  await reg.showNotification(v.title, { body:v.body, tag:'pl-today', silent:true, renotify:false, requireInteraction:true, icon:'icons/icon-192.png', data:{ url:location.href.split('#')[0] + '#/planner', until:v.until } }).catch(() => {});
+  await reg.showNotification(v.title, { body:v.body, tag:'pl-today', silent:true, renotify:false, icon:'icons/icon-192.png', data:{ url:location.href.split('#')[0] + '#/planner', until:v.until } }).catch(() => {});
   PL.pinT = setTimeout(plPinShow, Math.min(v.until - Date.now() + 5000, 2147483647));   // qua ngày mới mà vẫn chưa quay lại web: đổi sang việc của ngày mới (hoặc đóng)
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden) plPinShow(); else { clearTimeout(PL.pinT); plPinHide(); } });

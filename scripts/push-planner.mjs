@@ -59,14 +59,17 @@ if (!users.length) { console.log('Chưa ai bật nhắc việc Planner.'); proce
 const state = (await getDoc('push_admin/planner')) || {};
 const sent = state.sent || {};
 const jobs = [];                                                   // { uid, tokens, title, body, tag }
+const notes = [];                                                  // nhật ký ngắn cho từng người (không ghi tên việc), để biết vì sao chưa nhắc
 for (const u of users) {
   const tokens = [...new Set((u.tokens || []).filter(t => typeof t === 'string' && t.length >= 20))];
-  if (!tokens.length) continue;
+  if (!tokens.length) { notes.push(`${u.uid.slice(0, 6)}: chưa có máy nào nhận thông báo`); continue; }
   const L = localNow(u.tz || 'Asia/Ho_Chi_Minh'), T = TXT[u.lang] || TXT.en;
   let doc;
   try { doc = await getDoc(`users/${u.uid}/planner/${encodeURIComponent(L.key)}`); }
   catch (e) { console.warn('Đọc Planner', u.uid.slice(0, 6), e.message.slice(0, 200)); continue; }
   const today = (doc && Array.isArray(doc.tasks) ? doc.tasks : []).filter(x => x && x.day === L.di && !x.done);
+  const next = today.map(x => hm(x.start)).filter(st => st !== null && st + LATE > L.mins).sort((a, b) => a - b)[0];
+  notes.push(`${u.uid.slice(0, 6)}: ${tokens.length} máy, ${L.key} thứ ${L.di + 2 > 7 ? 'CN' : L.di + 2} ${String(L.mins / 60 | 0).padStart(2, '0')}:${String(L.mins % 60).padStart(2, '0')} (${u.tz || '?'}), ${doc ? today.length + ' việc chưa xong hôm nay' : 'chưa có Planner tuần này'}${next === undefined ? '' : `, việc kế tiếp lúc ${String(next / 60 | 0).padStart(2, '0')}:${String(next % 60).padStart(2, '0')}`}`);
   today.forEach(x => {
     const st = hm(x.start), k = `${u.uid}|${x.id}|${L.day}`;
     if (st === null || sent[k] || L.mins < st - LEAD || L.mins >= st + LATE) return;
@@ -77,6 +80,7 @@ for (const u of users) {
   const ke = `${u.uid}|eve|${L.day}`;
   if (today.length && L.mins >= 1200 && L.mins < 1260 && !sent[ke]) { sent[ke] = NOW; jobs.push({ uid:u.uid, tokens, title:T.title, body:fill(T.eve, { n:today.length }), tag:`pl-eve-${L.day}` }); }
 }
+notes.forEach(x => console.log('  ' + x));
 if (!jobs.length) { console.log(`${users.length} người bật nhắc việc, chưa có việc nào cần nhắc lúc này.`); process.exit(0); }
 Object.keys(sent).forEach(k => { if (NOW - sent[k] > 2 * 864e5) delete sent[k]; });
 // Lưu "đã nhắc" TRƯỚC khi gửi: lần chạy có bị dừng giữa chừng thì lần sau cũng không nhắc lặp
