@@ -8,7 +8,7 @@ const loadScript = src => new Promise((res, rej) => { const s = document.createE
 let emailP = null;
 const loadEmailJS = () => emailP || (emailP = loadScript('https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js').then(() => { emailjs.init("JKo4tonk0gQMwrHFZ"); }).catch(e => { emailP = null; console.warn('EmailJS chưa tải được', e); throw e; }));
 let adminP = null;
-const ASSET_V = '78';                                                // đổi cùng số ?v= trong index.html mỗi lần cập nhật, để trình duyệt không trộn file cũ với file mới
+const ASSET_V = '79';                                                // đổi cùng số ?v= trong index.html mỗi lần cập nhật, để trình duyệt không trộn file cũ với file mới
 const loadAdmin = () => typeof PAGES.admin === 'function' ? Promise.resolve() : (adminP || (adminP = loadScript('admin.js?v=' + ASSET_V).catch(e => { adminP = null; throw e; })));
 let plannerP = null;
 const loadPlanner = () => typeof PAGES.planner === 'function' ? Promise.resolve() : (plannerP || (plannerP = Promise.all([loadScript('planner-i18n.js?v=' + ASSET_V).catch(() => {}), loadScript('planner.js?v=' + ASSET_V)]).catch(e => { plannerP = null; throw e; })));   // planner-i18n.js = bản dịch hi/ja/ko/zh/fr/es; thiếu thì dùng tiếng Anh
@@ -812,7 +812,21 @@ const plRemIsOn = () => !!store.get('pl_rem', false);
 function plRemHTML(){
   if (!plCan()) return '';
   const on = plRemIsOn(), bg = on && typeof plPushHere === 'function' && plPushHere();
-  return `<div class="switch"><span><b>${esc(t('plr_on'))}</b></span><input type="checkbox" data-change="plRemOn" ${on ? 'checked' : ''}></div><p class="lr-note ${on ? 'ok' : ''}">${esc(t(on ? (bg ? 'plr_ok' : 'plr_fg') : 'plr_note'))}</p><hr class="lr-hr">`;
+  return `<div class="switch"><span><b>${esc(t('plr_on'))}</b></span><input type="checkbox" data-change="plRemOn" ${on ? 'checked' : ''}></div><p class="lr-note ${on ? 'ok' : ''}">${esc(t(on ? (bg ? 'plr_ok' : 'plr_fg') : 'plr_note'))}</p><hr class="lr-hr">${plPinHTML()}`;
+}
+/* Việc hôm nay ngoài màn hình: thông báo yên lặng khi thoát web (hiện bằng plPinShow trong planner.js). Mặc định tắt, khách tự bật trên từng máy */
+const plPinOn = () => !!store.get('pl_pin', false);
+async function plPinHide(){ try { const reg = await swRegister(); if (reg && reg.getNotifications) (await reg.getNotifications({ tag:'pl-today' })).forEach(n => n.close()); } catch (e) {} }
+function plPinHTML(){
+  const perm = NOTIF_OK ? Notification.permission : 'denied', on = plPinOn() && perm === 'granted';
+  const note = pwaIOS && !pwaStandalone() ? 'plp_ios' : !NOTIF_OK ? 'push_unsup' : perm === 'denied' ? 'push_denied' : on ? 'plp_ok' : 'plp_note';
+  return `<div class="switch"><span><b>${esc(t('plp_on'))}</b></span><input type="checkbox" data-change="plPinOn" ${on ? 'checked' : ''} ${NOTIF_OK && perm !== 'denied' ? '' : 'disabled'}></div><p class="lr-note ${on ? 'ok' : ''}">${esc(t(note))}</p><hr class="lr-hr">`;
+}
+async function plPinSet(on){
+  if (on && NOTIF_OK && Notification.permission === 'default') { try { await Notification.requestPermission(); } catch (e) {} }
+  on = on && NOTIF_OK && Notification.permission === 'granted';
+  store.set('pl_pin', on); if (on) { swRegister(); loadPlanner().catch(() => {}); } else plPinHide();
+  toast(t(on ? 'plp_on_toast' : 'plp_off_toast')); renderLiveRem();
 }
 async function plRemSet(on, quiet){
   try { await loadPlanner(); if (typeof plRemToggle === 'function') await plRemToggle(on, quiet); } catch (e) { console.warn('planner rem', e); }
@@ -897,6 +911,7 @@ const FORMS = {}, CHANGES = {};
 CHANGES.lrOn = el => lrSetOn(el.checked);
 CHANGES.pushOn = el => pushSet(el.checked);
 CHANGES.plRemOn = el => plRemSet(el.checked);
+CHANGES.plPinOn = el => plPinSet(el.checked);
 CHANGES.lrPick = el => { const k = el.dataset.st; if (el.checked) LR.picked[k] = 1; else delete LR.picked[k]; const now = Date.now(); Object.keys(LR.picked).forEach(x => { if (+x < now - 864e5) delete LR.picked[x]; }); lrSave(); renderLiveRem(); };
 const ACTIONS = {
   openNav: () => document.body.classList.add('nav-open'),

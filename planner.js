@@ -147,7 +147,7 @@ Object.assign(I18N.vi, {
 const PL_MAX = 300;                                              // số việc tối đa mỗi tuần (giữ tài liệu nhỏ, tránh lỗi quá cỡ)
 const PL_HOUR = 44;                                              // px cho mỗi giờ trong lưới
 const PL_COLORS = ['#f2b8c6', '#c9b8ec', '#f6c9a0', '#f4e08c', '#a9dcc6', '#a8cdee'];   // 6 nhóm: màu pastel, chữ tối cho mọi giao diện
-const PL = { off:0, key:'', tasks:null, gone:[], state:'idle', save:'', prev:null, timer:0, sel:null, seq:0, slow:false, hist:{}, prefs:null, remTasks:null, sent:{}, remT:0, mday:null };
+const PL = { off:0, key:'', tasks:null, gone:[], state:'idle', save:'', prev:null, timer:0, sel:null, seq:0, slow:false, hist:{}, prefs:null, remTasks:null, sent:{}, remT:0, pinT:0, mday:null };
 const plWeekStart = off => DT.now().setZone(userTZ).plus({ weeks:off }).startOf('week');
 const plKey = off => { const d = plWeekStart(off); return `${d.weekYear}-W${d.weekNumber}`; };
 const plDaysLeft = () => Math.ceil(DT.fromISO(state.companionUntil, { zone:userTZ }).endOf('day').diff(DT.now().setZone(userTZ), 'days').days);
@@ -392,9 +392,10 @@ function plChime(){                                                 // chuông 2
   const a = audio(); if (!a) return;
   [0, .55].forEach(d => [[880, .22], [1318, .09], [1760, .04]].forEach(([f, v]) => { const o = a.createOscillator(), g = a.createGain(), at = a.currentTime + d; o.type = 'sine'; o.frequency.value = f; g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(v, at + .01); g.gain.exponentialRampToValueAtTime(.0008, at + 1.1); o.connect(g); g.connect(a.destination); o.start(at); o.stop(at + 1.2); }));
 }
+const plWeekNow = u => PL.key === plKey(0) && PL.tasks && PL.uid === u.uid ? PL.tasks : (PL.remTasks && PL.remTasks.uid === u.uid ? PL.remTasks.tasks : null);   // việc tuần này đang có trong máy (không cần tải)
 function plRemTick(){
   const u = state.user; if (!u || !plAccess() || !plRemOn()) return;
-  const tasks = PL.key === plKey(0) && PL.tasks && PL.uid === u.uid ? PL.tasks : (PL.remTasks && PL.remTasks.uid === u.uid ? PL.remTasks.tasks : null); if (!tasks) return;
+  const tasks = plWeekNow(u); if (!tasks) return;
   const now = DT.now().setZone(userTZ), di = now.weekday - 1, mins = now.hour * 60 + now.minute, day = now.toISODate(), say = (title, body, tag) => { plNotify(title, body, tag); toast(body); plChime(); };
   tasks.forEach(x => { if (x.done || x.day !== di || !x.start) return; const st = hm(x.start), k = x.id + day; if (mins >= st - 10 && mins < st + 5 && !PL.sent[k]) { PL.sent[k] = 1; say(t('pl_rem_title'), t('pl_rem_soon', { t:x.title || '—', s:x.start }), 'pl-' + x.id + '-' + day); } });
   const left = tasks.filter(x => !x.done && x.day === di).length;
@@ -413,6 +414,28 @@ const plRemStart = () => {
   if (!PL.remT) PL.remT = setInterval(plRemTick, 30000);
   const uid = state.user && state.user.uid; if (uid && PL.pushU !== uid) { PL.pushU = uid; plPushSync().then(ok => ok && route.name === 'planner' && render(true)).catch(e => console.warn('planner push', e)); }
 };
+/* ---------- việc hôm nay ngoài màn hình (bật ở bảng chuông 🔔, core.js plPinSet) ----------
+   Web không vẽ chồng lên màn hình khác được, nên cách gần nhất là một thông báo YÊN LẶNG (không chuông, không rung), luôn cùng tag 'pl-today':
+   mỗi lần khách thoát / chuyển khỏi web (trang bị ẩn) thì hiện danh sách việc hôm nay chưa xong ở thanh thông báo / góc màn hình,
+   quay lại web thì tự đóng. Hết ngày thì tự đóng (ở đây khi trang còn chạy, và ở sw.js mỗi khi có thông báo đẩy tới). */
+const PL_PIN_MAX = 6;
+function plPinText(){
+  const u = state.user, tasks = u && plWeekNow(u); if (!tasks) return null;
+  const now = DT.now().setZone(userTZ), di = now.weekday - 1;
+  const left = tasks.filter(x => !x.done && x.day === di).sort((a, b) => (a.start || '99').localeCompare(b.start || '99')); if (!left.length) return null;
+  const lines = left.slice(0, PL_PIN_MAX).map(x => (x.start || '•') + '  ' + (x.title || '—'));
+  if (left.length > PL_PIN_MAX) lines.push(t('plp_more', { n:left.length - PL_PIN_MAX }));
+  return { title:t('plp_title', { n:left.length }), body:lines.join('\n'), until:now.endOf('day').toMillis() };
+}
+async function plPinShow(){
+  clearTimeout(PL.pinT);
+  if (!plPinOn() || !state.user || !plAccess() || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+  const v = plPinText(); if (!v) return plPinHide();
+  const reg = await swRegister(); if (!reg || !reg.showNotification || !document.hidden) return;   // đã quay lại web trong lúc chờ
+  await reg.showNotification(v.title, { body:v.body, tag:'pl-today', silent:true, renotify:false, requireInteraction:true, icon:'icons/icon-192.png', data:{ url:location.href.split('#')[0] + '#/planner', until:v.until } }).catch(() => {});
+  PL.pinT = setTimeout(plPinShow, Math.min(v.until - Date.now() + 5000, 2147483647));   // qua ngày mới mà vẫn chưa quay lại web: đổi sang việc của ngày mới (hoặc đóng)
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) plPinShow(); else { clearTimeout(PL.pinT); plPinHide(); } });
 /* ---------- giao diện ---------- */
 function plPreview(){                                              // giao diện thật với dữ liệu mẫu, chỉ để xem (dùng cho người chưa là Companion)
   const sample = [[0, '07:30', 45, 'vocab', 0], [0, '19:30', 60, 'listen', 0], [1, '09:00', 90, 'read', 0], [1, '18:00', 45, 'gym', 2], [2, '08:00', 120, 'essay', 1], [2, '20:00', 40, 'book', 3], [3, '07:30', 45, 'vocab', 0], [3, '14:00', 60, 'meet', 1], [4, '09:00', 60, 'speak', 0], [4, '19:00', 90, 'movie', 4], [5, '10:00', 60, 'clean', 5], [5, '15:00', 90, 'read', 0], [6, '09:00', 45, 'review', 0]];
