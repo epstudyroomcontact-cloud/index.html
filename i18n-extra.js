@@ -140,3 +140,60 @@
   };
   Object.keys(PQ).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], PQ[l]); });
 })();
+
+/* ---------- nhắc giờ live (nút chuông) ---------- */
+(function () {
+  const LRT = {
+    en:{ lr_title:"Live reminders", lr_next:"Next live: {d}", lr_none:"No upcoming live on the schedule yet.", lr_on:"Remind me", lr_lead:"When", lr_lead0:"Only when it starts", lr_leadn:"{n} minutes before, and when it starts", lr_sound:"Chime sound", lr_test:"Test", lr_test_body:"This is how the live reminder sounds.",
+      lr_perm_ok:"Browser notifications are on: you get a pop-up even when this tab is in the background.", lr_perm_ask:"Allow notifications", lr_perm_ask_note:"Allow notifications to get a pop-up while this tab is in the background.",
+      lr_perm_denied:"Your browser blocks notifications for this site, so I will remind you inside the page with a chime. You can allow them from the icon next to the address bar.",
+      lr_perm_none:"This browser has no web notifications (on iPhone they only work for sites added to the Home Screen), so I will remind you inside the page with a chime.",
+      lr_tap:"Tap anywhere on the page once so the chime can play (browsers mute sound until you do).",
+      lr_limit:"Reminders work while this site is open in a tab, even in the background. To be reminded when the site is closed, add the live to your calendar:",
+      lr_gcal:"Google Calendar", lr_ics:"Calendar file (.ics)", lr_soon_t:"Live in {n} min", lr_soon_b:"{t} starts at {s}. Get your desk ready!", lr_on_toast:"🔔 Live reminder on", lr_off_toast:"Live reminder off", lr_cal_title:"Study With Me live" },
+    vi:{ lr_title:"Nhắc giờ live", lr_next:"Buổi live tới: {d}", lr_none:"Lịch chưa có buổi live sắp tới.", lr_on:"Nhắc tôi", lr_lead:"Nhắc lúc", lr_lead0:"Chỉ khi bắt đầu live", lr_leadn:"Trước {n} phút và khi bắt đầu", lr_sound:"Âm thanh chuông", lr_test:"Nghe thử", lr_test_body:"Chuông nhắc live sẽ kêu như thế này.",
+      lr_perm_ok:"Đã bật thông báo của trình duyệt: bạn nhận nhắc cả khi tab này đang chạy nền.", lr_perm_ask:"Cho phép thông báo", lr_perm_ask_note:"Cho phép thông báo để nhận nhắc cả khi tab này đang chạy nền.",
+      lr_perm_denied:"Trình duyệt đang chặn thông báo của trang này, nên mình sẽ nhắc ngay trong trang kèm chuông. Bạn có thể cho phép lại ở biểu tượng cạnh thanh địa chỉ.",
+      lr_perm_none:"Trình duyệt này không có thông báo web (trên iPhone chỉ có khi thêm trang ra Màn hình chính), nên mình sẽ nhắc ngay trong trang kèm chuông.",
+      lr_tap:"Chạm vào trang một lần để chuông kêu được (trình duyệt tắt tiếng cho tới khi bạn chạm).",
+      lr_limit:"Nhắc chạy khi web còn mở trong một tab, kể cả tab nền. Muốn được nhắc cả khi đã tắt web, hãy thêm buổi live vào lịch:",
+      lr_gcal:"Google Calendar", lr_ics:"File lịch (.ics)", lr_soon_t:"Còn {n} phút nữa lên live", lr_soon_b:"{t} bắt đầu lúc {s}. Chuẩn bị bàn học nhé!", lr_on_toast:"🔔 Đã bật nhắc giờ live", lr_off_toast:"Đã tắt nhắc giờ live", lr_cal_title:"Live Study With Me" },
+    hi:{ lr_title:"लाइव रिमाइंडर", lr_next:"अगला लाइव: {d}", lr_none:"शेड्यूल में अभी कोई आगामी लाइव नहीं है।", lr_on:"मुझे याद दिलाएँ", lr_lead:"कब याद दिलाएँ", lr_lead0:"सिर्फ़ शुरू होने पर", lr_leadn:"{n} मिनट पहले और शुरू होने पर", lr_sound:"घंटी की आवाज़", lr_test:"सुनें", lr_test_body:"लाइव रिमाइंडर ऐसा सुनाई देगा।",
+      lr_perm_ok:"ब्राउज़र सूचनाएँ चालू हैं: टैब बैकग्राउंड में होने पर भी आपको सूचना मिलेगी।", lr_perm_ask:"सूचनाओं की अनुमति दें", lr_perm_ask_note:"टैब बैकग्राउंड में होने पर भी सूचना पाने के लिए अनुमति दें।",
+      lr_perm_denied:"आपका ब्राउज़र इस साइट की सूचनाएँ रोक रहा है, इसलिए मैं पेज के अंदर घंटी के साथ याद दिलाऊँगी। आप पता बार के पास वाले आइकन से अनुमति दे सकते हैं।",
+      lr_perm_none:"इस ब्राउज़र में वेब सूचनाएँ नहीं हैं (iPhone पर सिर्फ़ होम स्क्रीन पर जोड़ी गई साइटों के लिए), इसलिए मैं पेज के अंदर घंटी के साथ याद दिलाऊँगी।",
+      lr_tap:"घंटी बजने के लिए पेज पर एक बार टैप करें।", lr_limit:"रिमाइंडर तभी काम करता है जब साइट किसी टैब में खुली हो (बैकग्राउंड में भी)। साइट बंद होने पर भी याद दिलाने के लिए लाइव को अपने कैलेंडर में जोड़ें:",
+      lr_gcal:"Google Calendar", lr_ics:"कैलेंडर फ़ाइल (.ics)", lr_soon_t:"{n} मिनट में लाइव", lr_soon_b:"{t} {s} बजे शुरू होगा। अपनी डेस्क तैयार करें!", lr_on_toast:"🔔 लाइव रिमाइंडर चालू", lr_off_toast:"लाइव रिमाइंडर बंद", lr_cal_title:"Study With Me लाइव" },
+    ja:{ lr_title:"ライブのリマインダー", lr_next:"次のライブ: {d}", lr_none:"予定されているライブはまだありません。", lr_on:"お知らせする", lr_lead:"お知らせのタイミング", lr_lead0:"開始時のみ", lr_leadn:"{n}分前と開始時", lr_sound:"チャイム音", lr_test:"試聴", lr_test_body:"ライブのリマインダーはこの音で鳴ります。",
+      lr_perm_ok:"ブラウザ通知がオンです。このタブがバックグラウンドでも通知が届きます。", lr_perm_ask:"通知を許可", lr_perm_ask_note:"通知を許可すると、タブがバックグラウンドでも通知が届きます。",
+      lr_perm_denied:"このサイトの通知がブロックされているため、ページ内でチャイムと一緒にお知らせします。アドレスバー横のアイコンから許可できます。",
+      lr_perm_none:"このブラウザはWeb通知に対応していません（iPhoneではホーム画面に追加したサイトのみ）。ページ内でチャイムと一緒にお知らせします。",
+      lr_tap:"チャイムを鳴らすため、ページを一度タップしてください。", lr_limit:"リマインダーはこのサイトがタブで開いている間（バックグラウンドでも）動作します。閉じていても知らせてほしい場合はカレンダーに追加してください:",
+      lr_gcal:"Google カレンダー", lr_ics:"カレンダーファイル (.ics)", lr_soon_t:"あと{n}分でライブ", lr_soon_b:"{t} は {s} に始まります。机の準備をしましょう！", lr_on_toast:"🔔 ライブのお知らせをオンにしました", lr_off_toast:"ライブのお知らせをオフにしました", lr_cal_title:"Study With Me ライブ" },
+    ko:{ lr_title:"라이브 알림", lr_next:"다음 라이브: {d}", lr_none:"예정된 라이브가 아직 없습니다.", lr_on:"알림 받기", lr_lead:"알림 시점", lr_lead0:"시작할 때만", lr_leadn:"{n}분 전과 시작할 때", lr_sound:"차임 소리", lr_test:"미리 듣기", lr_test_body:"라이브 알림은 이렇게 울립니다.",
+      lr_perm_ok:"브라우저 알림이 켜져 있어 탭이 백그라운드에 있어도 알림을 받습니다.", lr_perm_ask:"알림 허용", lr_perm_ask_note:"알림을 허용하면 탭이 백그라운드에 있어도 알림을 받습니다.",
+      lr_perm_denied:"브라우저가 이 사이트의 알림을 차단하고 있어 페이지 안에서 차임과 함께 알려 드릴게요. 주소창 옆 아이콘에서 허용할 수 있습니다.",
+      lr_perm_none:"이 브라우저는 웹 알림을 지원하지 않습니다(iPhone은 홈 화면에 추가한 사이트만). 페이지 안에서 차임과 함께 알려 드릴게요.",
+      lr_tap:"차임이 울리도록 페이지를 한 번 탭해 주세요.", lr_limit:"알림은 이 사이트가 탭에 열려 있을 때(백그라운드 포함) 작동합니다. 사이트를 닫아도 알림을 받으려면 캘린더에 추가하세요:",
+      lr_gcal:"Google 캘린더", lr_ics:"캘린더 파일 (.ics)", lr_soon_t:"{n}분 후 라이브", lr_soon_b:"{t}이(가) {s}에 시작합니다. 책상을 준비하세요!", lr_on_toast:"🔔 라이브 알림 켜짐", lr_off_toast:"라이브 알림 꺼짐", lr_cal_title:"Study With Me 라이브" },
+    zh:{ lr_title:"直播提醒", lr_next:"下一场直播：{d}", lr_none:"日程中暂无即将开始的直播。", lr_on:"提醒我", lr_lead:"提醒时间", lr_lead0:"仅在开始时", lr_leadn:"提前 {n} 分钟及开始时", lr_sound:"铃声", lr_test:"试听", lr_test_body:"直播提醒的铃声就是这样。",
+      lr_perm_ok:"浏览器通知已开启：即使标签页在后台也会收到提醒。", lr_perm_ask:"允许通知", lr_perm_ask_note:"允许通知后，标签页在后台时也能收到提醒。",
+      lr_perm_denied:"浏览器已屏蔽本站通知，我会在页面内用铃声提醒你。可在地址栏旁的图标中重新允许。",
+      lr_perm_none:"此浏览器不支持网页通知（iPhone 仅限添加到主屏幕的网站），我会在页面内用铃声提醒你。",
+      lr_tap:"请点一下页面，铃声才能播放。", lr_limit:"提醒只在本网站的标签页打开时有效（后台也可以）。想在关闭网站后也收到提醒，请把直播加入日历：",
+      lr_gcal:"Google 日历", lr_ics:"日历文件 (.ics)", lr_soon_t:"{n} 分钟后开播", lr_soon_b:"{t} 将于 {s} 开始，准备好书桌吧！", lr_on_toast:"🔔 已开启直播提醒", lr_off_toast:"已关闭直播提醒", lr_cal_title:"Study With Me 直播" },
+    fr:{ lr_title:"Rappels de live", lr_next:"Prochain live : {d}", lr_none:"Aucun live prévu pour le moment.", lr_on:"Me prévenir", lr_lead:"Quand", lr_lead0:"Seulement au début", lr_leadn:"{n} minutes avant et au début", lr_sound:"Son de carillon", lr_test:"Tester", lr_test_body:"Voici le son du rappel de live.",
+      lr_perm_ok:"Les notifications du navigateur sont activées : vous êtes prévenu même si cet onglet est en arrière-plan.", lr_perm_ask:"Autoriser les notifications", lr_perm_ask_note:"Autorisez les notifications pour être prévenu quand cet onglet est en arrière-plan.",
+      lr_perm_denied:"Votre navigateur bloque les notifications de ce site : je vous préviendrai dans la page avec un carillon. Vous pouvez les autoriser via l'icône près de la barre d'adresse.",
+      lr_perm_none:"Ce navigateur ne gère pas les notifications web (sur iPhone, seulement pour les sites ajoutés à l'écran d'accueil) : je vous préviendrai dans la page avec un carillon.",
+      lr_tap:"Touchez la page une fois pour que le carillon puisse sonner.", lr_limit:"Les rappels fonctionnent tant que le site est ouvert dans un onglet (même en arrière-plan). Pour être prévenu site fermé, ajoutez le live à votre agenda :",
+      lr_gcal:"Google Agenda", lr_ics:"Fichier agenda (.ics)", lr_soon_t:"Live dans {n} min", lr_soon_b:"{t} commence à {s}. Préparez votre bureau !", lr_on_toast:"🔔 Rappel de live activé", lr_off_toast:"Rappel de live désactivé", lr_cal_title:"Live Study With Me" },
+    es:{ lr_title:"Recordatorios del directo", lr_next:"Próximo directo: {d}", lr_none:"Aún no hay directos programados.", lr_on:"Avisarme", lr_lead:"Cuándo", lr_lead0:"Solo al empezar", lr_leadn:"{n} minutos antes y al empezar", lr_sound:"Sonido de campana", lr_test:"Probar", lr_test_body:"Así suena el recordatorio del directo.",
+      lr_perm_ok:"Las notificaciones del navegador están activadas: recibirás el aviso aunque esta pestaña esté en segundo plano.", lr_perm_ask:"Permitir notificaciones", lr_perm_ask_note:"Permite las notificaciones para recibir el aviso con la pestaña en segundo plano.",
+      lr_perm_denied:"Tu navegador bloquea las notificaciones de este sitio, así que te avisaré dentro de la página con una campana. Puedes permitirlas desde el icono junto a la barra de direcciones.",
+      lr_perm_none:"Este navegador no tiene notificaciones web (en iPhone solo para sitios añadidos a la pantalla de inicio), así que te avisaré dentro de la página con una campana.",
+      lr_tap:"Toca la página una vez para que la campana pueda sonar.", lr_limit:"Los recordatorios funcionan mientras el sitio esté abierto en una pestaña (también en segundo plano). Para recibir aviso con el sitio cerrado, añade el directo a tu calendario:",
+      lr_gcal:"Google Calendar", lr_ics:"Archivo de calendario (.ics)", lr_soon_t:"Directo en {n} min", lr_soon_b:"{t} empieza a las {s}. ¡Prepara tu escritorio!", lr_on_toast:"🔔 Recordatorio activado", lr_off_toast:"Recordatorio desactivado", lr_cal_title:"Directo Study With Me" }
+  };
+  Object.keys(LRT).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], LRT[l]); });
+})();
