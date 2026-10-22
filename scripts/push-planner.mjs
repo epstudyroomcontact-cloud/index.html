@@ -5,6 +5,8 @@
    1. Tìm mọi tài khoản có plPush.on == true, đọc Planner tuần này của họ (users/<uid>/planner/<năm>-W<tuần>, theo múi giờ của họ).
    2. Việc hôm nay chưa xong, sắp bắt đầu (từ LEAD phút trước tới LATE phút sau giờ bắt đầu) mà chưa nhắc → gửi tới các máy của người đó.
    3. 20:00–21:00 còn việc hôm nay chưa xong → nhắc một lần "Hôm nay còn n việc chưa xong" (giống nhắc trong trang).
+   4. "Việc hôm nay" (plPush.pinTokens, bật ở bảng chuông 🔔): từ 6:00, mỗi khi danh sách việc hôm nay chưa xong đổi thì gửi lại
+      một thông báo YÊN LẶNG tag 'pl-today' (giống planner.js plPinShow), để danh sách vẫn đúng trên màn hình khoá dù đã đóng web.
    Đã nhắc gì thì ghi vào push_admin/planner để không nhắc lặp.
    ========================================================= */
 import { env, NOW, DRY, DOCS, login, api, getDoc, setDoc, decodeFields, sendOne } from './fcm.mjs';
@@ -13,14 +15,14 @@ const LEAD = +(env.PL_LEAD_MIN || 12), LATE = +(env.PL_LATE_MIN || 10);   // ch�
 
 /* ---------- chữ của thông báo (giống pl_rem_title / pl_rem_soon / pl_rem_eve trong planner.js, planner-i18n.js) ---------- */
 const TXT = {
-  en:{ title:'Planner', soon:'{t} starts at {s}', eve:'{n} tasks are still open today.' },
-  vi:{ title:'Planner', soon:'{t} bắt đầu lúc {s}', eve:'Hôm nay còn {n} việc chưa xong.' },
-  hi:{ title:'प्लानर', soon:'{t} {s} पर शुरू होता है', eve:'आज {n} काम अभी बाकी हैं।' },
-  ja:{ title:'プランナー', soon:'{t}は{s}に始まります', eve:'今日はまだ{n}件のタスクが残っています。' },
-  ko:{ title:'플래너', soon:'{t}이(가) {s}에 시작해요', eve:'오늘 아직 {n}개의 할 일이 남아 있어요.' },
-  zh:{ title:'计划本', soon:'{t} 将于 {s} 开始', eve:'今天还有 {n} 个任务未完成。' },
-  fr:{ title:'Planificateur', soon:'{t} commence à {s}', eve:"{n} tâches sont encore ouvertes aujourd'hui." },
-  es:{ title:'Planificador', soon:'{t} empieza a las {s}', eve:'Hoy aún tienes {n} tareas abiertas.' }
+  en:{ title:'Planner', soon:'{t} starts at {s}', eve:'{n} tasks are still open today.', pin:"Today · {n} tasks left", more:"+{n} more" },
+  vi:{ title:'Planner', soon:'{t} bắt đầu lúc {s}', eve:'Hôm nay còn {n} việc chưa xong.', pin:"Hôm nay · còn {n} việc", more:"+{n} việc nữa" },
+  hi:{ title:'प्लानर', soon:'{t} {s} पर शुरू होता है', eve:'आज {n} काम अभी बाकी हैं।', pin:"आज · {n} काम बाकी", more:"+{n} और" },
+  ja:{ title:'プランナー', soon:'{t}は{s}に始まります', eve:'今日はまだ{n}件のタスクが残っています。', pin:"今日 · 残り{n}件", more:"ほか{n}件" },
+  ko:{ title:'플래너', soon:'{t}이(가) {s}에 시작해요', eve:'오늘 아직 {n}개의 할 일이 남아 있어요.', pin:"오늘 · {n}개 남음", more:"+{n}개 더" },
+  zh:{ title:'计划本', soon:'{t} 将于 {s} 开始', eve:'今天还有 {n} 个任务未完成。', pin:"今天 · 还剩 {n} 个任务", more:"还有 {n} 个" },
+  fr:{ title:'Planificateur', soon:'{t} commence à {s}', eve:"{n} tâches sont encore ouvertes aujourd'hui.", pin:"Aujourd'hui · {n} tâches restantes", more:"+{n} autres" },
+  es:{ title:'Planificador', soon:'{t} empieza a las {s}', eve:'Hoy aún tienes {n} tareas abiertas.', pin:"Hoy · quedan {n} tareas", more:"+{n} más" }
 };
 const fill = (s, v) => Object.keys(v).reduce((a, k) => a.split('{' + k + '}').join(v[k]), s);
 
@@ -47,8 +49,9 @@ async function subscribers(){
 }
 async function dropTokens(uid, tokens){                            // máy đã tắt thông báo / token hết hạn: bỏ khỏi danh sách của người đó
   if (DRY) return console.log('[thử] bỏ', tokens.length, 'token của', uid.slice(0, 6));
+  const values = tokens.map(t => ({ stringValue:t }));
   const r = await api(`${DOCS.replace(/\/documents$/, '/documents:commit')}`, { method:'POST', body:JSON.stringify({ writes:[{ transform:{
-    document:`${DOCS.split('/v1/')[1]}/users/${uid}`, fieldTransforms:[{ fieldPath:'plPush.tokens', removeAllFromArray:{ values:tokens.map(t => ({ stringValue:t })) } }] } }] }) });
+    document:`${DOCS.split('/v1/')[1]}/users/${uid}`, fieldTransforms:['plPush.tokens', 'plPush.pinTokens'].map(fieldPath => ({ fieldPath, removeAllFromArray:{ values } })) } }] }) });
   if (!r.ok) console.warn('Bỏ token hết hạn', uid.slice(0, 6), r.status, (await r.text()).slice(0, 200));
 }
 
@@ -57,17 +60,26 @@ await login();
 const users = await subscribers();
 if (!users.length) { console.log('Chưa ai bật nhắc việc Planner.'); process.exit(0); }
 const state = (await getDoc('push_admin/planner')) || {};
-const sent = state.sent || {};
-const jobs = [];                                                   // { uid, tokens, title, body, tag }
+const sent = state.sent || {}, pins = state.pins || {};           // pins[uid] = 'ngày|danh sách' đã gửi lần cuối
+const jobs = [];                                                   // { uid, tokens, title, body, tag, pin? }
 const notes = [];                                                  // nhật ký ngắn cho từng người (không ghi tên việc), để biết vì sao chưa nhắc
 for (const u of users) {
-  const tokens = [...new Set((u.tokens || []).filter(t => typeof t === 'string' && t.length >= 20))];
-  if (!tokens.length) { notes.push(`${u.uid.slice(0, 6)}: chưa có máy nào nhận thông báo`); continue; }
+  const ok = a => [...new Set((a || []).filter(t => typeof t === 'string' && t.length >= 20))];
+  const tokens = ok(u.tokens), pinTokens = ok(u.pinTokens);
+  if (!tokens.length && !pinTokens.length) { notes.push(`${u.uid.slice(0, 6)}: chưa có máy nào nhận thông báo`); continue; }
   const L = localNow(u.tz || 'Asia/Ho_Chi_Minh'), T = TXT[u.lang] || TXT.en;
   let doc;
   try { doc = await getDoc(`users/${u.uid}/planner/${encodeURIComponent(L.key)}`); }
   catch (e) { console.warn('Đọc Planner', u.uid.slice(0, 6), e.message.slice(0, 200)); continue; }
   const today = (doc && Array.isArray(doc.tasks) ? doc.tasks : []).filter(x => x && x.day === L.di && !x.done);
+  if (pinTokens.length && today.length && L.mins >= 360) {
+    const left = [...today].sort((a, b) => String(a.start || '99').localeCompare(String(b.start || '99')));
+    const lines = left.slice(0, 6).map(x => (x.start || '•') + '  ' + String(x.title || '—').slice(0, 80));
+    if (left.length > 6) lines.push(fill(T.more, { n:left.length - 6 }));
+    const body = lines.join('\n'), sig = L.day + '|' + body;
+    if (pins[u.uid] !== sig) { pins[u.uid] = sig; jobs.push({ uid:u.uid, tokens:pinTokens, title:fill(T.pin, { n:left.length }), body, tag:'pl-today', pin:true, until:NOW + (1440 - L.mins) * 6e4 }); }
+  } else if (!today.length) delete pins[u.uid];                // hết việc: lần có việc mới sẽ gửi lại
+  if (!tokens.length) { notes.push(`${u.uid.slice(0, 6)}: chỉ bật "việc hôm nay" (${pinTokens.length} máy)`); continue; }
   const next = today.map(x => hm(x.start)).filter(st => st !== null && st + LATE > L.mins).sort((a, b) => a - b)[0];
   notes.push(`${u.uid.slice(0, 6)}: ${tokens.length} máy, ${L.key} thứ ${L.di + 2 > 7 ? 'CN' : L.di + 2} ${String(L.mins / 60 | 0).padStart(2, '0')}:${String(L.mins % 60).padStart(2, '0')} (${u.tz || '?'}), ${doc ? today.length + ' việc chưa xong hôm nay' : 'chưa có Planner tuần này'}${next === undefined ? '' : `, việc kế tiếp lúc ${String(next / 60 | 0).padStart(2, '0')}:${String(next % 60).padStart(2, '0')}`}`);
   today.forEach(x => {
@@ -83,12 +95,13 @@ for (const u of users) {
 notes.forEach(x => console.log('  ' + x));
 if (!jobs.length) { console.log(`${users.length} người bật nhắc việc, chưa có việc nào cần nhắc lúc này.`); process.exit(0); }
 Object.keys(sent).forEach(k => { if (NOW - sent[k] > 2 * 864e5) delete sent[k]; });
+const live = new Set(users.map(u => u.uid)); Object.keys(pins).forEach(k => { if (!live.has(k)) delete pins[k]; });
 // Lưu "đã nhắc" TRƯỚC khi gửi: lần chạy có bị dừng giữa chừng thì lần sau cũng không nhắc lặp
-await setDoc('push_admin/planner', { sent });
+await setDoc('push_admin/planner', { sent, pins });
 let ok = 0, fail = 0; const dead = {};
 for (const j of jobs) {
   await Promise.all(j.tokens.map(async tok => {
-    const res = await sendOne(tok, { title:j.title, body:j.body, tag:j.tag, path:'#/planner' }, (LEAD + LATE) * 60);
+    const res = await sendOne(tok, { title:j.title, body:j.body, tag:j.tag, path:'#/planner', ...(j.pin ? { pin:'1', until:String(j.until) } : {}) }, j.pin ? 6 * 3600 : (LEAD + LATE) * 60);
     if (res === 'ok') ok++; else { fail++; if (res === 'dead') (dead[j.uid] = dead[j.uid] || new Set()).add(tok); }
   }));
 }
