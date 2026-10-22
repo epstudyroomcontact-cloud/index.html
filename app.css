@@ -699,3 +699,9 @@ html[data-font="serif"] h1,html[data-font="serif"] h2,html[data-font="serif"] h3
 .lr-sess{max-height:170px;overflow-y:auto;margin-top:4px;padding:2px 4px 6px;border:1px solid var(--line);border-radius:10px}
 .lr-sess .lr-sess-row{margin-top:6px}
 @media(max-width:520px){.lr-pop{max-height:calc(100vh - 80px)}}
+
+/* ---------- Cài ứng dụng (PWA) ---------- */
+.pwa-box{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.pwa-box .label{margin-top:0}
+.pwa-box .btn{width:100%;justify-content:center}
+button.sb-item{width:100%;background:none;border:0;font:inherit;font-weight:600;cursor:pointer;text-align:left}

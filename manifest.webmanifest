@@ -1,0 +1,22 @@
+{
+  "id": "./",
+  "name": "EP Study Room",
+  "short_name": "EP Study",
+  "description": "Study With Me: lịch live, phòng tập trung, planner và chuông nhắc live.",
+  "start_url": "./#/",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#080b13",
+  "theme_color": "#080b13",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Watch", "url": "./#/watch", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Focus", "url": "./#/focus", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Planner", "url": "./#/planner", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}
