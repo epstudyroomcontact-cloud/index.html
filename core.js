@@ -8,7 +8,7 @@ const loadScript = src => new Promise((res, rej) => { const s = document.createE
 let emailP = null;
 const loadEmailJS = () => emailP || (emailP = loadScript('https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js').then(() => { emailjs.init("JKo4tonk0gQMwrHFZ"); }).catch(e => { emailP = null; console.warn('EmailJS chưa tải được', e); throw e; }));
 let adminP = null;
-const ASSET_V = '66';                                                // đổi cùng số ?v= trong index.html mỗi lần cập nhật, để trình duyệt không trộn file cũ với file mới
+const ASSET_V = '67';                                                // đổi cùng số ?v= trong index.html mỗi lần cập nhật, để trình duyệt không trộn file cũ với file mới
 const loadAdmin = () => typeof PAGES.admin === 'function' ? Promise.resolve() : (adminP || (adminP = loadScript('admin.js?v=' + ASSET_V).catch(e => { adminP = null; throw e; })));
 let plannerP = null;
 const loadPlanner = () => typeof PAGES.planner === 'function' ? Promise.resolve() : (plannerP || (plannerP = Promise.all([loadScript('planner-i18n.js?v=' + ASSET_V).catch(() => {}), loadScript('planner.js?v=' + ASSET_V)]).catch(e => { plannerP = null; throw e; })));   // planner-i18n.js = bản dịch hi/ja/ko/zh/fr/es; thiếu thì dùng tiếng Anh
@@ -42,7 +42,7 @@ function youTubeId(s){
   s = String(s || '').trim(); if (/^[\w-]{11}$/.test(s)) return s;
   const m = s.match(/(?:v=|youtu\.be\/|embed\/|live\/|shorts\/)([\w-]{11})/); return m ? m[1] : '';
 }
-function toast(msg){ const el = $('toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(() => el.classList.remove('show'), 2200); }
+function toast(msg, ms){ const el = $('toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(() => el.classList.remove('show'), ms || 2200); }
 
 /* ---------- state ---------- */
 const state = {
@@ -589,7 +589,7 @@ function liveState(){
   const now = Date.now(), pool = upcomingPool();
   return { now, live: pool.find(x => now >= x.start.toMillis() && now < x.end.toMillis()), next: pool.filter(x => x.start.toMillis() > now).sort((a, b) => a.start - b.start)[0] };
 }
-let lastNotified = null, dismissedLive = null, lastMin = '', lastSig = '';
+let dismissedLive = null, lastMin = '', lastSig = '';
 function updateNext(){
   const { live, next, now } = liveState(), url = watchUrl();
   const pill = $('live-pill'); pill.classList.toggle('hidden', !live); if (live) $('live-pill-t').textContent = t('live_now');
@@ -603,8 +603,103 @@ function updateNext(){
   if (live && url && dismissedLive !== live.key && !(route.name === 'watch')) {
     toastEl.classList.add('show'); $('live-toast-text').textContent = live.slot.title || t('live_now'); $('live-toast-link').href = url;
   } else toastEl.classList.remove('show');
-  if (live && 'Notification' in window && Notification.permission === 'granted' && lastNotified !== live.key) { new Notification(t('notif_title'), { body:t('notif_body') }); lastNotified = live.key; }
+  lrTick(live, next, now, url);
+  const lrN = $('lr-next'); if (lrN) lrN.textContent = lrNextText(live, next, now);
 }
+
+/* =========================================================
+   NHẮC GIỜ LIVE (nút chuông trên thanh trên cùng)
+   Web tĩnh (GitHub Pages) không có máy chủ đẩy thông báo, nên nhắc chỉ chạy khi web còn mở
+   (tab nền cũng được). Muốn nhắc cả khi tắt web: nút thêm vào Google Calendar / file .ics.
+   ========================================================= */
+const NOTIF_OK = typeof Notification !== 'undefined';
+const LR = { on:store.get('lr_on', NOTIF_OK && Notification.permission === 'granted'), lead:+store.get('lr_lead', 10) || 0, sound:store.get('lr_sound', true) !== false };
+let lrSent = store.get('lr_sent', {}), swReg = null, lrTitleBak = '';
+const lrSave = () => { store.set('lr_on', LR.on); store.set('lr_lead', LR.lead); store.set('lr_sound', LR.sound); };
+const audioLocked = () => typeof actx === 'undefined' || !actx || actx.state !== 'running';
+function liveChime(){                                              // chuông 3 tiếng (Web Audio, không cần file âm thanh)
+  if (typeof audio !== 'function') return; const a = audio(); if (!a) return;
+  [0, .5, 1].forEach((d, i) => [[i === 2 ? 1046 : 784, .28], [i === 2 ? 2092 : 1568, .08], [i === 2 ? 3138 : 2352, .03]].forEach(([f, v]) => { const o = a.createOscillator(), g = a.createGain(), at = a.currentTime + d; o.type = 'sine'; o.frequency.value = f; g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(v, at + .01); g.gain.exponentialRampToValueAtTime(.0008, at + 1.4); o.connect(g); g.connect(a.destination); o.start(at); o.stop(at + 1.5); }));
+}
+function swRegister(){
+  if (swReg || !('serviceWorker' in navigator) || !window.isSecureContext) return Promise.resolve(swReg);
+  return navigator.serviceWorker.register('sw.js').then(r => (swReg = r)).catch(() => null);
+}
+async function lrNotify(title, body, tag, sticky){
+  if (!NOTIF_OK || Notification.permission !== 'granted') return;
+  const url = location.href.split('#')[0] + '#/watch', opts = { body, tag, renotify:true, requireInteraction:!!sticky, data:{ url } };
+  try { const reg = await swRegister(); if (reg && reg.showNotification) return await reg.showNotification(title, opts); } catch (e) {}
+  try { const n = new Notification(title, opts); n.onclick = () => { window.focus(); location.hash = '#/watch'; n.close(); }; } catch (e) {}   // điện thoại Android chỉ cho hiện qua service worker
+}
+function lrFire(title, body, tag, sticky){
+  if (LR.sound) liveChime();
+  toast('🔔 ' + body, 9000);
+  lrNotify(title, body, tag, sticky);
+  if (document.hidden) { lrTitleBak = lrTitleBak || document.title; document.title = '🔔 ' + title; }
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden && lrTitleBak) { document.title = lrTitleBak; lrTitleBak = ''; } });
+function lrTick(live, next, now, url){
+  if (!LR.on) return;
+  const mark = k => { lrSent[k] = now; Object.keys(lrSent).forEach(x => { if (now - lrSent[x] > 2 * 864e5) delete lrSent[x]; }); store.set('lr_sent', lrSent); };
+  if (next && LR.lead > 0) {
+    const ms = next.start.toMillis() - now, k = 's' + next.start.toMillis();
+    if (ms > 0 && ms <= LR.lead * 60e3 && !lrSent[k]) { mark(k); const n = Math.max(1, Math.round(ms / 60e3)); lrFire(t('lr_soon_t', { n }), t('lr_soon_b', { t:next.slot.title || t('lr_cal_title'), s:next.start.setZone(userTZ).toFormat('HH:mm') }), 'live-soon', false); }
+  }
+  if (live) {
+    const k = 'l' + live.start.toMillis();
+    if (now - live.start.toMillis() < 15 * 60e3 && !lrSent[k]) { mark(k); lrFire(t('notif_title'), live.slot.title ? `${live.slot.title} · ${t('notif_body')}` : t('notif_body'), 'live-now', true); }
+  }
+}
+function lrNextText(live, next, now){
+  if (live) return `${t('live_now')} · ${live.start.setZone(userTZ).toFormat('HH:mm')} – ${live.end.setZone(userTZ).toFormat('HH:mm')}`;
+  if (!next) return t('lr_none');
+  const s = next.start.setZone(userTZ).setLocale(state.lang);
+  return t('lr_next', { d:`${s.toFormat('ccc dd/MM HH:mm')} (${fmtDur(next.start.toMillis() - now)})` });
+}
+function renderLiveRem(){
+  const pop = $('live-rem'); if (!pop) return;
+  const { live, next, now } = liveState(), perm = NOTIF_OK ? Notification.permission : 'none';
+  const leads = [0, 5, 10, 15, 30].map(n => `<option value="${n}" ${LR.lead === n ? 'selected' : ''}>${esc(n ? t('lr_leadn', { n }) : t('lr_lead0'))}</option>`).join('');
+  const permHTML = perm === 'granted' ? `<p class="lr-note ok">${esc(t('lr_perm_ok'))}</p>`
+    : perm === 'default' ? `<p class="lr-note">${esc(t('lr_perm_ask_note'))}</p><button type="button" class="btn secondary sm" data-act="lrPerm">${ic('bell', 'sm')} ${esc(t('lr_perm_ask'))}</button>`
+    : `<p class="lr-note">${esc(t(perm === 'denied' ? 'lr_perm_denied' : 'lr_perm_none'))}</p>`;
+  pop.innerHTML = `<div class="lr-h">${ic('bell', 'sm')} <b>${esc(t('lr_title'))}</b></div>
+    <p class="lr-next" id="lr-next">${esc(lrNextText(live, next, now))}</p>
+    <div class="switch"><span>${esc(t('lr_on'))}</span><input type="checkbox" data-change="lrOn" ${LR.on ? 'checked' : ''}></div>
+    <div class="${LR.on ? '' : 'lr-off'}">
+      <label class="label">${esc(t('lr_lead'))}</label><select class="select" data-change="lrLead">${leads}</select>
+      <div class="switch"><span>${esc(t('lr_sound'))}</span><span class="row" style="gap:8px"><button type="button" class="btn ghost sm" data-act="lrTest">${esc(t('lr_test'))}</button><input type="checkbox" data-change="lrSound" ${LR.sound ? 'checked' : ''}></span></div>
+      ${LR.on && LR.sound && audioLocked() ? `<p class="lr-note warn">${esc(t('lr_tap'))}</p>` : ''}
+      ${permHTML}
+    </div>
+    <hr class="lr-hr"><p class="lr-note">${esc(t('lr_limit'))}</p>
+    <div class="row" style="gap:8px;flex-wrap:wrap">${next ? `<a class="btn ghost sm" href="${esc(gcalUrl(next))}" target="_blank" rel="noopener">${ic('calendar', 'sm')} ${esc(t('lr_gcal'))}</a>` : ''}<button type="button" class="btn ghost sm" data-act="lrIcs" ${upcomingPool().some(x => x.end.toMillis() > now) ? '' : 'disabled'}>${ic('calendar', 'sm')} ${esc(t('lr_ics'))}</button></div>`;
+  $('btn-notif').classList.toggle('on', LR.on);
+}
+function lrSetOn(on){
+  LR.on = on; lrSave(); $('btn-notif').classList.toggle('on', on);
+  if (on) {
+    if (typeof audio === 'function') audio();                     // bật chuông ngay trong lần bấm này (trình duyệt chỉ cho phát tiếng sau khi khách bấm)
+    swRegister();
+    if (NOTIF_OK && Notification.permission === 'default') Notification.requestPermission().then(() => renderLiveRem()).catch(() => {});
+    if (LR.sound) liveChime();
+  }
+  toast(t(on ? 'lr_on_toast' : 'lr_off_toast')); renderLiveRem();
+}
+const calStamp = d => d.toUTC().toFormat("yyyyMMdd'T'HHmmss'Z'");
+const calTitle = x => `${branding.name} · ${x.slot.title || t('lr_cal_title')}`;
+const gcalUrl = x => 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(calTitle(x)) + '&dates=' + calStamp(x.start) + '/' + calStamp(x.end) + '&details=' + encodeURIComponent(watchUrl() || location.href.split('#')[0] + '#/watch');
+function downloadIcs(){
+  const now = Date.now(), url = watchUrl() || location.href.split('#')[0] + '#/watch', items = upcomingPool().filter(x => x.end.toMillis() > now);
+  if (!items.length) return;
+  const esc2 = s => String(s).replace(/[\\;,]/g, m => '\\' + m).replace(/\r?\n/g, '\\n');
+  const ev = items.map(x => ['BEGIN:VEVENT', `UID:${x.start.toMillis()}@epstudyroom`, `DTSTAMP:${calStamp(DT.now())}`, `DTSTART:${calStamp(x.start)}`, `DTEND:${calStamp(x.end)}`, `SUMMARY:${esc2(calTitle(x))}`, `DESCRIPTION:${esc2(url)}`, `URL:${url}`,
+    'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${esc2(calTitle(x))}`, `TRIGGER:-PT${LR.lead || 0}M`, 'END:VALARM', 'END:VEVENT'].join('\r\n'));
+  const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//EP Study Room//Live//EN', 'CALSCALE:GREGORIAN', ...ev, 'END:VCALENDAR'].join('\r\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([ics], { type:'text/calendar;charset=utf-8' })); a.download = 'live-schedule.ics';
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => { if (LR.on && LR.sound && typeof audio === 'function' && audioLocked()) { audio(); if ($('live-rem').classList.contains('open')) setTimeout(renderLiveRem, 50); } }, { passive:true }));
 function tickClock(){
   const n = DT.now().setZone(userTZ), txt = n.toFormat('hh:mm:ss a');
   document.querySelectorAll('[data-clock]').forEach(e => e.textContent = txt);
@@ -680,18 +775,21 @@ function openImagePicker(title, onPick, folder = 'cms'){
     <div class="row"><button class="btn primary" data-act="pickOk">${esc(t('save'))}</button><button class="btn ghost" data-act="pickClear">Dùng ảnh mặc định</button></div></div>`, true);
 }
 const FORMS = {}, CHANGES = {};
+CHANGES.lrOn = el => lrSetOn(el.checked);
+CHANGES.lrLead = el => { LR.lead = +el.value || 0; lrSave(); };
+CHANGES.lrSound = el => { LR.sound = el.checked; lrSave(); if (LR.sound) liveChime(); renderLiveRem(); };
 const ACTIONS = {
   openNav: () => document.body.classList.add('nav-open'),
   closeNav: () => document.body.classList.remove('nav-open'),
-  prefs: () => $('prefs').classList.toggle('open'),
+  prefs: () => { $('live-rem').classList.remove('open'); $('prefs').classList.toggle('open'); },
   closeModal,
   theme: el => { state.theme = el.dataset.th; store.set('theme', state.theme); applyLook(); renderPrefs(); render(true); },
   editMode: toggleEditMode,
   dismissLive: () => { const { live } = liveState(); dismissedLive = live ? live.key : null; updateNext(); },
-  notif: () => {
-    if (!('Notification' in window)) return alert(t('notif_unsupported'));
-    Notification.requestPermission().then(p => { if (p === 'granted') { $('btn-notif').classList.add('on'); toast('🔔 OK'); } });
-  },
+  notif: () => { const p = $('live-rem'), open = !p.classList.contains('open'); $('prefs').classList.remove('open'); if (open) renderLiveRem(); p.classList.toggle('open', open); },
+  lrPerm: () => { if (NOTIF_OK) Notification.requestPermission().then(p => { if (p === 'granted') { swRegister(); toast('🔔 OK'); } renderLiveRem(); }).catch(() => {}); },
+  lrTest: () => { liveChime(); lrNotify(t('notif_title'), t('lr_test_body'), 'live-test', false); },
+  lrIcs: downloadIcs,
   pickOk: async () => {
     const url = $('pick-url').value.trim(), f = $('pick-file').files[0], st = $('pick-st');
     try {
@@ -708,6 +806,7 @@ document.addEventListener('click', e => {
   if (!e.target.closest('#cart-drawer') && !e.target.closest('#btn-cart') && !(el && ['addCart', 'openCart'].includes(el.dataset.act))) $('cart-drawer').classList.remove('open');
   if (!el) {
     if (!e.target.closest('#prefs') && !e.target.closest('#btn-prefs')) $('prefs').classList.remove('open');
+    if (!e.target.closest('#live-rem') && !e.target.closest('#btn-notif')) $('live-rem').classList.remove('open');
     if (e.target === $('modal')) closeModal(); return;
   }
   const fn = ACTIONS[el.dataset.act]; if (!fn) return;
@@ -717,7 +816,7 @@ document.addEventListener('click', e => {
 document.addEventListener('submit', e => { const f = e.target.dataset && e.target.dataset.form; if (f && FORMS[f]) { e.preventDefault(); FORMS[f](e.target, e); } });
 document.addEventListener('change', e => { const c = e.target.dataset && e.target.dataset.change; if (c && CHANGES[c]) CHANGES[c](e.target, e); });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { closeModal(); $('prefs').classList.remove('open'); document.body.classList.remove('nav-open'); const d = $('cart-drawer'); d && d.classList.remove('open'); }
+  if (e.key === 'Escape') { closeModal(); $('prefs').classList.remove('open'); $('live-rem').classList.remove('open'); document.body.classList.remove('nav-open'); const d = $('cart-drawer'); d && d.classList.remove('open'); }
   if (e.key === 'Enter' && state.editMode && e.target.dataset && e.target.dataset.cms && !e.shiftKey) { e.preventDefault(); e.target.blur(); }
 });
 document.addEventListener('focusin', e => { const el = e.target; if (state.editMode && el.dataset && el.dataset.cms) el.dataset.orig = el.textContent.trim(); });
@@ -734,6 +833,7 @@ window.addEventListener('hashchange', () => { document.body.classList.remove('na
 function boot(){
   state.booted = true;
   applyLook(); renderPrefs(); listenAll(); readRoute(); doRender();
-  if ('Notification' in window && Notification.permission === 'granted') $('btn-notif').classList.add('on');
+  $('btn-notif').classList.toggle('on', LR.on);
+  if (LR.on && NOTIF_OK && Notification.permission === 'granted') swRegister();
   if (state.user === null && DEMO && DEMO_AS) { render(true); }
 }

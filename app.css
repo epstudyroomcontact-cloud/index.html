@@ -677,3 +677,13 @@ html[data-font="serif"] h1,html[data-font="serif"] h2,html[data-font="serif"] h3
 .pl-li{flex-wrap:wrap}.pl-li-x{flex-basis:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;padding-left:30px}.pl-li-x .btn{opacity:1}
 .todo-prog{margin-bottom:6px}.todo-item.cur{background:rgba(var(--accent-rgb),.08);border-radius:10px}.todo-item .btn.on{color:var(--accent-strong)}
 .pass-wrap{position:relative;display:block}.pass-wrap .input{width:100%;padding-right:46px}.pass-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:36px;height:36px;display:grid;place-items:center;border:0;background:transparent;color:var(--ink3);border-radius:10px;cursor:pointer}.pass-eye:hover,.pass-eye[aria-pressed=true]{color:var(--accent-strong)}.pass-eye .ic{width:20px;height:20px}
+/* nhắc giờ live (nút chuông) */
+.lr-pop{width:330px;max-width:calc(100vw - 24px)}
+.lr-h{display:flex;align-items:center;gap:8px;font-size:.98rem;color:var(--ink)}
+.lr-next{font-size:.84rem;color:var(--ink2);margin-top:6px;font-weight:600}
+.lr-off{opacity:.5;pointer-events:none}
+.lr-note{font-size:.78rem;color:var(--ink2);line-height:1.45;margin:10px 0 8px}
+.lr-note.ok{color:var(--live)}
+.lr-note.warn{color:var(--accent-strong);font-weight:700}
+.lr-hr{border:0;border-top:1px solid var(--line);margin:14px 0 4px}
+@media(max-width:520px){.lr-pop{position:fixed;left:12px;right:12px;top:64px;width:auto}}

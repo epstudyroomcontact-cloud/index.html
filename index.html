@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="app.css?v=66">
+<link rel="stylesheet" href="app.css?v=67">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.4.4/luxon.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -80,9 +80,10 @@
       <span class="live-pill hidden" id="live-pill"><i></i><span id="live-pill-t"></span></span>
       <div class="tb-actions">
         <button class="icon-btn hidden" id="btn-edit" data-act="editMode" title="Edit page" aria-label="Edit page"><svg class="ic"><use href="#i-pen"/></svg></button>
-        <button class="icon-btn" id="btn-notif" data-act="notif" aria-label="Notifications"><svg class="ic"><use href="#i-bell"/></svg></button>
+        <button class="icon-btn" id="btn-notif" data-act="notif" aria-label="Live reminders"><svg class="ic"><use href="#i-bell"/></svg></button>
         <button class="icon-btn" id="btn-prefs" data-act="prefs" aria-label="Preferences"><svg class="ic"><use href="#i-sliders"/></svg></button>
         <button class="icon-btn" id="btn-cart" data-act="openCart" aria-label="Cart"><svg class="ic"><use href="#i-cart"/></svg><span class="dot hidden" id="cart-dot">0</span></button>
+        <div class="pop lr-pop" id="live-rem"></div>
         <div class="pop" id="prefs">
           <label class="label" data-i18n="language">Language</label>
           <select class="select" id="sel-lang"></select>
@@ -112,18 +113,18 @@
 </div>
 <div id="toast"></div>
 
-<script src="js/firebase-config.js?v=66"></script>
-<script src="js/i18n.js?v=66"></script>
-<script src="i18n-extra.js?v=66"></script>
-<script src="js/translate.js?v=66"></script>
-<script src="js/art.js?v=66"></script>
-<script src="core.js?v=66"></script>
-<script src="pages.js?v=66"></script>
-<script src="moon-story-text.js?v=66"></script>
-<script src="moon-art.js?v=66"></script>
-<script src="moon-rain.js?v=66"></script>
-<script src="moon-fx.js?v=66"></script>
-<script src="moon-story.js?v=66"></script>
+<script src="js/firebase-config.js?v=67"></script>
+<script src="js/i18n.js?v=67"></script>
+<script src="i18n-extra.js?v=67"></script>
+<script src="js/translate.js?v=67"></script>
+<script src="js/art.js?v=67"></script>
+<script src="core.js?v=67"></script>
+<script src="pages.js?v=67"></script>
+<script src="moon-story-text.js?v=67"></script>
+<script src="moon-art.js?v=67"></script>
+<script src="moon-rain.js?v=67"></script>
+<script src="moon-fx.js?v=67"></script>
+<script src="moon-story.js?v=67"></script>
 <script>boot();</script>
 </body>
 </html>
