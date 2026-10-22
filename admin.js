@@ -117,6 +117,16 @@ async function backupNow(){
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'epstudyroom-backup-' + DT.now().toFormat('yyyy-MM-dd') + '.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 }
 /* ---------------- Tổng quan ---------------- */
+/* Thông báo đẩy: máy gửi là GitHub Actions (scripts/push-live.mjs) tự báo theo lịch live. Nút ở đây ghi push_admin/now,
+   máy gửi thấy ở lần chạy kế tiếp (thường 5–15 phút). Cần nhanh hơn thì chạy tay workflow trên GitHub (khoảng 1 phút). */
+const PUSH_WF = 'https://github.com/epstudyroomcontact-cloud/index.html/actions/workflows/push-live.yml';
+const pushCard = () => aCard(`${ic('bell', 'sm')} Thông báo đẩy khi live`, !PUSH_VAPID
+  ? `<p class="hint">Chưa bật. Làm theo SETUP.md, phần <b>Thông báo đẩy</b> (bật Cloud Messaging, dán khoá VAPID vào <code>js/firebase-config.js</code>, thêm secret trên GitHub). Chuông nhắc trong trang vẫn chạy bình thường.</p>`
+  : `<p class="hint" style="margin-bottom:10px">Khách bật trong nút chuông sẽ nhận thông báo <b>kể cả khi đã đóng web</b>. Máy gửi tự báo khi buổi live theo lịch sắp bắt đầu (khoảng 5 phút trước, có thể trễ vài phút). Live đột xuất ngoài lịch thì bấm nút dưới đây.</p>
+    <p class="small muted" id="push-status">Đang kiểm tra…</p>
+    <div class="field mt-s"><label class="label" for="push-text">Nội dung (tuỳ chọn)</label><input class="input" id="push-text" maxlength="200" placeholder="Để trống: dùng câu mặc định theo ngôn ngữ của khách"></div>
+    <div class="row mt-s"><button class="btn primary" data-act="pushNow">${ic('bell', 'sm')} Gửi thông báo live ngay</button><a class="btn secondary" href="${PUSH_WF}" target="_blank" rel="noopener">Gửi nhanh qua GitHub</a></div>
+    <p class="hint">Nút <b>Gửi thông báo live ngay</b> đến tay khách sau khoảng 5–15 phút (lần chạy kế tiếp của máy gửi). Cần nhanh hơn: bấm <b>Gửi nhanh qua GitHub</b> → <b>Run workflow</b> (khoảng 1 phút). Nội dung tự nhập chỉ có một ngôn ngữ, nên viết ngắn bằng tiếng Anh hoặc cả hai thứ tiếng.</p>`);
 async function tabOverview(){
   A('<p class="muted">Đang tải…</p>');
   let orders = [], users = [], signups = [], revs = [];
@@ -130,7 +140,9 @@ async function tabOverview(){
     ${aCard('Dữ liệu cho người xem & bản sao dự phòng', `<p class="hint" style="margin-bottom:10px">Để web chạy nhanh và <b>không vượt hạn mức miễn phí của Firebase</b>, dữ liệu công khai (giao diện, chữ, bài viết, sản phẩm, lịch live, nhạc…) được gộp thành một bản cho người xem. Bản này <b>tự cập nhật vài giây sau mỗi lần bạn bấm Lưu</b>. Người xem thấy thay đổi trong vòng khoảng 10 phút (hoặc ngay khi họ tải lại sau đó). Bạn không cần làm gì thêm.</p>
       <p class="small muted" id="pub-status">Đang kiểm tra…</p>
       <div class="row mt-s"><button class="btn primary" data-act="publishNow">Xuất bản ngay</button><button class="btn secondary" data-act="backupNow">Tải bản sao dữ liệu (file .json)</button><button class="btn secondary" data-act="fallbackNow">Tải file dự phòng cho web</button></div>
-      <p class="hint"><b>File dự phòng cho web</b> (tuỳ chọn): tải file <code>site-fallback.json</code> rồi đưa lên GitHub, để <b>cùng chỗ với file index.html</b>. Nếu Firebase hết hạn mức hoặc gặp sự cố, người mới vào web vẫn thấy đủ nội dung từ file này (không tốn lượt đọc nào). Nên tải lại khi bạn đăng bài hoặc đổi lịch nhiều.</p><p class="hint">Nên tải bản sao dữ liệu khoảng mỗi tuần và cất vào ổ đĩa của bạn: bài viết, sản phẩm, cài đặt nằm trong Firebase, đây là bản dự phòng nếu có sự cố.</p>`)}`);
+      <p class="hint"><b>File dự phòng cho web</b> (tuỳ chọn): tải file <code>site-fallback.json</code> rồi đưa lên GitHub, để <b>cùng chỗ với file index.html</b>. Nếu Firebase hết hạn mức hoặc gặp sự cố, người mới vào web vẫn thấy đủ nội dung từ file này (không tốn lượt đọc nào). Nên tải lại khi bạn đăng bài hoặc đổi lịch nhiều.</p><p class="hint">Nên tải bản sao dữ liệu khoảng mỗi tuần và cất vào ổ đĩa của bạn: bài viết, sản phẩm, cài đặt nằm trong Firebase, đây là bản dự phòng nếu có sự cố.</p>`)}
+    ${pushCard()}`);
+  if (!DEMO && PUSH_VAPID) db.collection('push_admin').doc('status').get().then(d => { const st = $('push-status'); if (st) st.textContent = d.exists ? `Lần gửi gần nhất: ${DT.fromMillis(d.data().at).toFormat('dd/MM/yyyy HH:mm')} (${d.data().label}) · ${d.data().ok}/${d.data().devices} máy nhận${d.data().removed ? ` · đã dọn ${d.data().removed} máy đã tắt thông báo` : ''}` : 'Chưa gửi lần nào.'; }).catch(() => {});
   if (!DEMO) db.collection('settings').doc('site').get().then(d => { const st = $('pub-status'); if (st) st.textContent = d.exists ? 'Lần xuất bản gần nhất: ' + DT.fromMillis(d.data().updatedAt).toFormat('dd/MM/yyyy HH:mm') : 'Chưa xuất bản lần nào. Bấm "Xuất bản ngay".'; }).catch(() => {});
 }
 
@@ -943,6 +955,12 @@ Object.assign(ACTIONS, {
 
 Object.assign(ACTIONS, {
   publishNow: el => withTranslate(el, () => publishSite(false)).catch(fail),
+  pushNow: el => {
+    if (!confirm('Gửi thông báo "Đang live" tới mọi người đã bật thông báo?')) return;
+    el.disabled = true;
+    dbSet('push_admin', 'now', { at:TS(), text:val('push-text').slice(0, 200) }, false)
+      .then(() => { ok('Đã xếp hàng ✔ Khách nhận sau khoảng 5–15 phút'); $('push-text').value = ''; }).catch(fail).finally(() => { el.disabled = false; });
+  },
   fallbackNow: el => { const t0 = el.textContent; el.disabled = true; el.textContent = 'Đang chuẩn bị…'; return fallbackNow().then(() => ok('Đã tải site-fallback.json ✔ Đưa file này lên GitHub cùng chỗ với index.html')).catch(fail).finally(() => { el.disabled = false; el.textContent = t0; }); },
   backupNow: el => { const t0 = el.textContent; el.disabled = true; el.textContent = 'Đang chuẩn bị…'; return backupNow().then(() => ok('Đã tải bản sao dữ liệu ✔')).catch(fail).finally(() => { el.disabled = false; el.textContent = t0; }); }
 });

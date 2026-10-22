@@ -1,5 +1,5 @@
 'use strict';
-const BUILD = '2026-10-22 · bản 34 (Cài web thành ứng dụng trên điện thoại / máy tính)';   // hiện ở Admin để biết web đang chạy bản nào
+const BUILD = '2026-10-22 · bản 35 (Thông báo đẩy khi live, kể cả lúc đã đóng web)';   // hiện ở Admin để biết web đang chạy bản nào
 /* =========================================================
    CORE — cấu hình, trạng thái, dữ liệu realtime, đăng nhập, router, sự kiện
    ========================================================= */
@@ -8,7 +8,7 @@ const loadScript = src => new Promise((res, rej) => { const s = document.createE
 let emailP = null;
 const loadEmailJS = () => emailP || (emailP = loadScript('https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js').then(() => { emailjs.init("JKo4tonk0gQMwrHFZ"); }).catch(e => { emailP = null; console.warn('EmailJS chưa tải được', e); throw e; }));
 let adminP = null;
-const ASSET_V = '69';                                                // đổi cùng số ?v= trong index.html mỗi lần cập nhật, để trình duyệt không trộn file cũ với file mới
+const ASSET_V = '70';                                                // đổi cùng số ?v= trong index.html mỗi lần cập nhật, để trình duyệt không trộn file cũ với file mới
 const loadAdmin = () => typeof PAGES.admin === 'function' ? Promise.resolve() : (adminP || (adminP = loadScript('admin.js?v=' + ASSET_V).catch(e => { adminP = null; throw e; })));
 let plannerP = null;
 const loadPlanner = () => typeof PAGES.planner === 'function' ? Promise.resolve() : (plannerP || (plannerP = Promise.all([loadScript('planner-i18n.js?v=' + ASSET_V).catch(() => {}), loadScript('planner.js?v=' + ASSET_V)]).catch(e => { plannerP = null; throw e; })));   // planner-i18n.js = bản dịch hi/ja/ko/zh/fr/es; thiếu thì dùng tiếng Anh
@@ -723,6 +723,7 @@ function renderLiveRem(){
     : `<p class="lr-note">${esc(t(perm === 'denied' ? 'lr_perm_denied' : 'lr_perm_none'))}</p>${perm === 'none' && pwaIOS && !pwaStandalone() ? `<button type="button" class="btn secondary sm" data-act="pwaInstall">${ic('download', 'sm')} ${esc(t('pwa_install'))}</button>` : ''}`;
   pop.innerHTML = `<div class="lr-h">${ic('bell', 'sm')} <b>${esc(t('lr_title'))}</b></div>
     <p class="lr-next" id="lr-next">${esc(lrNextText(live, next, now))}</p>
+    ${pushHTML()}
     <div class="switch"><span>${esc(t('lr_on'))}</span><input type="checkbox" data-change="lrOn" ${LR.on ? 'checked' : ''}></div>
     <div class="${LR.on ? '' : 'lr-off'}">
       <label class="label">${esc(t('lr_before'))}</label>
@@ -768,6 +769,55 @@ function downloadIcs(){
   const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//EP Study Room//Live//EN', 'CALSCALE:GREGORIAN', ...ev, 'END:VCALENDAR'].join('\r\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([ics], { type:'text/calendar;charset=utf-8' })); a.download = 'live-schedule.ics';
   document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+/* ---------- THÔNG BÁO ĐẨY (kể cả khi đã đóng web) ----------
+   Khách bật trong bảng chuông → lấy mã nhận thông báo (token) của Firebase Cloud Messaging, lưu vào push_tokens/<sha256(token)>.
+   Khách chỉ ghi/xoá được token của chính mình, không ai đọc được token người khác (xem firestore.rules).
+   Máy gửi là GitHub Actions chạy mỗi 5 phút (scripts/push-live.mjs): thấy buổi live sắp bắt đầu theo lịch thì gửi cho mọi token.
+   Chưa dán khoá VAPID vào js/firebase-config.js thì mục này ẩn đi, chuông nhắc vẫn chạy như cũ. */
+const PUSH_VAPID = String(window.FCM_VAPID_KEY || '').trim();
+const PUSH = { on:store.get('push_on', false), id:store.get('push_id', ''), busy:false, err:false };
+const pushSupported = () => !!PUSH_VAPID && !DEMO && !CONFIG_MISSING && NOTIF_OK && window.isSecureContext && 'serviceWorker' in navigator && 'PushManager' in window;
+let msgP = null;
+const loadMessaging = () => msgP || (msgP = loadScript('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js').then(() => firebase.messaging()).catch(e => { msgP = null; throw e; }));
+const sha256Hex = async s => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, '0')).join('');
+async function pushSync(ask){
+  if (!pushSupported()) throw new Error('push unsupported');
+  if (Notification.permission !== 'granted') {                        // hỏi quyền ngay trong lần bấm (Safari bắt buộc)
+    if (!ask || await Notification.requestPermission() !== 'granted') throw new Error('permission ' + Notification.permission);
+  }
+  if (!await swRegister()) throw new Error('no service worker');
+  const reg = await navigator.serviceWorker.ready, m = await loadMessaging();
+  const token = await m.getToken({ vapidKey:PUSH_VAPID, serviceWorkerRegistration:reg });
+  if (!token) throw new Error('no token');
+  const id = await sha256Hex(token), sig = id + '|' + state.lang + '|' + userTZ;
+  if (store.get('push_sig', '') === sig && Date.now() - store.get('push_t', 0) < 7 * 864e5) return;   // không đổi gì: khỏi ghi (ghi lại mỗi tuần để máy gửi biết token còn dùng)
+  await db.collection('push_tokens').doc(id).set({ token, lang:state.lang, tz:String(userTZ).slice(0, 64), updatedAt:TS() });
+  if (PUSH.id && PUSH.id !== id) db.collection('push_tokens').doc(PUSH.id).delete().catch(() => {});   // token cũ (trình duyệt đã đổi token)
+  PUSH.id = id; store.set('push_id', id); store.set('push_sig', sig); store.set('push_t', Date.now());
+}
+async function pushOff(){
+  try { if (pushSupported()) await (await loadMessaging()).deleteToken(); } catch (e) {}
+  if (PUSH.id) await db.collection('push_tokens').doc(PUSH.id).delete().catch(() => {});
+  PUSH.id = ''; store.set('push_id', ''); store.set('push_sig', '');
+}
+async function pushSet(on){
+  PUSH.busy = true; PUSH.err = false; renderLiveRem();
+  try { if (on) await pushSync(true); else await pushOff(); PUSH.on = on; toast(t(on ? 'push_on_toast' : 'push_off_toast')); }
+  catch (e) { console.warn('push', e); PUSH.on = false; PUSH.err = NOTIF_OK && Notification.permission !== 'denied'; }
+  store.set('push_on', PUSH.on); PUSH.busy = false; renderLiveRem();
+}
+const pushResync = () => { if (PUSH.on && pushSupported() && Notification.permission === 'granted') pushSync(false).catch(e => console.warn('push', e)); };
+function pushHTML(){
+  if (!PUSH_VAPID || DEMO || CONFIG_MISSING) return '';
+  const ios = pwaIOS && !pwaStandalone(), sup = pushSupported(), perm = NOTIF_OK ? Notification.permission : 'none', on = PUSH.on && sup && perm === 'granted';
+  const note = ios ? `<p class="lr-note">${esc(t('push_ios'))}</p><button type="button" class="btn secondary sm" data-act="pwaInstall">${ic('download', 'sm')} ${esc(t('pwa_install'))}</button>`
+    : !sup ? `<p class="lr-note">${esc(t('push_unsup'))}</p>`
+    : perm === 'denied' ? `<p class="lr-note">${esc(t('push_denied'))}</p>`
+    : PUSH.busy ? `<p class="lr-note">${esc(t('push_busy'))}</p>`
+    : PUSH.err ? `<p class="lr-note warn">${esc(t('push_err'))}</p>`
+    : `<p class="lr-note ${on ? 'ok' : ''}">${esc(t(on ? 'push_ok' : 'push_note'))}</p>`;
+  return `<div class="switch"><span><b>${esc(t('push_on'))}</b></span><input type="checkbox" data-change="pushOn" ${on ? 'checked' : ''} ${sup && perm !== 'denied' && !PUSH.busy ? '' : 'disabled'}></div>${note}<hr class="lr-hr">`;
 }
 ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => { if (LR.on && lrSound() && typeof audio === 'function' && audioLocked()) { audio(); if ($('live-rem').classList.contains('open')) setTimeout(renderLiveRem, 50); } }, { passive:true }));
 function tickClock(){
@@ -846,6 +896,7 @@ function openImagePicker(title, onPick, folder = 'cms'){
 }
 const FORMS = {}, CHANGES = {};
 CHANGES.lrOn = el => lrSetOn(el.checked);
+CHANGES.pushOn = el => pushSet(el.checked);
 CHANGES.lrStart = el => { LR.atStart = el.checked || !LR.leads.length; lrSave(); renderLiveRem(); };
 CHANGES.lrPick = el => { const k = el.dataset.st; if (el.checked) LR.picked[k] = 1; else delete LR.picked[k]; const now = Date.now(); Object.keys(LR.picked).forEach(x => { if (+x < now - 864e5) delete LR.picked[x]; }); lrSave(); renderLiveRem(); };
 CHANGES.lrTone = el => { LR.tone = el.value; lrSave(); liveChime(); };
@@ -902,8 +953,8 @@ document.addEventListener('focusout', e => {
   if (state.editMode && el.dataset && el.dataset.cms && el.textContent.trim() !== el.dataset.orig) saveCmsText(el.dataset.cms, el.textContent.trim());   // chỉ lưu khi chữ thật sự đổi
   setTimeout(() => { if (pendingRender && !typingInPage()) render(); }, 50);
 });
-$('sel-lang').addEventListener('change', e => { state.lang = e.target.value; store.set('lang', state.lang); renderPrefs(); render(true); });
-$('sel-tz').addEventListener('change', e => { state.tz = e.target.value; store.set('tz', state.tz); userTZ = state.tz === 'auto' ? DT.local().zoneName : state.tz; render(true); });
+$('sel-lang').addEventListener('change', e => { state.lang = e.target.value; store.set('lang', state.lang); renderPrefs(); render(true); pushResync(); });
+$('sel-tz').addEventListener('change', e => { state.tz = e.target.value; store.set('tz', state.tz); userTZ = state.tz === 'auto' ? DT.local().zoneName : state.tz; render(true); pushResync(); });
 $('chk-calm').addEventListener('change', e => { state.calm = e.target.checked; store.set('calm', state.calm); applyLook(); });
 window.addEventListener('hashchange', () => { document.body.classList.remove('nav-open'); $('cart-drawer').classList.remove('open'); render(true); window.scrollTo({ top:0 }); });
 
@@ -912,6 +963,7 @@ function boot(){
   applyLook(); renderPrefs(); listenAll(); readRoute(); doRender();
   $('btn-notif').classList.toggle('on', LR.on);
   pwaRefresh();
-  if (document.readyState === 'complete') swRegister(); else window.addEventListener('load', () => swRegister());   // đăng ký sau khi trang tải xong để không làm chậm lúc mở web
+  const afterLoad = () => { swRegister(); setTimeout(pushResync, 3000); };   // pushResync: làm mới token thông báo đẩy (trình duyệt thỉnh thoảng đổi token)
+  if (document.readyState === 'complete') afterLoad(); else window.addEventListener('load', afterLoad);   // đăng ký sau khi trang tải xong để không làm chậm lúc mở web
   if (state.user === null && DEMO && DEMO_AS) { render(true); }
 }

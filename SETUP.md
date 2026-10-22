@@ -311,6 +311,29 @@ Khách đã đăng nhập nhập một mã dùng thử → được dùng như *
 
 **Bảo mật:** danh sách mã chỉ admin đọc được (khách không liệt kê hay đọc thử được mã nào). Việc kiểm tra mã đúng, đang bật, còn hạn nhập, còn lượt, mỗi tài khoản một lần, và giờ bắt đầu lấy theo giờ máy chủ đều do luật Firestore làm trên máy chủ, nên sửa code trên trình duyệt cũng không tự cấp được. Riêng giới hạn phút của Phòng tập trung vốn đếm trên trình duyệt (như trước đây), còn Planner được khoá thật bằng luật Firestore. Nên dùng mã dài (nút tạo ngẫu nhiên) và đặt số lượt tối đa khi chia sẻ công khai.
 
+## PHẦN 17 — Thông báo đẩy khi live (khách nhận cả khi đã đóng web)
+
+**Cách chạy:** khách bấm nút chuông 🔔 → bật **"Báo khi live bắt đầu, kể cả khi đã đóng web"**. Máy của khách nhận một mã (token) của Firebase Cloud Messaging, lưu vào Firestore. Máy gửi là **GitHub Actions** (workflow `.github/workflows/push-live.yml`, chạy file `scripts/push-live.mjs`) chạy khoảng **5 phút một lần**: đọc lịch live, thấy buổi sắp bắt đầu (từ 5 phút trước giờ live) thì gửi thông báo cho mọi máy đã bật. Mỗi buổi chỉ gửi 1 lần.
+
+**Chi phí: 0 đồng.** Firebase Cloud Messaging miễn phí ở mọi gói (kể cả Spark). Repo công khai nên GitHub Actions không tính phút. Mỗi lần chạy đọc khoảng 3–4 tài liệu Firestore (khoảng 1.200 lượt đọc / ngày, hạn mức miễn phí là 50.000), lúc gửi đọc thêm 1 lượt cho mỗi máy đã bật.
+
+**Giới hạn cần biết:**
+- **Có thể trễ vài phút.** GitHub chạy lịch "5 phút một lần" nhưng lúc đông máy có thể trễ 5–15 phút, thỉnh thoảng bỏ một lần. Vì vậy máy gửi báo từ **5 phút trước** giờ live (thông báo "⏰ Live lúc 20:30"); nếu chạy trễ sau giờ live thì báo "🔴 Đang live". Quá 45 phút sau giờ bắt đầu thì không báo nữa.
+- **Live đột xuất ngoài lịch:** Admin → **Tổng quan** → thẻ **Thông báo đẩy khi live** → **Gửi thông báo live ngay** (đến tay khách sau khoảng 5–15 phút), hoặc **Gửi nhanh qua GitHub** → **Run workflow** (khoảng 1 phút, làm được trên app GitHub của điện thoại).
+- **iPhone / iPad:** chỉ nhận khi đã **thêm web ra Màn hình chính** (iOS 16.4 trở lên) và bật thông báo từ ứng dụng đó. Mở bằng Safari thường thì không nhận được (đây là quy định của Apple).
+- Android, máy tính (Chrome, Edge, Firefox, Safari trên Mac): nhận được cả khi đã đóng tab, miễn là trình duyệt còn chạy nền (Android thì luôn được).
+- GitHub tự **tạm dừng lịch chạy nếu repo 60 ngày không có thay đổi nào**. Nếu lâu không cập nhật web, vào tab **Actions** của repo, bấm **Enable workflow** nếu thấy thông báo.
+
+### 17.1. Việc bạn làm một lần (khoảng 10 phút)
+1. **Bật Cloud Messaging:** Firebase Console → dự án `epstudyroom-web` → ⚙️ **Project settings** → tab **Cloud Messaging**. Mục **Firebase Cloud Messaging API (V1)** phải là **Enabled** (nếu thấy Disabled, bấm ⋮ → mở trang Google Cloud → **Enable**).
+2. **Tạo khoá VAPID:** cùng tab đó, kéo xuống **Web configuration** → **Web Push certificates** → **Generate key pair**. Bấm sao chép chuỗi dài ở cột **Key pair**, rồi dán vào `js/firebase-config.js`, dòng `window.FCM_VAPID_KEY = "…";` (hoặc gửi chuỗi đó cho mình để mình dán; khoá này công khai, không phải mật khẩu).
+3. **Tạo khoá tài khoản dịch vụ (bí mật):** ⚙️ **Project settings** → tab **Service accounts** → **Generate new private key** → **Generate key**. Máy tải về một file `.json`. **Không gửi file này cho ai, không đưa lên repo.**
+4. **Thêm secret trên GitHub:** repo `index.html` → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**. Name: `FIREBASE_SERVICE_ACCOUNT`. Secret: mở file `.json` vừa tải bằng Notepad / TextEdit, chọn hết, dán vào. Bấm **Add secret**. Xong thì xoá file `.json` khỏi máy (khi cần có thể tạo khoá mới).
+5. **Dán luật bảo mật mới:** Firebase Console → **Firestore Database** → **Rules** → dán toàn bộ file `firestore.rules` mới → **Publish**.
+6. **Thử:** mở web, bấm 🔔, bật "Báo khi live bắt đầu…", cho phép thông báo. Rồi vào GitHub → **Actions** → **Thông báo đẩy khi live** → **Run workflow** (để mode `now`) → **Run workflow**. Khoảng 1 phút sau máy bạn hiện thông báo. Bấm vào lần chạy để xem dòng "Xong: … thành công".
+
+**Bảo mật:** token của khách nằm trong `push_tokens`, **không ai đọc hay liệt kê được** (kể cả từ trình duyệt của admin); khách chỉ ghi/xoá được token của chính máy mình (luật kiểm tra mã tài liệu phải khớp với hash của token). Chỉ máy gửi, dùng khoá tài khoản dịch vụ trong GitHub Secrets, mới đọc được để gửi. Token của máy đã tắt thông báo hoặc gỡ ứng dụng sẽ được máy gửi tự dọn.
+
 ## QUY TẮC CẬP NHẬT WEB LÊN GITHUB (đọc cái này khi cần cập nhật)
 Từ bản 8, các file hay thay đổi (`index.html`, `core.js`, `pages.js`, `admin.js`, `i18n-extra.js`, `app.css`) **đều nằm ở trang gốc của repo**, cùng chỗ với `index.html`. Chỉ còn 4 file ít khi đổi nằm trong thư mục `js`: `art.js`, `i18n.js`, `translate.js`, `firebase-config.js`.
 

@@ -184,6 +184,25 @@ service cloud.firestore {
         && trialRedeemOk(request.resource.data.code);
     }
 
+    // Thông báo đẩy khi live: mỗi máy của khách lưu đúng 1 tài liệu, id = sha256(token) viết thường.
+    // Không ai đọc hay liệt kê được token (kể cả admin): chỉ máy gửi (GitHub Actions, dùng tài khoản dịch vụ, không qua rules) mới đọc.
+    // Khách chỉ ghi được token của chính mình: id phải khớp với hash của token, nên không ghi đè được tài liệu của máy khác.
+    // Xoá: cần biết id, mà id chỉ suy ra được từ token của chính máy đó.
+    match /push_tokens/{id} {
+      allow read: if false;
+      allow create, update: if id.matches('^[0-9a-f]{64}$')
+        && request.resource.data.keys().hasOnly(['token', 'lang', 'tz', 'updatedAt'])
+        && request.resource.data.token is string
+        && request.resource.data.token.size() >= 20 && request.resource.data.token.size() <= 1024
+        && hashing.sha256(request.resource.data.token).toHexString().lower() == id
+        && request.resource.data.lang is string && request.resource.data.lang.size() <= 8
+        && request.resource.data.tz is string && request.resource.data.tz.size() <= 64
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if id.matches('^[0-9a-f]{64}$');
+    }
+    // Nút "Gửi thông báo live ngay" (admin ghi push_admin/now) và trạng thái lần gửi gần nhất (máy gửi ghi push_admin/status, push_admin/state).
+    match /push_admin/{id} { allow read, write: if isAdmin(); }
+
     // Email nhắc lịch (trước đây là Challenge 30 ngày): id = email → tạo lần 2 bị từ chối (chống trùng)
     match /challenge_signups/{id} {
       allow create: if request.resource.data.email is string && request.resource.data.email.size() < 200
