@@ -687,3 +687,15 @@ html[data-font="serif"] h1,html[data-font="serif"] h2,html[data-font="serif"] h3
 .lr-note.warn{color:var(--accent-strong);font-weight:700}
 .lr-hr{border:0;border-top:1px solid var(--line);margin:14px 0 4px}
 @media(max-width:520px){.lr-pop{position:fixed;left:12px;right:12px;top:64px;width:auto}}
+.lr-pop{max-height:calc(100vh - 80px);overflow-y:auto;overscroll-behavior:contain}
+.lr-chips,.lr-seg{display:flex;flex-wrap:wrap;gap:6px}
+.lr-chip{padding:6px 10px;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--ink2);font:inherit;font-size:.78rem;font-weight:700;cursor:pointer;transition:.15s}
+.lr-chip:hover{border-color:var(--accent)}
+.lr-chip.on{background:rgba(var(--accent-rgb),.16);border-color:var(--accent);color:var(--accent-strong)}
+.lr-seg .lr-chip{flex:1;text-align:center}
+.lr-add{display:flex;gap:6px;margin-top:8px}.lr-add .input{flex:1;min-width:0;padding:6px 10px;font-size:.84rem}
+.lr-sess-row{display:flex;align-items:flex-start;gap:8px;font-size:.82rem;font-weight:600;color:var(--ink2);margin-top:10px;cursor:pointer}
+.lr-sess-row input{margin-top:2px;flex:none}
+.lr-sess{max-height:170px;overflow-y:auto;margin-top:4px;padding:2px 4px 6px;border:1px solid var(--line);border-radius:10px}
+.lr-sess .lr-sess-row{margin-top:6px}
+@media(max-width:520px){.lr-pop{max-height:calc(100vh - 80px)}}
