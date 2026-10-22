@@ -1,5 +1,5 @@
 'use strict';
-const BUILD = '2026-10-22 · bản 35 (Thông báo đẩy khi live, kể cả lúc đã đóng web)';   // hiện ở Admin để biết web đang chạy bản nào
+const BUILD = '2026-10-22 · bản 36 (Bảng chuông gọn hơn)';   // hiện ở Admin để biết web đang chạy bản nào
 /* =========================================================
    CORE — cấu hình, trạng thái, dữ liệu realtime, đăng nhập, router, sự kiện
    ========================================================= */
@@ -8,7 +8,7 @@ const loadScript = src => new Promise((res, rej) => { const s = document.createE
 let emailP = null;
 const loadEmailJS = () => emailP || (emailP = loadScript('https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js').then(() => { emailjs.init("JKo4tonk0gQMwrHFZ"); }).catch(e => { emailP = null; console.warn('EmailJS chưa tải được', e); throw e; }));
 let adminP = null;
-const ASSET_V = '71';                                                // đổi cùng số ?v= trong index.html mỗi lần cập nhật, để trình duyệt không trộn file cũ với file mới
+const ASSET_V = '72';                                                // đổi cùng số ?v= trong index.html mỗi lần cập nhật, để trình duyệt không trộn file cũ với file mới
 const loadAdmin = () => typeof PAGES.admin === 'function' ? Promise.resolve() : (adminP || (adminP = loadScript('admin.js?v=' + ASSET_V).catch(e => { adminP = null; throw e; })));
 let plannerP = null;
 const loadPlanner = () => typeof PAGES.planner === 'function' ? Promise.resolve() : (plannerP || (plannerP = Promise.all([loadScript('planner-i18n.js?v=' + ASSET_V).catch(() => {}), loadScript('planner.js?v=' + ASSET_V)]).catch(e => { plannerP = null; throw e; })));   // planner-i18n.js = bản dịch hi/ja/ko/zh/fr/es; thiếu thì dùng tiếng Anh
@@ -609,25 +609,23 @@ function updateNext(){
 }
 
 /* =========================================================
-   NHẮC GIỜ LIVE (nút chuông trên thanh trên cùng)
-   Web tĩnh (GitHub Pages) không có máy chủ đẩy thông báo, nên nhắc chỉ chạy khi web còn mở
-   (tab nền cũng được). Muốn nhắc cả khi tắt web: nút thêm vào Google Calendar / file .ics.
-   Khách tự chọn: nhiều mốc nhắc trước (có thể tự nhập số phút), nhắc tất cả buổi hay chỉ buổi đã chọn,
-   kiểu nhắc (chuông / thông báo / cả hai), âm chuông và âm lượng.
+   NHẮC GIỜ LIVE (nút chuông trên thanh trên cùng) — bảng gọn, chỉ giữ:
+   - Thông báo đẩy (kể cả khi đã đóng web), xem phần THÔNG BÁO ĐẨY bên dưới.
+   - Nhắc trong trang khi web còn mở (tab nền cũng được): chọn nhắc trước mấy phút, nhắc tất cả buổi hay chỉ buổi đã chọn.
+     Luôn nhắc cả lúc live bắt đầu, luôn kêu chuông kèm thông báo (âm chuông/âm lượng dùng mặc định hoặc cài đặt cũ đã lưu).
    ========================================================= */
 const NOTIF_OK = typeof Notification !== 'undefined';
-const LR_PRESETS = [5, 10, 15, 30, 60], LR_TONES = ['bell', 'soft', 'alarm'], LR_STYLES = ['both', 'sound', 'notif'];
+const LR_PRESETS = [5, 10, 15, 30, 60], LR_TONES = ['bell', 'soft', 'alarm'];
 const LR = (() => {
-  const oldLead = +store.get('lr_lead', 10) || 0, oldSound = store.get('lr_sound', true) !== false;      // đọc cài đặt của bản trước
+  const oldLead = +store.get('lr_lead', 10) || 0;      // đọc cài đặt của bản trước
   const leads = store.get('lr_leads', oldLead ? [oldLead] : []);
   return { on:store.get('lr_on', NOTIF_OK && Notification.permission === 'granted'), leads:Array.isArray(leads) ? leads.filter(n => n > 0 && n <= 720).slice(0, 6) : [10],
-    atStart:store.get('lr_start', true) !== false, style:LR_STYLES.includes(store.get('lr_style')) ? store.get('lr_style') : (oldSound ? 'both' : 'notif'),
+    atStart:true, style:'both',      // bảng chuông đã bỏ tuỳ chọn kiểu nhắc / tắt nhắc lúc bắt đầu, nên luôn dùng mặc định
     tone:LR_TONES.includes(store.get('lr_tone')) ? store.get('lr_tone') : 'bell', vol:Math.min(1, Math.max(.1, +store.get('lr_vol', .8) || .8)),
     mode:store.get('lr_mode', 'all') === 'pick' ? 'pick' : 'all', picked:store.get('lr_picked', {}) || {} };
 })();
-if (!LR.leads.length) LR.atStart = true;
 let lrSent = store.get('lr_sent', {}), swReg = null, lrTitleBak = '';
-const lrSave = () => { store.set('lr_on', LR.on); store.set('lr_leads', LR.leads); store.set('lr_start', LR.atStart); store.set('lr_style', LR.style); store.set('lr_tone', LR.tone); store.set('lr_vol', LR.vol); store.set('lr_mode', LR.mode); store.set('lr_picked', LR.picked); };
+const lrSave = () => { store.set('lr_on', LR.on); store.set('lr_leads', LR.leads); store.set('lr_mode', LR.mode); store.set('lr_picked', LR.picked); };
 const lrSound = () => LR.style !== 'notif', lrPop = () => LR.style !== 'sound';
 const lrWanted = x => LR.mode === 'all' || !!LR.picked[x.start.toMillis()];
 const lrSoon = now => upcomingPool().filter(x => x.end.toMillis() > now).sort((a, b) => a.start - b.start);
@@ -710,7 +708,7 @@ function lrNextText(live, next, now){
 const lrSessLabel = x => `${x.start.setZone(userTZ).setLocale(state.lang).toFormat('ccc dd/MM · HH:mm')}${x.slot.title ? ' · ' + x.slot.title : ''}`;
 function renderLiveRem(){
   const pop = $('live-rem'); if (!pop) return;
-  const { live, next, now } = liveState(), perm = NOTIF_OK ? Notification.permission : 'none', soon = lrSoon(now), firstWanted = soon.find(lrWanted);
+  const { live, next, now } = liveState(), perm = NOTIF_OK ? Notification.permission : 'none', soon = lrSoon(now);
   const chip = (on, act, attrs, label, extra) => `<button type="button" class="lr-chip ${on ? 'on' : ''}" data-act="${act}" ${attrs}>${label}${extra || ''}</button>`;
   const custom = LR.leads.filter(n => !LR_PRESETS.includes(n)).sort((a, b) => a - b);
   const leadsHTML = LR_PRESETS.map(n => chip(LR.leads.includes(n), 'lrLeadTog', `data-n="${n}"`, esc(t('lr_min', { n })))).join('')
@@ -718,9 +716,9 @@ function renderLiveRem(){
   const sessHTML = LR.mode !== 'pick' ? '' : soon.length
     ? `<div class="lr-sess">${soon.map(x => `<label class="lr-sess-row"><input type="checkbox" data-change="lrPick" data-st="${x.start.toMillis()}" ${LR.picked[x.start.toMillis()] ? 'checked' : ''}><span>${esc(lrSessLabel(x))}</span></label>`).join('')}</div>${soon.some(lrWanted) ? '' : `<p class="lr-note warn">${esc(t('lr_pick_none'))}</p>`}`
     : `<p class="lr-note">${esc(t('lr_none'))}</p>`;
-  const permHTML = !lrPop() ? '' : perm === 'granted' ? `<p class="lr-note ok">${esc(t('lr_perm_ok'))}</p>`
-    : perm === 'default' ? `<p class="lr-note">${esc(t('lr_perm_ask_note'))}</p><button type="button" class="btn secondary sm" data-act="lrPerm">${ic('bell', 'sm')} ${esc(t('lr_perm_ask'))}</button>`
-    : `<p class="lr-note">${esc(t(perm === 'denied' ? 'lr_perm_denied' : 'lr_perm_none'))}</p>${perm === 'none' && pwaIOS && !pwaStandalone() ? `<button type="button" class="btn secondary sm" data-act="pwaInstall">${ic('download', 'sm')} ${esc(t('pwa_install'))}</button>` : ''}`;
+  // Quyền thông báo: mục thông báo đẩy ở trên đã tự hỏi quyền và giải thích khi bị chặn; chỉ khi web chưa bật thông báo đẩy mới cần nút riêng ở đây
+  const permHTML = pushHTML() || perm === 'granted' ? '' : perm === 'default' ? `<p class="lr-note">${esc(t('lr_perm_ask_note'))}</p><button type="button" class="btn secondary sm" data-act="lrPerm">${ic('bell', 'sm')} ${esc(t('lr_perm_ask'))}</button>`
+    : `<p class="lr-note">${esc(t(perm === 'denied' ? 'lr_perm_denied' : 'lr_perm_none'))}</p>`;
   pop.innerHTML = `<div class="lr-h">${ic('bell', 'sm')} <b>${esc(t('lr_title'))}</b></div>
     <p class="lr-next" id="lr-next">${esc(lrNextText(live, next, now))}</p>
     ${pushHTML()}
@@ -728,21 +726,12 @@ function renderLiveRem(){
     <div class="${LR.on ? '' : 'lr-off'}">
       <label class="label">${esc(t('lr_before'))}</label>
       <div class="lr-chips">${leadsHTML}</div>
-      <form class="lr-add" data-form="lrAdd"><input class="input" type="number" name="n" min="1" max="720" step="1" inputmode="numeric" placeholder="${esc(t('lr_custom_ph'))}" aria-label="${esc(t('lr_custom_ph'))}"><button type="submit" class="btn ghost sm">${esc(t('lr_add'))}</button></form>
-      <label class="lr-sess-row"><input type="checkbox" data-change="lrStart" ${LR.atStart ? 'checked' : ''} ${LR.leads.length ? '' : 'disabled'}><span>${esc(t('lr_at_start'))}</span></label>
       <label class="label">${esc(t('lr_which'))}</label>
       <div class="lr-seg">${chip(LR.mode === 'all', 'lrMode', 'data-v="all"', esc(t('lr_all')))}${chip(LR.mode === 'pick', 'lrMode', 'data-v="pick"', esc(t('lr_pick')))}</div>
       ${sessHTML}
-      <label class="label">${esc(t('lr_style'))}</label>
-      <div class="lr-seg">${LR_STYLES.map(s => chip(LR.style === s, 'lrStyle', `data-v="${s}"`, esc(t('lr_style_' + s)))).join('')}</div>
-      ${lrSound() ? `<label class="label">${esc(t('lr_tone'))}</label>
-      <div class="row" style="gap:8px"><select class="select" data-change="lrTone" style="flex:1">${LR_TONES.map(k => `<option value="${k}" ${LR.tone === k ? 'selected' : ''}>${esc(t('lr_tone_' + k))}</option>`).join('')}</select><button type="button" class="btn ghost sm" data-act="lrTest">${ic('volume', 'sm')} ${esc(t('lr_test'))}</button></div>
-      <div class="switch"><span>${esc(t('lr_vol'))}</span><input type="range" min="10" max="100" step="5" value="${Math.round(LR.vol * 100)}" data-change="lrVol" aria-label="${esc(t('lr_vol'))}" style="width:55%"></div>
-      ${LR.on && audioLocked() ? `<p class="lr-note warn">${esc(t('lr_tap'))}</p>` : ''}` : ''}
+      ${LR.on && audioLocked() ? `<p class="lr-note warn">${esc(t('lr_tap'))}</p>` : ''}
       ${permHTML}
-    </div>
-    <hr class="lr-hr"><p class="lr-note">${esc(t('lr_limit'))}</p>
-    <div class="row" style="gap:8px;flex-wrap:wrap">${firstWanted ? `<a class="btn ghost sm" href="${esc(gcalUrl(firstWanted))}" target="_blank" rel="noopener">${ic('calendar', 'sm')} ${esc(t('lr_gcal'))}</a>` : ''}<button type="button" class="btn ghost sm" data-act="lrIcs" ${firstWanted ? '' : 'disabled'}>${ic('calendar', 'sm')} ${esc(t('lr_ics'))}</button></div>`;
+    </div>`;
   $('btn-notif').classList.toggle('on', LR.on);
 }
 function lrSetOn(on){
@@ -755,21 +744,7 @@ function lrSetOn(on){
   }
   toast(t(on ? 'lr_on_toast' : 'lr_off_toast')); renderLiveRem();
 }
-const lrSetLeads = leads => { LR.leads = [...new Set(leads)].filter(n => n > 0 && n <= 720).sort((a, b) => b - a).slice(0, 6); if (!LR.leads.length) LR.atStart = true; lrSave(); renderLiveRem(); };
-const calStamp = d => d.toUTC().toFormat("yyyyMMdd'T'HHmmss'Z'");
-const calTitle = x => `${branding.name} · ${x.slot.title || t('lr_cal_title')}`;
-const gcalUrl = x => 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(calTitle(x)) + '&dates=' + calStamp(x.start) + '/' + calStamp(x.end) + '&details=' + encodeURIComponent(watchUrl() || location.href.split('#')[0] + '#/watch');
-function downloadIcs(){
-  const now = Date.now(), url = watchUrl() || location.href.split('#')[0] + '#/watch', items = lrSoon(now).filter(lrWanted);
-  if (!items.length) return;
-  const esc2 = s => String(s).replace(/[\;,]/g, m => '\\' + m).replace(/\r?\n/g, '\\n');
-  const alarms = [...LR.leads, ...(LR.atStart ? [0] : [])];
-  const ev = items.map(x => ['BEGIN:VEVENT', `UID:${x.start.toMillis()}@epstudyroom`, `DTSTAMP:${calStamp(DT.now())}`, `DTSTART:${calStamp(x.start)}`, `DTEND:${calStamp(x.end)}`, `SUMMARY:${esc2(calTitle(x))}`, `DESCRIPTION:${esc2(url)}`, `URL:${url}`,
-    ...alarms.flatMap(m => ['BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${esc2(calTitle(x))}`, `TRIGGER:-PT${m}M`, 'END:VALARM']), 'END:VEVENT'].join('\r\n'));
-  const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//EP Study Room//Live//EN', 'CALSCALE:GREGORIAN', ...ev, 'END:VCALENDAR'].join('\r\n');
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([ics], { type:'text/calendar;charset=utf-8' })); a.download = 'live-schedule.ics';
-  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
-}
+const lrSetLeads = leads => { LR.leads = [...new Set(leads)].filter(n => n > 0 && n <= 720).sort((a, b) => b - a).slice(0, 6); lrSave(); renderLiveRem(); };
 /* ---------- THÔNG BÁO ĐẨY (kể cả khi đã đóng web) ----------
    Khách bật trong bảng chuông → lấy mã nhận thông báo (token) của Firebase Cloud Messaging, lưu vào push_tokens/<sha256(token)>.
    Khách chỉ ghi/xoá được token của chính mình, không ai đọc được token người khác (xem firestore.rules).
@@ -897,11 +872,7 @@ function openImagePicker(title, onPick, folder = 'cms'){
 const FORMS = {}, CHANGES = {};
 CHANGES.lrOn = el => lrSetOn(el.checked);
 CHANGES.pushOn = el => pushSet(el.checked);
-CHANGES.lrStart = el => { LR.atStart = el.checked || !LR.leads.length; lrSave(); renderLiveRem(); };
 CHANGES.lrPick = el => { const k = el.dataset.st; if (el.checked) LR.picked[k] = 1; else delete LR.picked[k]; const now = Date.now(); Object.keys(LR.picked).forEach(x => { if (+x < now - 864e5) delete LR.picked[x]; }); lrSave(); renderLiveRem(); };
-CHANGES.lrTone = el => { LR.tone = el.value; lrSave(); liveChime(); };
-CHANGES.lrVol = el => { LR.vol = Math.min(1, Math.max(.1, +el.value / 100)); lrSave(); liveChime(); };
-FORMS.lrAdd = f => { const n = Math.round(+f.elements.n.value); if (!(n >= 1 && n <= 720)) return toast(t('lr_custom_bad')); f.reset(); lrSetLeads([...LR.leads, n]); };
 const ACTIONS = {
   openNav: () => document.body.classList.add('nav-open'),
   closeNav: () => document.body.classList.remove('nav-open'),
@@ -912,11 +883,8 @@ const ACTIONS = {
   dismissLive: () => { const { live } = liveState(); dismissedLive = live ? live.key : null; updateNext(); },
   notif: () => { const p = $('live-rem'), open = !p.classList.contains('open'); $('prefs').classList.remove('open'); if (open) renderLiveRem(); p.classList.toggle('open', open); },
   lrPerm: () => { if (NOTIF_OK) Notification.requestPermission().then(p => { if (p === 'granted') { swRegister(); toast('🔔 OK'); } renderLiveRem(); }).catch(() => {}); },
-  lrTest: () => { if (lrSound()) liveChime(); if (lrPop()) lrNotify(t('notif_title'), t('lr_test_body'), 'live-test', false); },
   lrLeadTog: el => { const n = +el.dataset.n; lrSetLeads(LR.leads.includes(n) ? LR.leads.filter(x => x !== n) : [...LR.leads, n]); },
   lrMode: el => { LR.mode = el.dataset.v; lrSave(); renderLiveRem(); },
-  lrStyle: el => { LR.style = el.dataset.v; lrSave(); if (lrPop() && NOTIF_OK && Notification.permission === 'default') Notification.requestPermission().then(() => renderLiveRem()).catch(() => {}); if (lrSound()) liveChime(); renderLiveRem(); },
-  lrIcs: downloadIcs,
   pwaInstall: () => { document.body.classList.remove('nav-open'); $('prefs').classList.remove('open'); $('live-rem').classList.remove('open'); pwaInstall(); },
   pickOk: async () => {
     const url = $('pick-url').value.trim(), f = $('pick-file').files[0], st = $('pick-st');

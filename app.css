@@ -693,7 +693,7 @@ html[data-font="serif"] h1,html[data-font="serif"] h2,html[data-font="serif"] h3
 .lr-chip:hover{border-color:var(--accent)}
 .lr-chip.on{background:rgba(var(--accent-rgb),.16);border-color:var(--accent);color:var(--accent-strong)}
 .lr-seg .lr-chip{flex:1;text-align:center}
-.lr-add{display:flex;gap:6px;margin-top:8px}.lr-add .input{flex:1;min-width:0;padding:6px 10px;font-size:.84rem}
+
 .lr-sess-row{display:flex;align-items:flex-start;gap:8px;font-size:.82rem;font-weight:600;color:var(--ink2);margin-top:10px;cursor:pointer}
 .lr-sess-row input{margin-top:2px;flex:none}
 .lr-sess{max-height:170px;overflow-y:auto;margin-top:4px;padding:2px 4px 6px;border:1px solid var(--line);border-radius:10px}
