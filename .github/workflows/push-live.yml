@@ -1,0 +1,43 @@
+# Gửi thông báo đẩy khi live bắt đầu (xem scripts/push-live.mjs và SETUP.md, phần Thông báo đẩy).
+# Repo công khai nên GitHub Actions miễn phí, không giới hạn số phút.
+name: Thông báo đẩy khi live
+
+on:
+  schedule:
+    - cron: '2-59/5 * * * *'     # khoảng 5 phút một lần (GitHub có thể chạy trễ vài phút lúc đông máy)
+  workflow_dispatch:              # chạy tay: GitHub → Actions → "Thông báo đẩy khi live" → Run workflow
+    inputs:
+      mode:
+        description: 'now = gửi thông báo "Đang live" ngay cho mọi người · auto = kiểm tra lịch như chạy tự động'
+        type: choice
+        options: [now, auto]
+        default: now
+      title:
+        description: 'Nội dung thông báo (tuỳ chọn, để trống thì dùng câu mặc định)'
+        type: string
+        required: false
+
+concurrency:
+  group: push-live                # không cho 2 lần chạy chồng nhau (tránh gửi trùng)
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Gửi thông báo
+        run: node scripts/push-live.mjs
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          PUSH_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'auto' }}
+          PUSH_TITLE: ${{ inputs.title }}
