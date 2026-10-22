@@ -64,7 +64,7 @@ Object.assign(I18N.en, {
   pl_dstreak_l:'Active days', pl_dstreak:'{n} days in a row. Resting one day does not break the streak.', pl_dstreak_0:'A day counts when you finish at least one task.',
   pl_dgoal:'Daily goal', pl_dlv_0:'Not started', pl_dlv_1:'Warming up', pl_dlv_2:'Steady', pl_dlv_3:'Great', pl_dlv_4:'Complete',
   pl_dv_empty:'Nothing planned for today. Pick 1 to 3 small tasks, that is enough.', pl_dv_all:'Everything for today is done. You are keeping a great rhythm.', pl_dv_goal:'Daily goal reached. Anything else is a bonus.', pl_dv_start:'Not started yet is fine. Pick the smallest task and do just 10 minutes.', pl_dv_none:'No task ticked today, and that is okay. Do not pile everything onto tomorrow: move only the 1 or 2 that matter most.', pl_dv_some:'{n} of {m} done. Every finished task counts.',
-  pl_tip_overdue:'{n} tasks from earlier days are still open. Bring them to today, or delete what you no longer need.', pl_tip_over:'Today is planned for {t}. Pick the 3 most important tasks and do them first; the rest is a bonus.', pl_tip_tm:'Tasks you did not get to can move to tomorrow with one tap.', pl_mv_today:'Move them to today', pl_mv_tm:'Move unfinished to tomorrow', pl_moved:'Moved {n} tasks.',
+  pl_tip_overdue:'{n} tasks from earlier days are still open. Bring them to today, or delete what you no longer need.', pl_tip_over:'Today is planned for {t}. Pick the 3 most important tasks and do them first; the rest is a bonus.', pl_tip_tm:'Tasks you did not get to can move to tomorrow with one tap.', pl_mv_today:'Move them to today', pl_mv_tm:'Move unfinished to tomorrow', pl_carry_tm:"Move today's unfinished tasks to tomorrow", pl_tm_title:'Move to tomorrow', pl_tm_sub:'They will go to {d}. Change the start time and minutes for each task if you like, or untick the ones you want to keep today.', pl_tm_have:'Already planned for tomorrow: {l}', pl_tm_go:'Move to tomorrow', pl_tm_none:'Tick at least one task to move.', pl_goal_custom:'Custom…', pl_goal_custom_sub:'Set your own goal in hours and minutes.', pl_goal_hh:'Hours', pl_goal_mm:'Minutes', pl_moved:'Moved {n} tasks.',
   pl_up_expired:'Your companion access ended on {d}. Your planner data is kept safely and comes back as soon as you renew.',
   pl_s_vocab:'Review vocabulary', pl_s_listen:'Listening practice', pl_s_read:'Reading task', pl_s_gym:'Workout', pl_s_essay:'Write an essay', pl_s_book:'Read a book', pl_s_meet:'Team meeting', pl_s_speak:'Speaking practice', pl_s_movie:'Watch a movie', pl_s_clean:'Tidy up', pl_s_review:'Weekly review',
   pl_chime_on:'Chime on', pl_chime_off:'Chime off', pl_rem_inpage:'Your browser blocks notifications, so I will remind you inside this page, with a chime. Keep the tab open.', pl_preview:'Preview with sample data', pl_preview_note:'This is how the Planner looks for companions. It is locked until you become a companion.',
@@ -76,7 +76,7 @@ Object.assign(I18N.vi, {
   pl_dstreak_l:'Ngày hoạt động', pl_dstreak:'{n} ngày liên tiếp. Nghỉ 1 ngày không làm mất chuỗi.', pl_dstreak_0:'Một ngày được tính khi bạn xong ít nhất 1 việc.',
   pl_dgoal:'Mục tiêu ngày', pl_dlv_0:'Chưa bắt đầu', pl_dlv_1:'Khởi động', pl_dlv_2:'Ổn định', pl_dlv_3:'Rất tốt', pl_dlv_4:'Trọn vẹn',
   pl_dv_empty:'Hôm nay chưa có việc. Chọn 1 đến 3 việc nhỏ là đủ rồi.', pl_dv_all:'Xong hết việc hôm nay. Bạn đang giữ nhịp rất tốt.', pl_dv_goal:'Đã đạt mục tiêu ngày. Phần làm thêm là cộng thêm.', pl_dv_start:'Chưa bắt đầu cũng không sao. Chọn việc nhỏ nhất và làm 10 phút thôi.', pl_dv_none:'Hôm nay chưa tick được việc nào, không sao cả. Đừng dồn hết sang ngày mai: chỉ dời 1 đến 2 việc quan trọng nhất.', pl_dv_some:'Đã xong {n}/{m} việc. Việc nào xong cũng được tính.',
-  pl_tip_overdue:'Còn {n} việc của những ngày trước chưa xong. Đưa về hôm nay, hoặc xoá bớt việc không còn cần.', pl_tip_over:'Hôm nay xếp tới {t}. Chọn 3 việc quan trọng nhất làm trước, phần còn lại là cộng thêm.', pl_tip_tm:'Việc chưa kịp làm có thể dời sang ngày mai chỉ với một cú bấm.', pl_mv_today:'Dời về hôm nay', pl_mv_tm:'Dời việc chưa xong sang mai', pl_moved:'Đã dời {n} việc.',
+  pl_tip_overdue:'Còn {n} việc của những ngày trước chưa xong. Đưa về hôm nay, hoặc xoá bớt việc không còn cần.', pl_tip_over:'Hôm nay xếp tới {t}. Chọn 3 việc quan trọng nhất làm trước, phần còn lại là cộng thêm.', pl_tip_tm:'Việc chưa kịp làm có thể dời sang ngày mai chỉ với một cú bấm.', pl_mv_today:'Dời về hôm nay', pl_mv_tm:'Dời việc chưa xong sang mai', pl_carry_tm:'Dời việc chưa xong hôm nay sang ngày mai', pl_tm_title:'Dời sang ngày mai', pl_tm_sub:'Các việc sẽ được dời sang {d}. Bạn có thể đổi giờ bắt đầu và số phút cho từng việc, hoặc bỏ tick việc muốn giữ lại hôm nay.', pl_tm_have:'Ngày mai đã có: {l}', pl_tm_go:'Dời sang ngày mai', pl_tm_none:'Hãy tick ít nhất một việc để dời.', pl_goal_custom:'Tự chọn…', pl_goal_custom_sub:'Tự đặt mục tiêu theo giờ và phút.', pl_goal_hh:'Giờ', pl_goal_mm:'Phút', pl_moved:'Đã dời {n} việc.',
   pl_up_expired:'Quyền Companion của bạn đã hết hạn ngày {d}. Dữ liệu Planner vẫn được giữ nguyên và sẽ hiện lại ngay khi bạn gia hạn.',
   pl_s_vocab:'Ôn từ vựng', pl_s_listen:'Luyện nghe', pl_s_read:'Làm bài đọc', pl_s_gym:'Tập thể dục', pl_s_essay:'Viết bài luận', pl_s_book:'Đọc sách', pl_s_meet:'Họp nhóm', pl_s_speak:'Luyện nói', pl_s_movie:'Xem phim', pl_s_clean:'Dọn dẹp', pl_s_review:'Tổng kết tuần',
   pl_chime_on:'Chuông: bật', pl_chime_off:'Chuông: tắt', pl_rem_inpage:'Trình duyệt đang chặn thông báo, nên mình sẽ nhắc ngay trong trang và có chuông. Bạn để tab này mở nhé.', pl_preview:'Xem trước với dữ liệu mẫu', pl_preview_note:'Đây là giao diện Planner dành cho Companions. Planner bị khoá cho đến khi bạn trở thành Companion.',
@@ -326,6 +326,11 @@ function plGrid(){
 }
 const plBar = (a, b, color) => `<div class="pl-bar"><i style="width:${b ? Math.min(100, a / b * 100) : 0}%;background:${color || 'var(--accent)'}"></i></div>`;
 
+/* chọn mục tiêu: các mức có sẵn + mức bạn tự đặt (nếu khác các mức đó) + "Tự chọn…" để nhập giờ/phút */
+function plGoalSel(change, label, cur, opts, style){
+  const list = cur && !opts.includes(cur) ? [...opts, cur].sort((a, b) => a - b) : opts;
+  return `<select class="select" data-change="${change}" aria-label="${esc(label)}"${style ? ` style="${style}"` : ''}>${list.map(m => `<option value="${m}" ${cur === m ? 'selected' : ''}>${esc(m ? fmtMin(m) : t('pl_goal_none'))}</option>`).join('')}<option value="custom">${esc(t('pl_goal_custom'))}</option></select>`;
+}
 function plToday(){
   if (PL.off !== 0) return '';
   const now = DT.now().setZone(userTZ), di = now.weekday - 1, mins = now.hour * 60 + now.minute;
@@ -333,10 +338,10 @@ function plToday(){
   const planMin = list.reduce((a, x) => a + x.dur, 0), doneMin = list.reduce((a, x) => a + (x.done ? x.dur : 0), 0), goal = PL.prefs && PL.prefs.dayGoalMin || 0, frac = goal ? doneMin / goal : list.length ? nd / list.length : 0;
   const next = list.find(x => !x.done && x.start && hm(x.start) + (x.dur || 0) >= mins);
   const verdict = !list.length ? t('pl_dv_empty') : nd === list.length ? t('pl_dv_all') : goal && doneMin >= goal ? t('pl_dv_goal') : nd === 0 ? t(now.hour < 17 ? 'pl_dv_start' : 'pl_dv_none') : t('pl_dv_some', { n:nd, m:list.length });
-  const over = plOverdue(), tip = over.length ? { k:t('pl_tip_overdue', { n:over.length }), act:'plMoveToday', btn:t('pl_mv_today') } : planMin > 360 && undone.length ? { k:t('pl_tip_over', { t:fmtMin(planMin) }) } : undone.length && now.hour >= 18 && di < 6 ? { k:t('pl_tip_tm'), act:'plMoveTomorrow', btn:t('pl_mv_tm') } : null;
+  const over = plOverdue(), tip = over.length ? { k:t('pl_tip_overdue', { n:over.length }), act:'plMoveToday', btn:t('pl_mv_today') } : planMin > 360 && undone.length ? { k:t('pl_tip_over', { t:fmtMin(planMin) }) } : undone.filter(x => !x.carried).length && now.hour >= 18 ? { k:t('pl_tip_tm'), act:'plMoveTomorrow', btn:t('pl_mv_tm') } : null;
   const row = x => `<div class="pl-li ${x.done ? 'done' : ''}"><button type="button" class="pl-ck sm" style="border-color:${PL_COLORS[x.c]}" data-act="plToggle" data-id="${esc(x.id)}">${x.done ? ic('check', 'sm') : ''}</button><span data-act="plEdit" data-id="${esc(x.id)}">${esc(x.title || '—')}${x.start ? ` <small class="faint">${esc(x.start)}</small>` : ''}</span></div>`;
   const rem = plRemOn() ? `<div class="row" style="gap:8px;flex-wrap:wrap"><button type="button" class="btn ghost sm" data-act="plRem">${ic('bell', 'sm')} ${esc(t('pl_rem_on'))}</button><button type="button" class="btn ghost sm" data-act="plChimeTog">${ic('volume', 'sm')} ${esc(t(plChimeOn() ? 'pl_chime_on' : 'pl_chime_off'))}</button></div>` : `<button type="button" class="btn secondary sm" data-act="plRem">${ic('bell', 'sm')} ${esc(t('pl_rem_btn'))}</button><p class="small faint" style="margin-top:6px">${esc(t('pl_rem_hint'))}</p>`;
-  const goalSel = `<select class="select" data-change="plDayGoal" aria-label="${esc(t('pl_dgoal'))}" style="width:auto;padding:3px 8px;font-size:.8rem">${[0, 30, 60, 90, 120, 180, 240].map(m => `<option value="${m}" ${goal === m ? 'selected' : ''}>${m ? fmtMin(m) : t('pl_goal_none')}</option>`).join('')}</select>`;
+  const goalSel = plGoalSel('plDayGoal', t('pl_dgoal'), goal, [0, 30, 60, 90, 120, 180, 240], 'width:auto;padding:3px 8px;font-size:.8rem');
   return `<section class="card pad"><div class="row between"><h3>${esc(t('pl_today'))}</h3>${list.length ? `<span class="badge">${esc(t('pl_dlv_' + (frac >= 1 ? 4 : frac >= .6 ? 3 : frac >= .3 ? 2 : frac > 0 ? 1 : 0)))}</span>` : ''}</div>
     <div class="row between" style="margin:8px 0 6px"><small class="faint">${nd}/${list.length}${goal ? ' · ' + esc(fmtMin(doneMin)) + ' / ' + esc(fmtMin(goal)) : ''}</small></div>${plBar(goal ? doneMin : nd, goal || list.length)}
     <p class="small" style="margin:10px 0 4px"><b>${esc(verdict)}</b></p>
@@ -348,7 +353,7 @@ function plToday(){
 function plKpis(S){
   const sc = plScore(S), goal = PL.prefs && PL.prefs.goalMin || 0, lv = sc === null ? '' : t('pl_lv_' + (sc >= 85 ? 3 : sc >= 70 ? 2 : sc >= 50 ? 1 : 0)) + (PL.off === 0 ? ' · ' + t('pl_prov') : '');
   const active = S.day.filter(d => d.nd > 0).length, ds = PL.off === 0 ? plDayStreak(S) : 0;
-  const goalSel = `<select class="select" data-change="plGoal" aria-label="${esc(t('pl_goal'))}">${[0, 5, 10, 15, 20, 30, 40].map(h => `<option value="${h * 60}" ${goal === h * 60 ? 'selected' : ''}>${h ? t('pl_h', { h }) : t('pl_goal_none')}</option>`).join('')}</select>`;
+  const goalSel = plGoalSel('plGoal', t('pl_goal'), goal, [0, 5, 10, 15, 20, 30, 40].map(h => h * 60));
   return `<div class="pl-kpis4">
     <div class="pl-kpi" title="${esc(t('pl_score_how'))}"><span class="pl-kl">${esc(t('pl_score'))}</span><b>${sc === null ? '–' : sc}</b><small>${esc(sc !== null ? lv : S.n ? t('pl_score_wait') : t('pl_i_none'))}</small></div>
     <div class="pl-kpi"><span class="pl-kl">${esc(t('pl_done_tasks'))}</span><b>${S.nd}<em>/${S.n}</em></b>${plBar(S.nd, S.n)}</div>
@@ -361,10 +366,10 @@ function plQuickBar(){
     <details class="pl-menu"><summary class="btn ghost">${esc(t('pl_tpl_menu'))}</summary><div class="pl-pop card"><p class="small faint">${esc(t('pl_tpl_hint'))}</p><button type="button" class="btn secondary sm" data-act="plTplSave">${esc(t('pl_tpl_save'))}</button>${tpl.length ? `<button type="button" class="btn secondary sm" data-act="plTplUse">${esc(t('pl_tpl_use'))} (${tpl.length})</button>` : ''}</div></details></div>`;
 }
 function plSide(){
-  const left = PL.tasks.filter(x => !x.done), open = left.filter(x => !x.carried), noDay = PL.tasks.filter(x => x.day === null);
+  const left = PL.tasks.filter(x => !x.done), open = left.filter(x => !x.carried), noDay = PL.tasks.filter(x => x.day === null), di = DT.now().setZone(userTZ).weekday - 1, tmN = PL.off === 0 ? open.filter(x => x.day === di).length : 0;
   const row = x => `<div class="pl-li ${x.carried ? 'done' : ''}"><button type="button" class="pl-ck sm" style="border-color:${PL_COLORS[x.c]}" data-act="plToggle" data-id="${esc(x.id)}">${x.done ? ic('check', 'sm') : ''}</button><span data-act="plEdit" data-id="${esc(x.id)}">${esc(x.title || '—')}${x.day !== null ? ` <small class="faint">${esc(t('pl_d' + x.day))}${x.start ? ' ' + esc(x.start) : ''}</small>` : ''}</span>${x.carried ? `<div class="pl-li-x"><small class="faint">${esc(t('pl_carried'))}</small><button type="button" class="btn ghost sm" data-act="plUncarry" data-id="${esc(x.id)}">${esc(t('pl_uncarry'))}</button></div>` : ''}</div>`;
   return `<div class="pl-side">${plToday()}
-    <section class="card pad"><h3>${esc(t('pl_still'))}</h3><div class="pl-list">${left.length ? left.map(row).join('') : `<p class="muted small">${esc(t('pl_left_none'))}</p>`}</div>${open.length ? `<button class="btn secondary sm mt-s" data-act="plCarry">${esc(t('pl_carry'))}</button>` : ''}${left.length - open.length > 1 ? `<button class="btn ghost sm mt-s" data-act="plUncarry">${esc(t('pl_uncarry_all'))}</button>` : ''}</section>
+    <section class="card pad"><h3>${esc(t('pl_still'))}</h3><div class="pl-list">${left.length ? left.map(row).join('') : `<p class="muted small">${esc(t('pl_left_none'))}</p>`}</div>${tmN ? `<button class="btn secondary sm mt-s" data-act="plMoveTomorrow">${esc(t('pl_carry_tm'))}</button>` : ''}${left.length - open.length > 1 ? `<button class="btn ghost sm mt-s" data-act="plUncarry">${esc(t('pl_uncarry_all'))}</button>` : ''}</section>
     ${noDay.length ? `<section class="card pad"><h3>${esc(t('pl_week_list'))}</h3><div class="pl-list">${noDay.map(row).join('')}</div></section>` : ''}</div>`;
 }
 function plAnalysis(S){
@@ -406,6 +411,29 @@ function plForm(x, isNew, day, start){
   PL.cat = x.c;
   setTimeout(() => { const el = $('pl-title'); if (el && isNew) el.focus(); }, 30);
 }
+/* dời việc chưa xong hôm nay sang ngày mai: chỉnh giờ bắt đầu / số phút cho từng việc trước khi dời */
+function plTmForm(){
+  if (PL.off !== 0 || !PL.tasks) return;
+  const now = DT.now().setZone(userTZ), di = now.weekday - 1, byStart = (a, b) => (a.start || '99:99').localeCompare(b.start || '99:99');
+  const mv = PL.tasks.filter(x => x.day === di && !x.done && !x.carried).sort(byStart); if (!mv.length) return;
+  const have = di < 6 ? PL.tasks.filter(x => x.day === di + 1 && x.start && !x.done).sort(byStart) : [];      // Chủ nhật: ngày mai thuộc tuần sau, chưa tải nên không liệt kê
+  const row = x => `<div class="pl-mv" data-id="${esc(x.id)}" style="padding:10px 0;border-bottom:1px solid var(--line)">
+    <label class="chk row small" style="font-weight:700;gap:8px;flex-wrap:nowrap"><input type="checkbox" class="pl-mv-on" checked><i style="flex:none;width:10px;height:10px;border-radius:4px;background:${PL_COLORS[x.c]}"></i><span>${esc(x.title || '—')}</span></label>
+    <div class="row" style="gap:8px;margin-top:6px;padding-left:26px;flex-wrap:nowrap"><input class="input pl-mv-start" type="time" value="${esc(x.start)}" aria-label="${esc(t('pl_f_start'))}" style="flex:1;min-width:0"><input class="input pl-mv-dur" type="number" min="0" max="1440" step="5" value="${x.dur || ''}" placeholder="60" aria-label="${esc(t('pl_f_dur'))}" style="width:84px;flex:none"><small class="faint">${esc(t('pl_f_dur'))}</small></div></div>`;
+  openModal(`<h3 style="margin-bottom:6px">${esc(t('pl_tm_title'))}</h3><p class="small muted">${esc(t('pl_tm_sub', { d:t('pl_d' + (di + 1) % 7) + ' ' + now.plus({ days:1 }).toFormat('dd/MM') }))}</p>
+    ${have.length ? `<p class="small faint mt-s">${esc(t('pl_tm_have', { l:have.map(x => x.start + ' ' + (x.title || '—')).join(', ') }))}</p>` : ''}
+    <div class="mt-s">${mv.map(row).join('')}</div>
+    <div class="row mt" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="closeModal">${esc(t('cancel'))}</button><button type="button" class="btn primary" data-act="plTmGo">${esc(t('pl_tm_go'))}</button></div>`, true);
+}
+/* tự đặt mục tiêu (ngày: dayGoalMin, tuần: goalMin) bằng giờ + phút */
+function plGoalForm(k){
+  const day = k === 'dayGoalMin', cur = PL.prefs && PL.prefs[k] || 0;
+  render(true);                                                   // đưa ô chọn về mức đang dùng, phòng khi bấm Huỷ
+  openModal(`<h3 style="margin-bottom:6px">${esc(t(day ? 'pl_dgoal' : 'pl_goal'))}</h3><p class="small muted">${esc(t('pl_goal_custom_sub'))}</p>
+    <div class="row mt-s" style="flex-wrap:nowrap"><div class="field" style="flex:1"><label class="label" for="pl-gh">${esc(t('pl_goal_hh'))}</label><input class="input" type="number" id="pl-gh" min="0" max="${day ? 24 : 168}" step="1" inputmode="numeric" value="${Math.floor(cur / 60)}"></div><div class="field" style="flex:1"><label class="label" for="pl-gm">${esc(t('pl_goal_mm'))}</label><input class="input" type="number" id="pl-gm" min="0" max="59" step="5" inputmode="numeric" value="${cur % 60}"></div></div>
+    <div class="row mt" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="closeModal">${esc(t('cancel'))}</button><button type="button" class="btn primary" data-act="plGoalSave" data-k="${k}">${esc(t('pl_save'))}</button></div>`, true);
+  setTimeout(() => { const el = $('pl-gh'); if (el) el.focus(); }, 30);
+}
 FORMS.plQuick = f => {
   const inp = f.querySelector('input'); let v = inp.value.trim(); if (!v || !PL.tasks) return;
   if (PL.tasks.length >= PL_MAX) return toast(t('pl_max', { n:PL_MAX }));
@@ -438,9 +466,30 @@ Object.assign(ACTIONS, {
     const di = DT.now().setZone(userTZ).weekday - 1, mv = plOverdue(); if (!mv.length) return;
     mv.forEach(x => { x.day = di; x.start = ''; }); plSave(); render(true); toast(t('pl_moved', { n:mv.length }));
   },
-  plMoveTomorrow: () => {
-    const di = DT.now().setZone(userTZ).weekday - 1, mv = PL.tasks.filter(x => x.day === di && !x.done); if (!mv.length || di > 5) return;
-    mv.forEach(x => { x.day = di + 1; }); plSave(); render(true); toast(t('pl_moved', { n:mv.length }));
+  plMoveTomorrow: () => plTmForm(),
+  plTmGo: async () => {
+    if (PL.off !== 0 || !PL.tasks || PL.key !== plKey(0)) return closeModal();
+    const di = DT.now().setZone(userTZ).weekday - 1;
+    const picks = [...document.querySelectorAll('.pl-mv')].filter(r => r.querySelector('.pl-mv-on').checked)
+      .map(r => ({ x:PL.tasks.find(v => v.id === r.dataset.id), start:r.querySelector('.pl-mv-start').value, dur:+r.querySelector('.pl-mv-dur').value || 0 }))
+      .filter(p => p.x && !p.x.done && !p.x.carried);
+    if (!picks.length) return toast(t('pl_tm_none'));
+    if (di < 6) picks.forEach(p => Object.assign(p.x, plClean({ ...p.x, day:di + 1, start:p.start, dur:p.dur })));
+    else {                                                        // Chủ nhật: ngày mai là thứ Hai tuần sau, chép sang tuần sau như cũ để còn bấm "Đưa về" được
+      try {
+        const nk = plKey(1); let next = [];
+        if (!DEMO) { const d = await plRef(nk).get(); next = d.exists && Array.isArray(d.data().tasks) ? d.data().tasks.map(plClean) : []; }
+        if (next.length + picks.length > PL_MAX) return toast(t('pl_max', { n:PL_MAX }));
+        picks.forEach(p => { const c = plClean({ ...p.x, id:plId(), day:0, start:p.start, dur:p.dur, done:false, carried:false }); next.push(c); p.x.carried = c.id; });
+        if (!DEMO) await plRef(nk).set({ tasks:next, updatedAt:TS() });
+      } catch (e) { console.warn('move tomorrow', e.code); return toast(t('pl_err')); }
+    }
+    closeModal(); plSave(); render(true); toast(t('pl_moved', { n:picks.length }));
+  },
+  plGoalSave: el => {
+    const k = el.dataset.k; if (k !== 'dayGoalMin' && k !== 'goalMin') return;
+    const v = Math.max(0, Math.min(k === 'dayGoalMin' ? 1440 : 10080, Math.round((+$('pl-gh').value || 0) * 60 + (+$('pl-gm').value || 0))));
+    plSavePrefs({ [k]:v }); closeModal(); render(true);
   },
   plNew: (el, e) => {
     if (!PL.tasks) return; let day = el.dataset.day !== undefined ? +el.dataset.day : (PL.off === 0 ? DT.now().setZone(userTZ).weekday - 1 : 0), start = '';
@@ -464,16 +513,6 @@ Object.assign(ACTIONS, {
     PL.sel = null; closeModal(); plSave(); render(true);
   },
   plUncarry: async el => { const list = el && el.dataset.id ? PL.tasks.filter(x => x.id === el.dataset.id && x.carried) : PL.tasks.filter(x => x.carried); if (list.length && await plUncarry(list)) { render(true); toast(t('pl_uncarried_n', { n:list.length })); } },
-  plCarry: async () => {
-    const open = PL.tasks.filter(x => !x.done && !x.carried); if (!open.length) return;
-    try {
-      const nk = plKey(PL.off + 1); let next = [];
-      if (!DEMO) { const d = await plRef(nk).get(); next = d.exists && Array.isArray(d.data().tasks) ? d.data().tasks.map(plClean) : []; }
-      open.forEach(x => { const c = plClean({ ...x, id:plId(), done:false, carried:false }); next.push(c); x.carried = c.id; });
-      if (!DEMO) await plRef(nk).set({ tasks:next, updatedAt:TS() });
-      plSave(); render(true); toast(t('pl_carried_n', { n:open.length }));
-    } catch (e) { console.warn('carry', e.code); toast(t('pl_err')); }
-  }
 });
-CHANGES.plDayGoal = el => { plSavePrefs({ dayGoalMin:+el.value || 0 }); render(true); };
-CHANGES.plGoal = el => { plSavePrefs({ goalMin:+el.value || 0 }); render(true); };
+CHANGES.plDayGoal = el => { if (el.value === 'custom') return plGoalForm('dayGoalMin'); plSavePrefs({ dayGoalMin:+el.value || 0 }); render(true); };
+CHANGES.plGoal = el => { if (el.value === 'custom') return plGoalForm('goalMin'); plSavePrefs({ goalMin:+el.value || 0 }); render(true); };
