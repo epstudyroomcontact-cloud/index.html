@@ -1,5 +1,5 @@
 'use strict';
-const BUILD = '2026-10-22 · bản 33 (Mã dùng thử cho khách: admin quản lý mã, thời hạn, số lượt)';   // hiện ở Admin để biết web đang chạy bản nào
+const BUILD = '2026-10-22 · bản 34 (Cài web thành ứng dụng trên điện thoại / máy tính)';   // hiện ở Admin để biết web đang chạy bản nào
 /* =========================================================
    CORE — cấu hình, trạng thái, dữ liệu realtime, đăng nhập, router, sự kiện
    ========================================================= */
@@ -8,7 +8,7 @@ const loadScript = src => new Promise((res, rej) => { const s = document.createE
 let emailP = null;
 const loadEmailJS = () => emailP || (emailP = loadScript('https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js').then(() => { emailjs.init("JKo4tonk0gQMwrHFZ"); }).catch(e => { emailP = null; console.warn('EmailJS chưa tải được', e); throw e; }));
 let adminP = null;
-const ASSET_V = '68';                                                // đổi cùng số ?v= trong index.html mỗi lần cập nhật, để trình duyệt không trộn file cũ với file mới
+const ASSET_V = '69';                                                // đổi cùng số ?v= trong index.html mỗi lần cập nhật, để trình duyệt không trộn file cũ với file mới
 const loadAdmin = () => typeof PAGES.admin === 'function' ? Promise.resolve() : (adminP || (adminP = loadScript('admin.js?v=' + ASSET_V).catch(e => { adminP = null; throw e; })));
 let plannerP = null;
 const loadPlanner = () => typeof PAGES.planner === 'function' ? Promise.resolve() : (plannerP || (plannerP = Promise.all([loadScript('planner-i18n.js?v=' + ASSET_V).catch(() => {}), loadScript('planner.js?v=' + ASSET_V)]).catch(e => { plannerP = null; throw e; })));   // planner-i18n.js = bản dịch hi/ja/ko/zh/fr/es; thiếu thì dùng tiếng Anh
@@ -556,6 +556,7 @@ function renderChrome(){
       : `<a class="sb-item ${route.name === n.id || (n.id === 'home' && route.name === 'home') ? 'active' : ''}" href="#${n.path}" data-act="closeNav">${ic(n.icon)}<span>${esc(navLabel(n))}</span>${n.id === 'shop' && cartN ? `<span class="count">${cartN}</span>` : ''}${isLocked(n.id) ? `<span class="lk" title="${esc(t('lock_title'))}">${ic('lock', 'sm')}</span>` : ''}</a>`).join('')}
     ${state.user ? `<div class="sb-label">${esc(t('nav_account'))}</div>
       <a class="sb-item ${route.name === 'account' && route.args[0] === 'library' ? 'active' : ''}" href="#/account/library" data-act="closeNav">${ic('download')}<span>${esc(t('nav_library'))}</span>${library.length ? `<span class="count">${library.length}</span>` : ''}</a>` : ''}
+    ${pwaStandalone() ? '' : `<button type="button" class="sb-item sb-install" data-act="pwaInstall">${ic('download')}<span>${esc(t('pwa_install'))}</span></button>`}
     ${state.isAdmin ? `<div class="sb-label">Admin</div><a class="sb-item ${route.name === 'admin' ? 'active' : ''}" href="#/admin" data-act="closeNav">${ic('shield')}<span>${esc(t('nav_admin'))}</span>${state.compPending ? `<span class="count">${state.compPending}</span>` : ''}</a>` : ''}
     <div class="sb-foot">${state.user
       ? `<a class="sb-user" href="#/account" data-act="closeNav"><span class="avatar">${esc((displayName() || '?').slice(0, 1).toUpperCase())}</span><div><b>${esc(displayName())}</b><small>${esc(state.isAdmin ? 'Admin' : t('nav_account'))}</small></div></a>`
@@ -642,7 +643,37 @@ function liveChime(tone){                                          // âm chuôn
 }
 function swRegister(){
   if (swReg || !('serviceWorker' in navigator) || !window.isSecureContext) return Promise.resolve(swReg);
-  return navigator.serviceWorker.register('sw.js').then(r => (swReg = r)).catch(() => null);
+  return navigator.serviceWorker.register('sw.js', { updateViaCache:'none' }).then(r => (swReg = r)).catch(() => null);   // updateViaCache 'none': luôn kiểm tra sw.js mới, không dùng bản trong bộ nhớ đệm
+}
+
+/* ---------- Cài web thành ứng dụng (PWA) ----------
+   Chrome / Edge / Android: bắt sự kiện beforeinstallprompt để nút "Cài ứng dụng" mở hộp cài của trình duyệt.
+   iPhone / iPad / Safari / Firefox không có sự kiện này: nút mở hướng dẫn cài bằng tay cho đúng thiết bị. */
+const PWA = { prompt:null };
+const pwaStandalone = () => matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: window-controls-overlay)').matches || navigator.standalone === true;
+const pwaIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const pwaAndroid = /android/i.test(navigator.userAgent);
+function pwaRefresh(){
+  const show = !pwaStandalone();
+  const box = $('pwa-box'); if (box) box.classList.toggle('hidden', !show);
+  if (state.booted) renderChrome();
+}
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); PWA.prompt = e; pwaRefresh(); });
+window.addEventListener('appinstalled', () => { PWA.prompt = null; toast('✓ ' + t('pwa_done'), 4000); pwaRefresh(); });
+matchMedia('(display-mode: standalone)').addEventListener?.('change', pwaRefresh);
+function pwaHelp(){
+  const ua = navigator.userAgent, steps = k => `<ol class="steps">${[1, 2, 3].map(i => I18N.en[k + i] ? `<li>${esc(t(k + i))}</li>` : '').join('')}</ol>`;
+  const k = pwaIOS ? 'pwa_ios' : pwaAndroid ? 'pwa_and' : /firefox\//i.test(ua) ? '' : /^((?!chrome|chromium|crios|edg).)*safari/i.test(ua) ? 'pwa_mac' : 'pwa_desk';
+  openModal(`<h2>${ic('download')} ${esc(t('pwa_install'))}</h2>
+    <p class="muted mt-s">${esc(t('pwa_note'))}</p>
+    <div class="mt-s">${k ? steps(k) : `<p>${esc(t('pwa_ff'))}</p>`}</div>
+    ${pwaIOS ? `<p class="lr-note">${esc(t('pwa_ios_note'))}</p>` : ''}
+    <p class="lr-note">${esc(t('pwa_update'))}</p>`, true);
+}
+function pwaInstall(){
+  if (!PWA.prompt) return pwaHelp();
+  const p = PWA.prompt; PWA.prompt = null;
+  p.prompt(); (p.userChoice || Promise.resolve()).then(() => pwaRefresh()).catch(() => {});
 }
 async function lrNotify(title, body, tag, sticky){
   if (!NOTIF_OK || Notification.permission !== 'granted') return;
@@ -689,7 +720,7 @@ function renderLiveRem(){
     : `<p class="lr-note">${esc(t('lr_none'))}</p>`;
   const permHTML = !lrPop() ? '' : perm === 'granted' ? `<p class="lr-note ok">${esc(t('lr_perm_ok'))}</p>`
     : perm === 'default' ? `<p class="lr-note">${esc(t('lr_perm_ask_note'))}</p><button type="button" class="btn secondary sm" data-act="lrPerm">${ic('bell', 'sm')} ${esc(t('lr_perm_ask'))}</button>`
-    : `<p class="lr-note">${esc(t(perm === 'denied' ? 'lr_perm_denied' : 'lr_perm_none'))}</p>`;
+    : `<p class="lr-note">${esc(t(perm === 'denied' ? 'lr_perm_denied' : 'lr_perm_none'))}</p>${perm === 'none' && pwaIOS && !pwaStandalone() ? `<button type="button" class="btn secondary sm" data-act="pwaInstall">${ic('download', 'sm')} ${esc(t('pwa_install'))}</button>` : ''}`;
   pop.innerHTML = `<div class="lr-h">${ic('bell', 'sm')} <b>${esc(t('lr_title'))}</b></div>
     <p class="lr-next" id="lr-next">${esc(lrNextText(live, next, now))}</p>
     <div class="switch"><span>${esc(t('lr_on'))}</span><input type="checkbox" data-change="lrOn" ${LR.on ? 'checked' : ''}></div>
@@ -835,6 +866,7 @@ const ACTIONS = {
   lrMode: el => { LR.mode = el.dataset.v; lrSave(); renderLiveRem(); },
   lrStyle: el => { LR.style = el.dataset.v; lrSave(); if (lrPop() && NOTIF_OK && Notification.permission === 'default') Notification.requestPermission().then(() => renderLiveRem()).catch(() => {}); if (lrSound()) liveChime(); renderLiveRem(); },
   lrIcs: downloadIcs,
+  pwaInstall: () => { document.body.classList.remove('nav-open'); $('prefs').classList.remove('open'); $('live-rem').classList.remove('open'); pwaInstall(); },
   pickOk: async () => {
     const url = $('pick-url').value.trim(), f = $('pick-file').files[0], st = $('pick-st');
     try {
@@ -879,6 +911,7 @@ function boot(){
   state.booted = true;
   applyLook(); renderPrefs(); listenAll(); readRoute(); doRender();
   $('btn-notif').classList.toggle('on', LR.on);
-  if (LR.on && NOTIF_OK && Notification.permission === 'granted') swRegister();
+  pwaRefresh();
+  if (document.readyState === 'complete') swRegister(); else window.addEventListener('load', () => swRegister());   // đăng ký sau khi trang tải xong để không làm chậm lúc mở web
   if (state.user === null && DEMO && DEMO_AS) { render(true); }
 }

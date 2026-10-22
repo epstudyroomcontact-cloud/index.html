@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#080b13">
+<title>EP Study Room</title>
+<style>
+  html,body{margin:0;height:100%;background:#080b13;color:#f7f3ff;font-family:'Nunito',system-ui,-apple-system,'Segoe UI',sans-serif}
+  main{min-height:100%;display:grid;place-items:center;padding:24px;box-sizing:border-box;text-align:center}
+  .box{max-width:360px}
+  .logo{width:72px;height:72px;margin:0 auto;border-radius:18px;display:grid;place-items:center;font-weight:800;font-size:1.7rem;color:#fff;background:linear-gradient(135deg,#ff8fb1,#ff3d9a);box-shadow:0 8px 28px rgba(255,61,154,.4)}
+  h1{font-size:1.3rem;margin:18px 0 8px}
+  p{color:#c0c8de;line-height:1.5;margin:0 0 20px}
+  button{font:inherit;font-weight:800;border:0;border-radius:99px;padding:11px 22px;color:#fff;cursor:pointer;background:linear-gradient(180deg,#ff8fb1,#ff3d9a 55%,#e0247f);box-shadow:0 6px 20px rgba(255,61,154,.45)}
+</style>
+</head>
+<body>
+<main><div class="box">
+  <div class="logo" aria-hidden="true">EP</div>
+  <h1 id="h">You're offline</h1>
+  <p id="p">EP Study Room needs an internet connection to load the schedule, your account and your planner. Check your connection and try again.</p>
+  <button id="b" type="button">Try again</button>
+</div></main>
+<script>
+  // Trang này chỉ hiện khi mất mạng (service worker trả về). Có mạng lại thì tự mở lại web.
+  var T = {
+    vi:['Bạn đang offline','EP Study Room cần kết nối mạng để tải lịch live, tài khoản và planner của bạn. Kiểm tra mạng rồi thử lại nhé.','Thử lại'],
+    hi:['आप ऑफ़लाइन हैं','शेड्यूल, आपका खाता और प्लानर लोड करने के लिए EP Study Room को इंटरनेट चाहिए। कनेक्शन जाँचें और फिर कोशिश करें।','फिर कोशिश करें'],
+    ja:['オフラインです','スケジュールやアカウント、プランナーを読み込むにはインターネット接続が必要です。接続を確認してもう一度お試しください。','再試行'],
+    ko:['오프라인 상태예요','일정, 계정, 플래너를 불러오려면 인터넷 연결이 필요해요. 연결을 확인한 뒤 다시 시도해 주세요.','다시 시도'],
+    zh:['你已离线','EP Study Room 需要联网才能加载直播时间表、账号和计划。请检查网络后重试。','重试'],
+    fr:['Vous êtes hors ligne',"EP Study Room a besoin d'une connexion Internet pour charger le planning, votre compte et votre planner. Vérifiez la connexion puis réessayez.",'Réessayer'],
+    es:['Estás sin conexión','EP Study Room necesita conexión a Internet para cargar el horario, tu cuenta y tu planner. Revisa la conexión e inténtalo de nuevo.','Reintentar']
+  };
+  var lang = 'en'; try { lang = JSON.parse(localStorage.getItem('ep_lang')) || 'en'; } catch (e) {}
+  if (T[lang]) { document.documentElement.lang = lang; document.getElementById('h').textContent = T[lang][0]; document.getElementById('p').textContent = T[lang][1]; document.getElementById('b').textContent = T[lang][2]; }
+  document.getElementById('b').onclick = function () { location.reload(); };
+  window.addEventListener('online', function () { location.reload(); });
+</script>
+</body>
+</html>
