@@ -8,7 +8,7 @@ const loadScript = src => new Promise((res, rej) => { const s = document.createE
 let emailP = null;
 const loadEmailJS = () => emailP || (emailP = loadScript('https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js').then(() => { emailjs.init("JKo4tonk0gQMwrHFZ"); }).catch(e => { emailP = null; console.warn('EmailJS chưa tải được', e); throw e; }));
 let adminP = null;
-const ASSET_V = '67';                                                // đổi cùng số ?v= trong index.html mỗi lần cập nhật, để trình duyệt không trộn file cũ với file mới
+const ASSET_V = '68';                                                // đổi cùng số ?v= trong index.html mỗi lần cập nhật, để trình duyệt không trộn file cũ với file mới
 const loadAdmin = () => typeof PAGES.admin === 'function' ? Promise.resolve() : (adminP || (adminP = loadScript('admin.js?v=' + ASSET_V).catch(e => { adminP = null; throw e; })));
 let plannerP = null;
 const loadPlanner = () => typeof PAGES.planner === 'function' ? Promise.resolve() : (plannerP || (plannerP = Promise.all([loadScript('planner-i18n.js?v=' + ASSET_V).catch(() => {}), loadScript('planner.js?v=' + ASSET_V)]).catch(e => { plannerP = null; throw e; })));   // planner-i18n.js = bản dịch hi/ja/ko/zh/fr/es; thiếu thì dùng tiếng Anh
@@ -603,7 +603,7 @@ function updateNext(){
   if (live && url && dismissedLive !== live.key && !(route.name === 'watch')) {
     toastEl.classList.add('show'); $('live-toast-text').textContent = live.slot.title || t('live_now'); $('live-toast-link').href = url;
   } else toastEl.classList.remove('show');
-  lrTick(live, next, now, url);
+  lrTick(live, next, now);
   const lrN = $('lr-next'); if (lrN) lrN.textContent = lrNextText(live, next, now);
 }
 
@@ -611,15 +611,34 @@ function updateNext(){
    NHẮC GIỜ LIVE (nút chuông trên thanh trên cùng)
    Web tĩnh (GitHub Pages) không có máy chủ đẩy thông báo, nên nhắc chỉ chạy khi web còn mở
    (tab nền cũng được). Muốn nhắc cả khi tắt web: nút thêm vào Google Calendar / file .ics.
+   Khách tự chọn: nhiều mốc nhắc trước (có thể tự nhập số phút), nhắc tất cả buổi hay chỉ buổi đã chọn,
+   kiểu nhắc (chuông / thông báo / cả hai), âm chuông và âm lượng.
    ========================================================= */
 const NOTIF_OK = typeof Notification !== 'undefined';
-const LR = { on:store.get('lr_on', NOTIF_OK && Notification.permission === 'granted'), lead:+store.get('lr_lead', 10) || 0, sound:store.get('lr_sound', true) !== false };
+const LR_PRESETS = [5, 10, 15, 30, 60], LR_TONES = ['bell', 'soft', 'alarm'], LR_STYLES = ['both', 'sound', 'notif'];
+const LR = (() => {
+  const oldLead = +store.get('lr_lead', 10) || 0, oldSound = store.get('lr_sound', true) !== false;      // đọc cài đặt của bản trước
+  const leads = store.get('lr_leads', oldLead ? [oldLead] : []);
+  return { on:store.get('lr_on', NOTIF_OK && Notification.permission === 'granted'), leads:Array.isArray(leads) ? leads.filter(n => n > 0 && n <= 720).slice(0, 6) : [10],
+    atStart:store.get('lr_start', true) !== false, style:LR_STYLES.includes(store.get('lr_style')) ? store.get('lr_style') : (oldSound ? 'both' : 'notif'),
+    tone:LR_TONES.includes(store.get('lr_tone')) ? store.get('lr_tone') : 'bell', vol:Math.min(1, Math.max(.1, +store.get('lr_vol', .8) || .8)),
+    mode:store.get('lr_mode', 'all') === 'pick' ? 'pick' : 'all', picked:store.get('lr_picked', {}) || {} };
+})();
+if (!LR.leads.length) LR.atStart = true;
 let lrSent = store.get('lr_sent', {}), swReg = null, lrTitleBak = '';
-const lrSave = () => { store.set('lr_on', LR.on); store.set('lr_lead', LR.lead); store.set('lr_sound', LR.sound); };
+const lrSave = () => { store.set('lr_on', LR.on); store.set('lr_leads', LR.leads); store.set('lr_start', LR.atStart); store.set('lr_style', LR.style); store.set('lr_tone', LR.tone); store.set('lr_vol', LR.vol); store.set('lr_mode', LR.mode); store.set('lr_picked', LR.picked); };
+const lrSound = () => LR.style !== 'notif', lrPop = () => LR.style !== 'sound';
+const lrWanted = x => LR.mode === 'all' || !!LR.picked[x.start.toMillis()];
+const lrSoon = now => upcomingPool().filter(x => x.end.toMillis() > now).sort((a, b) => a.start - b.start);
 const audioLocked = () => typeof actx === 'undefined' || !actx || actx.state !== 'running';
-function liveChime(){                                              // chuông 3 tiếng (Web Audio, không cần file âm thanh)
+function liveChime(tone){                                          // âm chuông tự tạo bằng Web Audio (không cần file âm thanh)
   if (typeof audio !== 'function') return; const a = audio(); if (!a) return;
-  [0, .5, 1].forEach((d, i) => [[i === 2 ? 1046 : 784, .28], [i === 2 ? 2092 : 1568, .08], [i === 2 ? 3138 : 2352, .03]].forEach(([f, v]) => { const o = a.createOscillator(), g = a.createGain(), at = a.currentTime + d; o.type = 'sine'; o.frequency.value = f; g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(v, at + .01); g.gain.exponentialRampToValueAtTime(.0008, at + 1.4); o.connect(g); g.connect(a.destination); o.start(at); o.stop(at + 1.5); }));
+  const v = LR.vol, note = (f, at, peak, len, type) => { const o = a.createOscillator(), g = a.createGain(); o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(peak * v, at + .01); g.gain.exponentialRampToValueAtTime(.0008, at + len); o.connect(g); g.connect(a.destination); o.start(at); o.stop(at + len + .05); }, t0 = a.currentTime;
+  switch (tone || LR.tone) {
+    case 'soft': [0, .55].forEach(d => [[880, .22], [1318, .09], [1760, .04]].forEach(([f, p]) => note(f, t0 + d, p, 1.1))); break;
+    case 'alarm': for (let r = 0; r < 3; r++) [0, .16, .32].forEach(d => note(988, t0 + r * .8 + d, .16, .12, 'triangle')); break;
+    default: [0, .5, 1].forEach((d, i) => [[i === 2 ? 1046 : 784, .28], [i === 2 ? 2092 : 1568, .08], [i === 2 ? 3138 : 2352, .03]].forEach(([f, p]) => note(f, t0 + d, p, 1.4)));
+  }
 }
 function swRegister(){
   if (swReg || !('serviceWorker' in navigator) || !window.isSecureContext) return Promise.resolve(swReg);
@@ -632,23 +651,24 @@ async function lrNotify(title, body, tag, sticky){
   try { const n = new Notification(title, opts); n.onclick = () => { window.focus(); location.hash = '#/watch'; n.close(); }; } catch (e) {}   // điện thoại Android chỉ cho hiện qua service worker
 }
 function lrFire(title, body, tag, sticky){
-  if (LR.sound) liveChime();
+  if (lrSound()) liveChime();
   toast('🔔 ' + body, 9000);
-  lrNotify(title, body, tag, sticky);
+  if (lrPop()) lrNotify(title, body, tag, sticky);
   if (document.hidden) { lrTitleBak = lrTitleBak || document.title; document.title = '🔔 ' + title; }
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden && lrTitleBak) { document.title = lrTitleBak; lrTitleBak = ''; } });
-function lrTick(live, next, now, url){
+function lrTick(live, next, now){
   if (!LR.on) return;
-  const mark = k => { lrSent[k] = now; Object.keys(lrSent).forEach(x => { if (now - lrSent[x] > 2 * 864e5) delete lrSent[x]; }); store.set('lr_sent', lrSent); };
-  if (next && LR.lead > 0) {
-    const ms = next.start.toMillis() - now, k = 's' + next.start.toMillis();
-    if (ms > 0 && ms <= LR.lead * 60e3 && !lrSent[k]) { mark(k); const n = Math.max(1, Math.round(ms / 60e3)); lrFire(t('lr_soon_t', { n }), t('lr_soon_b', { t:next.slot.title || t('lr_cal_title'), s:next.start.setZone(userTZ).toFormat('HH:mm') }), 'live-soon', false); }
-  }
-  if (live) {
-    const k = 'l' + live.start.toMillis();
-    if (now - live.start.toMillis() < 15 * 60e3 && !lrSent[k]) { mark(k); lrFire(t('notif_title'), live.slot.title ? `${live.slot.title} · ${t('notif_body')}` : t('notif_body'), 'live-now', true); }
-  }
+  let dirty = false;
+  const mark = k => { lrSent[k] = now; dirty = true; };
+  lrSoon(now).filter(lrWanted).forEach(x => {
+    const st = x.start.toMillis(), ms = st - now, title = x.slot.title || t('lr_cal_title');
+    if (ms > 0) {                                                  // nhắc trước: nhiều mốc tới cùng lúc (vd vừa bật nhắc) thì chỉ kêu một lần
+      const due = LR.leads.filter(m => ms <= m * 60e3 && !lrSent['s' + m + '-' + st]);
+      if (due.length) { due.forEach(m => mark('s' + m + '-' + st)); const n = Math.max(1, Math.round(ms / 60e3)); lrFire(t('lr_soon_t', { n }), t('lr_soon_b', { t:title, s:x.start.setZone(userTZ).toFormat('HH:mm') }), 'live-soon', false); }
+    } else if (LR.atStart && now - st < 15 * 60e3 && !lrSent['l' + st]) { mark('l' + st); lrFire(t('notif_title'), x.slot.title ? `${x.slot.title} · ${t('notif_body')}` : t('notif_body'), 'live-now', true); }
+  });
+  if (dirty) { Object.keys(lrSent).forEach(k => { if (now - lrSent[k] > 2 * 864e5) delete lrSent[k]; }); store.set('lr_sent', lrSent); }
 }
 function lrNextText(live, next, now){
   if (live) return `${t('live_now')} · ${live.start.setZone(userTZ).toFormat('HH:mm')} – ${live.end.setZone(userTZ).toFormat('HH:mm')}`;
@@ -656,24 +676,41 @@ function lrNextText(live, next, now){
   const s = next.start.setZone(userTZ).setLocale(state.lang);
   return t('lr_next', { d:`${s.toFormat('ccc dd/MM HH:mm')} (${fmtDur(next.start.toMillis() - now)})` });
 }
+const lrSessLabel = x => `${x.start.setZone(userTZ).setLocale(state.lang).toFormat('ccc dd/MM · HH:mm')}${x.slot.title ? ' · ' + x.slot.title : ''}`;
 function renderLiveRem(){
   const pop = $('live-rem'); if (!pop) return;
-  const { live, next, now } = liveState(), perm = NOTIF_OK ? Notification.permission : 'none';
-  const leads = [0, 5, 10, 15, 30].map(n => `<option value="${n}" ${LR.lead === n ? 'selected' : ''}>${esc(n ? t('lr_leadn', { n }) : t('lr_lead0'))}</option>`).join('');
-  const permHTML = perm === 'granted' ? `<p class="lr-note ok">${esc(t('lr_perm_ok'))}</p>`
+  const { live, next, now } = liveState(), perm = NOTIF_OK ? Notification.permission : 'none', soon = lrSoon(now), firstWanted = soon.find(lrWanted);
+  const chip = (on, act, attrs, label, extra) => `<button type="button" class="lr-chip ${on ? 'on' : ''}" data-act="${act}" ${attrs}>${label}${extra || ''}</button>`;
+  const custom = LR.leads.filter(n => !LR_PRESETS.includes(n)).sort((a, b) => a - b);
+  const leadsHTML = LR_PRESETS.map(n => chip(LR.leads.includes(n), 'lrLeadTog', `data-n="${n}"`, esc(t('lr_min', { n })))).join('')
+    + custom.map(n => chip(true, 'lrLeadTog', `data-n="${n}" aria-label="${esc(t('lr_min', { n }))} ×"`, esc(t('lr_min', { n })), ' ×')).join('');
+  const sessHTML = LR.mode !== 'pick' ? '' : soon.length
+    ? `<div class="lr-sess">${soon.map(x => `<label class="lr-sess-row"><input type="checkbox" data-change="lrPick" data-st="${x.start.toMillis()}" ${LR.picked[x.start.toMillis()] ? 'checked' : ''}><span>${esc(lrSessLabel(x))}</span></label>`).join('')}</div>${soon.some(lrWanted) ? '' : `<p class="lr-note warn">${esc(t('lr_pick_none'))}</p>`}`
+    : `<p class="lr-note">${esc(t('lr_none'))}</p>`;
+  const permHTML = !lrPop() ? '' : perm === 'granted' ? `<p class="lr-note ok">${esc(t('lr_perm_ok'))}</p>`
     : perm === 'default' ? `<p class="lr-note">${esc(t('lr_perm_ask_note'))}</p><button type="button" class="btn secondary sm" data-act="lrPerm">${ic('bell', 'sm')} ${esc(t('lr_perm_ask'))}</button>`
     : `<p class="lr-note">${esc(t(perm === 'denied' ? 'lr_perm_denied' : 'lr_perm_none'))}</p>`;
   pop.innerHTML = `<div class="lr-h">${ic('bell', 'sm')} <b>${esc(t('lr_title'))}</b></div>
     <p class="lr-next" id="lr-next">${esc(lrNextText(live, next, now))}</p>
     <div class="switch"><span>${esc(t('lr_on'))}</span><input type="checkbox" data-change="lrOn" ${LR.on ? 'checked' : ''}></div>
     <div class="${LR.on ? '' : 'lr-off'}">
-      <label class="label">${esc(t('lr_lead'))}</label><select class="select" data-change="lrLead">${leads}</select>
-      <div class="switch"><span>${esc(t('lr_sound'))}</span><span class="row" style="gap:8px"><button type="button" class="btn ghost sm" data-act="lrTest">${esc(t('lr_test'))}</button><input type="checkbox" data-change="lrSound" ${LR.sound ? 'checked' : ''}></span></div>
-      ${LR.on && LR.sound && audioLocked() ? `<p class="lr-note warn">${esc(t('lr_tap'))}</p>` : ''}
+      <label class="label">${esc(t('lr_before'))}</label>
+      <div class="lr-chips">${leadsHTML}</div>
+      <form class="lr-add" data-form="lrAdd"><input class="input" type="number" name="n" min="1" max="720" step="1" inputmode="numeric" placeholder="${esc(t('lr_custom_ph'))}" aria-label="${esc(t('lr_custom_ph'))}"><button type="submit" class="btn ghost sm">${esc(t('lr_add'))}</button></form>
+      <label class="lr-sess-row"><input type="checkbox" data-change="lrStart" ${LR.atStart ? 'checked' : ''} ${LR.leads.length ? '' : 'disabled'}><span>${esc(t('lr_at_start'))}</span></label>
+      <label class="label">${esc(t('lr_which'))}</label>
+      <div class="lr-seg">${chip(LR.mode === 'all', 'lrMode', 'data-v="all"', esc(t('lr_all')))}${chip(LR.mode === 'pick', 'lrMode', 'data-v="pick"', esc(t('lr_pick')))}</div>
+      ${sessHTML}
+      <label class="label">${esc(t('lr_style'))}</label>
+      <div class="lr-seg">${LR_STYLES.map(s => chip(LR.style === s, 'lrStyle', `data-v="${s}"`, esc(t('lr_style_' + s)))).join('')}</div>
+      ${lrSound() ? `<label class="label">${esc(t('lr_tone'))}</label>
+      <div class="row" style="gap:8px"><select class="select" data-change="lrTone" style="flex:1">${LR_TONES.map(k => `<option value="${k}" ${LR.tone === k ? 'selected' : ''}>${esc(t('lr_tone_' + k))}</option>`).join('')}</select><button type="button" class="btn ghost sm" data-act="lrTest">${ic('volume', 'sm')} ${esc(t('lr_test'))}</button></div>
+      <div class="switch"><span>${esc(t('lr_vol'))}</span><input type="range" min="10" max="100" step="5" value="${Math.round(LR.vol * 100)}" data-change="lrVol" aria-label="${esc(t('lr_vol'))}" style="width:55%"></div>
+      ${LR.on && audioLocked() ? `<p class="lr-note warn">${esc(t('lr_tap'))}</p>` : ''}` : ''}
       ${permHTML}
     </div>
     <hr class="lr-hr"><p class="lr-note">${esc(t('lr_limit'))}</p>
-    <div class="row" style="gap:8px;flex-wrap:wrap">${next ? `<a class="btn ghost sm" href="${esc(gcalUrl(next))}" target="_blank" rel="noopener">${ic('calendar', 'sm')} ${esc(t('lr_gcal'))}</a>` : ''}<button type="button" class="btn ghost sm" data-act="lrIcs" ${upcomingPool().some(x => x.end.toMillis() > now) ? '' : 'disabled'}>${ic('calendar', 'sm')} ${esc(t('lr_ics'))}</button></div>`;
+    <div class="row" style="gap:8px;flex-wrap:wrap">${firstWanted ? `<a class="btn ghost sm" href="${esc(gcalUrl(firstWanted))}" target="_blank" rel="noopener">${ic('calendar', 'sm')} ${esc(t('lr_gcal'))}</a>` : ''}<button type="button" class="btn ghost sm" data-act="lrIcs" ${firstWanted ? '' : 'disabled'}>${ic('calendar', 'sm')} ${esc(t('lr_ics'))}</button></div>`;
   $('btn-notif').classList.toggle('on', LR.on);
 }
 function lrSetOn(on){
@@ -681,25 +718,27 @@ function lrSetOn(on){
   if (on) {
     if (typeof audio === 'function') audio();                     // bật chuông ngay trong lần bấm này (trình duyệt chỉ cho phát tiếng sau khi khách bấm)
     swRegister();
-    if (NOTIF_OK && Notification.permission === 'default') Notification.requestPermission().then(() => renderLiveRem()).catch(() => {});
-    if (LR.sound) liveChime();
+    if (lrPop() && NOTIF_OK && Notification.permission === 'default') Notification.requestPermission().then(() => renderLiveRem()).catch(() => {});
+    if (lrSound()) liveChime();
   }
   toast(t(on ? 'lr_on_toast' : 'lr_off_toast')); renderLiveRem();
 }
+const lrSetLeads = leads => { LR.leads = [...new Set(leads)].filter(n => n > 0 && n <= 720).sort((a, b) => b - a).slice(0, 6); if (!LR.leads.length) LR.atStart = true; lrSave(); renderLiveRem(); };
 const calStamp = d => d.toUTC().toFormat("yyyyMMdd'T'HHmmss'Z'");
 const calTitle = x => `${branding.name} · ${x.slot.title || t('lr_cal_title')}`;
 const gcalUrl = x => 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(calTitle(x)) + '&dates=' + calStamp(x.start) + '/' + calStamp(x.end) + '&details=' + encodeURIComponent(watchUrl() || location.href.split('#')[0] + '#/watch');
 function downloadIcs(){
-  const now = Date.now(), url = watchUrl() || location.href.split('#')[0] + '#/watch', items = upcomingPool().filter(x => x.end.toMillis() > now);
+  const now = Date.now(), url = watchUrl() || location.href.split('#')[0] + '#/watch', items = lrSoon(now).filter(lrWanted);
   if (!items.length) return;
-  const esc2 = s => String(s).replace(/[\\;,]/g, m => '\\' + m).replace(/\r?\n/g, '\\n');
+  const esc2 = s => String(s).replace(/[\;,]/g, m => '\\' + m).replace(/\r?\n/g, '\\n');
+  const alarms = [...LR.leads, ...(LR.atStart ? [0] : [])];
   const ev = items.map(x => ['BEGIN:VEVENT', `UID:${x.start.toMillis()}@epstudyroom`, `DTSTAMP:${calStamp(DT.now())}`, `DTSTART:${calStamp(x.start)}`, `DTEND:${calStamp(x.end)}`, `SUMMARY:${esc2(calTitle(x))}`, `DESCRIPTION:${esc2(url)}`, `URL:${url}`,
-    'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${esc2(calTitle(x))}`, `TRIGGER:-PT${LR.lead || 0}M`, 'END:VALARM', 'END:VEVENT'].join('\r\n'));
+    ...alarms.flatMap(m => ['BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${esc2(calTitle(x))}`, `TRIGGER:-PT${m}M`, 'END:VALARM']), 'END:VEVENT'].join('\r\n'));
   const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//EP Study Room//Live//EN', 'CALSCALE:GREGORIAN', ...ev, 'END:VCALENDAR'].join('\r\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([ics], { type:'text/calendar;charset=utf-8' })); a.download = 'live-schedule.ics';
   document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
 }
-['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => { if (LR.on && LR.sound && typeof audio === 'function' && audioLocked()) { audio(); if ($('live-rem').classList.contains('open')) setTimeout(renderLiveRem, 50); } }, { passive:true }));
+['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => { if (LR.on && lrSound() && typeof audio === 'function' && audioLocked()) { audio(); if ($('live-rem').classList.contains('open')) setTimeout(renderLiveRem, 50); } }, { passive:true }));
 function tickClock(){
   const n = DT.now().setZone(userTZ), txt = n.toFormat('hh:mm:ss a');
   document.querySelectorAll('[data-clock]').forEach(e => e.textContent = txt);
@@ -776,8 +815,11 @@ function openImagePicker(title, onPick, folder = 'cms'){
 }
 const FORMS = {}, CHANGES = {};
 CHANGES.lrOn = el => lrSetOn(el.checked);
-CHANGES.lrLead = el => { LR.lead = +el.value || 0; lrSave(); };
-CHANGES.lrSound = el => { LR.sound = el.checked; lrSave(); if (LR.sound) liveChime(); renderLiveRem(); };
+CHANGES.lrStart = el => { LR.atStart = el.checked || !LR.leads.length; lrSave(); renderLiveRem(); };
+CHANGES.lrPick = el => { const k = el.dataset.st; if (el.checked) LR.picked[k] = 1; else delete LR.picked[k]; const now = Date.now(); Object.keys(LR.picked).forEach(x => { if (+x < now - 864e5) delete LR.picked[x]; }); lrSave(); renderLiveRem(); };
+CHANGES.lrTone = el => { LR.tone = el.value; lrSave(); liveChime(); };
+CHANGES.lrVol = el => { LR.vol = Math.min(1, Math.max(.1, +el.value / 100)); lrSave(); liveChime(); };
+FORMS.lrAdd = f => { const n = Math.round(+f.elements.n.value); if (!(n >= 1 && n <= 720)) return toast(t('lr_custom_bad')); f.reset(); lrSetLeads([...LR.leads, n]); };
 const ACTIONS = {
   openNav: () => document.body.classList.add('nav-open'),
   closeNav: () => document.body.classList.remove('nav-open'),
@@ -788,7 +830,10 @@ const ACTIONS = {
   dismissLive: () => { const { live } = liveState(); dismissedLive = live ? live.key : null; updateNext(); },
   notif: () => { const p = $('live-rem'), open = !p.classList.contains('open'); $('prefs').classList.remove('open'); if (open) renderLiveRem(); p.classList.toggle('open', open); },
   lrPerm: () => { if (NOTIF_OK) Notification.requestPermission().then(p => { if (p === 'granted') { swRegister(); toast('🔔 OK'); } renderLiveRem(); }).catch(() => {}); },
-  lrTest: () => { liveChime(); lrNotify(t('notif_title'), t('lr_test_body'), 'live-test', false); },
+  lrTest: () => { if (lrSound()) liveChime(); if (lrPop()) lrNotify(t('notif_title'), t('lr_test_body'), 'live-test', false); },
+  lrLeadTog: el => { const n = +el.dataset.n; lrSetLeads(LR.leads.includes(n) ? LR.leads.filter(x => x !== n) : [...LR.leads, n]); },
+  lrMode: el => { LR.mode = el.dataset.v; lrSave(); renderLiveRem(); },
+  lrStyle: el => { LR.style = el.dataset.v; lrSave(); if (lrPop() && NOTIF_OK && Notification.permission === 'default') Notification.requestPermission().then(() => renderLiveRem()).catch(() => {}); if (lrSound()) liveChime(); renderLiveRem(); },
   lrIcs: downloadIcs,
   pickOk: async () => {
     const url = $('pick-url').value.trim(), f = $('pick-file').files[0], st = $('pick-st');
