@@ -8,7 +8,7 @@ const loadScript = src => new Promise((res, rej) => { const s = document.createE
 let emailP = null;
 const loadEmailJS = () => emailP || (emailP = loadScript('https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js').then(() => { emailjs.init("JKo4tonk0gQMwrHFZ"); }).catch(e => { emailP = null; console.warn('EmailJS chưa tải được', e); throw e; }));
 let adminP = null;
-const ASSET_V = '76';                                                // đổi cùng số ?v= trong index.html mỗi lần cập nhật, để trình duyệt không trộn file cũ với file mới
+const ASSET_V = '77';                                                // đổi cùng số ?v= trong index.html mỗi lần cập nhật, để trình duyệt không trộn file cũ với file mới
 const loadAdmin = () => typeof PAGES.admin === 'function' ? Promise.resolve() : (adminP || (adminP = loadScript('admin.js?v=' + ASSET_V).catch(e => { adminP = null; throw e; })));
 let plannerP = null;
 const loadPlanner = () => typeof PAGES.planner === 'function' ? Promise.resolve() : (plannerP || (plannerP = Promise.all([loadScript('planner-i18n.js?v=' + ASSET_V).catch(() => {}), loadScript('planner.js?v=' + ASSET_V)]).catch(e => { plannerP = null; throw e; })));   // planner-i18n.js = bản dịch hi/ja/ko/zh/fr/es; thiếu thì dùng tiếng Anh
@@ -722,6 +722,7 @@ function renderLiveRem(){
   pop.innerHTML = `<div class="lr-h">${ic('bell', 'sm')} <b>${esc(t('lr_title'))}</b></div>
     <p class="lr-next" id="lr-next">${esc(lrNextText(live, next, now))}</p>
     ${pushHTML()}
+    ${plRemHTML()}
     <div class="switch"><span>${esc(t('lr_on'))}</span><input type="checkbox" data-change="lrOn" ${LR.on ? 'checked' : ''}></div>
     <div class="${LR.on ? '' : 'lr-off'}">
       <label class="label">${esc(t('lr_before'))}</label>
@@ -778,7 +779,7 @@ async function pushOff(){
 }
 async function pushSet(on){
   PUSH.busy = true; PUSH.err = false; renderLiveRem();
-  try { if (on) await pushSync(true); else await pushOff(); PUSH.on = on; toast(t(on ? 'push_on_toast' : 'push_off_toast')); }
+  try { if (on) await pushSync(true); else await pushOff(); PUSH.on = on; toast(t(on ? 'push_on_toast' : 'push_off_toast')); if (plCan() && (on || plRemIsOn())) plRemSet(true, true); }   // bật thông báo đẩy = bật luôn nhắc việc; tắt thì token cũ bị xoá nên nhắc việc lấy token mới
   catch (e) { console.warn('push', e); PUSH.on = false; PUSH.err = NOTIF_OK && Notification.permission !== 'denied'; }
   store.set('push_on', PUSH.on); PUSH.busy = false; renderLiveRem();
 }
@@ -793,6 +794,18 @@ function pushHTML(){
     : PUSH.err ? `<p class="lr-note warn">${esc(t('push_err'))}</p>`
     : `<p class="lr-note ${on ? 'ok' : ''}">${esc(t(on ? 'push_ok' : 'push_note'))}</p>`;
   return `<div class="switch"><span><b>${esc(t('push_on'))}</b></span><input type="checkbox" data-change="pushOn" ${on ? 'checked' : ''} ${sup && perm !== 'denied' && !PUSH.busy ? '' : 'disabled'}></div>${note}<hr class="lr-hr">`;
+}
+/* Nhắc việc Planner trong bảng chuông (chỉ người dùng được Planner): bật/tắt bằng plRemToggle trong planner.js */
+const plCan = () => !DEMO && !!state.user && (state.companion || state.isAdmin || (typeof trialActive === 'function' && trialActive()));
+const plRemIsOn = () => !!store.get('pl_rem', false);
+function plRemHTML(){
+  if (!plCan()) return '';
+  const on = plRemIsOn(), bg = on && typeof plPushHere === 'function' && plPushHere();
+  return `<div class="switch"><span><b>${esc(t('plr_on'))}</b></span><input type="checkbox" data-change="plRemOn" ${on ? 'checked' : ''}></div><p class="lr-note ${on ? 'ok' : ''}">${esc(t(on ? (bg ? 'plr_ok' : 'plr_fg') : 'plr_note'))}</p><hr class="lr-hr">`;
+}
+async function plRemSet(on, quiet){
+  try { await loadPlanner(); if (typeof plRemToggle === 'function') await plRemToggle(on, quiet); } catch (e) { console.warn('planner rem', e); }
+  renderLiveRem(); if (route.name === 'planner') render(true);
 }
 ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => { if (LR.on && lrSound() && typeof audio === 'function' && audioLocked()) { audio(); if ($('live-rem').classList.contains('open')) setTimeout(renderLiveRem, 50); } }, { passive:true }));
 function tickClock(){
@@ -872,6 +885,7 @@ function openImagePicker(title, onPick, folder = 'cms'){
 const FORMS = {}, CHANGES = {};
 CHANGES.lrOn = el => lrSetOn(el.checked);
 CHANGES.pushOn = el => pushSet(el.checked);
+CHANGES.plRemOn = el => plRemSet(el.checked);
 CHANGES.lrPick = el => { const k = el.dataset.st; if (el.checked) LR.picked[k] = 1; else delete LR.picked[k]; const now = Date.now(); Object.keys(LR.picked).forEach(x => { if (+x < now - 864e5) delete LR.picked[x]; }); lrSave(); renderLiveRem(); };
 const ACTIONS = {
   openNav: () => document.body.classList.add('nav-open'),

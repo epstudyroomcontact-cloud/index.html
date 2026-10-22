@@ -25,12 +25,11 @@ self.addEventListener('fetch', e => {
 self.addEventListener('push', e => {
   let j = {}; try { j = e.data ? e.data.json() : {}; } catch (err) {}
   const d = j.data || {}, n = j.notification || {};
-  // ghi lại lần nhận gần nhất (Planner đọc để biết thông báo đẩy có đến được máy này không); tên cache không bắt đầu bằng 'ep-' nên không bị dọn khi cập nhật
-  const log = caches.open('push-log').then(c => c.put('last', new Response(JSON.stringify({ at:Date.now(), tag:d.tag || '' })))).catch(() => {});
-  e.waitUntil(Promise.all([log, self.registration.showNotification(d.title || n.title || 'EP Study Room', {
-    body: d.body || n.body || '', tag: d.tag || 'live-now', renotify: true, icon: 'icons/icon-192.png',
+  e.waitUntil(self.registration.showNotification(d.title || n.title || 'EP Study Room', {
+    body: d.body || n.body || '', tag: d.tag || 'live-now', renotify: true, silent: false, icon: 'icons/icon-192.png',
+    vibrate: [200, 100, 200, 100, 300],                          // rung trên Android (tiếng chuông do cài đặt thông báo của máy quyết định)
     data: { url: self.registration.scope + (/^#\/[\w-]*$/.test(d.path || '') ? d.path : '#/watch') }   // nhắc việc Planner gửi path '#/planner'
-  })]));
+  }));
 });
 self.addEventListener('notificationclick', e => {
   e.notification.close();
