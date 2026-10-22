@@ -14,4 +14,4 @@ window.FIREBASE_CONFIG = {
 /* Khoá công khai cho THÔNG BÁO ĐẨY (Web Push). Lấy ở Firebase Console → ⚙️ Project settings → Cloud Messaging
    → Web configuration → Web Push certificates → "Generate key pair", rồi dán chuỗi "Key pair" vào giữa hai dấu nháy.
    Khoá này cũng công khai, không phải mật khẩu. Để trống thì web ẩn mục thông báo đẩy, chuông nhắc vẫn chạy như cũ. */
-window.FCM_VAPID_KEY = "";
+window.FCM_VAPID_KEY = "BPg5FCcd2onCP2HkS61nO5pC7-eGVGRIaKYfiKEf7_iMIrKlskS_dIv3FE9nD6DCTsaj6rSQVq14r98GyoJGWB0";
