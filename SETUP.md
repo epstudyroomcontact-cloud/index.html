@@ -342,6 +342,58 @@ Dùng chung máy gửi ở trên (bước **Nhắc việc Planner** trong cùng 
 - iPhone / iPad: giống 17.1, phải **thêm web ra Màn hình chính**, mở từ biểu tượng đó rồi bật nhắc việc.
 - Đăng xuất hoặc tắt nhắc việc trên máy nào thì máy đó thôi nhận.
 
+### 17.3. Cho máy gửi chạy đều 5 phút một lần (cron-job.org)
+**Vì sao cần:** lịch tự chạy của GitHub hay bị bỏ lượt (có tối chỉ chạy 1 lần trong 1,5 tiếng), nên thông báo live và nhắc việc Planner có thể đến rất trễ hoặc không đến. Trang miễn phí **cron-job.org** cứ 5 phút "bấm nút chạy" workflow **Thông báo đẩy khi live** một lần. Máy gửi tự chống gửi trùng, nên GitHub có tự chạy thêm cũng không sao.
+
+**Làm 1 lần là xong**, nếu mã GitHub chọn **No expiration**. Quy định "GitHub tự tắt lịch sau 60 ngày repo không thay đổi" không ảnh hưởng tới cách này.
+
+#### A. Tạo mã GitHub (chỉ cho phép chạy workflow của repo này)
+1. Đăng nhập GitHub, mở trang https://github.com/settings/personal-access-tokens/new
+2. **Token name:** `cron-job nhac viec`
+3. **Expiration:** chọn **No expiration**.
+4. **Repository access:** chọn **Only select repositories**, rồi chọn repo **index.html**.
+5. **Permissions** → **Repository permissions** → dòng **Actions** → chọn **Read and write**. Không bật quyền nào khác.
+6. Kéo xuống cuối, bấm **Generate token**.
+7. Bấm nút sao chép cạnh chuỗi `github_pat_…`, dán tạm vào Notepad. **Mã này là bí mật: không gửi cho ai, không chụp màn hình có mã, không đưa lên repo.**
+
+#### B. Đặt lịch trên cron-job.org
+1. Mở https://cron-job.org → **Sign up** (miễn phí) → xác nhận email → đăng nhập.
+2. Bấm **Create cronjob**.
+3. **Title:** `Nhac viec`
+4. **URL:** dán đúng dòng này:
+   `https://api.github.com/repos/epstudyroomcontact-cloud/index.html/actions/workflows/push-live.yml/dispatches`
+5. **Execution schedule:** chọn **Every 5 minutes**.
+6. Mục **Headers**, bấm **Add** để có đủ các dòng sau (Key ở ô trái, Value ở ô phải):
+
+   | Key | Value |
+   |---|---|
+   | `Authorization` | `Bearer` + 1 dấu cách + mã ở bước A7 (thành `Bearer github_pat_…`) |
+   | `Accept` | `application/vnd.github+json` |
+   | `X-GitHub-Api-Version` | `2026-03-10` |
+   | `Content-Type` | `application/json` (bấm nút **ADD CONTENT-TYPE HEADER NOW** là tự có) |
+
+7. Mục **Advanced**: **Request method** chọn **POST**. Ô **Request body** dán đúng dòng này:
+   `{"ref":"main","inputs":{"mode":"auto"}}`
+8. Bấm **Create** (hoặc **Save**).
+9. **Thử:** trong danh sách cronjob, bấm **Test run**. Đạt là **200** (nếu header phiên bản để `2022-11-28` thì đạt là **204**). Vào GitHub → repo → tab **Actions** sẽ thấy lần chạy mới **Thông báo đẩy khi live**.
+10. Xoá mã trong Notepad.
+
+#### C. Phiên bản API của GitHub (header `X-GitHub-Api-Version`)
+- Nên dùng **`2026-03-10`** (bản mới nhất lúc viết). Với bản này, Test run đạt là **200**.
+- Bản cũ **`2022-11-28`** vẫn chạy (đạt là **204**), nhưng GitHub chỉ hứa hỗ trợ tới **ít nhất 12/03/2028**. Nếu đang để bản cũ, nên đổi trước ngày đó:
+  1. Đăng nhập cron-job.org → bấm vào cronjob **Nhac viec** để sửa.
+  2. Ở dòng header `X-GitHub-Api-Version`, xoá `2022-11-28`, gõ `2026-03-10`.
+  3. Bấm **Save**, rồi **Test run**: thấy **200** là đúng.
+- Mỗi phiên bản được hỗ trợ ít nhất 24 tháng kể từ khi có bản mới hơn. Khi GitHub ra bản mới, bạn sẽ có ít nhất 2 năm để đổi. Bản hiện hành xem tại https://docs.github.com/en/rest/about-the-rest-api/api-versions
+
+#### D. Khi cron-job.org báo lỗi
+cron-job.org gửi email khi lịch lỗi, và tự tạm dừng lịch nếu lỗi liên tục nhiều lần. Bấm vào cronjob → **History** để xem con số lỗi:
+- **401** (mã sai, đã bị xoá hoặc hết hạn): làm lại phần A để có mã mới. Rồi sửa cronjob, dòng header `Authorization` đổi thành `Bearer` + dấu cách + mã mới → **Save** → **Test run**. Nếu lịch đã bị tạm dừng, bật lại công tắc của cronjob.
+- **403** (mã thiếu quyền): làm lại phần A, nhớ bước A5 chọn **Actions: Read and write** và bước A4 chọn đúng repo **index.html**.
+- **404** (URL sai, hoặc mã không được cấp repo này): dán lại đúng URL ở bước B4, và kiểm tra bước A4.
+- **422** (Request body sai): dán lại đúng dòng ở bước B7.
+- Mã cũ không dùng nữa thì xoá ở https://github.com/settings/personal-access-tokens
+
 ## QUY TẮC CẬP NHẬT WEB LÊN GITHUB (đọc cái này khi cần cập nhật)
 Từ bản 8, các file hay thay đổi (`index.html`, `core.js`, `pages.js`, `admin.js`, `i18n-extra.js`, `app.css`) **đều nằm ở trang gốc của repo**, cùng chỗ với `index.html`. Chỉ còn 4 file ít khi đổi nằm trong thư mục `js`: `art.js`, `i18n.js`, `translate.js`, `firebase-config.js`.
 
