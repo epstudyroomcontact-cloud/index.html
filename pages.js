@@ -714,7 +714,7 @@ Object.assign(ACTIONS, {
   rate: el => { reviewRating = +el.dataset.n; document.querySelectorAll('#rev-stars button').forEach(b => b.classList.toggle('on', +b.dataset.n === reviewRating)); },
   authTab: el => { authTab = el.dataset.t; render(true); },
   forgot: async () => { const m = $('au-email').value.trim(); if (!m) return $('au-err').textContent = t('email') + '?'; try { await auth.sendPasswordResetEmail(m); toast(t('reset_sent')); } catch (e) { $('au-err').textContent = authErr(e); } },
-  signout: async () => { if (DEMO) return toast('Demo'); await auth.signOut(); myOrders = null; location.hash = '#/account'; },
+  signout: async () => { if (DEMO) return toast('Demo'); if (typeof plPushOff === 'function') await plPushOff(); await auth.signOut(); myOrders = null; location.hash = '#/account'; },
   resendVerify: () => state.user.sendEmailVerification().then(() => toast(t('verify_sent'))).catch(e => toast(e.message)),
   download: async el => {
     try {

@@ -1,4 +1,4 @@
-# Gửi thông báo đẩy khi live bắt đầu (xem scripts/push-live.mjs và SETUP.md, phần Thông báo đẩy).
+# Gửi thông báo đẩy khi live bắt đầu (scripts/push-live.mjs) và nhắc việc Planner (scripts/push-planner.mjs). Xem SETUP.md, phần Thông báo đẩy.
 # Repo công khai nên GitHub Actions miễn phí, không giới hạn số phút.
 name: Thông báo đẩy khi live
 
@@ -41,3 +41,8 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           PUSH_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'auto' }}
           PUSH_TITLE: ${{ inputs.title }}
+      - name: Nhắc việc Planner
+        if: ${{ !cancelled() && (github.event_name != 'workflow_dispatch' || inputs.mode == 'auto') }}   # chạy cả khi bước trên lỗi; chạy tay mode "now" thì bỏ qua
+        run: node scripts/push-planner.mjs
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}

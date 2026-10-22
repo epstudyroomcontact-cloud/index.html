@@ -334,6 +334,14 @@ Khách đã đăng nhập nhập một mã dùng thử → được dùng như *
 
 **Bảo mật:** token của khách nằm trong `push_tokens`, **không ai đọc hay liệt kê được** (kể cả từ trình duyệt của admin); khách chỉ ghi/xoá được token của chính máy mình (luật kiểm tra mã tài liệu phải khớp với hash của token). Chỉ máy gửi, dùng khoá tài khoản dịch vụ trong GitHub Secrets, mới đọc được để gửi. Token của máy đã tắt thông báo hoặc gỡ ứng dụng sẽ được máy gửi tự dọn.
 
+### 17.2. Nhắc việc Planner (cũng nhận cả khi đã đóng web)
+Dùng chung máy gửi ở trên (bước **Nhắc việc Planner** trong cùng workflow, file `scripts/push-planner.mjs`), **không cần làm thêm gì** nếu 17.1 đã xong, không cần dán lại luật Firestore.
+- Người dùng mở **Planner** trên **từng máy** (điện thoại, máy tính) và bấm **"Nhắc tôi trước giờ làm việc"**, cho phép thông báo. Máy đó lưu mã nhận thông báo vào hồ sơ của chính họ (`users/<uid>.plPush`, chỉ họ và admin đọc được).
+- Mỗi lần chạy (khoảng 5 phút), máy gửi đọc Planner tuần này của những người đã bật, việc chưa xong sắp bắt đầu thì nhắc. Thường đến tay **khoảng 8–12 phút trước** giờ bắt đầu, GitHub chạy trễ thì có thể muộn hơn (quá 10 phút sau giờ bắt đầu thì không nhắc nữa). 20:00–21:00 còn việc chưa xong thì nhắc một lần.
+- Đang mở web thì vẫn nhắc ngay trong trang như cũ; hai lời nhắc dùng chung một mã nên chỉ hiện 1 thông báo.
+- iPhone / iPad: giống 17.1, phải **thêm web ra Màn hình chính**, mở từ biểu tượng đó rồi bật nhắc việc.
+- Đăng xuất hoặc tắt nhắc việc trên máy nào thì máy đó thôi nhận.
+
 ## QUY TẮC CẬP NHẬT WEB LÊN GITHUB (đọc cái này khi cần cập nhật)
 Từ bản 8, các file hay thay đổi (`index.html`, `core.js`, `pages.js`, `admin.js`, `i18n-extra.js`, `app.css`) **đều nằm ở trang gốc của repo**, cùng chỗ với `index.html`. Chỉ còn 4 file ít khi đổi nằm trong thư mục `js`: `art.js`, `i18n.js`, `translate.js`, `firebase-config.js`.
 
