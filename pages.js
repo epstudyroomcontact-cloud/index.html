@@ -245,7 +245,7 @@ Object.assign(ACTIONS, {
 }
 /* Giới hạn thời gian tập trung mỗi ngày cho người xem miễn phí. Người đồng hành (Companions) và admin không bị giới hạn.
    Đếm bằng bộ nhớ trình duyệt nên đây là giới hạn "nhẹ nhàng" (có thể vượt bằng cách xoá dữ liệu trình duyệt). */
-const focusUnlimited = () => !!(state.companion || state.isAdmin || unlockValid());
+const focusUnlimited = () => !!(state.companion || state.isAdmin || unlockValid() || trialActive());
 const focusLimit = () => focusUnlimited() ? 0 : Math.max(0, Math.round(+branding.focusLimit || 0));
 const focusUsed = () => (localFocus()[DT.now().setZone(userTZ).toISODate()] || { m:0 }).m;
 /* ô nhập mã đồng hành (dùng ở Focus room, hộp thoại hết giờ và trang Support) */
@@ -259,6 +259,42 @@ FORMS.unlock = async form => {
   store.set('unlock', u); profile.unlock = u;
   if (state.user && !DEMO) db.collection('users').doc(state.user.uid).set({ unlock:u }, { merge:true }).catch(() => {});
   closeModal(); toast(t('unlock_ok')); render(true);
+};
+(function(){
+  const G = {
+    en:{ trial_title:'Have a trial code?', trial_sub:'Enter it to try Companion perks (Weekly Planner, unlimited focus) for free for a limited time. Each account can use one trial.', trial_ph:'e.g. TRY-ABCD-1234', trial_btn:'Activate',
+      trial_login:'Sign in to use a trial code.', trial_bad:'This code is not valid, has expired or has no uses left.', trial_used:'This account has already used a trial.', trial_ok:'Trial activated! Enjoy until {d}.',
+      trial_active:'Your trial is active until {d}.', trial_over:'Your trial has ended. Become a Companion to keep using these perks.' },
+    vi:{ trial_title:'Bạn có mã dùng thử?', trial_sub:'Nhập mã để dùng thử miễn phí quyền lợi của Người đồng hành (Planner tuần, tập trung không giới hạn) trong một thời gian. Mỗi tài khoản dùng thử một lần.', trial_ph:'VD: TRY-ABCD-1234', trial_btn:'Kích hoạt',
+      trial_login:'Đăng nhập để dùng mã dùng thử.', trial_bad:'Mã không đúng, đã hết hạn hoặc đã hết lượt dùng.', trial_used:'Tài khoản này đã dùng thử rồi.', trial_ok:'Đã kích hoạt dùng thử! Bạn dùng được đến {d}.',
+      trial_active:'Bạn đang dùng thử đến {d}.', trial_over:'Lượt dùng thử của bạn đã kết thúc. Trở thành Người đồng hành để dùng tiếp nhé.' }
+  };
+  Object.keys(G).forEach(l => { I18N[l] = I18N[l] || {}; Object.keys(G[l]).forEach(k => { if (I18N[l][k] === undefined) I18N[l][k] = G[l][k]; }); });
+})();
+/* Ô nhập mã dùng thử (Planner chưa mở khoá, trang Support). Rules chỉ cho kích hoạt khi mã có thật, đang bật, còn hạn nhập, còn lượt,
+   và mỗi tài khoản một lần; ghi lượt kích hoạt và cộng 1 lượt dùng của mã trong CÙNG một lần ghi (batch). */
+const trialEnd = () => DT.fromMillis(state.trial.endsAt).setZone(userTZ).toFormat('dd/MM/yyyy HH:mm');
+function trialBox(){
+  if (DEMO) return '';
+  if (!state.user) return `<div class="limit-box stack"><b>${esc(t('trial_title'))}</b><p class="small muted">${esc(t('trial_login'))}</p><a class="btn secondary" href="#/account">${esc(t('nav_signin'))}</a></div>`;
+  if (trialActive()) return `<div class="limit-box stack"><b>${esc(t('trial_title'))}</b><p class="small" style="color:var(--live)">${esc(t('trial_active', { d:trialEnd() }))}</p></div>`;
+  if (state.trial) return `<div class="limit-box stack"><b>${esc(t('trial_title'))}</b><p class="small muted">${esc(t('trial_over'))}</p></div>`;
+  return `<form class="limit-box stack" data-form="trial" style="gap:8px"><b>${esc(t('trial_title'))}</b><p class="small muted" style="margin:0">${esc(t('trial_sub'))}</p><div class="row" style="flex-wrap:nowrap"><input class="input" autocomplete="off" spellcheck="false" autocapitalize="characters" placeholder="${esc(t('trial_ph'))}" maxlength="40" style="text-transform:uppercase"><button class="btn secondary" type="submit">${ic('check', 'sm')} ${esc(t('trial_btn'))}</button></div></form>`;
+}
+FORMS.trial = async form => {
+  if (!state.user || DEMO) return;
+  const code = form.querySelector('input').value.toUpperCase().replace(/\s+/g, ''), btn = form.querySelector('button');
+  if (!/^[A-Z0-9-]{4,32}$/.test(code)) return toast(t('trial_bad'));
+  const u = state.user, F = firebase.firestore.FieldValue, b = db.batch();
+  b.set(db.collection('trial_redemptions').doc(u.uid), { uid:u.uid, code, startedAt:F.serverTimestamp(), email:u.email || '' });
+  b.update(db.collection('trial_codes').doc(code), { uses:F.increment(1) });
+  btn.disabled = true;
+  try { await b.commit(); }
+  catch (e) { btn.disabled = false; await loadTrial(u, true); if (state.trial) render(true); return toast(t(state.trial ? 'trial_used' : 'trial_bad')); }
+  await loadTrial(u, true);
+  toast(trialActive() ? t('trial_ok', { d:trialEnd() }) : t('trial_bad'));
+  if (trialActive()) loadPlanner().catch(() => {});
+  render(true);
 };
 function limitModal(){
   const L0 = focusLimit();
@@ -313,7 +349,7 @@ const todos = () => store.get('todos', []);
 const saveTodos = l => { store.set('todos', l); saveProfileSoon(); };
 const dropTodos = ids => { const s = new Set(ids), l = todos(); store.set('todos_gone', [...new Set([...todosGone(), ...ids])].slice(-300)); store.set('todos', l.filter(x => !s.has(x.id))); if (store.get('todo_cur', '') && s.has(store.get('todo_cur', ''))) store.set('todo_cur', ''); saveProfileNow(); };   // xoá thật: ghi ngay lên hồ sơ, kèm dấu "đã xoá"
 const curTodo = () => { const id = store.get('todo_cur', ''); return id ? todos().find(x => x.id === id && !x.done) : null; };
-const plLinked = () => state.companion || state.isAdmin || DEMO;           // có quyền dùng Planner → Focus liên kết với Planner
+const plLinked = () => state.companion || state.isAdmin || trialActive() || DEMO;           // có quyền dùng Planner → Focus liên kết với Planner
 function renderTodos(){
   const box = $('todo-list'); if (!box) return;
   if (plLinked() && typeof plFocusEdit !== 'function') { loadPlanner().then(() => renderTodos()).catch(() => {}); }
@@ -882,7 +918,7 @@ const donateHTML = function(){
         ${pay || `<p class="muted">${esc(t('donate_none'))}</p>`}<p class="small faint">${esc(t('donate_thanks'))}</p></section>
       <section class="card pad stack"><div class="row between"><h2 style="font-size:1.2rem" ${cms('comp_title')}>${esc(ctext('comp_title'))}</h2>${state.companion ? `<span class="badge">${ic('heart', 'sm')} ${esc(t('comp_badge'))}</span>` : ''}</div>
         <p class="muted" ${cms('comp_text')}>${esc(ctext('comp_text'))}</p><div><div class="label">${esc(t('comp_perks'))}</div><ul class="perks"><li ${cms('comp_perk4')}>${esc(ctext('comp_perk4'))}</li><li ${cms('comp_perk1')}>${esc(ctext('comp_perk1'))}</li><li ${cms('comp_perk2')}>${esc(ctext('comp_perk2'))}</li><li ${cms('comp_perk3')}>${esc(ctext('comp_perk3'))}</li></ul></div>
-        ${branding.focusCodeHash ? `<div><div class="label">${esc(t('comp_steps_title'))}</div><ol class="steps"><li>${esc(t('comp_step1'))}</li><li>${esc(t('comp_step2'))}</li><li>${esc(t('comp_step3'))}</li></ol></div>${unlockBox()}` : ''}${state.companion || unlockValid() ? `<p class="small" style="color:var(--live)">${esc(t('comp_active'))}</p>` : ''}${compPayHTML()}${compClaimHTML()}</section></div>`;
+        ${branding.focusCodeHash ? `<div><div class="label">${esc(t('comp_steps_title'))}</div><ol class="steps"><li>${esc(t('comp_step1'))}</li><li>${esc(t('comp_step2'))}</li><li>${esc(t('comp_step3'))}</li></ol></div>${unlockBox()}` : ''}${state.companion || unlockValid() ? `<p class="small" style="color:var(--live)">${esc(t('comp_active'))}</p>` : ''}${compPayHTML()}${compClaimHTML()}${state.companion ? '' : trialBox()}</section></div>`;
   return body;
 };
 PAGES.donate = function(){ page(`${head('donate_title', 'donate_sub', '', 'lantern', 3)}${donateHTML()}${thanksCard()}`); };

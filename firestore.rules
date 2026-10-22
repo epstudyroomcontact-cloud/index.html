@@ -28,6 +28,28 @@ service cloud.firestore {
         && d.expires > request.time
         && d.expires <= request.time + duration.value(int(c.get('moonRewardDays', 30)) + 1, 'd');
     }
+    // Mã dùng thử: khách đã đăng nhập nhập mã → được dùng như Người đồng hành (Planner, Focus không giới hạn) trong số ngày admin đặt cho mã.
+    // Quyền dùng thử còn khi: admin đặt hạn riêng (endsAt) còn tương lai, HOẶC mã vẫn tồn tại, đang bật và chưa hết `days` ngày tính từ lúc kích hoạt (startedAt, giờ máy chủ).
+    function trialOk(uid) {
+      let p = /databases/$(database)/documents/trial_redemptions/$(uid);
+      return exists(p) && trialLive(get(p).data);
+    }
+    function trialLive(r) {
+      return r.get('endsAt', null) is timestamp ? r.endsAt > request.time : trialCodeLive(r.code, r.startedAt);
+    }
+    function trialCodeLive(code, started) {
+      let p = /databases/$(database)/documents/trial_codes/$(code);
+      return exists(p) && get(p).data.active == true && started + duration.value(get(p).data.days, 'd') > request.time;
+    }
+    // Kích hoạt mã: mã có thật, đang bật, chưa quá hạn nhập (expiresAt), và lượt dùng của mã được cộng đúng 1 trong cùng lần ghi, không vượt maxUses (0 = không giới hạn).
+    function trialRedeemOk(code) {
+      let c = get(/databases/$(database)/documents/trial_codes/$(code)).data;
+      let n = getAfter(/databases/$(database)/documents/trial_codes/$(code)).data.get('uses', 0);
+      return c.active == true
+        && (c.get('expiresAt', null) == null || c.expiresAt > request.time)
+        && n == c.get('uses', 0) + 1
+        && (c.get('maxUses', 0) == 0 || n <= c.maxUses);
+    }
     function moonStreakOk(uid) {
       let m = get(/databases/$(database)/documents/users/$(uid)).data.moon;
       return m.get('best', 0) >= 60 || m.days.size() >= 60;
@@ -125,10 +147,41 @@ service cloud.firestore {
       allow delete: if isAdmin() || (signedIn() && request.auth.uid == uid);
     }
 
-    // Planner tuần riêng tư của Companions: chỉ chính chủ đọc/ghi, và chỉ khi là Companion còn hạn (admin dùng thử được). Admin không đọc được của người khác.
+    // Planner tuần riêng tư của Companions: chỉ chính chủ đọc/ghi, và chỉ khi là Companion còn hạn hoặc đang dùng thử bằng mã (admin dùng thử được). Admin không đọc được của người khác.
     match /users/{uid}/planner/{wk} {
       allow read, write: if signedIn() && request.auth.uid == uid
-        && (isAdmin() || (exists(/databases/$(database)/documents/companions/$(request.auth.uid)) && compActive(request.auth.uid)));
+        && (isAdmin() || (exists(/databases/$(database)/documents/companions/$(request.auth.uid)) && compActive(request.auth.uid))
+            || trialOk(request.auth.uid));
+    }
+
+    // Mã dùng thử: khách KHÔNG liệt kê và KHÔNG đọc được mã nào (kể cả đoán tên mã); chỉ admin tạo/sửa/xoá.
+    // Ngoại lệ: người đã kích hoạt một mã đọc được đúng mã đó (để biết số ngày dùng thử còn lại).
+    // Người dùng chỉ được tăng `uses` thêm đúng 1, và chỉ trong cùng lần ghi tạo trial_redemptions/<uid> của chính họ cho mã này.
+    match /trial_codes/{code} {
+      allow get: if isAdmin()
+        || (signedIn() && exists(/databases/$(database)/documents/trial_redemptions/$(request.auth.uid))
+            && get(/databases/$(database)/documents/trial_redemptions/$(request.auth.uid)).data.code == code);
+      allow list, create, delete: if isAdmin();
+      allow update: if isAdmin()
+        || (signedIn()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uses'])
+            && request.resource.data.uses == resource.data.get('uses', 0) + 1
+            && !exists(/databases/$(database)/documents/trial_redemptions/$(request.auth.uid))
+            && getAfter(/databases/$(database)/documents/trial_redemptions/$(request.auth.uid)).data.code == code);
+    }
+    // Lượt kích hoạt: mỗi tài khoản MỘT lần (id = uid; người dùng không sửa/xoá được nên không tự gia hạn hay dùng lại).
+    // startedAt phải là giờ máy chủ. Admin xem, đặt hạn riêng (endsAt), hoặc xoá để cho phép tài khoản đó dùng thử lại.
+    match /trial_redemptions/{uid} {
+      allow get: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow list, update, delete: if isAdmin();
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['uid', 'code', 'startedAt', 'email'])
+        && request.resource.data.uid == uid
+        && request.resource.data.startedAt == request.time
+        && request.resource.data.get('email', '') == request.auth.token.get('email', '')
+        && request.resource.data.code is string
+        && request.resource.data.code.matches('^[A-Z0-9-]{4,32}$')
+        && trialRedeemOk(request.resource.data.code);
     }
 
     // Email nhắc lịch (trước đây là Challenge 30 ngày): id = email → tạo lần 2 bị từ chối (chống trùng)

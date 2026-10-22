@@ -5,7 +5,7 @@
    ========================================================= */
 const A_TABS = [
   ['overview', 'chart', 'Tổng quan'], ['site', 'sliders', 'Giao diện & Menu'], ['schedule', 'calendar', 'Lịch live'], ['blog', 'pen', 'Bài viết'], ['music', 'volume', 'Nhạc'],
-  ['products', 'bag', 'Sản phẩm'], ['gear', 'tag', 'Đồ mình dùng'], ['orders', 'box', 'Đơn hàng'], ['coupons', 'tag', 'Mã giảm giá'], ['content', 'info', 'Nội dung & FAQ'],
+  ['products', 'bag', 'Sản phẩm'], ['gear', 'tag', 'Đồ mình dùng'], ['orders', 'box', 'Đơn hàng'], ['coupons', 'tag', 'Mã giảm giá'], ['trials', 'timer', 'Mã dùng thử'], ['content', 'info', 'Nội dung & FAQ'],
   ['reviews', 'star', 'Đánh giá'], ['payments', 'credit', 'Thanh toán & Ủng hộ'], ['members', 'users', 'Thành viên']
 ];
 const A = html => { const b = $('admin-body'); if (b) b.innerHTML = html; };
@@ -36,9 +36,9 @@ PAGES.admin = function(){
       : `<p class="muted small">Chỉ tài khoản <b>${esc(ADMIN_EMAIL)}</b> mới có quyền quản trị. Bạn đang đăng nhập bằng <b>${esc(state.user.email)}</b>.</p><button class="btn secondary" data-act="signout">${ic('logout', 'sm')} Đăng xuất</button>`}</div></div>`);  const tab = A_TABS.some(x => x[0] === route.args[0]) ? route.args[0] : 'overview';
   page(`<div class="page-head"><div><h1>Trang quản trị</h1><p>Tuỳ chỉnh giao diện, nội dung, sản phẩm và đơn hàng của bạn.</p><p class="faint small">Phiên bản web: ${esc(BUILD)}</p></div><button class="btn primary" data-act="startEdit">${ic('pen', 'sm')} Sửa chữ & ảnh trực tiếp trên trang</button></div>
     <nav class="a-tabs">${A_TABS.map(([k, icn, l]) => `<a href="#/admin/${k}" class="${tab === k ? 'on' : ''}">${ic(icn, 'sm')} ${esc(l)}${k === 'members' && state.compPending ? ` <span class="count">${state.compPending}</span>` : ''}</a>`).join('')}</nav><div id="admin-body"></div>`);
-  ({ overview:tabOverview, site:tabSite, schedule:tabSchedule, blog:tabBlog, music:tabMusic, products:tabProducts, gear:tabGear, orders:tabOrders, coupons:tabCoupons, content:tabContent, reviews:tabReviews, payments:tabPayments, members:tabMembers })[tab]();
+  ({ overview:tabOverview, site:tabSite, schedule:tabSchedule, blog:tabBlog, music:tabMusic, products:tabProducts, gear:tabGear, orders:tabOrders, coupons:tabCoupons, trials:tabTrials, content:tabContent, reviews:tabReviews, payments:tabPayments, members:tabMembers })[tab]();
 };
-const reloadTab = () => { const f = ({ overview:tabOverview, site:tabSite, schedule:tabSchedule, blog:tabBlog, music:tabMusic, products:tabProducts, gear:tabGear, orders:tabOrders, coupons:tabCoupons, content:tabContent, reviews:tabReviews, payments:tabPayments, members:tabMembers })[route.args[0] || 'overview']; if (f) f(); };
+const reloadTab = () => { const f = ({ overview:tabOverview, site:tabSite, schedule:tabSchedule, blog:tabBlog, music:tabMusic, products:tabProducts, gear:tabGear, orders:tabOrders, coupons:tabCoupons, trials:tabTrials, content:tabContent, reviews:tabReviews, payments:tabPayments, members:tabMembers })[route.args[0] || 'overview']; if (f) f(); };
 /* chỉ cần SỐ lượng thì đừng đọc cả tài liệu (hồ sơ người dùng khá nặng): dùng count() nếu bản Firebase có, không thì đọc tối đa 50 và ghi "50+" */
 const countDocs = async col => {
   if (DEMO) return { length:0, more:false };
@@ -112,7 +112,7 @@ async function fallbackNow(){
 }
 async function backupNow(){
   const { site, postsFull } = await gatherSite();
-  const extra = {}; for (const c of ['coupons', 'companions']) { try { extra[c] = (await db.collection(c).get()).docs.map(d => ({ id:d.id, ...d.data() })); } catch (e) {} }
+  const extra = {}; for (const c of ['coupons', 'companions', 'trial_codes', 'trial_redemptions']) { try { extra[c] = (await db.collection(c).get()).docs.map(d => ({ id:d.id, ...d.data() })); } catch (e) {} }
   const blob = new Blob([JSON.stringify(plain({ exportedAt:new Date().toISOString(), site, posts:postsFull, ...extra }), null, 1)], { type:'application/json' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'epstudyroom-backup-' + DT.now().toFormat('yyyy-MM-dd') + '.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 }
@@ -449,6 +449,76 @@ async function tabCoupons(){
     <div class="f2 mt-s">${fld('Đơn tối thiểu VND', 'cp-minvnd', '', 'type="number" min="0"')}${fld('Đơn tối thiểu USD', 'cp-minusd', '', 'type="number" min="0" step="0.01"')}</div><div class="row mt"><button class="btn primary" data-act="saveCoupon">Lưu mã</button></div>`)}
     ${aCard('Các mã hiện có', list.length ? list.map(c => `<div class="ord-row"><div><b class="mono">${esc(c.id)}</b> ${c.active === false ? '<span class="badge muted">tắt</span>' : '<span class="badge live">đang bật</span>'}<div class="small muted">${c.type === 'percent' ? c.value + '%' : money(c.valueVND, 'VND') + ' / ' + money(c.valueUSD, 'USD')}${c.expires ? ' · hết hạn ' + esc(c.expires) : ''}</div></div><span class="row"><button class="btn secondary sm" data-act="toggleCoupon" data-id="${esc(c.id)}" data-on="${c.active === false ? 1 : 0}">${c.active === false ? 'Bật' : 'Tắt'}</button><button class="btn danger sm" data-act="delCoupon" data-id="${esc(c.id)}">Xoá</button></span></div>`).join('') : '<p class="muted">Chưa có mã nào.</p>')}`);
 }
+
+/* ---------------- Mã dùng thử ----------------
+   trial_codes/<MÃ>: { active, days (số ngày dùng thử tính từ lúc khách kích hoạt), maxUses (0 = không giới hạn), uses, expiresAt (hạn cuối để nhập mã, null = không hạn), label }
+   trial_redemptions/<uid>: { uid, code, startedAt, email, endsAt? (hạn riêng admin đặt cho người này) }
+   Quyền thật nằm ở firestore.rules: khách không đọc được danh sách mã, kích hoạt được kiểm tra trên máy chủ. */
+let editTrial = null;
+const TRIAL_RE = /^[A-Z0-9-]{4,32}$/;
+const trialEndMs = (r, codes) => { if (r.endsAt) return tsMs(r.endsAt); const c = codes.find(x => x.id === r.code); return c && c.active === true ? tsMs(r.startedAt) + (+c.days || 0) * 864e5 : 0; };
+const vnDay = ms => DT.fromMillis(ms).setZone('Asia/Ho_Chi_Minh').toISODate();
+async function tabTrials(){
+  A('<p class="muted">Đang tải…</p>'); let codes = [], reds = [];
+  try { codes = await getAll('trial_codes'); reds = await getAll('trial_redemptions', 'startedAt', 300); } catch (e) { return fail(e); }
+  window._trialCodes = codes; window._trialReds = reds;
+  const e = editTrial || {}, now = Date.now();
+  const form = aCard(e.id ? `Sửa mã <span class="mono">${esc(e.id)}</span>` : 'Tạo mã dùng thử', `<p class="small muted">Khách đã đăng nhập nhập mã ở trang Planner hoặc Support → được dùng như Người đồng hành (Planner tuần, Focus không giới hạn) trong số ngày bạn đặt, tính từ lúc họ kích hoạt. Mỗi tài khoản chỉ dùng thử một lần.</p>
+    <div class="f3">${fld('Mã (chữ in hoa, số, dấu -)', 'tr-code', e.id || '', 'style="text-transform:uppercase" maxlength="32" autocomplete="off"', '4–32 ký tự. Đổi mã thì người đang dùng mã cũ được chuyển sang mã mới.')}${fld('Số ngày dùng thử', 'tr-days', e.days ?? 7, 'type="number" min="1" max="365"', 'Tính từ lúc khách kích hoạt.')}${fld('Số lượt tối đa', 'tr-max', e.maxUses ?? 0, 'type="number" min="0" max="100000"', '0 = không giới hạn.')}</div>
+    <div class="f3 mt-s">${fld('Hạn cuối để nhập mã (tuỳ chọn)', 'tr-exp', e.expiresAt ? vnDay(tsMs(e.expiresAt)) : '', 'type="date"', 'Hết ngày này (giờ Việt Nam) thì không kích hoạt mới được nữa.')}${fld('Ghi chú (tuỳ chọn)', 'tr-label', e.label || '', 'maxlength="80"', 'Người đã kích hoạt mã có thể thấy ghi chú này, đừng ghi điều bí mật.')}<div class="field"><label class="label">Trạng thái</label><label class="row small" style="font-weight:700"><input type="checkbox" id="tr-on" ${e.active === false ? '' : 'checked'}> Đang bật</label></div></div>
+    <div class="row mt"><button class="btn secondary" data-act="trialGen">${ic('sliders', 'sm')} Tạo mã ngẫu nhiên</button><button class="btn primary" data-act="trialSave">${e.id ? 'Lưu thay đổi' : 'Tạo mã'}</button>${e.id ? '<button class="btn ghost" data-act="trialCancel">Huỷ sửa</button>' : ''}</div>`);
+  const using = id => reds.filter(r => r.code === id && trialEndMs(r, codes) > now).length;
+  const list = aCard(`Các mã (${codes.length})`, codes.length ? codes.map(c => `<div class="ord-row"><div><b class="mono">${esc(c.id)}</b> ${c.active === true ? '<span class="badge live">đang bật</span>' : '<span class="badge muted">tắt</span>'}${c.expiresAt && tsMs(c.expiresAt) < now ? ' <span class="badge muted">hết hạn nhập</span>' : ''}
+      <div class="small muted">${+c.days || 0} ngày dùng thử · đã dùng ${+c.uses || 0}${+c.maxUses ? ' / ' + c.maxUses : ' (không giới hạn)'} lượt · ${using(c.id)} người đang dùng${c.expiresAt ? ' · nhập trước hết ngày ' + esc(DT.fromISO(vnDay(tsMs(c.expiresAt))).toFormat('dd/MM/yyyy')) : ''}</div>${c.label ? `<div class="small faint">${esc(c.label)}</div>` : ''}</div>
+      <span class="row"><button class="btn secondary sm" data-act="trialEdit" data-id="${esc(c.id)}">Sửa</button><button class="btn secondary sm" data-act="trialToggle" data-id="${esc(c.id)}" data-on="${c.active === true ? 0 : 1}">${c.active === true ? 'Tắt' : 'Bật'}</button><button class="btn danger sm" data-act="trialDel" data-id="${esc(c.id)}">Xoá</button></span></div>`).join('') : '<p class="muted">Chưa có mã nào.</p>',
+    '<span class="small faint">Tắt hoặc xoá mã: không ai kích hoạt mới được, và người đang dùng mã đó mất quyền ngay (bật lại thì ai còn trong hạn dùng tiếp).</span>');
+  const people = aCard(`Người đã kích hoạt (${reds.length})`, reds.length ? reds.map(r => { const end = trialEndMs(r, codes), live = end > now;
+      return `<div class="ord-row"><div><b>${esc(r.email || r.uid || r.id)}</b> ${live ? '<span class="badge live">đang dùng thử</span>' : '<span class="badge muted">đã hết</span>'}${r.endsAt ? ' <span class="badge">hạn riêng</span>' : ''}
+        <div class="small muted">mã <span class="mono">${esc(r.code || '')}</span> · kích hoạt ${esc(dateStr(r.startedAt))}${end ? ' · ' + (live ? 'đến ' : 'hết lúc ') + esc(dateStr(end)) : ''}</div></div>
+        <span class="row"><button class="btn secondary sm" data-act="trialExtend" data-id="${esc(r.id)}" data-d="7">+7 ngày</button><button class="btn secondary sm" data-act="trialSetEnd" data-id="${esc(r.id)}">Đặt ngày hết</button>${r.endsAt ? `<button class="btn ghost sm" data-act="trialFollow" data-id="${esc(r.id)}">Theo mã</button>` : ''}${live ? `<button class="btn secondary sm" data-act="trialStop" data-id="${esc(r.id)}">Dừng ngay</button>` : ''}<button class="btn danger sm" data-act="trialReset" data-id="${esc(r.id)}" title="Xoá lượt kích hoạt: tài khoản này được nhập mã dùng thử lại">Xoá</button></span></div>`; }).join('') : '<p class="muted">Chưa có ai kích hoạt.</p>',
+    '<span class="small faint">"Xoá" = cho tài khoản đó dùng thử lại.</span>');
+  A(form + list + people);
+}
+const trialRed = id => (window._trialReds || []).find(r => r.id === id) || {};
+const setTrialEnd = (id, data) => DEMO ? (toast('Chế độ xem thử'), Promise.resolve()) : db.collection('trial_redemptions').doc(id).update(data).then(() => { ok(); tabTrials(); }).catch(fail);
+Object.assign(ACTIONS, {
+  trialGen: () => { const ch = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', a = new Uint32Array(8); crypto.getRandomValues(a); const s = [...a].map(n => ch[n % ch.length]).join(''); $('tr-code').value = 'TRY-' + s.slice(0, 4) + '-' + s.slice(4); },
+  trialEdit: el => { editTrial = (window._trialCodes || []).find(c => c.id === el.dataset.id) || null; tabTrials(); window.scrollTo({ top:0, behavior:'smooth' }); },
+  trialCancel: () => { editTrial = null; tabTrials(); },
+  trialSave: async () => {
+    const id = val('tr-code').toUpperCase().replace(/\s+/g, ''), days = Math.round(+val('tr-days')), maxUses = Math.round(+val('tr-max') || 0), exp = val('tr-exp'), old = editTrial && editTrial.id;
+    if (!TRIAL_RE.test(id)) return alert('Mã chỉ gồm chữ in hoa A–Z, số và dấu -, dài 4–32 ký tự.');
+    if (!(days >= 1 && days <= 365)) return alert('Số ngày dùng thử phải từ 1 đến 365.');
+    if (!(maxUses >= 0)) return alert('Số lượt tối đa phải từ 0 trở lên (0 = không giới hạn).');
+    if (DEMO) return toast('Chế độ xem thử: chưa lưu thật');
+    const data = { active:$('tr-on').checked, days, maxUses, label:val('tr-label'), expiresAt:exp ? firebase.firestore.Timestamp.fromMillis(DT.fromISO(exp, { zone:'Asia/Ho_Chi_Minh' }).endOf('day').toMillis()) : null, updatedAt:TS() };
+    try {
+      const ref = db.collection('trial_codes').doc(id);
+      if (id !== old && (await ref.get()).exists) return alert('Mã ' + id + ' đã có rồi. Chọn mã khác.');
+      if (!old) { await ref.set({ ...data, uses:0, createdAt:TS() }); }
+      else if (id === old) { await ref.set(data, { merge:true }); }
+      else {                                    // đổi mã: tạo mã mới giữ số lượt đã dùng, chuyển người đang dùng sang mã mới, rồi xoá mã cũ
+        if (!confirm(`Đổi mã ${old} thành ${id}? Mã cũ sẽ không dùng được nữa; người đã kích hoạt mã cũ được chuyển sang mã mới.`)) return;
+        await ref.set({ ...data, uses:+editTrial.uses || 0, createdAt:editTrial.createdAt || TS() });
+        const rs = await db.collection('trial_redemptions').where('code', '==', old).get();
+        for (let i = 0; i < rs.docs.length; i += 400) { const b = db.batch(); rs.docs.slice(i, i + 400).forEach(d => b.update(d.ref, { code:id })); await b.commit(); }
+        await db.collection('trial_codes').doc(old).delete();
+      }
+      editTrial = null; ok(old ? 'Đã lưu mã ' + id : 'Đã tạo mã ' + id + '. Copy mã để gửi cho khách.'); tabTrials();
+    } catch (e) { fail(e); }
+  },
+  trialToggle: el => (DEMO ? (toast('Chế độ xem thử'), Promise.resolve()) : db.collection('trial_codes').doc(el.dataset.id).update({ active:el.dataset.on === '1', updatedAt:TS() })).then(tabTrials).catch(fail),
+  trialDel: el => confirm(`Xoá mã ${el.dataset.id}? Người đang dùng thử bằng mã này mất quyền ngay (trừ người có hạn riêng).`) && (DEMO ? toast('Chế độ xem thử') : db.collection('trial_codes').doc(el.dataset.id).delete().then(() => { if (editTrial && editTrial.id === el.dataset.id) editTrial = null; tabTrials(); }).catch(fail)),
+  trialExtend: el => { const r = trialRed(el.dataset.id), base = Math.max(Date.now(), trialEndMs(r, window._trialCodes || [])); setTrialEnd(el.dataset.id, { endsAt:firebase.firestore.Timestamp.fromMillis(base + +el.dataset.d * 864e5) }); },
+  trialSetEnd: el => {
+    const r = trialRed(el.dataset.id), cur = trialEndMs(r, window._trialCodes || []), v = prompt('Dùng thử đến hết ngày nào? (YYYY-MM-DD, giờ Việt Nam)', cur ? vnDay(cur) : DT.now().plus({ days:7 }).toISODate());
+    if (v === null) return; const d = DT.fromISO(v.trim(), { zone:'Asia/Ho_Chi_Minh' }); if (!d.isValid) return alert('Ngày không hợp lệ, nhập dạng 2026-12-31');
+    setTrialEnd(el.dataset.id, { endsAt:firebase.firestore.Timestamp.fromMillis(d.endOf('day').toMillis()) });
+  },
+  trialFollow: el => setTrialEnd(el.dataset.id, { endsAt:DEL() }),
+  trialStop: el => confirm('Dừng dùng thử của tài khoản này ngay?') && setTrialEnd(el.dataset.id, { endsAt:firebase.firestore.Timestamp.now() }),
+  trialReset: el => confirm('Xoá lượt kích hoạt này? Tài khoản đó mất quyền dùng thử hiện tại và được nhập mã dùng thử lại.') && (DEMO ? toast('Chế độ xem thử') : db.collection('trial_redemptions').doc(el.dataset.id).delete().then(tabTrials).catch(fail)),
+});
 
 /* ---------------- Nội dung & FAQ ---------------- */
 let adminFaq = [];

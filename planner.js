@@ -91,7 +91,7 @@ const PL = { off:0, key:'', tasks:null, state:'idle', save:'', prev:null, timer:
 const plWeekStart = off => DT.now().setZone(userTZ).plus({ weeks:off }).startOf('week');
 const plKey = off => { const d = plWeekStart(off); return `${d.weekYear}-W${d.weekNumber}`; };
 const plDaysLeft = () => Math.ceil(DT.fromISO(state.companionUntil, { zone:userTZ }).endOf('day').diff(DT.now().setZone(userTZ), 'days').days);
-const plAccess = () => DEMO || state.companion || state.isAdmin;
+const plAccess = () => DEMO || state.companion || state.isAdmin || trialActive();
 const plRef = key => db.collection('users').doc(state.user.uid).collection('planner').doc(key);
 const plId = () => Math.random().toString(36).slice(2, 9);
 const hm = v => { const p = String(v || '').split(':'); return (parseInt(p[0], 10) || 0) * 60 + (parseInt(p[1], 10) || 0); };
@@ -293,7 +293,7 @@ function plUpsell(){
   const login = !state.user;
   return `${head('pl_title', '', '', 'moonwalk', 4)}<section class="card pad stack" style="max-width:640px"><div class="row"><span class="badge">${ic('heart', 'sm')} ${esc(t('comp_badge'))}</span></div>
     <h2 style="font-size:1.3rem">${esc(t('pl_up_title'))}</h2><p class="muted">${esc(login ? t('pl_up_login') : state.companionUntil ? t('pl_up_expired', { d:state.companionUntil }) : t('pl_up_text'))}</p>
-    ${login ? `<a class="btn primary" href="#/account">${esc(t('club_login_btn'))}</a>` : `${compClaimHTML()}<a class="btn secondary" href="#/donate">${esc(t('pl_up_cta'))}</a>`}</section>
+    ${login ? `<a class="btn primary" href="#/account">${esc(t('club_login_btn'))}</a>` : `${trialBox()}${compClaimHTML()}<a class="btn secondary" href="#/donate">${esc(t('pl_up_cta'))}</a>`}</section>
     <div class="pl-previewhead"><span class="badge">${ic('lock', 'sm')} ${esc(t('pl_preview'))}</span><small class="faint">${esc(t('pl_preview_note'))}</small></div>
     <div class="pl-locked" inert aria-hidden="true">${plPreview()}</div>`;
 }
@@ -380,7 +380,7 @@ PAGES.planner = function(){
   if (!state.user && !DEMO) return page(plUpsell());
   if (!plAccess()) { refreshCompanion().then(ch => ch && render(true)); return page(plUpsell()); }
   if (PL.uid !== state.user.uid) { clearTimeout(PL.timer); PL.seq++; Object.assign(PL, { uid:state.user.uid, off:0, key:'', tasks:null, state:'idle', save:'', prev:null, sel:null, slow:false, hist:{}, prefs:null }); }   // đổi tài khoản trên cùng trình duyệt: không để lộ planner của người trước
-  if (!state.companionUntil && !state.isAdmin && !DEMO) refreshCompanion().then(ch => ch && render(true));       // lấy ngày hết hạn để hiện nhắc gia hạn
+  if (!state.companionUntil && !state.isAdmin && !DEMO && !trialActive()) refreshCompanion().then(ch => ch && render(true));       // lấy ngày hết hạn để hiện nhắc gia hạn
   plLoad(); plRemStart();
   const ws = plWeekStart(PL.off), nav = `<div class="row between" style="margin-bottom:16px;flex-wrap:wrap;gap:10px"><div class="week-nav"><button class="btn secondary icon" data-act="plWeek" data-d="-1">${ic('chev-l')}</button><span class="lbl">${ws.toFormat('dd/MM')} – ${ws.plus({ days:6 }).toFormat('dd/MM/yyyy')}</span><button class="btn secondary icon" data-act="plWeek" data-d="1">${ic('chev-r')}</button>${PL.off ? `<button class="btn ghost sm" data-act="plWeek" data-d="0">${esc(t('pl_this'))}</button>` : ''}</div>
     <div class="row"><span class="small faint" id="pl-status">${PL.save === 'saved' ? '✓ ' + esc(t('pl_saved')) : PL.save === 'saving' ? esc(t('pl_saving')) : ''}</span><button class="btn primary" data-act="plNew">${ic('plus', 'sm')} ${esc(t('pl_add'))}</button></div></div>`;
@@ -388,7 +388,7 @@ PAGES.planner = function(){
   if (PL.state === 'error') body = `<p class="muted">${esc(t('pl_load_err'))}</p><button class="btn primary" data-act="plRetry">${esc(t('club_retry'))}</button>${PL.err ? `<p class="small faint">${esc(PL.err)}</p>` : ''}`;
   else if (!PL.tasks) body = `<p class="muted">${esc(t(PL.slow ? 'pl_slow' : 'pl_loading'))}</p>${PL.slow ? `<button class="btn primary" data-act="plRetry">${esc(t('club_retry'))}</button>` : ''}`;
   else { const S = plStats(PL.tasks, PL.off); body = `${plKpis(S)}${plQuickBar()}<p class="small faint pl-hint" style="margin:4px 0 10px">${esc(t('pl_hint'))}</p><div class="pl-main"><div class="card pad pl-gridcard">${plGrid()}</div>${plSide()}</div>${plAnalysis(S)}`; }
-  page(`${head('pl_title', 'pl_sub', '', 'moonwalk', 4)}${hintNote('new_pl')}${state.companionUntil && !state.isAdmin ? (plDaysLeft() <= 5 ? `<div class="card pad stack" style="margin-bottom:14px"><p class="small">${esc(t('pl_soon', { d:state.companionUntil }))}</p>${(() => { const r = plRecent(); return r && r.n ? `<p class="small"><b>${esc(t('pl_soon_stats', { n:r.n, t:fmtMin(r.t) }))}</b></p>` : ''; })()}${compClaimHTML()}</div>` : `<p class="small muted" style="margin:-6px 0 12px">${esc(t('pl_until', { d:state.companionUntil }))}</p>`) : ''}${nav}${body}`);
+  page(`${head('pl_title', 'pl_sub', '', 'moonwalk', 4)}${hintNote('new_pl')}${trialActive() && !state.companion && !state.isAdmin ? `<p class="small muted" style="margin:-6px 0 12px">${esc(t('trial_active', { d:trialEnd() }))} <a href="#/donate">${esc(t('pl_up_cta'))}</a></p>` : ''}${state.companionUntil && !state.isAdmin ? (plDaysLeft() <= 5 ? `<div class="card pad stack" style="margin-bottom:14px"><p class="small">${esc(t('pl_soon', { d:state.companionUntil }))}</p>${(() => { const r = plRecent(); return r && r.n ? `<p class="small"><b>${esc(t('pl_soon_stats', { n:r.n, t:fmtMin(r.t) }))}</b></p>` : ''; })()}${compClaimHTML()}</div>` : `<p class="small muted" style="margin:-6px 0 12px">${esc(t('pl_until', { d:state.companionUntil }))}</p>`) : ''}${nav}${body}`);
 };
 /* ---------- hộp thoại thêm / sửa ---------- */
 function plForm(x, isNew, day, start){
