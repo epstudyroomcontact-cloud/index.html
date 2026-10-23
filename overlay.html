@@ -82,6 +82,7 @@ html.mv .tc{opacity:1}
 .tset .src{font-size:13px;opacity:.95}
 .tset .ok{color:#7dffb0;margin-left:.4rem}
 .tset small{opacity:.7;font-size:11px}
+.tset input[type=range]{padding:0;accent-color:var(--accent)}
 .tc button{font:800 15px 'Nunito',sans-serif;border:0;border-radius:.6rem;padding:.4rem .6rem;background:rgba(0,0,0,.65);color:#fff;cursor:pointer}
 html.clock body{padding:.3rem;display:flex;align-items:flex-end;justify-content:flex-end}
 html.clock .card{padding:.45em .9em .5em;font-size:calc(var(--cs) * 5vw);text-align:right}
@@ -365,7 +366,8 @@ async function refresh(){
    ↑/↓ cộng/trừ 1 phút, R = làm lại từ đầu; rê chuột vào cũng hiện nút. Trạng thái được nhớ, tải lại trang vẫn chạy tiếp.
    start=auto: như mặc định.
    scene_focus=study&scene_break=Break: tự đổi cảnh OBS khi sang hiệp (cần Page permissions = Advanced access to OBS).
-   sound=1: chuông ngắn khi hết mỗi hiệp. next=0: ẩn dòng "Next". */
+   Âm báo bật sẵn: chuông nhẹ đi xuống khi vào giờ nghỉ, đi lên khi vào lại tập trung (bật/tắt, âm lượng, thử âm trong bảng ⚙).
+   sound=0 tắt, sound=break chỉ báo khi vào nghỉ, vol=0…100. next=0: ẩn dòng "Next". */
 if (Q.get('view') === 'timer') {
   root.classList.add('timer'); root.style.setProperty('--ts', OPT.size);
   if (!Q.has('theme')) root.dataset.theme = 'clear';
@@ -389,13 +391,21 @@ if (Q.get('view') === 'timer') {
     const nm = g.type === 'focus' ? Q.get('scene_focus') : g.type === 'prep' ? (Q.get('scene_prep') || Q.get('scene_focus')) : Q.get('scene_break');
     try { if (nm && window.obsstudio && window.obsstudio.setCurrentScene) window.obsstudio.setCurrentScene(nm); } catch (e) {}
   };
+  const SKEY = 'ep-overlay-timer-sound';                // âm báo: chỉnh trong bảng ⚙ (địa chỉ sound=… / vol=… ưu tiên hơn)
+  const snd = { on:true, vol:70, when:'all', ...(store.get(SKEY) || {}) };
+  if (Q.has('sound')) { snd.on = Q.get('sound') !== '0'; if (Q.get('sound') === 'break') snd.when = 'break'; }
+  if (Q.has('vol')) snd.vol = Math.max(0, Math.min(100, +Q.get('vol') || 0));
+  const kindOf = g => !g ? 'end' : g.type === 'short' || g.type === 'long' ? 'break' : 'focus';
+  const NOTES = { break:[1319, 1047, 784], focus:[784, 1047, 1319], end:[1047, 1319, 1568, 2093] };
   let actx = null;
-  const chime = () => {
-    if (Q.get('sound') !== '1') return;
-    try { actx = actx || new (window.AudioContext || window.webkitAudioContext)();
-      [0, .28, .56].forEach(t => { const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = 880; o.connect(g); g.connect(actx.destination);
-        g.gain.setValueAtTime(.0001, actx.currentTime + t); g.gain.exponentialRampToValueAtTime(.3, actx.currentTime + t + .02); g.gain.exponentialRampToValueAtTime(.0001, actx.currentTime + t + .22);
-        o.start(actx.currentTime + t); o.stop(actx.currentTime + t + .25); }); } catch (e) {}
+  const chime = (kind, force) => {                       // chuông nhẹ: vào nghỉ đi xuống, vào tập trung đi lên, hết buổi 4 nốt
+    if (!force && (!snd.on || (snd.when === 'break' && kind !== 'break'))) return;
+    try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume();
+      const v = .4 * snd.vol / 100, t0 = actx.currentTime + .05; if (!v) return;
+      NOTES[kind].forEach((f, i) => { const t = t0 + i * (kind === 'break' ? .42 : .24);
+        [[f, 1], [f * 2.76, .15]].forEach(([fq, a]) => { const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = fq; o.connect(g); g.connect(actx.destination);
+          g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v * a, t + .015); g.gain.exponentialRampToValueAtTime(.0001, t + 1.6);
+          o.start(t); o.stop(t + 1.7); }); }); } catch (e) {}
   };
   function go(i, keepRun){                               // sang hiệp i (giữ trạng thái chạy / dừng)
     const segs = plan(); flash = Date.now();
@@ -427,14 +437,33 @@ if (Q.get('view') === 'timer') {
   const nameOf = g => g.type === 'focus' ? (g.name || tr(T.session, { n:g.n, t:plan().filter(x => x.type === 'focus').length })) : labelOf(g);
   // Nút + bảng ⚙ nằm ngoài thẻ (thẻ vẽ lại 4 lần/giây, nút trong đó sẽ bị thay mất giữa lúc bấm)
   const V = Q.get('ui') !== 'en';                       // bảng điều khiển cho người stream: mặc định tiếng Việt (ui=en để đổi)
-  const L = V ? { set:'Cài đặt bộ đếm', focus:'Tập trung (phút)', short:'Nghỉ ngắn (phút)', long:'Nghỉ dài (phút)', rounds:'Số phiên tập trung', every:'Nghỉ dài sau mỗi … phiên', prep:'Chuẩn bị đầu buổi (phút)', save:'Lưu', admin:'Dùng lịch Admin', close:'Đóng', jump:'Nhảy tới', left:'Còn lại (phút)', setLeft:'Đặt', using:'Đang dùng', srcAdmin:'lịch Admin hôm nay', srcNone:'mẫu mặc định 50/10 (hôm nay chưa có lịch trong Admin)', srcUrl:'thời gian ghi trên địa chỉ', srcOwn:'tự đặt', srcPre:'mẫu', adminOn:'✓ Đang theo lịch Admin', okAdmin:'Đã quay về lịch Admin.', okNoAdmin:'Hôm nay chưa có lịch trong Admin nên dùng mẫu 50/10.', okSave:'Đã lưu.', okPre:'Đã chọn mẫu', okLeft:'Đã đặt lại số phút.', hint:'Bấm một mẫu để dùng ngay, hoặc gõ số rồi bấm Lưu. Bảng này hiện lên stream khi đang mở, xong bấm Đóng.' }
-              : { set:'Timer settings', focus:'Focus (min)', short:'Short break (min)', long:'Long break (min)', rounds:'Focus sessions', every:'Long break every … sessions', prep:'Warm-up (min)', save:'Save', admin:'Use Admin schedule', close:'Close', jump:'Jump to', left:'Time left (min)', setLeft:'Set', using:'Using', srcAdmin:"today's Admin schedule", srcNone:'default 50/10 (no Admin schedule today)', srcUrl:'times from the address', srcOwn:'custom', srcPre:'preset', adminOn:'✓ Following Admin schedule', okAdmin:'Back on the Admin schedule.', okNoAdmin:'No Admin schedule today, using 50/10.', okSave:'Saved.', okPre:'Preset', okLeft:'Time left updated.', hint:'Tap a preset, or type numbers and Save. This panel shows on stream while open; Close when done.' };
+  const L = V ? { set:'Cài đặt bộ đếm', focus:'Tập trung (phút)', short:'Nghỉ ngắn (phút)', long:'Nghỉ dài (phút)', rounds:'Số phiên tập trung', every:'Nghỉ dài sau mỗi … phiên', prep:'Chuẩn bị đầu buổi (phút)', save:'Lưu', admin:'Dùng lịch Admin', close:'Đóng', jump:'Nhảy tới', left:'Còn lại (phút)', setLeft:'Đặt', using:'Đang dùng', srcAdmin:'lịch Admin hôm nay', srcNone:'mẫu mặc định 50/10 (hôm nay chưa có lịch trong Admin)', srcUrl:'thời gian ghi trên địa chỉ', srcOwn:'tự đặt', srcPre:'mẫu', adminOn:'✓ Đang theo lịch Admin', okAdmin:'Đã quay về lịch Admin.', okNoAdmin:'Hôm nay chưa có lịch trong Admin nên dùng mẫu 50/10.', okSave:'Đã lưu.', okPre:'Đã chọn mẫu', okLeft:'Đã đặt lại số phút.', sndT:'Âm báo', sndOn:'🔔 Âm báo: Bật', sndOff:'🔕 Âm báo: Tắt', vol:'Âm lượng', when:'Báo khi', wAll:'Vào nghỉ + vào học', wBreak:'Chỉ khi vào nghỉ', test:'▶ Thử âm', sndHint:'Muốn người xem nghe thấy: Properties của nguồn này → tick Control audio via OBS.', hint:'Bấm một mẫu để dùng ngay, hoặc gõ số rồi bấm Lưu. Bảng này hiện lên stream khi đang mở, xong bấm Đóng.' }
+              : { set:'Timer settings', focus:'Focus (min)', short:'Short break (min)', long:'Long break (min)', rounds:'Focus sessions', every:'Long break every … sessions', prep:'Warm-up (min)', save:'Save', admin:'Use Admin schedule', close:'Close', jump:'Jump to', left:'Time left (min)', setLeft:'Set', using:'Using', srcAdmin:"today's Admin schedule", srcNone:'default 50/10 (no Admin schedule today)', srcUrl:'times from the address', srcOwn:'custom', srcPre:'preset', adminOn:'✓ Following Admin schedule', okAdmin:'Back on the Admin schedule.', okNoAdmin:'No Admin schedule today, using 50/10.', okSave:'Saved.', okPre:'Preset', okLeft:'Time left updated.', sndT:'Sound', sndOn:'🔔 Sound: On', sndOff:'🔕 Sound: Off', vol:'Volume', when:'Play when', wAll:'Breaks + focus', wBreak:'Breaks only', test:'▶ Test', sndHint:'For viewers to hear it: this source\'s Properties → tick Control audio via OBS.', hint:'Tap a preset, or type numbers and Save. This panel shows on stream while open; Close when done.' };
   const PRESETS_T = [                                    // mẫu bấm một lần là dùng (nhớ cho lần sau)
     { n:'25 / 5', c:{ focus:25, short:5, long:15, rounds:4, every:4, prep:0 } },
     { n:'50 / 10', c:{ focus:50, short:10, long:30, rounds:4, every:4, prep:0 } },
     { n:'90 / 20', c:{ focus:90, short:20, long:30, rounds:3, every:3, prep:0 } },
     { n:'60 / 10', c:{ focus:60, short:10, long:30, rounds:4, every:4, prep:0 } }
   ];
+  const sndHtml = () => `<b>${esc(L.sndT)}</b><div class="r"><button type="button" data-p="snd"${snd.on ? ' class="on"' : ''}>${esc(snd.on ? L.sndOn : L.sndOff)}</button>`
+    + `<label>${esc(L.vol)} · ${snd.vol}%<input type="range" name="vol" min="0" max="100" step="5" value="${snd.vol}"></label>`
+    + `<label>${esc(L.when)}<select name="when">${[['all', L.wAll], ['break', L.wBreak]].map(([v, t]) => `<option value="${v}"${snd.when === v ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>`
+    + `<button type="button" data-p="test">${esc(L.test)}</button></div><small>${esc(L.sndHint)}</small>`;
+  const sndSave = () => store.set(SKEY, { on:snd.on, vol:snd.vol, when:snd.when });
+  if (AUTO && Q.get('controls') !== '0') {               // tự chạy theo lịch: chỉ có nút ⚙ cho âm báo
+    const tc = document.createElement('div'); tc.className = 'tc'; tc.innerHTML = `<button type="button" data-k="settings">⚙</button>`;
+    const ps = document.createElement('form'); ps.className = 'tset'; ps.hidden = true;
+    document.body.append(tc, ps);
+    const fill = () => { ps.innerHTML = sndHtml() + `<div class="r"><button type="button" data-p="close">${esc(L.close)}</button></div>`; };
+    ps.addEventListener('submit', e => e.preventDefault());
+    ps.addEventListener('change', e => { if (e.target.name === 'vol') { snd.vol = +e.target.value; sndSave(); fill(); chime('break', true); }
+      if (e.target.name === 'when') { snd.when = e.target.value; sndSave(); } });
+    ps.addEventListener('click', e => { const k = e.target.dataset && e.target.dataset.p; if (!k) return;
+      if (k === 'snd') { snd.on = !snd.on; sndSave(); fill(); if (snd.on) chime('break', true); }
+      if (k === 'test') chime('break', true);
+      if (k === 'close') { ps.hidden = true; root.classList.remove('setopen'); } });
+    ACT.settings = () => { ps.hidden = !ps.hidden; root.classList.toggle('setopen', !ps.hidden); if (!ps.hidden) fill(); };
+  }
   if (!AUTO && Q.get('controls') !== '0') {
     const tc = document.createElement('div'); tc.className = 'tc';
     tc.innerHTML = [['prev', '⏮'], ['minus', '−1′'], ['toggle', '⏯'], ['plus', '+1′'], ['next', '⏭'], ['reset', '↺'], ['settings', '⚙']].map(([k, t]) => `<button type="button" data-k="${k}">${t}</button>`).join('');
@@ -451,7 +480,7 @@ if (Q.get('view') === 'timer') {
       ps.innerHTML = `<b>${esc(L.set)}</b><div class="src">${esc(L.using)}: <b>${esc(src())}</b>${msg ? ` <span class="ok">${esc(msg)}</span>` : ''}</div><div class="r pre">${PRESETS_T.map((x, i) => `<button type="button" data-p="pre" data-i="${i}"${saved && sig(mkPlan(saved)) === sig(mkPlan(x.c)) ? ' class="pri"' : ''}>${esc(x.n)}</button>`).join('')}</div><div class="g">${fld('focus', 1)}${fld('short', 0)}${fld('long', 0)}${fld('rounds', 1)}${fld('every', 1)}${fld('prep', 0)}</div>`
         + `<div class="r"><button type="submit" class="pri">${esc(L.save)}</button>${!custom ? `<button type="button" data-p="admin"${onAdmin ? ' class="on"' : ''}>${esc(onAdmin ? L.adminOn : L.admin)}</button>` : ''}<button type="button" data-p="close">${esc(L.close)}</button></div>`
         + `<div class="r"><label>${esc(L.jump)}<select name="jump">${segs.map((g, i) => `<option value="${i}"${i === st.idx ? ' selected' : ''}>${esc(nameOf(g))} · ${g.min}′</option>`).join('')}</select></label>`
-        + `<label>${esc(L.left)}<input type="number" name="left" min="0" max="600" step="1" value="${Math.max(0, Math.round(left() / 60e3))}"></label><button type="button" data-p="left">${esc(L.setLeft)}</button></div><small>${esc(L.hint)}</small>`; };
+        + `<label>${esc(L.left)}<input type="number" name="left" min="0" max="600" step="1" value="${Math.max(0, Math.round(left() / 60e3))}"></label><button type="button" data-p="left">${esc(L.setLeft)}</button></div><small>${esc(L.hint)}</small>` + sndHtml(); };
     const pickPreset = c => { saved = { ...c }; msg = `${L.okPre} ${(PRESETS_T.find(x => x.c === c) || {}).n || ''}`; store.set(PKEY, saved); userSegs = mkPlan(saved); apply(userSegs); fill(); };
     const apply = segs => {                              // đổi danh sách hiệp: giữ hiệp đang ở (nếu còn) và trạng thái chạy
       const i = Math.min(st.idx, segs.length - 1); st.sig = sig(segs); st.idx = i; st.done = false; st.left = segs[i].min * 60e3;
@@ -460,8 +489,12 @@ if (Q.get('view') === 'timer') {
       const n = k => +ps.elements[k].value;
       saved = { focus:Math.max(1, n('focus')), short:Math.max(0, n('short')), long:Math.max(0, n('long')), rounds:Math.max(1, n('rounds')), every:Math.max(1, n('every')), prep:Math.max(0, n('prep')) };
       store.set(PKEY, saved); userSegs = mkPlan(saved); apply(userSegs); msg = L.okSave; fill(); draw(); });
-    ps.addEventListener('change', e => { if (e.target.name === 'jump') { go(+e.target.value, true); fill(); draw(); } });
+    ps.addEventListener('change', e => { if (e.target.name === 'jump') { go(+e.target.value, true); fill(); draw(); }
+      if (e.target.name === 'vol') { snd.vol = +e.target.value; sndSave(); fill(); chime('break', true); }
+      if (e.target.name === 'when') { snd.when = e.target.value; sndSave(); } });
     ps.addEventListener('click', e => { const k = e.target.dataset && e.target.dataset.p; if (!k) return;
+      if (k === 'snd') { snd.on = !snd.on; sndSave(); fill(); if (snd.on) chime('break', true); }
+      if (k === 'test') chime('break', true);
       if (k === 'pre') pickPreset(PRESETS_T[+e.target.dataset.i].c);
       if (k === 'close') { ps.hidden = true; root.classList.remove('setopen'); }
       if (k === 'admin') { try { localStorage.removeItem(PKEY); } catch (er) {} saved = null; userSegs = null; apply(plan()); msg = schedSegs ? L.okAdmin : L.okNoAdmin; fill(); }
@@ -476,20 +509,21 @@ if (Q.get('view') === 'timer') {
     for (let i = 0; i < segs.length; i++) { const b = t + segs[i].min * 60e3; if (now < b) return { lb:nameOf(segs[i]), ms:b - now, nx:segs[i + 1], g:segs[i] }; t = b; }
     return null;
   }
-  let lastAutoLb = '';
+  let lastAutoLb = '', lastMs = 0;
   function draw(){
     const now = Date.now(), segs = plan();
     if (!custom && !userSegs && sessions === null) { card.innerHTML = ''; return; }   // chờ tải lịch Admin
     if (!AUTO && st.running && now >= st.endAt) {        // hết hiệp: sang hiệp sau, nối tiếp thời gian (không trôi giờ)
-      const over = now - st.endAt; if (over < 5e3) chime(); go(st.idx + 1, false);
+      const over = now - st.endAt; go(st.idx + 1, false); if (over < 5e3) chime(st.done ? 'end' : kindOf(segs[st.idx]));
       if (!st.done) { st.endAt = now - over + segMs(st.idx); save(); }
     }
     let lb, ms, nx, sub = '', g;
     if (AUTO) {
       const a = sessions === null ? null : autoState(now);
-      if (!a) { card.innerHTML = ''; card.classList.add('hide'); return; }
+      if (!a) { if (lastAutoLb && lastMs < 3e3) chime('end'); lastAutoLb = ''; card.innerHTML = ''; card.classList.add('hide'); return; }
       ({ lb, ms, nx, g } = a); card.classList.remove('hide');
-      if (lb !== lastAutoLb) { if (lastAutoLb && g) { chime(); scene(g); } lastAutoLb = lb; }
+      if (lb !== lastAutoLb) { if (lastAutoLb && g) { if (g.min * 60e3 - ms < 10e3) chime(kindOf(g)); scene(g); } lastAutoLb = lb; }   // chỉ báo khi hiệp vừa bắt đầu (không báo khi dời giờ trong Admin)
+      lastMs = ms;
     } else {
       card.classList.remove('hide');
       if (st.done) { lb = T.done; ms = 0; }
@@ -502,7 +536,7 @@ if (Q.get('view') === 'timer') {
   }
   draw(); setInterval(draw, 250);
   if (AUTO || !custom) {                                 // cần lịch Admin: đọc giống bảng lịch (3 phút / lần)
-    const pull = async () => { const ok = await load().catch(() => false);
+    const pull = async () => { const ok = OPT.demo ? (sessions || demo(), true) : await load().catch(() => false);
       if (!custom) { const p = pick(Date.now()) || (sessions || []).filter(s => s.start > Date.now() - DAY).map(s => ({ s }))[0];
         const segs = p && p.s.segs && p.s.segs.length ? p.s.segs : null;
         if (segs) schedSegs = segs;
