@@ -67,6 +67,18 @@ html[data-theme="clear"] .tv{color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.6),0 0
 @keyframes tflash{0%,40%{color:var(--accent)}}
 .tc{position:fixed;left:50%;bottom:.4rem;transform:translateX(-50%);display:flex;gap:.3rem;opacity:0;transition:opacity .2s}
 html.mv .tc{opacity:1}
+.tc{z-index:5}html.setopen .tc{opacity:1}
+.tset{position:fixed;inset:.4rem;z-index:6;overflow:auto;background:rgba(20,24,36,.97);color:#fff;text-shadow:none;border-radius:.8rem;padding:.7rem .8rem;font:700 14px 'Nunito',sans-serif;display:flex;flex-direction:column;gap:.45rem}
+.tset[hidden]{display:none}
+.tset .g{display:grid;grid-template-columns:repeat(3,1fr);gap:.35rem .6rem}
+.tset label{display:flex;flex-direction:column;gap:.15rem;font-size:12px;opacity:.95}
+.tset input,.tset select{font:800 15px 'Nunito',sans-serif;padding:.3rem .4rem;border-radius:.4rem;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);color:#fff;width:100%}
+.tset select option{color:#000}
+.tset .r{display:flex;gap:.4rem;align-items:flex-end;flex-wrap:wrap}
+.tset .r label{flex:1 1 8rem}
+.tset button{font:800 14px 'Nunito',sans-serif;border:0;border-radius:.5rem;padding:.4rem .7rem;background:rgba(255,255,255,.15);color:#fff;cursor:pointer}
+.tset button.pri{background:var(--accent)}
+.tset small{opacity:.7;font-size:11px}
 .tc button{font:800 15px 'Nunito',sans-serif;border:0;border-radius:.6rem;padding:.4rem .6rem;background:rgba(0,0,0,.65);color:#fff;cursor:pointer}
 html.clock body{padding:.3rem;display:flex;align-items:flex-end;justify-content:flex-end}
 html.clock .card{padding:.45em .9em .5em;font-size:calc(var(--cs) * 5vw);text-align:right}
@@ -336,12 +348,15 @@ if (Q.get('view') === 'timer') {
   const customSegs = custom ? buildPlan(cleanPomo({ focus:Q.get('focus') || 50, short:Q.has('short') ? Q.get('short') : 10, long:Q.has('long') ? Q.get('long') : 30, rounds:Q.get('rounds') || 4, longEvery:Q.get('every') || 4, prep:Q.get('prep') || 0 })) : null;
   const sig = segs => segs.map(g => g.type[0] + g.min).join('');
   const KEY = 'ep-overlay-timer' + (custom ? '-' + sig(customSegs) : '');
+  const PKEY = 'ep-overlay-timer-plan';                // cài đặt gõ trong bảng ⚙ (ưu tiên hơn địa chỉ và lịch Admin)
+  const mkPlan = c => buildPlan(cleanPomo({ focus:c.focus, short:c.short, long:c.long, rounds:c.rounds, longEvery:c.every, prep:c.prep }));
+  let saved = store.get(PKEY), userSegs = saved ? mkPlan(saved) : null;
   let st = store.get(KEY) || {}, schedSegs = null, flash = 0;
-  const plan = () => customSegs || schedSegs || buildPlan(cleanPomo({ focus:50, short:10, long:30, rounds:4, longEvery:4 }));
+  const plan = () => userSegs || customSegs || schedSegs || buildPlan(cleanPomo({ focus:50, short:10, long:30, rounds:4, longEvery:4 }));
   const save = () => store.set(KEY, st);
   const segMs = i => plan()[i].min * 60e3;
   function fresh(){ st = { sig:sig(plan()), idx:0, started:false, running:false, left:segMs(0), endAt:0, done:false }; save(); }
-  if (custom && st.sig !== sig(plan())) fresh();             // theo lịch Admin: kiểm tra sau khi tải lịch
+  if ((custom || userSegs) && st.sig !== sig(plan())) fresh();             // theo lịch Admin: kiểm tra sau khi tải lịch
   const left = () => st.running ? st.endAt - Date.now() : st.left;
   const scene = g => {
     const nm = g.type === 'focus' ? Q.get('scene_focus') : g.type === 'prep' ? (Q.get('scene_prep') || Q.get('scene_focus')) : Q.get('scene_break');
@@ -373,8 +388,9 @@ if (Q.get('view') === 'timer') {
     reset(){ if (!AUTO) fresh(); }
   };
   document.addEventListener('keydown', e => {
-    const k = { ' ':'toggle', Enter:'toggle', ArrowRight:'next', ArrowLeft:'prev', ArrowUp:'plus', ArrowDown:'minus', r:'reset', R:'reset' }[e.key];
-    if (k) { e.preventDefault(); ACT[k](); draw(); }
+    if (e.target.closest && e.target.closest('input,select')) return;
+    const k = { ' ':'toggle', Enter:'toggle', ArrowRight:'next', ArrowLeft:'prev', ArrowUp:'plus', ArrowDown:'minus', r:'reset', R:'reset', s:'settings', S:'settings' }[e.key];
+    if (k && ACT[k]) { e.preventDefault(); ACT[k](); draw(); }
   });
   let mvT = 0;                                           // nút chỉ hiện khi đang rê chuột (Interact), 3 giây sau tự ẩn
   document.addEventListener('mousemove', () => { root.classList.add('mv'); clearTimeout(mvT); mvT = setTimeout(() => root.classList.remove('mv'), 3000); });
@@ -382,7 +398,47 @@ if (Q.get('view') === 'timer') {
   const T = OPT.lang === 'vi' ? { ready:'Sẵn sàng', paused:'Tạm dừng', done:'Xong buổi rồi!', next:'Tiếp theo', session:'Phiên {n}/{t}', soon:'Bắt đầu sau' }
                               : { ready:'Ready', paused:'Paused', done:'All done!', next:'Next', session:'Session {n}/{t}', soon:'Starts in' };
   const nameOf = g => g.type === 'focus' ? (g.name || tr(T.session, { n:g.n, t:plan().filter(x => x.type === 'focus').length })) : labelOf(g);
-  const ctl = Q.get('controls') === '0' ? '' : `<div class="tc">${[['prev', '⏮'], ['minus', '−1′'], ['toggle', '⏯'], ['plus', '+1′'], ['next', '⏭'], ['reset', '↺']].map(([k, t]) => `<button data-k="${k}">${t}</button>`).join('')}</div>`;
+  // Nút + bảng ⚙ nằm ngoài thẻ (thẻ vẽ lại 4 lần/giây, nút trong đó sẽ bị thay mất giữa lúc bấm)
+  const V = Q.get('ui') !== 'en';                       // bảng điều khiển cho người stream: mặc định tiếng Việt (ui=en để đổi)
+  const L = V ? { set:'Cài đặt bộ đếm', focus:'Tập trung (phút)', short:'Nghỉ ngắn (phút)', long:'Nghỉ dài (phút)', rounds:'Số phiên tập trung', every:'Nghỉ dài sau mỗi … phiên', prep:'Chuẩn bị đầu buổi (phút)', save:'Lưu', admin:'Dùng lịch Admin', close:'Đóng', jump:'Nhảy tới', left:'Còn lại (phút)', setLeft:'Đặt', hint:'Bấm một mẫu để dùng ngay, hoặc gõ số rồi bấm Lưu. Bảng này hiện lên stream khi đang mở, xong bấm Đóng.' }
+              : { set:'Timer settings', focus:'Focus (min)', short:'Short break (min)', long:'Long break (min)', rounds:'Focus sessions', every:'Long break every … sessions', prep:'Warm-up (min)', save:'Save', admin:'Use Admin schedule', close:'Close', jump:'Jump to', left:'Time left (min)', setLeft:'Set', hint:'Tap a preset, or type numbers and Save. This panel shows on stream while open; Close when done.' };
+  const PRESETS_T = [                                    // mẫu bấm một lần là dùng (nhớ cho lần sau)
+    { n:'25 / 5', c:{ focus:25, short:5, long:15, rounds:4, every:4, prep:0 } },
+    { n:'50 / 10', c:{ focus:50, short:10, long:30, rounds:4, every:4, prep:0 } },
+    { n:'90 / 20', c:{ focus:90, short:20, long:30, rounds:3, every:3, prep:0 } },
+    { n:'60 / 10', c:{ focus:60, short:10, long:30, rounds:4, every:4, prep:0 } }
+  ];
+  if (!AUTO && Q.get('controls') !== '0') {
+    const tc = document.createElement('div'); tc.className = 'tc';
+    tc.innerHTML = [['prev', '⏮'], ['minus', '−1′'], ['toggle', '⏯'], ['plus', '+1′'], ['next', '⏭'], ['reset', '↺'], ['settings', '⚙']].map(([k, t]) => `<button type="button" data-k="${k}">${t}</button>`).join('');
+    const ps = document.createElement('form'); ps.className = 'tset'; ps.hidden = true;
+    document.body.append(tc, ps);
+    const cur = () => saved || (() => { const f = plan().filter(g => g.type === 'focus'), sh = plan().find(g => g.type === 'short'), lg = plan().find(g => g.type === 'long'), pr = plan().find(g => g.type === 'prep');
+      const li = plan().findIndex(g => g.type === 'long'), every = li < 0 ? f.length : plan().slice(0, li).filter(g => g.type === 'focus').length;
+      return { focus:f.length ? f[0].min : 50, short:sh ? sh.min : 10, long:lg ? lg.min : 30, rounds:f.length || 4, every:every || 4, prep:pr ? pr.min : 0 }; })();
+    const fill = () => { const c = cur(), segs = plan();
+      const fld = (k, min) => `<label>${esc(L[k])}<input type="number" name="${k}" min="${min}" max="600" value="${c[k]}"></label>`;
+      ps.innerHTML = `<b>${esc(L.set)}</b><div class="r pre">${PRESETS_T.map((x, i) => `<button type="button" data-p="pre" data-i="${i}"${saved && sig(mkPlan(saved)) === sig(mkPlan(x.c)) ? ' class="pri"' : ''}>${esc(x.n)}</button>`).join('')}</div><div class="g">${fld('focus', 1)}${fld('short', 0)}${fld('long', 0)}${fld('rounds', 1)}${fld('every', 1)}${fld('prep', 0)}</div>`
+        + `<div class="r"><button type="submit" class="pri">${esc(L.save)}</button>${!custom ? `<button type="button" data-p="admin">${esc(L.admin)}</button>` : ''}<button type="button" data-p="close">${esc(L.close)}</button></div>`
+        + `<div class="r"><label>${esc(L.jump)}<select name="jump">${segs.map((g, i) => `<option value="${i}"${i === st.idx ? ' selected' : ''}>${esc(nameOf(g))} · ${g.min}′</option>`).join('')}</select></label>`
+        + `<label>${esc(L.left)}<input type="number" name="left" min="0" max="600" step="1" value="${Math.max(0, Math.round(left() / 60e3))}"></label><button type="button" data-p="left">${esc(L.setLeft)}</button></div><small>${esc(L.hint)}</small>`; };
+    const pickPreset = c => { saved = { ...c }; store.set(PKEY, saved); userSegs = mkPlan(saved); apply(userSegs); fill(); };
+    const apply = segs => {                              // đổi danh sách hiệp: giữ hiệp đang ở (nếu còn) và trạng thái chạy
+      const i = Math.min(st.idx, segs.length - 1); st.sig = sig(segs); st.idx = i; st.done = false; st.left = segs[i].min * 60e3;
+      if (st.running) st.endAt = Date.now() + st.left; save(); };
+    ps.addEventListener('submit', e => { e.preventDefault();
+      const n = k => +ps.elements[k].value;
+      saved = { focus:Math.max(1, n('focus')), short:Math.max(0, n('short')), long:Math.max(0, n('long')), rounds:Math.max(1, n('rounds')), every:Math.max(1, n('every')), prep:Math.max(0, n('prep')) };
+      store.set(PKEY, saved); userSegs = mkPlan(saved); apply(userSegs); fill(); draw(); });
+    ps.addEventListener('change', e => { if (e.target.name === 'jump') { go(+e.target.value, true); fill(); draw(); } });
+    ps.addEventListener('click', e => { const k = e.target.dataset && e.target.dataset.p; if (!k) return;
+      if (k === 'pre') pickPreset(PRESETS_T[+e.target.dataset.i].c);
+      if (k === 'close') { ps.hidden = true; root.classList.remove('setopen'); }
+      if (k === 'admin') { try { localStorage.removeItem(PKEY); } catch (er) {} saved = null; userSegs = null; apply(plan()); fill(); }
+      if (k === 'left') { const m = Math.max(0, +ps.elements.left.value) * 60e3 || 1e3; if (st.running) st.endAt = Date.now() + m; else st.left = m; save(); }
+      draw(); });
+    ACT.settings = () => { ps.hidden = !ps.hidden; root.classList.toggle('setopen', !ps.hidden); if (!ps.hidden) fill(); };
+  }
   function autoState(now){                               // start=auto: vị trí theo giờ lịch
     const p = pick(now); if (!p || p.mode === 'done') return null;
     if (p.mode === 'soon') return { lb:T.soon, ms:p.s.start - now, nx:p.s.segs && p.s.segs[0] };
@@ -393,7 +449,7 @@ if (Q.get('view') === 'timer') {
   let lastAutoLb = '';
   function draw(){
     const now = Date.now(), segs = plan();
-    if (!custom && sessions === null) { card.innerHTML = ''; return; }   // chờ tải lịch Admin
+    if (!custom && !userSegs && sessions === null) { card.innerHTML = ''; return; }   // chờ tải lịch Admin
     if (!AUTO && st.running && now >= st.endAt) {        // hết hiệp: sang hiệp sau, nối tiếp thời gian (không trôi giờ)
       const over = now - st.endAt; if (over < 5e3) chime(); go(st.idx + 1, false);
       if (!st.done) { st.endAt = now - over + segMs(st.idx); save(); }
@@ -412,7 +468,7 @@ if (Q.get('view') === 'timer') {
     const big = ms >= 3600e3;
     card.innerHTML = `<div class="tv${now - flash < 1200 ? ' flash' : ''}"><div class="lb">${esc(lb)}${sub ? ` <span class="st">· ${esc(sub)}</span>` : ''}</div>`
       + `<div class="cd${big ? ' big' : ''}">${st.done && !AUTO ? '' : clock(ms)}</div>`
-      + (nx && !off('next') ? `<div class="nx">${esc(T.next)}: ${esc(nameOf(nx))} · ${nx.min}′</div>` : '') + `</div>${AUTO ? '' : ctl}`;
+      + (nx && !off('next') ? `<div class="nx">${esc(T.next)}: ${esc(nameOf(nx))} · ${nx.min}′</div>` : '') + `</div>`;
   }
   draw(); setInterval(draw, 250);
   if (AUTO || !custom) {                                 // cần lịch Admin: đọc giống bảng lịch (3 phút / lần)
