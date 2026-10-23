@@ -422,6 +422,7 @@ Trang `overlay.html` hiện kế hoạch buổi live đang chạy (giống thẻ
 | `list=0` | Ẩn danh sách các mốc (chỉ còn phần đầu và ô đang chạy) |
 | `empty=hide` | Ngày không có live thì bảng ẩn hẳn |
 | `lang=vi` | Chữ tiếng Việt (mặc định bảng hiện tiếng Anh) |
+| `view=clock` | Khối đồng hồ giờ địa phương "EP STUDY ROOM · Local time in Ho Chi Minh · ngày · giờ" cho góc màn hình (gợi ý Width `460`, Height `220`). Thêm `align=left` để canh trái, `sec=0` ẩn giây, `date=0` ẩn ngày, `name=0` ẩn tên kênh |
 | `demo=1` | Xem thử bằng buổi mẫu đang chạy |
 
 ## QUY TẮC CẬP NHẬT WEB LÊN GITHUB (đọc cái này khi cần cập nhật)

@@ -26,6 +26,8 @@
      after=60        sau khi buổi kết thúc, còn hiện thêm bao nhiêu phút
      lang=vi         tiếng Việt (mặc định tiếng Anh, cho khán giả YouTube quốc tế)
      tz=Asia/Tokyo   hiện giờ theo múi giờ khác (mặc định giờ Việt Nam)
+     view=clock      khối đồng hồ giờ địa phương "EP STUDY ROOM · Local time in Ho Chi Minh · ngày · giờ"
+                     (thêm: align=left|center, name=…/name=0, city=…, sec=0 ẩn giây, date=0 ẩn ngày)
      demo=1          xem thử bằng một buổi mẫu đang chạy (để căn chỉnh khi chưa tới giờ live)
    ========================================================= -->
 <style>
@@ -43,6 +45,17 @@ html{font-size:var(--fs)}
 body{font-family:'Nunito',system-ui,sans-serif;color:var(--ink);text-shadow:var(--tshadow);padding:.6rem;-webkit-font-smoothing:antialiased}
 .card{display:flex;flex-direction:column;max-height:100%;background:var(--card);border-radius:1.1rem;padding:1rem 1.15rem;box-shadow:var(--shadow)}
 .card.hide{display:none}
+html.clock body{padding:.3rem;display:flex;align-items:flex-end;justify-content:flex-end}
+html.clock .card{padding:.45em .9em .5em;font-size:calc(var(--cs) * 5vw);text-align:right}
+html.clock[data-align="left"] body{justify-content:flex-start}
+html.clock[data-align="left"] .card{text-align:left}
+html.clock[data-align="center"] body{justify-content:center}
+html.clock[data-align="center"] .card{text-align:center}
+html.clock[data-theme="clear"] .card{padding:0 .1em}
+.ck .br{font-family:'Baloo 2','Nunito',sans-serif;font-weight:800;font-size:1.15em;letter-spacing:.05em;line-height:1.1}
+.ck .sub{font-weight:700;font-size:.62em;color:var(--muted);line-height:1.35}
+.ck .tm{font-family:'Baloo 2','Nunito',sans-serif;font-weight:800;font-size:2.7em;line-height:1;margin-top:.08em;font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.ck .tm small{font-size:.5em;color:var(--accent);margin-left:.06em}
 .top{display:flex;align-items:center;justify-content:space-between;gap:.6rem;flex-wrap:wrap}
 .range{font-family:'Baloo 2','Nunito',sans-serif;font-weight:800;font-size:1.45rem;line-height:1.1;letter-spacing:.01em}
 .pill{display:inline-flex;align-items:center;gap:.4rem;font-weight:800;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;padding:.28rem .65rem;border-radius:99rem;background:var(--row-now);white-space:nowrap}
@@ -284,6 +297,22 @@ async function refresh(){
   if (OPT.demo) demo(); else ok = await load().catch(() => false);
   render();
   setTimeout(refresh, ok ? 180e3 : 60e3);
+}
+/* view=clock: khối "EP STUDY ROOM · Local time in … · ngày · giờ" cho góc màn hình stream (không đọc lịch, không tốn lượt đọc Firebase) */
+if (Q.get('view') === 'clock') {
+  root.classList.add('clock'); root.dataset.align = ['left', 'center'].includes(Q.get('align')) ? Q.get('align') : 'right';
+  root.style.setProperty('--cs', OPT.size);
+  const tz = fmtHM.resolvedOptions().timeZone, loc = OPT.lang === 'vi' ? 'vi-VN' : 'en-GB';
+  const city = Q.get('city') || (tz === 'Asia/Ho_Chi_Minh' || tz === 'Asia/Saigon' ? 'Ho Chi Minh' : tz.split('/').pop().replace(/_/g, ' '));
+  const brand = Q.get('name') === '0' ? '' : (Q.get('name') || 'EP STUDY ROOM'), showSec = !off('sec'), showDate = !off('date');
+  const fDate = new Intl.DateTimeFormat(loc, { timeZone:tz, weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  const fHMS = new Intl.DateTimeFormat('en-GB', { timeZone:tz, hour:'2-digit', minute:'2-digit', second:'2-digit', hourCycle:'h23' });
+  const tick = () => {
+    const d = new Date(), [h, m, sec] = fHMS.format(d).split(':');
+    card.innerHTML = `<div class="ck">${brand ? `<div class="br">${esc(brand)}</div>` : ''}<div class="sub">${esc(OPT.lang === 'vi' ? 'Giờ hiện tại ở ' + city : 'Local time in ' + city)}</div>${showDate ? `<div class="sub">${esc(fDate.format(d))}</div>` : ''}<div class="tm">${h}:${m}${showSec ? `<small>:${sec}</small>` : ''}</div></div>`;
+  };
+  tick(); setTimeout(() => { tick(); setInterval(tick, 1000); }, 1000 - Date.now() % 1000);   // đổi giây đúng lúc đồng hồ máy đổi
+  return;
 }
 render(); refresh(); setInterval(render, 1000);
 if (document.fonts) document.fonts.ready.then(() => { lastKey = ''; render(); });   // phông chữ tải xong thì đo lại cho vừa khung
