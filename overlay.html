@@ -28,6 +28,9 @@
      tz=Asia/Tokyo   hiện giờ theo múi giờ khác (mặc định giờ Việt Nam)
      view=clock      khối đồng hồ giờ địa phương "EP STUDY ROOM · Local time in Ho Chi Minh · ngày · giờ"
                      (thêm: align=left|center, name=…/name=0, city=…, sec=0 ẩn giây, date=0 ẩn ngày)
+     view=timer      bộ đếm giờ "Session 1/10 · 49:59": bấm Cách để chạy/tạm dừng (Interact trong OBS), → ← đổi hiệp, ↑ ↓ ±1 phút, R làm lại;
+                     focus=50&short=10&long=30&rounds=4&every=4&prep=0 tự đặt hiệp (không ghi thì lấy từ lịch Admin hôm nay);
+                     start=auto chạy theo giờ lịch; scene_focus=…&scene_break=… tự đổi cảnh OBS; sound=1 chuông; next=0; controls=0
      demo=1          xem thử bằng một buổi mẫu đang chạy (để căn chỉnh khi chưa tới giờ live)
    ========================================================= -->
 <style>
@@ -45,6 +48,26 @@ html{font-size:var(--fs)}
 body{font-family:'Nunito',system-ui,sans-serif;color:var(--ink);text-shadow:var(--tshadow);padding:.6rem;-webkit-font-smoothing:antialiased}
 .card{display:flex;flex-direction:column;max-height:100%;background:var(--card);border-radius:1.1rem;padding:1rem 1.15rem;box-shadow:var(--shadow)}
 .card.hide{display:none}
+html.timer body{padding:.4rem}
+html.timer .card{background:var(--card);box-shadow:var(--shadow);height:auto;display:inline-flex;padding:.5em .9em}
+html.timer[data-theme="clear"] .card{background:transparent;box-shadow:none;padding:0 .1em}
+html.timer body{display:flex;align-items:flex-start;justify-content:flex-start}
+html.timer[data-align="right"] body{justify-content:flex-end}
+html.timer[data-align="right"] .tv{text-align:right}
+html.timer[data-align="center"] body{justify-content:center}
+html.timer[data-align="center"] .tv{text-align:center}
+.tv{font-size:calc(var(--ts) * 6vw);line-height:1.05;color:var(--ink)}
+html[data-theme="clear"] .tv{color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.6),0 0 2px rgba(0,0,0,.8)}
+.tv .lb{font-weight:800;font-size:1.25em}
+.tv .lb .st{font-weight:700;opacity:.75;font-size:.8em}
+.tv .cd{font-family:'Baloo 2','Nunito',sans-serif;font-weight:800;font-size:4.3em;line-height:1;font-variant-numeric:tabular-nums}
+.tv .cd.big{font-size:3.1em}
+.tv .nx{font-weight:700;font-size:.8em;opacity:.8;margin-top:.15em}
+.tv.flash .cd{animation:tflash 1.2s}
+@keyframes tflash{0%,40%{color:var(--accent)}}
+.tc{position:fixed;left:50%;bottom:.4rem;transform:translateX(-50%);display:flex;gap:.3rem;opacity:0;transition:opacity .2s}
+html.mv .tc{opacity:1}
+.tc button{font:800 15px 'Nunito',sans-serif;border:0;border-radius:.6rem;padding:.4rem .6rem;background:rgba(0,0,0,.65);color:#fff;cursor:pointer}
 html.clock body{padding:.3rem;display:flex;align-items:flex-end;justify-content:flex-end}
 html.clock .card{padding:.45em .9em .5em;font-size:calc(var(--cs) * 5vw);text-align:right}
 html.clock[data-align="left"] body{justify-content:flex-start}
@@ -297,6 +320,111 @@ async function refresh(){
   if (OPT.demo) demo(); else ok = await load().catch(() => false);
   render();
   setTimeout(refresh, ok ? 180e3 : 60e3);
+}
+/* view=timer: bộ đếm giờ cho stream (thay timer Lua trong OBS). Hiện "Session 1/10" + đếm ngược, tự sang hiệp sau.
+   Danh sách hiệp: lấy từ địa chỉ (focus=50&short=10&long=30&rounds=4&every=4&prep=0) hoặc, nếu không ghi, từ buổi live hôm nay trong Admin.
+   start=manual (mặc định): bấm để chạy — trong OBS chọn nguồn rồi bấm Interact: phím Cách = chạy/tạm dừng, → hiệp sau, ← hiệp trước,
+   ↑/↓ cộng/trừ 1 phút, R = làm lại từ đầu; rê chuột vào cũng hiện nút. Trạng thái được nhớ, tải lại trang vẫn chạy tiếp.
+   start=auto: chạy đúng theo giờ lịch Admin, không cần bấm.
+   scene_focus=study&scene_break=Break: tự đổi cảnh OBS khi sang hiệp (cần Page permissions = Advanced access to OBS).
+   sound=1: chuông ngắn khi hết mỗi hiệp. next=0: ẩn dòng "Next". */
+if (Q.get('view') === 'timer') {
+  root.classList.add('timer'); root.style.setProperty('--ts', OPT.size);
+  if (!Q.has('theme')) root.dataset.theme = 'clear';
+  root.dataset.align = ['right', 'center'].includes(Q.get('align')) ? Q.get('align') : 'left';
+  const AUTO = Q.get('start') === 'auto', custom = ['focus', 'rounds', 'short', 'long', 'every', 'prep'].some(k => Q.has(k));
+  const customSegs = custom ? buildPlan(cleanPomo({ focus:Q.get('focus') || 50, short:Q.has('short') ? Q.get('short') : 10, long:Q.has('long') ? Q.get('long') : 30, rounds:Q.get('rounds') || 4, longEvery:Q.get('every') || 4, prep:Q.get('prep') || 0 })) : null;
+  const sig = segs => segs.map(g => g.type[0] + g.min).join('');
+  const KEY = 'ep-overlay-timer' + (custom ? '-' + sig(customSegs) : '');
+  let st = store.get(KEY) || {}, schedSegs = null, flash = 0;
+  const plan = () => customSegs || schedSegs || buildPlan(cleanPomo({ focus:50, short:10, long:30, rounds:4, longEvery:4 }));
+  const save = () => store.set(KEY, st);
+  const segMs = i => plan()[i].min * 60e3;
+  function fresh(){ st = { sig:sig(plan()), idx:0, started:false, running:false, left:segMs(0), endAt:0, done:false }; save(); }
+  if (custom && st.sig !== sig(plan())) fresh();             // theo lịch Admin: kiểm tra sau khi tải lịch
+  const left = () => st.running ? st.endAt - Date.now() : st.left;
+  const scene = g => {
+    const nm = g.type === 'focus' ? Q.get('scene_focus') : g.type === 'prep' ? (Q.get('scene_prep') || Q.get('scene_focus')) : Q.get('scene_break');
+    try { if (nm && window.obsstudio && window.obsstudio.setCurrentScene) window.obsstudio.setCurrentScene(nm); } catch (e) {}
+  };
+  let actx = null;
+  const chime = () => {
+    if (Q.get('sound') !== '1') return;
+    try { actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      [0, .28, .56].forEach(t => { const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = 880; o.connect(g); g.connect(actx.destination);
+        g.gain.setValueAtTime(.0001, actx.currentTime + t); g.gain.exponentialRampToValueAtTime(.3, actx.currentTime + t + .02); g.gain.exponentialRampToValueAtTime(.0001, actx.currentTime + t + .22);
+        o.start(actx.currentTime + t); o.stop(actx.currentTime + t + .25); }); } catch (e) {}
+  };
+  function go(i, keepRun){                               // sang hiệp i (giữ trạng thái chạy / dừng)
+    const segs = plan(); flash = Date.now();
+    if (i >= segs.length) { st.done = true; st.running = false; st.left = 0; save(); return; }
+    st.idx = Math.max(0, i); st.done = false; st.left = segMs(st.idx);
+    if (st.running && keepRun) st.endAt = Date.now() + st.left;
+    save(); if (st.running) scene(segs[st.idx]);
+  }
+  const ACT = {
+    toggle(){ if (AUTO) return; if (st.done) fresh();
+      if (st.running) { st.left = Math.max(0, st.endAt - Date.now()); st.running = false; }
+      else { st.running = true; st.endAt = Date.now() + st.left; if (!st.started) { st.started = true; scene(plan()[st.idx]); } }
+      save(); },
+    next(){ if (!AUTO) go(st.idx + 1, true); }, prev(){ if (!AUTO) go(st.idx - 1, true); },
+    plus(){ if (AUTO) return; if (st.running) st.endAt += 60e3; else st.left += 60e3; save(); },
+    minus(){ if (AUTO) return; if (st.running) st.endAt = Math.max(Date.now() + 1e3, st.endAt - 60e3); else st.left = Math.max(1e3, st.left - 60e3); save(); },
+    reset(){ if (!AUTO) fresh(); }
+  };
+  document.addEventListener('keydown', e => {
+    const k = { ' ':'toggle', Enter:'toggle', ArrowRight:'next', ArrowLeft:'prev', ArrowUp:'plus', ArrowDown:'minus', r:'reset', R:'reset' }[e.key];
+    if (k) { e.preventDefault(); ACT[k](); draw(); }
+  });
+  let mvT = 0;                                           // nút chỉ hiện khi đang rê chuột (Interact), 3 giây sau tự ẩn
+  document.addEventListener('mousemove', () => { root.classList.add('mv'); clearTimeout(mvT); mvT = setTimeout(() => root.classList.remove('mv'), 3000); });
+  document.addEventListener('click', e => { const b = e.target.closest('[data-k]'); if (b) { ACT[b.dataset.k](); draw(); } });
+  const T = OPT.lang === 'vi' ? { ready:'Sẵn sàng', paused:'Tạm dừng', done:'Xong buổi rồi!', next:'Tiếp theo', session:'Phiên {n}/{t}', soon:'Bắt đầu sau' }
+                              : { ready:'Ready', paused:'Paused', done:'All done!', next:'Next', session:'Session {n}/{t}', soon:'Starts in' };
+  const nameOf = g => g.type === 'focus' ? (g.name || tr(T.session, { n:g.n, t:plan().filter(x => x.type === 'focus').length })) : labelOf(g);
+  const ctl = Q.get('controls') === '0' ? '' : `<div class="tc">${[['prev', '⏮'], ['minus', '−1′'], ['toggle', '⏯'], ['plus', '+1′'], ['next', '⏭'], ['reset', '↺']].map(([k, t]) => `<button data-k="${k}">${t}</button>`).join('')}</div>`;
+  function autoState(now){                               // start=auto: vị trí theo giờ lịch
+    const p = pick(now); if (!p || p.mode === 'done') return null;
+    if (p.mode === 'soon') return { lb:T.soon, ms:p.s.start - now, nx:p.s.segs && p.s.segs[0] };
+    let t = p.s.start; const segs = p.s.segs || [];
+    for (let i = 0; i < segs.length; i++) { const b = t + segs[i].min * 60e3; if (now < b) return { lb:nameOf(segs[i]), ms:b - now, nx:segs[i + 1], g:segs[i] }; t = b; }
+    return null;
+  }
+  let lastAutoLb = '';
+  function draw(){
+    const now = Date.now(), segs = plan();
+    if (!custom && sessions === null) { card.innerHTML = ''; return; }   // chờ tải lịch Admin
+    if (!AUTO && st.running && now >= st.endAt) {        // hết hiệp: sang hiệp sau, nối tiếp thời gian (không trôi giờ)
+      const over = now - st.endAt; if (over < 5e3) chime(); go(st.idx + 1, false);
+      if (!st.done) { st.endAt = now - over + segMs(st.idx); save(); }
+    }
+    let lb, ms, nx, sub = '', g;
+    if (AUTO) {
+      const a = sessions === null ? null : autoState(now);
+      if (!a) { card.innerHTML = ''; card.classList.add('hide'); return; }
+      ({ lb, ms, nx, g } = a); card.classList.remove('hide');
+      if (lb !== lastAutoLb) { if (lastAutoLb && g) { chime(); scene(g); } lastAutoLb = lb; }
+    } else {
+      card.classList.remove('hide');
+      if (st.done) { lb = T.done; ms = 0; }
+      else { g = segs[st.idx]; lb = nameOf(g); ms = left(); nx = segs[st.idx + 1]; sub = !st.started ? T.ready : !st.running ? T.paused : ''; }
+    }
+    const big = ms >= 3600e3;
+    card.innerHTML = `<div class="tv${now - flash < 1200 ? ' flash' : ''}"><div class="lb">${esc(lb)}${sub ? ` <span class="st">· ${esc(sub)}</span>` : ''}</div>`
+      + `<div class="cd${big ? ' big' : ''}">${st.done && !AUTO ? '' : clock(ms)}</div>`
+      + (nx && !off('next') ? `<div class="nx">${esc(T.next)}: ${esc(nameOf(nx))} · ${nx.min}′</div>` : '') + `</div>${AUTO ? '' : ctl}`;
+  }
+  draw(); setInterval(draw, 250);
+  if (AUTO || !custom) {                                 // cần lịch Admin: đọc giống bảng lịch (3 phút / lần)
+    const pull = async () => { const ok = await load().catch(() => false);
+      if (!custom) { const p = pick(Date.now()) || (sessions || []).filter(s => s.start > Date.now() - DAY).map(s => ({ s }))[0];
+        const segs = p && p.s.segs && p.s.segs.length ? p.s.segs : null;
+        if (segs) schedSegs = segs;
+        if (!st.sig || (st.sig !== sig(plan()) && !st.started) || st.idx >= plan().length) fresh(); }
+      draw(); setTimeout(pull, ok ? 180e3 : 60e3); };
+    pull();
+  }
+  return;
 }
 /* view=clock: khối "EP STUDY ROOM · Local time in … · ngày · giờ" cho góc màn hình stream (không đọc lịch, không tốn lượt đọc Firebase) */
 if (Q.get('view') === 'clock') {
