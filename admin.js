@@ -243,9 +243,11 @@ function drawSchedule(){
    settings/onair = { start: giờ bắt đầu thật (ms), sched: giờ bắt đầu theo lịch của buổi đó (ms), at, prev: giá trị trước lần bấm gần nhất (để hoàn tác) }
    — ai cũng đọc được, chỉ admin ghi (firestore.rules: settings). Hoàn tác ghi lại đúng at cũ, nên OBS quay về đúng giờ trước đó (kể cả giờ do bấm Start Streaming). */
 let onair = null, onairUnsub = null;
-const onairMatch = () => onair && onair.start ? upcomingPool().find(x => x.start.toMillis() === onair.sched) || null : null;
-const onairNext = () => { const now = Date.now();
-  return upcomingPool().filter(x => x.end.toMillis() + 3600e3 > now && x.start.toMillis() - 18 * 3600e3 < now).sort((a, b) => a.start.toMillis() - b.start.toMillis())[0] || null; };
+// Buổi đã bấm bắt đầu và đã chạy hết giờ thì không coi là "đang chạy" nữa: ngày có 2 buổi, ô này chuyển sang buổi kế tiếp (không bắt đầu lại buổi sáng).
+const onairRan = () => onair && onair.start ? upcomingPool().find(x => x.start.toMillis() === onair.sched) || null : null;
+const onairMatch = () => { const x = onairRan(); return x && Date.now() < onair.start + x.mins * 60e3 ? x : null; };
+const onairNext = () => { const now = Date.now(), done = onairMatch() ? null : onairRan();
+  return upcomingPool().filter(x => !(done && x.key === done.key) && x.end.toMillis() + 3600e3 > now && x.start.toMillis() - 18 * 3600e3 < now).sort((a, b) => a.start.toMillis() - b.start.toMillis())[0] || null; };
 function onairCard(){
   const m = onairMatch(), x = m || onairNext(), hm = d => d.setZone(VN).toFormat('HH:mm');
   const now = Date.now(), prev = onair && onair.prev && now - (onair.at || 0) < 3 * 3600e3 ? onair.prev : null;
