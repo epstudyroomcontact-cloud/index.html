@@ -33,7 +33,7 @@
      lang=vi         tiếng Việt (mặc định tiếng Anh, cho khán giả YouTube quốc tế)
      tz=Asia/Tokyo   hiện giờ theo múi giờ khác (mặc định giờ Việt Nam)
      view=clock      khối đồng hồ giờ địa phương "12:54:24 · Vietnam · GMT+7 · Fri 23 Oct", dấu hai chấm nhấp nháy.
-                     look=glass (mặc định: kính tối, số mảnh) | pastel (thẻ kem viền hồng, icon trăng) | app (cửa sổ 3 chấm màu)
+                     look=pastel (mặc định: thẻ kem viền hồng, icon trăng) | glass (kính tối, số mảnh) | app (cửa sổ 3 chấm màu)
                      | simple (kiểu chữ cũ 2 dòng, theo theme: theme=clear bỏ nền, style=line gộp 1 dòng)
                      (thêm: align=left|center, name=… thêm tên kênh nhỏ,
                       label=… đổi chữ "Vietnam", tz=… múi giờ khác, sec=0 ẩn giây, gmt=0 ẩn GMT+7, date=0 ẩn ngày)
@@ -714,7 +714,7 @@ if (Q.get('view') === 'clock') {
   const city = Q.get('label') || Q.get('city') || (VN ? (OPT.lang === 'vi' ? 'Việt Nam' : 'Vietnam') : tz.split('/').pop().replace(/_/g, ' '));
   const brand = Q.get('name') && Q.get('name') !== '0' ? Q.get('name') : '', showSec = !off('sec'), showDate = !off('date'), showGmt = !off('gmt');
   if (Q.get('style') === 'line') root.dataset.style = 'line';
-  const LOOK = ['glass', 'pastel', 'app', 'simple'].includes(Q.get('look')) ? Q.get('look') : 'glass';
+  const LOOK = ['glass', 'pastel', 'app', 'simple'].includes(Q.get('look')) ? Q.get('look') : 'pastel';
   if (LOOK !== 'simple') {
     root.dataset.look = LOOK;
     const fl = document.createElement('link'); fl.rel = 'stylesheet';
