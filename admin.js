@@ -240,23 +240,29 @@ function drawSchedule(){
 /* ---------------- Bắt đầu buổi live thật (settings/onair) ----------------
    Có hôm dậy trễ / vào sớm: bấm "Bắt đầu bây giờ" để lưu giờ bắt đầu THẬT của buổi. Bảng lịch và bộ đếm trên OBS (overlay.html)
    tự dời cả buổi theo mốc này (đọc lại khoảng 30 giây một lần), không cần bấm gì trong OBS. Lịch gốc trong tuần không bị sửa.
-   settings/onair = { start: giờ bắt đầu thật (ms), sched: giờ bắt đầu theo lịch của buổi đó (ms), at }  — ai cũng đọc được, chỉ admin ghi (firestore.rules: settings). */
+   settings/onair = { start: giờ bắt đầu thật (ms), sched: giờ bắt đầu theo lịch của buổi đó (ms), at, prev: giá trị trước lần bấm gần nhất (để hoàn tác) }
+   — ai cũng đọc được, chỉ admin ghi (firestore.rules: settings). Hoàn tác ghi lại đúng at cũ, nên OBS quay về đúng giờ trước đó (kể cả giờ do bấm Start Streaming). */
 let onair = null, onairUnsub = null;
 const onairMatch = () => onair && onair.start ? upcomingPool().find(x => x.start.toMillis() === onair.sched) || null : null;
 const onairNext = () => { const now = Date.now();
   return upcomingPool().filter(x => x.end.toMillis() + 3600e3 > now && x.start.toMillis() - 18 * 3600e3 < now).sort((a, b) => a.start.toMillis() - b.start.toMillis())[0] || null; };
 function onairCard(){
   const m = onairMatch(), x = m || onairNext(), hm = d => d.setZone(VN).toFormat('HH:mm');
+  const now = Date.now(), prev = onair && onair.prev && now - (onair.at || 0) < 3 * 3600e3 ? onair.prev : null;
+  const undo = prev ? `<div class="row mt-s"><button class="btn ghost sm" data-act="onairUndo">↶ Quay về giờ trước đó${prev.start ? ` (bắt đầu ${hm(DT.fromMillis(prev.start))})` : ''}</button></div>` : '';
   let body;
   if (!x) body = `<p class="muted small">Trong lịch không có buổi live nào trong khoảng 18 giờ tới. Thêm buổi ở tab Lịch live trước.</p>`;
   else if (m) {
     const st = DT.fromMillis(onair.start), d = Math.round((onair.start - onair.sched) / 60e3);
     body = `<p>Đã bắt đầu lúc <b>${hm(st)}</b> (lịch ghi ${hm(x.start)}${d ? `, ${d > 0 ? 'trễ' : 'sớm'} ${Math.abs(d)} phút` : ''}). Bảng lịch và bộ đếm trên OBS đang chạy theo giờ này, kết thúc lúc <b>${hm(st.plus({ minutes:x.mins }))}</b>.</p>
       <div class="row mt-s"><span class="small muted">Chỉnh lại giờ bắt đầu:</span>${[-5, -1, 1, 5].map(n => `<button class="btn secondary sm" data-act="onairShift" data-m="${n}">${n > 0 ? '+' : '−'}${Math.abs(n)} phút</button>`).join('')}</div>
-      <div class="row mt-s"><button class="btn secondary sm" data-act="onairStart">Bắt đầu lại từ bây giờ</button><button class="btn ghost sm" data-act="onairClear">Về giờ theo lịch</button></div>`;
-  } else body = `<p>Buổi tiếp theo theo lịch: <b>${hm(x.start)} – ${hm(x.end)}</b>${x.slot.title ? ` · ${esc(x.slot.title)}` : ''}.</p>
-      <p class="hint">Khi bạn thật sự bắt đầu (dù sớm hay trễ hơn lịch), bấm nút này một lần. Bảng lịch và bộ đếm trên OBS sẽ tính lại cả buổi từ lúc bấm, trong khoảng 30 giây.</p>
-      <button class="btn primary mt-s" data-act="onairStart">${ic('play', 'sm')} Bắt đầu buổi live bây giờ</button>`;
+      <div class="row mt-s"><button class="btn secondary sm" data-act="onairStart">Bắt đầu lại từ bây giờ</button><button class="btn ghost sm" data-act="onairClear">Về giờ theo lịch</button></div>` + undo;
+  } else if (now >= x.start.toMillis() && now < x.end.toMillis()) body = `<p>Buổi đang diễn ra theo lịch: <b>${hm(x.start)} – ${hm(x.end)}</b>${x.slot.title ? ` · ${esc(x.slot.title)}` : ''}.</p>
+      <p class="hint">Nếu bạn đã bấm <b>Start Streaming</b> trong OBS thì bảng lịch đã tự tính giờ từ lúc đó, <b>không cần bấm gì ở đây</b>. Chỉ bấm khi muốn tính lại cả buổi từ bây giờ.</p>
+      <button class="btn secondary sm mt-s" data-act="onairStart">Bắt đầu lại từ bây giờ</button>` + undo;
+  else body = `<p>Buổi tiếp theo theo lịch: <b>${hm(x.start)} – ${hm(x.end)}</b>${x.slot.title ? ` · ${esc(x.slot.title)}` : ''}.</p>
+      <p class="hint">Bấm Start Streaming trong OBS là bảng lịch tự bắt đầu. Nút này để dùng khi không stream bằng OBS hoặc muốn sửa giờ: bảng lịch và bộ đếm sẽ tính lại cả buổi từ lúc bấm, trong khoảng 30 giây.</p>
+      <button class="btn primary mt-s" data-act="onairStart">${ic('play', 'sm')} Bắt đầu buổi live bây giờ</button>` + undo;
   return `<div id="onair" style="margin-bottom:16px">${aCard(`${ic('timer', 'sm')} Bắt đầu buổi live`, body)}</div>`;
 }
 function onairMount(){
@@ -264,8 +270,10 @@ function onairMount(){
   const old = $('onair'); if (old) old.outerHTML = onairCard(); else b.insertAdjacentHTML('afterbegin', onairCard());
   if (!onairUnsub && !DEMO) onairUnsub = db.collection('settings').doc('onair').onSnapshot(d => { onair = d.exists ? d.data() : null; const el = $('onair'); if (el) el.outerHTML = onairCard(); }, e => console.warn('onair', e.code));
 }
-async function onairSave(v){
-  try { if (DEMO) onair = v; else await db.collection('settings').doc('onair').set({ ...v, at:Date.now() }); const el = $('onair'); if (el) el.outerHTML = onairCard(); return true; }
+const onairSnap = () => ({ start:(onair && onair.start) || 0, sched:(onair && onair.sched) || 0, at:(onair && onair.at) || 0 });
+async function onairSave(v, at){                         // at: giữ mốc cũ khi hoàn tác; bình thường là lúc bấm
+  v = { ...v, at:at === undefined ? Date.now() : at };
+  try { if (DEMO) onair = v; else await db.collection('settings').doc('onair').set(v); const el = $('onair'); if (el) el.outerHTML = onairCard(); return true; }
   catch (e) { console.warn(e); toast('Chưa lưu được: ' + (e.code || e.message)); return false; }
 }
 function onSchedField(el){
@@ -333,10 +341,14 @@ function onQeField(el){
 document.addEventListener('input', e => { if (e.target.dataset && e.target.dataset.qe && e.target.tagName !== 'SELECT' && e.target.type !== 'checkbox') onQeField(e.target); });
 document.addEventListener('change', e => { if (e.target.dataset && e.target.dataset.qe && (e.target.tagName === 'SELECT' || e.target.type === 'checkbox')) onQeField(e.target); });
 Object.assign(ACTIONS, {
-  onairStart: async () => { const x = onairMatch() || onairNext(); if (!x) return toast('Không có buổi live nào sắp tới trong lịch.');
-    if (await onairSave({ start:Date.now(), sched:x.start.toMillis() })) toast('✓ Đã bắt đầu. OBS sẽ tự theo trong khoảng 30 giây.', 3500); },
-  onairShift: async el => { if (!onairMatch()) return; await onairSave({ start:onair.start + (+el.dataset.m) * 60e3, sched:onair.sched }); },
-  onairClear: async () => { if (await onairSave({ start:0, sched:0 })) toast('Đã quay về giờ theo lịch.'); },
+  onairStart: async () => { const m = onairMatch(), x = m || onairNext(), now = Date.now(); if (!x) return toast('Không có buổi live nào sắp tới trong lịch.');
+    const running = m ? now >= onair.start && now < onair.start + x.mins * 60e3 : now >= x.start.toMillis() && now < x.end.toMillis();
+    if (running && !confirm('Buổi live đang chạy. Bắt đầu lại sẽ tính lại cả buổi từ bây giờ (bảng lịch và bộ đếm trên OBS chạy lại từ đầu). Tiếp tục?\n\nLỡ bấm nhầm thì có nút "Quay về giờ trước đó".')) return;
+    if (await onairSave({ start:now, sched:x.start.toMillis(), prev:onairSnap() })) toast('✓ Đã bắt đầu. OBS sẽ tự theo trong khoảng 30 giây.', 3500); },
+  onairShift: async el => { if (!onairMatch()) return; await onairSave({ start:onair.start + (+el.dataset.m) * 60e3, sched:onair.sched, prev:(onair.prev && Date.now() - onair.at < 600e3) ? onair.prev : onairSnap() }); },
+  onairClear: async () => { if (await onairSave({ start:0, sched:0, prev:onairSnap() })) toast('Đã quay về giờ theo lịch.'); },
+  onairUndo: async () => { const p = onair && onair.prev; if (!p) return;
+    if (await onairSave({ start:p.start || 0, sched:p.sched || 0 }, p.at || 0)) toast('↶ Đã quay về giờ trước đó. OBS sẽ tự theo trong khoảng 30 giây.', 3500); },
 });
 Object.assign(ACTIONS, {
   qeOpen: el => {
