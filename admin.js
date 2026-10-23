@@ -263,17 +263,21 @@ function onairCard(){
   else body = `<p>Buổi tiếp theo theo lịch: <b>${hm(x.start)} – ${hm(x.end)}</b>${x.slot.title ? ` · ${esc(x.slot.title)}` : ''}.</p>
       <p class="hint">Bấm Start Streaming trong OBS là bảng lịch tự bắt đầu. Nút này để dùng khi không stream bằng OBS hoặc muốn sửa giờ: bảng lịch và bộ đếm sẽ tính lại cả buổi từ lúc bấm, trong khoảng 30 giây.</p>
       <button class="btn primary mt-s" data-act="onairStart">${ic('play', 'sm')} Bắt đầu buổi live bây giờ</button>` + undo;
+  const note = (onair && onair.note) || '';
+  body += `<div class="mt" style="border-top:1px dashed var(--line,#ddd);padding-top:12px"><label class="small"><b>Thông báo trên OBS</b> <span class="muted">(hiện nổi bật trên bảng lịch cho người xem, ví dụ mục tiêu hôm nay, nội quy, lời nhắn; để trống là ẩn)</span></label>
+      <textarea class="textarea" id="onairNote" maxlength="300" style="min-height:60px;margin-top:6px" placeholder="VD: Mục tiêu hôm nay: xong 10 phiên 🔥  ·  Nhớ uống nước nha!">${esc(note)}</textarea>
+      <div class="row mt-s"><button class="btn primary sm" data-act="onairNote">Lưu thông báo</button>${note ? `<button class="btn ghost sm" data-act="onairNoteClear">Ẩn thông báo</button>` : ''}</div></div>`;
   return `<div id="onair" style="margin-bottom:16px">${aCard(`${ic('timer', 'sm')} Bắt đầu buổi live`, body)}</div>`;
 }
 function onairMount(){
   const b = $('admin-body'); if (!b) return;
   const old = $('onair'); if (old) old.outerHTML = onairCard(); else b.insertAdjacentHTML('afterbegin', onairCard());
-  if (!onairUnsub && !DEMO) onairUnsub = db.collection('settings').doc('onair').onSnapshot(d => { onair = d.exists ? d.data() : null; const el = $('onair'); if (el) el.outerHTML = onairCard(); }, e => console.warn('onair', e.code));
+  if (!onairUnsub && !DEMO) onairUnsub = db.collection('settings').doc('onair').onSnapshot(d => { onair = d.exists ? d.data() : null; const el = $('onair'); if (el && document.activeElement !== $('onairNote')) el.outerHTML = onairCard(); }, e => console.warn('onair', e.code));
 }
 const onairSnap = () => ({ start:(onair && onair.start) || 0, sched:(onair && onair.sched) || 0, at:(onair && onair.at) || 0 });
-async function onairSave(v, at){                         // at: giữ mốc cũ khi hoàn tác; bình thường là lúc bấm
+async function onairSave(v, at){                         // at: giữ mốc cũ khi hoàn tác; bình thường là lúc bấm. Ghi kiểu merge để giữ thông báo
   v = { ...v, at:at === undefined ? Date.now() : at };
-  try { if (DEMO) onair = v; else await db.collection('settings').doc('onair').set(v); const el = $('onair'); if (el) el.outerHTML = onairCard(); return true; }
+  try { if (DEMO) onair = { ...onair, ...v }; else await db.collection('settings').doc('onair').set(v, { merge:true }); const el = $('onair'); if (el) el.outerHTML = onairCard(); return true; }
   catch (e) { console.warn(e); toast('Chưa lưu được: ' + (e.code || e.message)); return false; }
 }
 function onSchedField(el){
@@ -347,8 +351,12 @@ Object.assign(ACTIONS, {
     if (await onairSave({ start:now, sched:x.start.toMillis(), prev:onairSnap() })) toast('✓ Đã bắt đầu. OBS sẽ tự theo trong khoảng 30 giây.', 3500); },
   onairShift: async el => { if (!onairMatch()) return; await onairSave({ start:onair.start + (+el.dataset.m) * 60e3, sched:onair.sched, prev:(onair.prev && Date.now() - onair.at < 600e3) ? onair.prev : onairSnap() }); },
   onairClear: async () => { if (await onairSave({ start:0, sched:0, prev:onairSnap() })) toast('Đã quay về giờ theo lịch.'); },
+  onairNote: async () => { const v = ($('onairNote').value || '').trim().slice(0, 300);
+    try { if (DEMO) onair = { ...onair, note:v }; else await db.collection('settings').doc('onair').set({ note:v }, { merge:true });   // không đổi at: không ảnh hưởng giờ bắt đầu
+      $('onair').outerHTML = onairCard(); toast(v ? '✓ Đã lưu. OBS hiện thông báo trong khoảng 30 giây.' : 'Đã ẩn thông báo.', 3000); } catch (e) { toast('Chưa lưu được: ' + (e.code || e.message)); } },
+  onairNoteClear: () => { $('onairNote').value = ''; return ACTIONS.onairNote(); },
   onairUndo: async () => { const p = onair && onair.prev; if (!p) return;
-    if (await onairSave({ start:p.start || 0, sched:p.sched || 0 }, p.at || 0)) toast('↶ Đã quay về giờ trước đó. OBS sẽ tự theo trong khoảng 30 giây.', 3500); },
+    if (await onairSave({ start:p.start || 0, sched:p.sched || 0, prev:null }, p.at || 0)) toast('↶ Đã quay về giờ trước đó. OBS sẽ tự theo trong khoảng 30 giây.', 3500); },
 });
 Object.assign(ACTIONS, {
   qeOpen: el => {
