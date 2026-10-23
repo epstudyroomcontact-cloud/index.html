@@ -30,7 +30,7 @@
                      (thêm: align=left|center, name=…/name=0, city=…, sec=0 ẩn giây, date=0 ẩn ngày)
      view=timer      bộ đếm giờ "Session 1/10 · 49:59": bấm Cách để chạy/tạm dừng (Interact trong OBS), → ← đổi hiệp, ↑ ↓ ±1 phút, R làm lại;
                      focus=50&short=10&long=30&rounds=4&every=4&prep=0 tự đặt hiệp (không ghi thì lấy từ lịch Admin hôm nay);
-                     start=auto chạy theo giờ lịch; scene_focus=…&scene_break=… tự đổi cảnh OBS; sound=1 chuông; next=0; controls=0
+                     mặc định chạy theo lịch Admin + giờ bấm "Bắt đầu" trong Admin, start=manual để tự bấm; scene_focus=…&scene_break=… tự đổi cảnh OBS; sound=1 chuông; next=0; controls=0
      demo=1          xem thử bằng một buổi mẫu đang chạy (để căn chỉnh khi chưa tới giờ live)
    ========================================================= -->
 <style>
@@ -240,6 +240,27 @@ async function fallbackWeek(key){
 }
 const store = { get(k){ try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }, set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
 let sessions = null, loadT = 0;
+/* Giờ bắt đầu THẬT: trong Admin bấm "Bắt đầu buổi live bây giờ" → settings/onair = { start, sched }.
+   Buổi có giờ theo lịch = sched được dời sang start (cả buổi dời theo), nên bảng lịch và bộ đếm khớp lúc bạn thật sự bắt đầu.
+   Đọc lại 30 giây một lần khi gần giờ live (còn lại 5 phút một lần): 1 lượt đọc Firebase mỗi lần. */
+let base = null, onair = store.get('ep-overlay-onair'), onairOn = false;
+const DOCS = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents/`;
+function applyOnair(){
+  if (!base) return;
+  sessions = base.map(s => onair && onair.start && s.start === onair.sched ? { ...s, start:onair.start, end:onair.start + (s.end - s.start) } : s).sort((a, b) => a.start - b.start);
+}
+async function fetchOnair(){
+  try {
+    const r = await fetch(DOCS + 'settings/onair?key=' + API_KEY, { cache:'no-store' });
+    const j = r.status === 404 ? {} : r.ok ? await r.json() : null; if (!j) return;
+    const f = j.fields ? dec({ mapValue:{ fields:j.fields } }) : {}, nx = { start:+f.start || 0, sched:+f.sched || 0 };
+    if (!onair || nx.start !== onair.start || nx.sched !== onair.sched) { onair = nx; store.set('ep-overlay-onair', onair); applyOnair(); }
+  } catch (e) {}
+}
+function onairLoop(){
+  const now = Date.now(), near = (base || []).some(s => now > s.start - 6 * 3600e3 && now < s.end + 6 * 3600e3);
+  fetchOnair().then(() => setTimeout(onairLoop, near ? 30e3 : 300e3));
+}
 async function load(){
   const now = Date.now(), mons = [...new Set([mondayVN(now - DAY), mondayVN(now), mondayVN(now + DAY)])];
   const cache = store.get('ep-overlay-weeks') || {};
@@ -251,7 +272,8 @@ async function load(){
     all = all.concat(sessionsOf(mon, days));
   }
   store.set('ep-overlay-weeks', cache);
-  sessions = all.sort((a, b) => a.start - b.start); loadT = now;
+  base = all.sort((a, b) => a.start - b.start); loadT = now; applyOnair();
+  if (!onairOn) { onairOn = true; onairLoop(); }
   return !failed;
 }
 function demo(){                                        // buổi mẫu giống ảnh: bắt đầu 95 phút trước
@@ -338,16 +360,18 @@ async function refresh(){
 }
 /* view=timer: bộ đếm giờ cho stream (thay timer Lua trong OBS). Hiện "Session 1/10" + đếm ngược, tự sang hiệp sau.
    Danh sách hiệp: lấy từ địa chỉ (focus=50&short=10&long=30&rounds=4&every=4&prep=0) hoặc, nếu không ghi, từ buổi live hôm nay trong Admin.
-   start=manual (mặc định): bấm để chạy — trong OBS chọn nguồn rồi bấm Interact: phím Cách = chạy/tạm dừng, → hiệp sau, ← hiệp trước,
+   Mặc định (không ghi start): chạy theo lịch Admin, dời theo giờ bấm "Bắt đầu buổi live bây giờ" trong Admin — không cần bấm gì trong OBS.
+   start=manual (hoặc khi ghi focus=… trên địa chỉ): bấm để chạy — trong OBS chọn nguồn rồi bấm Interact: phím Cách = chạy/tạm dừng, → hiệp sau, ← hiệp trước,
    ↑/↓ cộng/trừ 1 phút, R = làm lại từ đầu; rê chuột vào cũng hiện nút. Trạng thái được nhớ, tải lại trang vẫn chạy tiếp.
-   start=auto: chạy đúng theo giờ lịch Admin, không cần bấm.
+   start=auto: như mặc định.
    scene_focus=study&scene_break=Break: tự đổi cảnh OBS khi sang hiệp (cần Page permissions = Advanced access to OBS).
    sound=1: chuông ngắn khi hết mỗi hiệp. next=0: ẩn dòng "Next". */
 if (Q.get('view') === 'timer') {
   root.classList.add('timer'); root.style.setProperty('--ts', OPT.size);
   if (!Q.has('theme')) root.dataset.theme = 'clear';
   root.dataset.align = ['right', 'center'].includes(Q.get('align')) ? Q.get('align') : 'left';
-  const AUTO = Q.get('start') === 'auto', custom = ['focus', 'rounds', 'short', 'long', 'every', 'prep'].some(k => Q.has(k));
+  const custom = ['focus', 'rounds', 'short', 'long', 'every', 'prep'].some(k => Q.has(k));
+  const AUTO = Q.get('start') === 'auto' || (Q.get('start') !== 'manual' && !custom);   // mặc định: theo lịch Admin + giờ bấm "Bắt đầu" trong Admin
   const customSegs = custom ? buildPlan(cleanPomo({ focus:Q.get('focus') || 50, short:Q.has('short') ? Q.get('short') : 10, long:Q.has('long') ? Q.get('long') : 30, rounds:Q.get('rounds') || 4, longEvery:Q.get('every') || 4, prep:Q.get('prep') || 0 })) : null;
   const sig = segs => segs.map(g => g.type[0] + g.min).join('');
   const KEY = 'ep-overlay-timer' + (custom ? '-' + sig(customSegs) : '');

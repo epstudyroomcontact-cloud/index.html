@@ -155,6 +155,7 @@ async function tabOverview(){
       <div class="row mt-s"><button class="btn primary" data-act="publishNow">Xuất bản ngay</button><button class="btn secondary" data-act="backupNow">Tải bản sao dữ liệu (file .json)</button><button class="btn secondary" data-act="fallbackNow">Tải file dự phòng cho web</button></div>
       <p class="hint"><b>File dự phòng cho web</b> (tuỳ chọn): tải file <code>site-fallback.json</code> rồi đưa lên GitHub, để <b>cùng chỗ với file index.html</b>. Nếu Firebase hết hạn mức hoặc gặp sự cố, người mới vào web vẫn thấy đủ nội dung từ file này (không tốn lượt đọc nào). Nên tải lại khi bạn đăng bài hoặc đổi lịch nhiều.</p><p class="hint">Nên tải bản sao dữ liệu khoảng mỗi tuần và cất vào ổ đĩa của bạn: bài viết, sản phẩm, cài đặt nằm trong Firebase, đây là bản dự phòng nếu có sự cố.</p>`)}
     ${pushCard()}`);
+  onairMount();
   if (!DEMO && PUSH_VAPID) db.collection('push_admin').doc('status').get().then(d => { const st = $('push-status'); if (st) st.textContent = d.exists ? `Lần gửi gần nhất: ${DT.fromMillis(d.data().at).toFormat('dd/MM/yyyy HH:mm')} (${d.data().label}) · ${d.data().ok}/${d.data().devices} máy nhận${d.data().removed ? ` · đã dọn ${d.data().removed} máy đã tắt thông báo` : ''}` : 'Chưa gửi lần nào.'; }).catch(() => {});
   if (!DEMO) db.collection('settings').doc('site').get().then(d => { const st = $('pub-status'); if (st) st.textContent = d.exists ? 'Lần xuất bản gần nhất: ' + DT.fromMillis(d.data().updatedAt).toFormat('dd/MM/yyyy HH:mm') : 'Chưa xuất bản lần nào. Bấm "Xuất bản ngay".'; }).catch(() => {});
 }
@@ -234,6 +235,38 @@ function drawSchedule(){
         <div class="row between mt-s"><span class="small faint mono" id="tot-${di}-${si}">⏱ ${slotTotal(s)} phút ≈ ${(slotTotal(s) / 60).toFixed(2)} giờ</span><span class="row"><label class="chk row small" style="font-weight:700"><input type="checkbox" data-d="${di}" data-s="${si}" data-f="cancelled" ${s.cancelled ? 'checked' : ''}> Huỷ buổi này</label><button type="button" class="btn danger sm" data-act="rmSlot" data-d="${di}" data-s="${si}">Xoá</button></span></div>
         <div class="f2 mt-s"><input class="input" placeholder="Lý do huỷ (VI)" data-d="${di}" data-s="${si}" data-f="noteVi" value="${esc(s.cancelNote.vi || '')}"><input class="input" placeholder="Cancel reason (EN)" data-d="${di}" data-s="${si}" data-f="noteEn" value="${esc(s.cancelNote.en || '')}"></div></div>`).join('')}
       ${day.slots.length < 4 ? `<button type="button" class="btn secondary sm mt-s" data-act="addSlot" data-d="${di}">${ic('plus', 'sm')} Thêm buổi live</button>` : ''}</div>`).join('')}`);
+  onairMount();
+}
+/* ---------------- Bắt đầu buổi live thật (settings/onair) ----------------
+   Có hôm dậy trễ / vào sớm: bấm "Bắt đầu bây giờ" để lưu giờ bắt đầu THẬT của buổi. Bảng lịch và bộ đếm trên OBS (overlay.html)
+   tự dời cả buổi theo mốc này (đọc lại khoảng 30 giây một lần), không cần bấm gì trong OBS. Lịch gốc trong tuần không bị sửa.
+   settings/onair = { start: giờ bắt đầu thật (ms), sched: giờ bắt đầu theo lịch của buổi đó (ms), at }  — ai cũng đọc được, chỉ admin ghi (firestore.rules: settings). */
+let onair = null, onairUnsub = null;
+const onairMatch = () => onair && onair.start ? upcomingPool().find(x => x.start.toMillis() === onair.sched) || null : null;
+const onairNext = () => { const now = Date.now();
+  return upcomingPool().filter(x => x.end.toMillis() + 3600e3 > now && x.start.toMillis() - 18 * 3600e3 < now).sort((a, b) => a.start.toMillis() - b.start.toMillis())[0] || null; };
+function onairCard(){
+  const m = onairMatch(), x = m || onairNext(), hm = d => d.setZone(VN).toFormat('HH:mm');
+  let body;
+  if (!x) body = `<p class="muted small">Trong lịch không có buổi live nào trong khoảng 18 giờ tới. Thêm buổi ở tab Lịch live trước.</p>`;
+  else if (m) {
+    const st = DT.fromMillis(onair.start), d = Math.round((onair.start - onair.sched) / 60e3);
+    body = `<p>Đã bắt đầu lúc <b>${hm(st)}</b> (lịch ghi ${hm(x.start)}${d ? `, ${d > 0 ? 'trễ' : 'sớm'} ${Math.abs(d)} phút` : ''}). Bảng lịch và bộ đếm trên OBS đang chạy theo giờ này, kết thúc lúc <b>${hm(st.plus({ minutes:x.mins }))}</b>.</p>
+      <div class="row mt-s"><span class="small muted">Chỉnh lại giờ bắt đầu:</span>${[-5, -1, 1, 5].map(n => `<button class="btn secondary sm" data-act="onairShift" data-m="${n}">${n > 0 ? '+' : '−'}${Math.abs(n)} phút</button>`).join('')}</div>
+      <div class="row mt-s"><button class="btn secondary sm" data-act="onairStart">Bắt đầu lại từ bây giờ</button><button class="btn ghost sm" data-act="onairClear">Về giờ theo lịch</button></div>`;
+  } else body = `<p>Buổi tiếp theo theo lịch: <b>${hm(x.start)} – ${hm(x.end)}</b>${x.slot.title ? ` · ${esc(x.slot.title)}` : ''}.</p>
+      <p class="hint">Khi bạn thật sự bắt đầu (dù sớm hay trễ hơn lịch), bấm nút này một lần. Bảng lịch và bộ đếm trên OBS sẽ tính lại cả buổi từ lúc bấm, trong khoảng 30 giây.</p>
+      <button class="btn primary mt-s" data-act="onairStart">${ic('play', 'sm')} Bắt đầu buổi live bây giờ</button>`;
+  return `<div id="onair" style="margin-bottom:16px">${aCard(`${ic('timer', 'sm')} Bắt đầu buổi live`, body)}</div>`;
+}
+function onairMount(){
+  const b = $('admin-body'); if (!b) return;
+  const old = $('onair'); if (old) old.outerHTML = onairCard(); else b.insertAdjacentHTML('afterbegin', onairCard());
+  if (!onairUnsub && !DEMO) onairUnsub = db.collection('settings').doc('onair').onSnapshot(d => { onair = d.exists ? d.data() : null; const el = $('onair'); if (el) el.outerHTML = onairCard(); }, e => console.warn('onair', e.code));
+}
+async function onairSave(v){
+  try { if (DEMO) onair = v; else await db.collection('settings').doc('onair').set({ ...v, at:Date.now() }); const el = $('onair'); if (el) el.outerHTML = onairCard(); return true; }
+  catch (e) { console.warn(e); toast('Chưa lưu được: ' + (e.code || e.message)); return false; }
 }
 function onSchedField(el){
   const d = el.dataset.d, f = el.dataset.f; if (d === undefined || !f) return; const day = adminDays[+d], v = el.type === 'checkbox' ? el.checked : el.value;
@@ -299,6 +332,12 @@ function onQeField(el){
 }
 document.addEventListener('input', e => { if (e.target.dataset && e.target.dataset.qe && e.target.tagName !== 'SELECT' && e.target.type !== 'checkbox') onQeField(e.target); });
 document.addEventListener('change', e => { if (e.target.dataset && e.target.dataset.qe && (e.target.tagName === 'SELECT' || e.target.type === 'checkbox')) onQeField(e.target); });
+Object.assign(ACTIONS, {
+  onairStart: async () => { const x = onairMatch() || onairNext(); if (!x) return toast('Không có buổi live nào sắp tới trong lịch.');
+    if (await onairSave({ start:Date.now(), sched:x.start.toMillis() })) toast('✓ Đã bắt đầu. OBS sẽ tự theo trong khoảng 30 giây.', 3500); },
+  onairShift: async el => { if (!onairMatch()) return; await onairSave({ start:onair.start + (+el.dataset.m) * 60e3, sched:onair.sched }); },
+  onairClear: async () => { if (await onairSave({ start:0, sched:0 })) toast('Đã quay về giờ theo lịch.'); },
+});
 Object.assign(ACTIONS, {
   qeOpen: el => {
     const off = +el.dataset.o, di = +el.dataset.d, si = +el.dataset.s, raw = (weekDocs[off] || [])[di];
