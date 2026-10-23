@@ -403,7 +403,7 @@ Trang `overlay.html` hiện kế hoạch buổi live đang chạy (giống thẻ
 **Thêm vào OBS:**
 1. Ô **Sources** (Nguồn) → bấm **+** → chọn **Browser** (Trình duyệt) → đặt tên "Lịch live" → **OK**.
 2. Ô **URL**: dán địa chỉ ở trên.
-3. **Width** `520`, **Height** `900` (khung dọc ở cạnh màn hình). Muốn nhỏ hơn thì giảm Height, danh sách tự cuộn cho vừa.
+3. **Width** `520`, **Height** `900` (khung dọc ở cạnh màn hình). Đổi kích thước thì chữ tự co lại cho vừa, luôn thấy hết lịch.
 4. Ô **Custom CSS** để nguyên như mặc định. Bấm **OK**, rồi kéo bảng tới chỗ bạn muốn trên màn hình.
 5. Muốn bảng tải lại ngay (ví dụ vừa sửa lịch xong, không muốn chờ 3 phút): chuột phải vào nguồn → **Properties** → bấm **Refresh cache of current page**.
 
@@ -411,7 +411,8 @@ Trang `overlay.html` hiện kế hoạch buổi live đang chạy (giống thẻ
 | Thêm | Tác dụng |
 |---|---|
 | `size=1.3` | Chữ to hơn (1 là mặc định, từ 0.6 đến 3) |
-| `rows=8` | Chỉ hiện 8 dòng, tự cuộn theo đoạn đang chạy |
+| `rows=8` | Chỉ hiện 8 dòng, tự cuộn theo đoạn đang chạy (mặc định chữ tự thu nhỏ cho vừa khung để thấy hết lịch) |
+| `fit=0` | Tắt tự thu nhỏ chữ: giữ cỡ chữ cố định, danh sách tự cuộn |
 | `theme=light` | Màu nền: `dark` (mặc định), `light`, `pink`, `clear` (trong suốt, chữ trắng có bóng) |
 | `opacity=0.6` | Độ đậm của nền thẻ, từ 0 đến 1 |
 | `accent=ff3d9a` | Màu chính (mã màu, không có dấu #) |
@@ -420,7 +421,7 @@ Trang `overlay.html` hiện kế hoạch buổi live đang chạy (giống thẻ
 | `now=0` | Ẩn ô "Đang … còn mm:ss" |
 | `list=0` | Ẩn danh sách các mốc (chỉ còn phần đầu và ô đang chạy) |
 | `empty=hide` | Ngày không có live thì bảng ẩn hẳn |
-| `lang=en` | Tiếng Anh |
+| `lang=vi` | Chữ tiếng Việt (mặc định bảng hiện tiếng Anh) |
 | `demo=1` | Xem thử bằng buổi mẫu đang chạy |
 
 ## QUY TẮC CẬP NHẬT WEB LÊN GITHUB (đọc cái này khi cần cập nhật)
