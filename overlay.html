@@ -509,11 +509,10 @@ function render(){
     const cells = fs.map(x => { const f = now >= x.b || p.mode === 'done' ? 100 : now > x.a ? (now - x.a) / (x.b - x.a) * 100 : 0;
       return `<i class="${f >= 100 ? 'd' : f > 0 ? 'c' : ''}"><b style="width:${f.toFixed(1)}%"></b></i>`; }).join('');
     h += `<div class="prog"><div class="pk">${EN ? 'Progress' : 'Tiến độ'} <b>${done} / ${fs.length}</b> ${EN ? 'done' : 'xong'}</div><div class="cells">${cells}</div></div>`;
-    if (p.mode !== 'done' && longs.length) {
-      const nl = longs.find(x => x.a > now), k = x => longs.length > 1 ? ` ${longs.indexOf(x) + 1}/${longs.length}` : '';   // đang nghỉ dài thì báo lần kế tiếp
-      const txt = nl ? `<span>${EN ? 'Long break' : 'Nghỉ dài'}${k(nl)} ${EN ? 'in' : 'sau'} <b>${dur(nl.a - now)}</b></span><small>${hm(nl.a)}</small>`
-        : `<span>${EN ? 'Last long break today' : 'Hết nghỉ dài hôm nay'}</span>`;
-      h += `<div class="lbk">☕ ${txt}</div>`;
+    const nl = p.mode !== 'done' && longs.find(x => x.a > now);   // chỉ hiện khi còn nghỉ dài phía trước (buổi không có / đã qua hết nghỉ dài thì ẩn dòng)
+    if (nl) {
+      const k = x => longs.length > 1 ? ` ${longs.indexOf(x) + 1}/${longs.length}` : '';
+      h += `<div class="lbk">☕ <span>${EN ? 'Long break' : 'Nghỉ dài'}${k(nl)} ${EN ? 'in' : 'sau'} <b>${dur(nl.a - now)}</b></span><small>${hm(nl.a)}</small></div>`;
     }
   }
   if (segs.length && !off('list') && (!CMP || Q.has('rows'))) {
