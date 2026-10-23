@@ -136,8 +136,9 @@ html.clock[data-theme="clear"] .card{padding:0 .1em}
 .note[hidden]{display:none}
 .note span{display:block}
 .note.mq{white-space:nowrap}
-.note.mq span{display:inline-block;animation:mq var(--d,14s) ease-in-out infinite alternate}
-@keyframes mq{0%,15%{transform:none}85%,100%{transform:translateX(var(--dx,0))}}
+.note.mq span{display:inline-block;animation:mq var(--d,14s) linear infinite}
+.note.mq em{font-style:normal;padding-right:3rem}
+@keyframes mq{to{transform:translateX(var(--dx,0))}}
 .big{margin:0 0 .6rem;padding:.65rem .9rem .7rem;border-radius:.85rem;background:var(--row-now);border-left:.32rem solid var(--c);text-align:left}
 .big .bl{display:flex;align-items:center;justify-content:space-between;gap:.5rem;white-space:nowrap;font:800 1.1rem/1.1 'Baloo 2','Nunito',sans-serif;letter-spacing:.02em;text-transform:uppercase;color:var(--c)}
 .big .bl .pill{font-family:'Nunito',sans-serif;font-size:.62rem;padding:.22rem .55rem;letter-spacing:.08em}
@@ -404,9 +405,10 @@ function drawNote(){
   noteEl.hidden = !t; noteEl.classList.remove('mq'); noteEl.innerHTML = t ? `<span>${esc(t)}</span>` : '';
   if (!t) return;
   const sp = noteEl.firstChild, lh = parseFloat(getComputedStyle(sp).lineHeight) || 24;
-  if (sp.offsetHeight > lh * 2.2) {                    // dài hơn 2 dòng: 1 dòng, đứng yên ở đầu chữ rồi trượt tới cuối, rồi quay lại
-    noteEl.classList.add('mq'); const dx = sp.scrollWidth - noteEl.clientWidth + parseFloat(getComputedStyle(noteEl).paddingLeft) * 2;
-    noteEl.style.setProperty('--dx', -Math.max(0, dx) + 'px'); noteEl.style.setProperty('--d', Math.max(8, dx / 45 + 4).toFixed(1) + 's');
+  if (sp.offsetHeight > lh * 2.2) {                    // dài hơn 2 dòng: 1 dòng chạy chữ một chiều phải → trái, lặp vòng liền mạch (2 bản chữ nối nhau)
+    noteEl.classList.add('mq'); sp.innerHTML = `<em>${esc(t)}</em><em>${esc(t)}</em>`;
+    const dx = sp.firstChild.offsetWidth;              // trượt đúng 1 bản chữ + khoảng trống thì bản thứ 2 nằm đúng chỗ bản đầu
+    noteEl.style.setProperty('--dx', -dx + 'px'); noteEl.style.setProperty('--d', Math.max(8, dx / 60).toFixed(1) + 's');
   }
 }
 function render(){
