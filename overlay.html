@@ -22,8 +22,8 @@
      accent=ff3d9a   màu chính (mã màu, không có #)
      total=0 / bar=0 / chip=0 / title=0 / status=0 / now=0   ẩn: tổng phút / thanh màu / dòng tóm tắt / tên buổi / nhãn trạng thái / ô "đang"
      big=0           ẩn khối đếm giờ lớn ở đầu bảng ("FOCUS 3/10" + số đếm ngược to, đọc được trên điện thoại); view=big chỉ hiện khối này
-     (mặc định GỌN: khung hẹp ~340px = khối đếm giờ lớn + cả timeline dạng vòng số Focus 1…N / chấm nghỉ / thẻ nghỉ dài + thanh thông báo;
-      track=0 ẩn timeline; rows=2 thêm danh sách 2 đoạn kế tiếp; align=right để dồn sang phải)
+     (mặc định GỌN: khung hẹp ~340px = khối đếm giờ lớn "FOCUS 4/10" + "Progress 3 / 10 done" với thanh 10 ô + "☕ Long break in 2h 38m" + thanh thông báo;
+      track=0 ẩn 2 dòng tiến độ / nghỉ dài; rows=2 thêm danh sách 2 đoạn kế tiếp; align=right để dồn sang phải)
      compact=0       bảng cả ngày như bản cũ (tên buổi, tóm tắt, thanh màu, danh sách đầy đủ, tổng phút)
      note=0          ẩn khung thông báo (nhập trong Admin → ô Bắt đầu buổi live → Thông báo trên OBS)
      view=note       chỉ hiện khung thông báo, để đặt riêng một chỗ trên màn hình (không có thông báo thì trống)
@@ -155,24 +155,16 @@ html.cmp .big{margin-bottom:.35rem}
 html.cmp .list{margin-top:0}
 html.cmp .list li{font-size:.85rem;padding:.22rem .45rem}
 html.noteonly .note{margin:0}
-.trk{display:flex;flex-direction:column;gap:.3rem;margin:.15rem 0 .4rem}
-.tg{display:flex;flex-wrap:wrap;align-items:center;gap:.25rem .22rem}
-.tk{display:inline-flex;align-items:center;justify-content:center;flex:none;font:800 .74rem/1 'Nunito',sans-serif;font-variant-numeric:tabular-nums;color:var(--ink)}
-.tk.focus{width:1.45rem;height:1.45rem;border-radius:50%;border:.13rem solid var(--accent)}
-.tk.short{width:.48rem;height:.48rem;border-radius:50%;background:var(--short)}
-.tk.prep{width:.48rem;height:.48rem;border-radius:50%;background:var(--prep)}
-.tk.past{opacity:.35}
-.tk.focus.past{background:var(--accent);border-color:transparent;color:#fff}
-.tk.cur{transform:scale(1.2);box-shadow:0 0 0 .15rem var(--ink)}
-.tk.focus.cur{background:var(--accent);color:#fff}
-.tl{display:flex;justify-content:space-between;align-items:center;gap:.4rem;padding:.22rem .55rem;border-radius:.5rem;background:var(--long);color:#3a2a00;text-shadow:none;font:800 .76rem/1.2 'Nunito',sans-serif;letter-spacing:.03em}
-.tl span{font-weight:800;opacity:.85;font-variant-numeric:tabular-nums}
-.tl.past{opacity:.38}
-.tl.cur{box-shadow:0 0 0 .15rem var(--ink)}
-.tnx{font-weight:700;font-size:.78rem;line-height:1.3;color:var(--muted);margin-bottom:.2rem}
-.tnx b{color:var(--ink)}
-.tsum{display:flex;justify-content:space-between;gap:.5rem;flex-wrap:wrap;font-weight:700;font-size:.74rem;color:var(--muted)}
-.tsum b{color:var(--ink)}
+.prog{margin:.15rem .1rem .55rem}
+.prog .pk{font-weight:800;font-size:.85rem;color:var(--muted);margin-bottom:.35rem}
+.prog .pk b{color:var(--ink);font-size:1rem}
+.cells{display:flex;gap:.22rem}
+.cells i{flex:1;height:.55rem;border-radius:.3rem;background:var(--line);overflow:hidden;position:relative}
+.cells i b{position:absolute;left:0;top:0;bottom:0;background:var(--accent)}
+.cells i.c{box-shadow:0 0 0 .1rem var(--ink)}
+.lbk{display:flex;align-items:center;gap:.4rem;padding:.45rem .7rem;border-radius:.7rem;background:rgba(255,199,44,.16);color:var(--long);font-weight:800;font-size:.86rem;line-height:1.2;white-space:nowrap}
+.lbk b{color:var(--ink)}
+.lbk small{margin-left:auto;color:var(--muted);font-size:.8rem;font-weight:800;font-variant-numeric:tabular-nums}
 .total{text-align:center;color:var(--muted);font-weight:700;font-size:.8rem;padding-top:.45rem}
 .empty{color:var(--muted);font-weight:700;font-size:.95rem}
 </style>
@@ -459,28 +451,21 @@ function render(){
       h += `<div class="now" style="--c:${COLOR[segs[0].type]}"><div><div class="lbl">${esc(TXT.first)}</div><div class="nm">${esc(labelOf(segs[0]))}</div><div class="nx">${esc(TXT.at)} ${hm(s.start)}</div></div><div class="cd">${clock(s.start - now)}</div></div>`;
     }
   }
-  // Cả timeline gọn (mặc định trong khung gọn), chia nhóm theo nghỉ dài:  ①•② / LONG 1/2 · 11:40 – 13:40 / ③•④•⑤•⑥ / LONG 2/2 … / ⑦•⑧•⑨•⑩
-  // Focus = vòng số, nghỉ ngắn = chấm xanh; đã qua mờ, đang chạy sáng. Dưới: "Next long break: after Focus 6 · 17:30 · in 3h 12m" + tóm tắt. track=0 để ẩn.
+  // Khung gọn (mặc định): dưới khối đếm giờ lớn chỉ có 2 dòng dễ hiểu —
+  //   "Progress 3 / 10 done" + thanh 10 ô (ô đang chạy đầy dần), và "☕ Long break in 2h 38m · 17:30". track=0 để ẩn.
   if (CMP && segs.length && !off('track')) {
-    const EN = OPT.lang !== 'vi', longs = rows.filter(x => x.g.type === 'long');
-    const dur = ms => { const m = Math.max(0, Math.round(ms / 60e3)), h = Math.floor(m / 60); return h ? `${h}h ${pad(m % 60)}m` : `${m}m`; };
-    let tk = '', grp = '';
-    rows.forEach((r, i) => { const st = state(i), c = r.g.type;
-      if (c === 'long') {
-        if (grp) tk += `<div class="tg">${grp}</div>`; grp = '';
-        const k = longs.indexOf(r) + 1;
-        tk += `<div class="tl ${st}">☕ ${EN ? 'LONG' : 'NGHỈ DÀI'}${longs.length > 1 ? ` ${k}/${longs.length}` : ''}<span>${hm(r.a)} – ${hm(r.b)} · ${r.g.min}′</span></div>`;
-      } else grp += `<span class="tk ${c} ${st}">${c === 'focus' ? r.g.n : ''}</span>`;
-    });
-    if (grp) tk += `<div class="tg">${grp}</div>`;
-    const ref = p.mode === 'live' ? cur : -1, nl = rows.findIndex((r, i) => i > ref && r.g.type === 'long');
-    let nxl = '';
-    if (nl >= 0 && p.mode !== 'done') {
-      const pf = rows.slice(0, nl).reverse().find(r => r.g.type === 'focus');
-      nxl = `<div class="tnx">${EN ? 'Next long break' : 'Nghỉ dài tiếp theo'}: <b>${pf ? `${EN ? 'after' : 'sau'} ${esc(TXT.focus)} ${pf.g.n} · ` : ''}${hm(rows[nl].a)}</b> · ${EN ? 'in' : 'còn'} <b>${dur(rows[nl].a - now)}</b></div>`;
+    const EN = OPT.lang !== 'vi', fs = rows.filter(x => x.g.type === 'focus'), longs = rows.filter(x => x.g.type === 'long');
+    const done = fs.filter(x => p.mode === 'done' || now >= x.b).length;
+    const dur = ms => { const m = Math.max(1, Math.ceil(ms / 60e3)), hh = Math.floor(m / 60); return hh ? `${hh}h ${pad(m % 60)}m` : `${m}m`; };
+    const cells = fs.map(x => { const f = now >= x.b || p.mode === 'done' ? 100 : now > x.a ? (now - x.a) / (x.b - x.a) * 100 : 0;
+      return `<i class="${f >= 100 ? 'd' : f > 0 ? 'c' : ''}"><b style="width:${f.toFixed(1)}%"></b></i>`; }).join('');
+    h += `<div class="prog"><div class="pk">${EN ? 'Progress' : 'Tiến độ'} <b>${done} / ${fs.length}</b> ${EN ? 'done' : 'xong'}</div><div class="cells">${cells}</div></div>`;
+    if (p.mode !== 'done' && longs.length) {
+      const nl = longs.find(x => x.a > now), k = x => longs.length > 1 ? ` ${longs.indexOf(x) + 1}/${longs.length}` : '';   // đang nghỉ dài thì báo lần kế tiếp
+      const txt = nl ? `<span>${EN ? 'Long break' : 'Nghỉ dài'}${k(nl)} ${EN ? 'in' : 'sau'} <b>${dur(nl.a - now)}</b></span><small>${hm(nl.a)}</small>`
+        : `<span>${EN ? 'Last long break today' : 'Hết nghỉ dài hôm nay'}</span>`;
+      h += `<div class="lbk">☕ ${txt}</div>`;
     }
-    const n = k => segs.filter(g => g.type === k).length, sum = [[n('focus'), TXT.focus], [n('short'), EN ? 'Short' : 'Nghỉ ngắn'], [n('long'), EN ? 'Long' : 'Nghỉ dài']].filter(x => x[0]).map(([c, l]) => `<b>${c}</b> ${esc(l)}`).join(' · ');
-    h += `<div class="trk">${tk}</div>${nxl}<div class="tsum"><span>${sum}</span><span>${hm(s.start)} – ${hm(s.end)}</span></div>`;
   }
   if (segs.length && !off('list') && (!CMP || Q.has('rows'))) {
     const from = p.mode === 'live' ? (big ? cur + 1 : Math.max(cur, 0)) : p.mode === 'done' ? rows.length : 0, upto = from + (OPT.rows || 2);
