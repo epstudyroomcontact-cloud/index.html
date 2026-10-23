@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,7 +15,8 @@
    Lấy lịch lại 3 phút một lần (1 lượt đọc Firebase mỗi lần); lỗi / hết hạn mức thì dùng site-fallback.json.
    Tuỳ chọn trên địa chỉ (ghép bằng & sau dấu ?), ví dụ overlay.html?size=1.3&theme=light&total=0
      size=1.3        cỡ chữ (1 = mặc định, 0.6 – 3)
-     rows=8          chỉ hiện 8 dòng, tự cuộn theo đoạn hiện tại (mặc định: vừa khung OBS)
+     (mặc định chữ tự thu nhỏ cho vừa khung OBS để thấy hết lịch; fit=0 để tắt, khi đó danh sách tự cuộn)
+     rows=8          chỉ hiện 8 dòng, tự cuộn theo đoạn hiện tại
      theme=dark      dark | light | pink | clear (clear = nền trong suốt, chữ trắng có bóng)
      opacity=0.85    độ đậm của nền thẻ (0 – 1)
      accent=ff3d9a   màu chính (mã màu, không có #)
@@ -23,7 +24,7 @@
      list=0          ẩn danh sách các mốc (chỉ còn phần đầu + ô đang chạy)
      empty=hide      ngày không có live thì ẩn hẳn (mặc định hiện một dòng nhỏ)
      after=60        sau khi buổi kết thúc, còn hiện thêm bao nhiêu phút
-     lang=en         tiếng Anh
+     lang=vi         tiếng Việt (mặc định tiếng Anh, cho khán giả YouTube quốc tế)
      tz=Asia/Tokyo   hiện giờ theo múi giờ khác (mặc định giờ Việt Nam)
      demo=1          xem thử bằng một buổi mẫu đang chạy (để căn chỉnh khi chưa tới giờ live)
    ========================================================= -->
@@ -84,8 +85,8 @@ const off = k => Q.get(k) === '0' || Q.get(k) === 'false';
 const OPT = {
   size: num('size', 1, .6, 3), rows: Math.round(num('rows', 0, 0, 60)), after: num('after', 60, 0, 720),
   theme: ['dark', 'light', 'pink', 'clear'].includes(Q.get('theme')) ? Q.get('theme') : 'dark',
-  lang: Q.get('lang') === 'en' ? 'en' : 'vi', tz: Q.get('tz') || 'Asia/Ho_Chi_Minh', demo: Q.get('demo') === '1',
-  emptyHide: Q.get('empty') === 'hide'
+  lang: Q.get('lang') === 'vi' ? 'vi' : 'en', tz: Q.get('tz') || 'Asia/Ho_Chi_Minh', demo: Q.get('demo') === '1',
+  emptyHide: Q.get('empty') === 'hide', fit: !off('fit') && !Q.get('rows')
 };
 const root = document.documentElement;
 root.dataset.theme = OPT.theme; root.lang = OPT.lang;
@@ -222,7 +223,17 @@ function clock(ms){ const t = Math.max(0, Math.ceil(ms / 1000)), h = Math.floor(
 
 /* ---------- vẽ ---------- */
 const card = document.getElementById('card');
-let lastKey = '';
+let lastKey = '', fitScale = 1;
+// Tự thu nhỏ chữ cho vừa khung OBS để thấy hết lịch (tắt bằng fit=0, hoặc khi đặt rows=…).
+// Chỉ tính lại khi đổi buổi / trạng thái / kích thước khung, nên chữ không nhảy mỗi giây.
+function fit(list, key){
+  if (!OPT.fit) return;
+  const setFs = k => root.style.setProperty('--fs', (20 * OPT.size * k).toFixed(2) + 'px');
+  if (key === lastKey) { setFs(fitScale); return; }
+  lastKey = key; fitScale = 1; setFs(1);
+  const over = () => (list && list.scrollHeight > list.clientHeight + 1) || card.scrollHeight > card.clientHeight + 1;
+  while (over() && fitScale > .45) { fitScale *= .96; setFs(fitScale); }
+}
 function render(){
   const now = Date.now(), p = pick(now);
   if (!p) {
@@ -257,6 +268,7 @@ function render(){
   if (!off('total')) h += `<div class="total">${esc(tr(TXT.total, { m:s.mins }))}</div>`;
   card.innerHTML = h;
   const list = document.getElementById('list');
+  fit(list, `${s.start}|${p.mode}|${segs.length}|${innerWidth}x${innerHeight}`);
   if (list) {                                           // giữ đoạn đang chạy trong khung: chừa 1 dòng đã qua phía trên
     const li = list.children;
     if (OPT.rows && li.length > OPT.rows) list.style.maxHeight = (li[0].offsetHeight * OPT.rows) + 'px';
@@ -274,6 +286,7 @@ async function refresh(){
   setTimeout(refresh, ok ? 180e3 : 60e3);
 }
 render(); refresh(); setInterval(render, 1000);
+if (document.fonts) document.fonts.ready.then(() => { lastKey = ''; render(); });   // phông chữ tải xong thì đo lại cho vừa khung
 })();
 </script>
 </body>
