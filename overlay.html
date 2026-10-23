@@ -37,6 +37,9 @@
      view=timer      bộ đếm giờ "Session 1/10 · 49:59": bấm Cách để chạy/tạm dừng (Interact trong OBS), → ← đổi hiệp, ↑ ↓ ±1 phút, R làm lại;
                      focus=50&short=10&long=30&rounds=4&every=4&prep=0 tự đặt hiệp (không ghi thì lấy từ lịch Admin hôm nay);
                      mặc định chạy theo lịch Admin + giờ bấm "Bắt đầu" trong Admin, start=manual để tự bấm; scene_focus=…&scene_break=… tự đổi cảnh OBS; next=0; controls=0
+     view=chat       bình luận YouTube của buổi live đang phát (tự tìm live của kênh, không cần dán link mỗi buổi): cần ytkey=… (khoá YouTube Data API, xem SETUP.md PHẦN 19);
+                     mặc định chỉ hiện lúc nghỉ / chuẩn bị (ẩn lúc tập trung), chat=always luôn hiện; max=6 số tin; title=0 ẩn tiêu đề; pos=top dồn lên trên;
+                     channel=UC… (mặc định lấy Channel ID trong Admin); v=ID_VIDEO dùng đúng live đó; poll=10 giây giữa 2 lần lấy tin; check=1 hiện dòng trạng thái để kiểm tra; demo=1 tin mẫu
      rowcd=0         dòng đang chạy hiện số phút thay vì đếm ngược (mặc định đếm ngược ngay trên dòng đó)
      sound=0         tắt chuông khi sang đoạn (mặc định bật; sound=break chỉ báo khi vào nghỉ; vol=0…100)
      autostart=0     không tự bắt đầu khi bấm Start Streaming trong OBS (mặc định: bấm Start Streaming = buổi live bắt đầu từ lúc đó;
@@ -168,6 +171,28 @@ html.noteonly .note{margin:0}
 .lbk small{margin-left:auto;color:var(--muted);font-size:.8rem;font-weight:800;font-variant-numeric:tabular-nums}
 .total{text-align:center;color:var(--muted);font-weight:700;font-size:.8rem;padding-top:.45rem}
 .empty{color:var(--muted);font-weight:700;font-size:.95rem}
+/* view=chat: bình luận YouTube, tin mới nhất ở dưới, tin cũ mờ dần */
+html.chat body{display:flex;flex-direction:column;justify-content:flex-end}
+html.chat[data-pos="top"] body{justify-content:flex-start}
+html.chat .card{width:100%;padding:.6rem .75rem;transition:opacity .6s,transform .6s}
+html.chat .card.off{opacity:0;transform:translateY(.6rem)}
+.ch-h{display:flex;align-items:center;gap:.4rem;margin-bottom:.35rem;font-weight:800;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.ch-h i{width:.5rem;height:.5rem;border-radius:50%;background:#ff4d4d;box-shadow:0 0 0 .18rem rgba(255,77,77,.25)}
+.ch{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.4rem}
+.ch li{display:flex;gap:.5rem;align-items:flex-start;line-height:1.28;transition:opacity .5s}
+.ch li.new{animation:chin .45s ease-out}
+@keyframes chin{from{opacity:0;transform:translateY(.5rem)}}
+.ch img,.ch .av{width:1.55rem;height:1.55rem;border-radius:50%;flex:none;margin-top:.05rem;object-fit:cover}
+.ch .av{display:flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;font-weight:800;font-size:.8rem;text-shadow:none}
+.ch .tx{min-width:0;overflow-wrap:anywhere;font-weight:700;font-size:.95rem}
+.ch .nm{font-weight:800;color:var(--muted);margin-right:.35rem}
+.ch .own .nm{color:var(--accent)}
+.ch .mod .nm{color:var(--short)}
+.ch .mem .nm{color:var(--long)}
+.ch .sc .tx{background:rgba(255,199,44,.16);border-radius:.6rem;padding:.2rem .45rem}
+.ch .amt{color:var(--long);font-weight:800;margin-right:.35rem}
+.ch-st{font-size:.75rem;color:var(--muted);font-weight:700;line-height:1.3}
+.ch + .ch-st{margin-top:.4rem}
 </style>
 </head>
 <body>
@@ -297,6 +322,7 @@ const SKEY = 'ep-overlay-timer-sound';                // âm báo (bảng lịch
 const snd = { on:true, vol:70, when:'all', ...(store.get(SKEY) || {}) };
 if (Q.has('sound')) { snd.on = Q.get('sound') !== '0'; if (Q.get('sound') === 'break') snd.when = 'break'; }
 if (Q.has('vol')) snd.vol = Math.max(0, Math.min(100, +Q.get('vol') || 0));
+const PHKEY = 'ep-overlay-phase';                      // view=timer ghi { k:'focus'|'break'|'off', t } vài giây một lần; view=chat đọc
 const kindOf = g => !g ? 'end' : g.type === 'short' || g.type === 'long' ? 'break' : 'focus';
 const NOTES = { break:[1319, 1047, 784], focus:[784, 1047, 1319], end:[1047, 1319, 1568, 2093] };
 let actx = null;
@@ -628,7 +654,10 @@ if (Q.get('view') === 'timer') {
     for (let i = 0; i < segs.length; i++) { const b = t + segs[i].min * 60e3; if (now < b) return { lb:nameOf(segs[i]), ms:b - now, nx:segs[i + 1], g:segs[i] }; t = b; }
     return null;
   }
-  let lastAutoLb = '', lastMs = 0;
+  let lastAutoLb = '', lastMs = 0, phK = '', phT = 0;
+  // Báo cho nguồn view=chat biết đang tập trung hay nghỉ (cùng máy OBS dùng chung localStorage), để chat chỉ hiện lúc nghỉ đúng theo bộ đếm.
+  const phaseOut = g => { const k = !g ? 'off' : g.type === 'focus' ? 'focus' : 'break', now = Date.now();
+    if (k !== phK || now - phT > 3e3) { phK = k; phT = now; store.set(PHKEY, { k, t:now }); } };
   function draw(){
     const now = Date.now(), segs = plan();
     if (!custom && !userSegs && sessions === null) { card.innerHTML = ''; return; }   // chờ tải lịch Admin
@@ -639,7 +668,7 @@ if (Q.get('view') === 'timer') {
     let lb, ms, nx, sub = '', g;
     if (AUTO) {
       const a = sessions === null ? null : autoState(now);
-      if (!a) { if (lastAutoLb && lastMs < 3e3) chime('end'); lastAutoLb = ''; card.innerHTML = ''; card.classList.add('hide'); return; }
+      if (!a) { phaseOut(null); if (lastAutoLb && lastMs < 3e3) chime('end'); lastAutoLb = ''; card.innerHTML = ''; card.classList.add('hide'); return; }
       ({ lb, ms, nx, g } = a); card.classList.remove('hide');
       if (lb !== lastAutoLb) { if (lastAutoLb && g) { if (g.min * 60e3 - ms < 10e3) chime(kindOf(g)); scene(g); } lastAutoLb = lb; }   // chỉ báo khi hiệp vừa bắt đầu (không báo khi dời giờ trong Admin)
       lastMs = ms;
@@ -648,6 +677,7 @@ if (Q.get('view') === 'timer') {
       if (st.done) { lb = T.done; ms = 0; }
       else { g = segs[st.idx]; lb = nameOf(g); ms = left(); nx = segs[st.idx + 1]; sub = !st.started ? T.ready : !st.running ? T.paused : ''; }
     }
+    phaseOut(AUTO || (st.started && !st.done) ? g : null);
     const big = ms >= 3600e3;
     card.innerHTML = `<div class="tv${now - flash < 1200 ? ' flash' : ''}"><div class="lb">${esc(lb)}${sub ? ` <span class="st">· ${esc(sub)}</span>` : ''}</div>`
       + `<div class="cd${big ? ' big' : ''}">${st.done && !AUTO ? '' : clock(ms)}</div>`
@@ -663,6 +693,134 @@ if (Q.get('view') === 'timer') {
       draw(); setTimeout(pull, ok ? 180e3 : 60e3); };
     pull();
   }
+  return;
+}
+/* view=chat: bình luận YouTube của buổi live đang phát, cùng kiểu thẻ với bảng lịch. Không cần dán link chat mỗi buổi:
+   - Kênh: channel=UC… trên địa chỉ, không ghi thì lấy Channel ID trong Admin → Giao diện & Menu → YouTube (settings/branding).
+   - Tìm live: 8 video mới nhất trong danh sách tải lên của kênh (2 đơn vị hạn mức YouTube), 1 phút một lần khi đang trong giờ live
+     theo lịch hoặc vừa bấm Start Streaming (còn lại 5 phút một lần); không thấy thì tìm kiếm "đang live" của kênh (100 đơn vị, tối đa 15 phút một lần).
+   - Lấy tin: liveChat/messages (khoảng 5 đơn vị một lần), poll=10 giây (chat=always: 20 giây), không lấy lúc đang ẩn (tập trung).
+     Hết giờ tập trung thì lấy tiếp từ chỗ cũ nên bình luận trong lúc học cũng hiện lại lúc nghỉ.
+   - Hạn mức miễn phí 10.000 đơn vị / ngày cho mỗi dự án Google Cloud (đặt lại khoảng 14–15 giờ chiều giờ Việt Nam).
+   - Lúc nghỉ hay tập trung: ưu tiên bộ đếm view=timer đang mở trong OBS (đọc ep-overlay-phase), không có thì tính theo lịch Admin như bảng lịch.
+   - Tin bị xoá / người bị chặn trong chat thì cũng biến khỏi màn hình. */
+if (Q.get('view') === 'chat') {
+  root.classList.add('chat'); root.dataset.pos = Q.get('pos') === 'top' ? 'top' : 'bottom';
+  const KEY = (Q.get('ytkey') || '').trim(), ALWAYS = Q.get('chat') === 'always', CHECK = Q.get('check') === '1';
+  const MAX = Math.round(num('max', 6, 1, 20)), POLL = num('poll', ALWAYS ? 20 : 10, 5, 300) * 1e3;
+  const YT = 'https://www.googleapis.com/youtube/v3/', V = OPT.lang === 'vi';
+  let chan = (Q.get('channel') || '').trim(), live = null, pageTok = '', msgs = [], shown = new Set(), status = '', obsLive = false, lastSearch = 0, drawn = '';
+  window.addEventListener('obsStreamingStarted', () => { obsLive = true; if (!live) setTimeout(find, 15e3); });
+  window.addEventListener('obsStreamingStopped', () => { obsLive = false; });
+  const say = t => { status = t; draw(); };
+  async function yt(path, p){
+    const r = await fetch(YT + path + '?' + new URLSearchParams({ ...p, key:KEY }), { cache:'no-store' });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { const er = (j.error && j.error.errors && j.error.errors[0]) || {}, e = new Error(er.reason || 'http ' + r.status); e.reason = er.reason || ''; e.code = r.status; throw e; }
+    return j;
+  }
+  // 'focus' | 'break' | 'off' (ngoài giờ live)
+  function phase(){
+    const ph = store.get(PHKEY); if (ph && Date.now() - ph.t < 15e3) return ph.k;
+    const now = Date.now(), p = pick(now); if (!p || p.mode !== 'live') return 'off';
+    let t = p.s.start; for (const g of p.s.segs || []) { t += g.min * 60e3; if (now < t) return g.type === 'focus' ? 'focus' : 'break'; }
+    return 'off';
+  }
+  const visible = () => ALWAYS || phase() !== 'focus';
+  const errText = e => e.reason === 'quotaExceeded' || e.reason === 'dailyLimitExceeded' ? 'Hết hạn mức YouTube hôm nay (đặt lại khoảng 14–15 giờ chiều giờ VN). Thử lại sau 30 phút.'
+    : ['keyInvalid', 'badRequest'].includes(e.reason) && e.code === 400 ? 'Khoá YouTube (ytkey) không đúng. Chép lại khoá trong Google Cloud.'
+    : e.reason === 'accessNotConfigured' ? 'Dự án Google Cloud của khoá chưa bật "YouTube Data API v3".'
+    : e.code === 403 ? `YouTube từ chối khoá (${e.reason || 403}). Kiểm tra giới hạn của khoá: cho phép YouTube Data API v3.`
+    : `Lỗi mạng / YouTube (${e.message}). Tự thử lại.`;
+  const waitErr = e => e.reason === 'quotaExceeded' || e.reason === 'dailyLimitExceeded' ? 30 * 60e3 : e.code === 400 || e.code === 403 ? 5 * 60e3 : 60e3;
+  async function liveOf(ids){
+    ids = ids.filter(Boolean); if (!ids.length) return null;
+    const j = await yt('videos', { part:'liveStreamingDetails', id:ids.slice(0, 50).join(',') });
+    const ok = (j.items || []).filter(x => x.liveStreamingDetails && x.liveStreamingDetails.activeLiveChatId && !x.liveStreamingDetails.actualEndTime);
+    ok.sort((a, b) => (b.liveStreamingDetails.actualStartTime ? 1 : 0) - (a.liveStreamingDetails.actualStartTime ? 1 : 0));   // đang phát trước, sắp phát sau
+    return ok[0] ? { id:ok[0].id, chat:ok[0].liveStreamingDetails.activeLiveChatId } : null;
+  }
+  let findT = 0;
+  async function find(){
+    clearTimeout(findT); if (live) return;
+    const onAir = obsLive || phase() !== 'off', again = ms => { findT = setTimeout(find, ms); };
+    if (!KEY) return say('Chưa có khoá YouTube: thêm &ytkey=… vào cuối địa chỉ nguồn này (xem SETUP.md PHẦN 19).');
+    try {
+      if (!chan && !Q.get('v')) {
+        const r = await fetch(DOCS + 'settings/branding?mask.fieldPaths=ytChannelId&key=' + API_KEY, { cache:'no-store' });
+        const j = r.ok ? await r.json() : {}; chan = (j.fields && j.fields.ytChannelId && j.fields.ytChannelId.stringValue || '').trim();
+        if (!chan) { say('Chưa có Channel ID: điền ở Admin → Giao diện & Menu → YouTube (hoặc thêm &channel=UC… vào địa chỉ).'); return again(5 * 60e3); }
+      }
+      say('Đang tìm buổi live đang phát của kênh…');
+      let v = Q.get('v') ? await liveOf([Q.get('v').trim()]) : null;
+      if (!v && chan && /^UC[\w-]{22}$/.test(chan)) {
+        const pl = await yt('playlistItems', { part:'contentDetails', playlistId:'UU' + chan.slice(2), maxResults:'8' });
+        v = await liveOf((pl.items || []).map(i => i.contentDetails && i.contentDetails.videoId));
+        if (!v && onAir && Date.now() - lastSearch > 15 * 60e3) {
+          lastSearch = Date.now();
+          const sr = await yt('search', { part:'id', channelId:chan, eventType:'live', type:'video', maxResults:'3' });
+          v = await liveOf((sr.items || []).map(i => i.id && i.id.videoId));
+        }
+      }
+      if (!v) { say(`Kênh chưa có live đang phát. Tự kiểm tra lại sau ${onAir ? '1' : '5'} phút.`); return again(onAir ? 60e3 : 5 * 60e3); }
+      live = v; pageTok = ''; msgs = []; say(`Đã nối chat của live ${v.id}. Chờ bình luận…`); poll();
+    } catch (e) { say(errText(e)); again(waitErr(e)); }
+  }
+  const role = a => a.isChatOwner ? 'own' : a.isChatModerator ? 'mod' : a.isChatSponsor ? 'mem' : '';
+  function take(items){
+    for (const m of items || []) {
+      const sn = m.snippet || {}, a = m.authorDetails || {};
+      if (sn.type === 'messageDeletedEvent') { const id = sn.messageDeletedDetails && sn.messageDeletedDetails.deletedMessageId; msgs = msgs.filter(x => x.id !== id); continue; }
+      if (sn.type === 'userBannedEvent') { const c = sn.userBannedDetails && sn.userBannedDetails.bannedUserDetails && sn.userBannedDetails.bannedUserDetails.channelId; msgs = msgs.filter(x => x.ch !== c); continue; }
+      if (sn.type === 'chatEndedEvent') { live = null; continue; }
+      const sc = sn.superChatDetails || sn.superStickerDetails;
+      const text = sn.type === 'superChatEvent' ? (sn.superChatDetails.userComment || '') : sn.displayMessage || '';
+      if (!['textMessageEvent', 'superChatEvent', 'superStickerEvent', 'newSponsorEvent', 'memberMilestoneChatEvent', 'membershipGiftingEvent'].includes(sn.type) || (!text && !sc)) continue;
+      if (msgs.some(x => x.id === m.id)) continue;
+      msgs.push({ id:m.id, ch:a.channelId, name:a.displayName || '', img:/^https:\/\//.test(a.profileImageUrl || '') ? a.profileImageUrl : '', role:role(a), text, amt:sc ? sc.amountDisplayString || '' : '', sc:!!sc || sn.type === 'newSponsorEvent' });
+    }
+    msgs = msgs.slice(-MAX);
+  }
+  let pollT = 0;
+  async function poll(){
+    clearTimeout(pollT);
+    if (!live) return find();
+    if (!visible()) { draw(); pollT = setTimeout(poll, 5e3); return; }   // đang tập trung: không tốn hạn mức, giữ chỗ đọc dở
+    let wait = POLL;
+    try {
+      const j = await yt('liveChat/messages', { liveChatId:live.chat, part:'snippet,authorDetails', maxResults:'200', ...(pageTok ? { pageToken:pageTok } : {}) });
+      const first = !pageTok; pageTok = j.nextPageToken || ''; take(j.items);
+      if (first) status = `Đã nối chat của live ${live.id}.`;
+      if ((j.items || []).length >= 200) wait = 1e3;     // còn tin dồn lại từ lúc tập trung: đọc tiếp ngay
+      else wait = Math.max(POLL, +j.pollingIntervalMillis || 0);
+      draw();
+      if (!live) { status = 'Live đã kết thúc.'; return find(); }
+    } catch (e) {
+      if (e.reason === 'liveChatEnded' || e.reason === 'liveChatNotFound' || e.reason === 'liveChatDisabled' || e.code === 404) { live = null; say(e.reason === 'liveChatDisabled' ? 'Live này đang tắt chat.' : 'Live đã kết thúc.'); findT = setTimeout(find, 60e3); return; }
+      if (e.reason === 'pageTokenInvalid' || e.code === 400 && pageTok) { pageTok = ''; wait = 1e3; }
+      else { say(errText(e)); wait = waitErr(e); }
+    }
+    pollT = setTimeout(poll, wait);
+  }
+  function draw(){
+    const show = visible() && (msgs.length || CHECK);
+    const title = off('title') ? '' : `<div class="ch-h"><i></i>${esc(V ? 'Bình luận' : 'Live chat')}</div>`;
+    const list = msgs.map((m, i) => { const op = Math.max(.4, 1 - (msgs.length - 1 - i) * .12).toFixed(2), av = m.img ? `<img src="${esc(m.img)}" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">` : `<span class="av">${esc((m.name.replace(/^@/, '')[0] || '?').toUpperCase())}</span>`;
+      return `<li data-id="${esc(m.id)}" class="${m.role}${m.sc ? ' sc' : ''}${shown.has(m.id) ? '' : ' new'}" style="opacity:${op}">${av}<div class="tx"><span class="nm">${esc(m.name)}</span>${m.amt ? `<span class="amt">${esc(m.amt)}</span>` : ''}${esc(m.text)}</div></li>`; }).join('');
+    const h = (msgs.length || !CHECK ? title : '') + (msgs.length ? `<ul class="ch">${list}</ul>` : '') + (CHECK ? `<div class="ch-st">${esc(status || '…')} · ${esc(ALWAYS ? 'luôn hiện' : 'đang ' + ({ focus:'tập trung (ẩn)', break:'nghỉ (hiện)', off:'ngoài giờ live (hiện)' }[phase()]))}</div>` : '');
+    card.classList.toggle('off', !show);
+    if (h === drawn) return; drawn = h; card.innerHTML = h;
+    msgs.forEach(m => shown.add(m.id));
+  }
+  if (OPT.demo) {                                       // demo=1: tin mẫu để căn chỗ trong OBS (không cần khoá)
+    const S = [['Linh', 'Chào cả nhà, hôm nay mình ôn thi IELTS 📚', ''], ['EP Study Room', 'Nghỉ 10 phút nha mọi người, uống nước đi ☕', 'own'], ['Minh Anh', 'Xong 2 pomodoro rồi, vui quá', 'mem'], ['Tomo', 'Hello from Japan! Good luck everyone', ''], ['Huy', 'Cho mình hỏi nhạc nền tên gì vậy ạ?', 'mod'], ['Sara', 'Day 12 of studying with you 🌙', '']];
+    let i = 0; const add = () => { const [name, text, r] = S[i++ % S.length]; msgs.push({ id:'d' + i, name, text, role:r, img:'', amt:'', sc:false }); msgs = msgs.slice(-MAX); status = 'Tin mẫu (demo=1)'; draw(); };
+    add(); add(); add(); setInterval(add, 3000);
+  } else {
+    const sched = async () => { const ok = await load().catch(() => false); setTimeout(sched, ok ? 180e3 : 60e3); };   // lịch Admin: biết lúc nghỉ / giờ live
+    sched().then(find);
+  }
+  draw(); setInterval(draw, 1000);
   return;
 }
 /* view=clock: khối "EP STUDY ROOM · Local time in … · ngày · giờ" cho góc màn hình stream (không đọc lịch, không tốn lượt đọc Firebase) */

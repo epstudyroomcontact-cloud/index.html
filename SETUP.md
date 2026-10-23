@@ -436,6 +436,30 @@ Trang `overlay.html` hiện kế hoạch buổi live đang chạy (giống thẻ
 
 **Hoặc bắt đầu bằng nút trong Admin (dậy trễ / vào sớm / sửa giờ):** vào **Admin** (tab Tổng quan hoặc Lịch live), ô **Bắt đầu buổi live** → bấm **▶ Bắt đầu buổi live bây giờ** một lần. Trong khoảng 30 giây, bảng lịch và bộ đếm trên OBS tự dời cả buổi theo giờ bạn bấm. Bấm nhầm thì dùng **−5 / −1 / +1 / +5 phút**, **Bắt đầu lại từ bây giờ**, hoặc **Về giờ theo lịch**. Lịch gốc trong tuần không bị đổi; trang Lịch cho khách và thông báo đẩy vẫn theo giờ lịch.
 
+## PHẦN 19 — Bình luận YouTube trên màn hình stream (OBS), tự động mỗi buổi
+Nguồn `overlay.html?view=chat` tự tìm buổi live đang phát của kênh (theo Channel ID ở **Admin → Giao diện & Menu → YouTube**) và hiện bình luận mới nhất trong thẻ cùng kiểu với bảng lịch. **Không cần dán link chat mỗi buổi.** Mặc định chỉ hiện lúc **nghỉ / chuẩn bị**, tự ẩn lúc **tập trung** (theo bộ đếm `view=timer` nếu có, không thì theo lịch Admin). Bình luận viết trong lúc học sẽ hiện lại khi tới giờ nghỉ. Tin bị xoá hoặc người bị chặn trong chat cũng tự biến khỏi màn hình.
+
+### 19.1. Tạo khoá YouTube (làm 1 lần, khoảng 5 phút, miễn phí)
+1. Vào **console.cloud.google.com**, đăng nhập đúng tài khoản Google dùng cho Firebase. Ở ô chọn dự án trên cùng, chọn dự án **epstudyroom-web**.
+2. Ô tìm kiếm trên cùng gõ **YouTube Data API v3** → bấm vào → **Enable** (Bật).
+3. Menu trái **APIs & Services → Credentials** → **+ Create credentials → API key**. Chép khoá (bắt đầu bằng `AIza…`).
+4. Bấm vào khoá vừa tạo → mục **API restrictions** chọn **Restrict key** → tick **YouTube Data API v3** → **Save**. (Khoá chỉ dùng được để đọc YouTube, không đụng được Firebase.)
+5. Khoá này **chỉ dán trong OBS**, không gửi cho ai, không dán vào Admin hay GitHub.
+
+### 19.2. Thêm vào OBS
+1. Thêm nguồn **Browser**, URL: `https://TENBAN.github.io/index.html/overlay.html?view=chat&ytkey=KHOÁ_CỦA_BẠN`
+   Rộng **420**, cao **420** (chỉnh tuỳ ý; bình luận mới nằm dưới cùng).
+2. Muốn kiểm tra: thêm `&check=1` vào cuối URL, thẻ sẽ hiện thêm dòng trạng thái (đã nối chat chưa, đang nghỉ hay tập trung, lỗi khoá…). Xong thì xoá `&check=1`.
+3. Căn chỗ khi chưa live: dùng `overlay.html?view=chat&demo=1` để xem tin mẫu.
+
+**Tuỳ chọn thêm** (nối bằng `&`): `chat=always` luôn hiện (cả lúc tập trung) · `max=6` số tin hiện cùng lúc · `size=1.3` chữ to hơn · `theme=clear` nền trong suốt · `lang=vi` tiêu đề "Bình luận" · `title=0` bỏ tiêu đề · `pos=top` dồn lên trên · `v=ID_VIDEO` dùng đúng một live (khi tự tìm không ra) · `poll=10` số giây giữa 2 lần lấy tin.
+
+### 19.3. Hạn mức (để không bị ngắt giữa buổi)
+YouTube cho miễn phí 10.000 đơn vị mỗi ngày (đặt lại khoảng 14–15 giờ chiều giờ VN). Lấy tin một lần tốn khoảng 5 đơn vị. Mặc định chỉ lấy tin lúc đang hiện, 10 giây một lần (khoảng 1.800 đơn vị mỗi giờ nghỉ), nên một buổi live dài với các giờ nghỉ thường vẫn thừa. Dùng `chat=always` thì tự giãn ra 20 giây một lần (khoảng 900 đơn vị mỗi giờ, đủ cho khoảng 10 giờ live). Hết hạn mức thì thẻ tự ẩn và thử lại sau 30 phút; muốn đỡ tốn hơn thì đặt `poll=20`.
+Khi chưa live, nguồn chỉ kiểm tra 1–5 phút một lần (rất ít đơn vị). Bấm Start Streaming xong khoảng 1 phút là bình luận bắt đầu hiện.
+
+**Cần tải lên GitHub:** file `overlay.html` và `SETUP.md`. Luật Firestore **không cần đổi**.
+
 ## QUY TẮC CẬP NHẬT WEB LÊN GITHUB (đọc cái này khi cần cập nhật)
 Từ bản 8, các file hay thay đổi (`index.html`, `core.js`, `pages.js`, `admin.js`, `i18n-extra.js`, `app.css`) **đều nằm ở trang gốc của repo**, cùng chỗ với `index.html`. Chỉ còn 4 file ít khi đổi nằm trong thư mục `js`: `art.js`, `i18n.js`, `translate.js`, `firebase-config.js`.
 
