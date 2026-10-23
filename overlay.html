@@ -21,6 +21,9 @@
      opacity=0.85    độ đậm của nền thẻ (0 – 1)
      accent=ff3d9a   màu chính (mã màu, không có #)
      total=0 / bar=0 / chip=0 / title=0 / status=0 / now=0   ẩn: tổng phút / thanh màu / dòng tóm tắt / tên buổi / nhãn trạng thái / ô "đang"
+     compact=1       gọn: chỉ đoạn đang chạy + 3 đoạn kế tiếp (rows=… để đổi số dòng), bỏ tên buổi / tóm tắt / tổng phút
+     note=0          ẩn khung thông báo (nhập trong Admin → ô Bắt đầu buổi live → Thông báo trên OBS)
+     view=note       chỉ hiện khung thông báo, để đặt riêng một chỗ trên màn hình (không có thông báo thì trống)
      list=0          ẩn danh sách các mốc (chỉ còn phần đầu + ô đang chạy)
      empty=hide      ngày không có live thì ẩn hẳn (mặc định hiện một dòng nhỏ)
      after=60        sau khi buổi kết thúc, còn hiện thêm bao nhiêu phút
@@ -126,6 +129,9 @@ html.clock[data-theme="clear"] .card{padding:0 .1em}
 .list li.cur{background:var(--row-now);font-weight:800}
 .list li .m.cd{color:var(--c);font-weight:800}
 .list li.cur .p{position:absolute;left:0;bottom:0;height:.14rem;background:var(--c)}
+.note{margin-top:.55rem;padding:.55rem .75rem;border-radius:.75rem;background:var(--accent);color:#fff;text-shadow:none;font-weight:800;font-size:1rem;line-height:1.3;white-space:pre-wrap;overflow-wrap:anywhere}
+html.noteonly .card{display:inline-block;padding:0;background:transparent;box-shadow:none}
+html.noteonly .note{margin:0;font-size:1.15rem}
 .total{text-align:center;color:var(--muted);font-weight:700;font-size:.8rem;padding-top:.45rem}
 .empty{color:var(--muted);font-weight:700;font-size:.95rem}
 </style>
@@ -138,12 +144,13 @@ html.clock[data-theme="clear"] .card{padding:0 .1em}
 /* ---------- tuỳ chọn trên địa chỉ ---------- */
 const Q = new URLSearchParams(location.search);
 const num = (k, d, lo, hi) => { const v = parseFloat(Q.get(k)); return isNaN(v) ? d : Math.min(hi, Math.max(lo, v)); };
-const off = k => Q.get(k) === '0' || Q.get(k) === 'false';
+const CMP = Q.get('compact') === '1';                     // gọn: chỉ đoạn đang chạy + vài đoạn kế tiếp, bỏ tên buổi / tóm tắt / ô "đang" / tổng
+const off = k => Q.get(k) === '0' || Q.get(k) === 'false' || (CMP && ['title', 'chip', 'now', 'total'].includes(k) && Q.get(k) !== '1');
 const OPT = {
   size: num('size', 1, .6, 3), rows: Math.round(num('rows', 0, 0, 60)), after: num('after', 60, 0, 720),
   theme: ['dark', 'light', 'pink', 'clear'].includes(Q.get('theme')) ? Q.get('theme') : 'dark',
   lang: Q.get('lang') === 'vi' ? 'vi' : 'en', tz: Q.get('tz') || 'Asia/Ho_Chi_Minh', demo: Q.get('demo') === '1',
-  emptyHide: Q.get('empty') === 'hide', fit: !off('fit') && !Q.get('rows')
+  emptyHide: Q.get('empty') === 'hide', fit: !off('fit') && (!Q.get('rows') || CMP)
 };
 const root = document.documentElement;
 root.dataset.theme = OPT.theme; root.lang = OPT.lang;
@@ -280,8 +287,8 @@ async function fetchOnair(){
   try {
     const r = await fetch(DOCS + 'settings/onair?key=' + API_KEY, { cache:'no-store' });
     const j = r.status === 404 ? {} : r.ok ? await r.json() : null; if (!j) return;
-    const f = j.fields ? dec({ mapValue:{ fields:j.fields } }) : {}, nx = { start:+f.start || 0, sched:+f.sched || 0, at:+f.at || 0 };
-    if (!onair || nx.start !== onair.start || nx.sched !== onair.sched || nx.at !== onair.at) { onair = nx; store.set('ep-overlay-onair', onair); applyOnair(); }
+    const f = j.fields ? dec({ mapValue:{ fields:j.fields } }) : {}, nx = { start:+f.start || 0, sched:+f.sched || 0, at:+f.at || 0, note:String(f.note || '').trim() };
+    if (!onair || nx.start !== onair.start || nx.sched !== onair.sched || nx.at !== onair.at || nx.note !== onair.note) { onair = nx; store.set('ep-overlay-onair', onair); applyOnair(); }
   } catch (e) {}
 }
 function onairLoop(){
@@ -322,6 +329,7 @@ function demo(){                                        // buổi mẫu giống 
   const st = Date.now() - (Q.has('ago') ? +Q.get('ago') : 95) * 60e3, segs = buildPlan(cleanPomo({ prep:20, focus:50, short:10, long:120, rounds:10, longEvery:4 }));
   const mins = segs.reduce((a, g) => a + g.min, 0);
   base = [{ start:st, end:st + mins * 60e3, mins, title:'All day', segs, chip:chipOf({ pomo:{ prep:20, focus:50, short:10, long:120, rounds:10, longEvery:4 } }, segs) }]; applyOnair();
+  if (!onairOn) { onairOn = true; onairLoop(); }
 }
 
 /* ---------- chọn buổi để hiện: đang live → sắp tới trong hôm nay/24 giờ → vừa xong ---------- */
@@ -349,7 +357,12 @@ function fit(list, key){
   const over = () => (list && list.scrollHeight > list.clientHeight + 1) || card.scrollHeight > card.clientHeight + 1;
   while (over() && fitScale > .45) { fitScale *= .96; setFs(fitScale); }
 }
+const noteHtml = () => onair && onair.note && !off('note') ? `<div class="note">${esc(onair.note)}</div>` : '';   // thông báo nhập trong Admin
 function render(){
+  if (Q.get('view') === 'note') {                       // view=note: chỉ khung thông báo (đặt riêng một chỗ trên màn hình)
+    root.classList.add('noteonly'); const n = noteHtml(); card.classList.toggle('hide', !n);
+    if (card.innerHTML !== n) card.innerHTML = n; return;
+  }
   const now = Date.now(), p = pick(now);
   if (!p) {
     card.classList.toggle('hide', OPT.emptyHide && sessions !== null);
@@ -365,6 +378,7 @@ function render(){
   const pill = p.mode === 'live' ? `<span class="pill live"><i></i>${esc(TXT.live)}</span>` : p.mode === 'soon' ? `<span class="pill">${esc(tr(TXT.soon, { t:clock(s.start - now) }))}</span>` : `<span class="pill">${esc(TXT.done)}</span>`;
   let h = `<div class="top"><div class="range">${hm(s.start)} – ${hm(s.end)}</div>${off('status') ? '' : pill}</div>`;
   if (s.title && !off('title')) h += `<div class="title">${esc(s.title)}</div>`;
+  h += noteHtml();
   if (segs.length && !off('bar')) {
     const pos = p.mode === 'live' ? ((now - s.start) / (s.end - s.start) * 100).toFixed(2) : null;
     h += `<div class="bar">${rows.map((r, i) => `<i class="${state(i) === 'past' ? 'past' : ''}" style="flex:${r.g.min};background:${COLOR[r.g.type]}"></i>`).join('')}${pos !== null ? `<b style="left:calc(${pos}% - 1px)"></b>` : ''}</div>`;
@@ -379,7 +393,8 @@ function render(){
     }
   }
   if (segs.length && !off('list')) {
-    h += `<ol class="list" id="list">${rows.map((r, i) => { const st = state(i), c = COLOR[r.g.type];
+    const from = p.mode === 'live' ? Math.max(cur, 0) : p.mode === 'done' ? rows.length : 0, upto = from + (OPT.rows || 4);
+    h += `<ol class="list" id="list">${rows.map((r, i) => { const st = state(i), c = COLOR[r.g.type]; if (CMP && (i < from || i >= upto)) return '';
       return `<li class="${st}" style="--c:${c}"><span class="d" style="background:${c}"></span><span class="t">${hm(r.a)}</span><span>${esc(labelOf(r.g))}</span>${st === 'cur' && !off('rowcd') ? `<span class="m cd">${clock(r.b - now)}</span>` : `<span class="m">${r.g.min}′</span>`}${st === 'cur' ? `<span class="p" style="width:${((now - r.a) / (r.b - r.a) * 100).toFixed(1)}%"></span>` : ''}</li>`; }).join('')}</ol>`;
   }
   if (!off('total')) h += `<div class="total">${esc(tr(TXT.total, { m:s.mins }))}</div>`;
@@ -388,8 +403,8 @@ function render(){
   fit(list, `${s.start}|${p.mode}|${segs.length}|${innerWidth}x${innerHeight}`);
   if (list) {                                           // giữ đoạn đang chạy trong khung: chừa 1 dòng đã qua phía trên
     const li = list.children;
-    if (OPT.rows && li.length > OPT.rows) list.style.maxHeight = (li[0].offsetHeight * OPT.rows) + 'px';
-    const focus = p.mode === 'live' ? Math.max(0, cur - 1) : 0;
+    if (OPT.rows && !CMP && li.length > OPT.rows) list.style.maxHeight = (li[0].offsetHeight * OPT.rows) + 'px';
+    const focus = p.mode === 'live' && !CMP ? Math.max(0, cur - 1) : 0;
     list.scrollTop = li[focus] ? li[focus].offsetTop : 0;
     list.classList.toggle('more', list.scrollTop + list.clientHeight < list.scrollHeight - 2);   // còn dòng bên dưới: làm mờ dần mép dưới
   }
