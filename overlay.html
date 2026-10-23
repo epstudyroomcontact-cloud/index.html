@@ -130,10 +130,17 @@ html.clock[data-look] .card{background:none;box-shadow:none;padding:.9em;border-
 .kp .ic{width:3.4em;height:3.4em;border-radius:1.1em;background:linear-gradient(150deg,#ffd3e6,#ffe9b8);display:grid;place-items:center;flex:none}
 .kp .ic svg{width:1.9em;height:1.9em}
 .kp .t{font-weight:700;font-size:3.1em;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:.01em}
-.kp .t b{color:#ff3d9a}
-.kp .t small{font-size:.36em;color:#c48aa6;font-weight:600;margin-left:.06em}
-.kp .r{font-weight:600;font-size:.94em;color:#b0577f;margin-top:.12em}
-.kp .r span{background:#ffe3ef;color:#ff3d9a;border-radius:99em;padding:.05em .6em;margin-left:.4em;font-size:.83em}
+.kp .t small{font-size:.36em;font-weight:600;margin-left:.06em}
+.kp .r{font-weight:700;font-size:.94em;margin-top:.12em}
+.kp .r span{border-radius:99em;padding:.05em .6em;margin-left:.4em;font-size:.83em}
+/* Màu chữ thẻ pastel khoá cứng (!important + text-fill): CSS tuỳ chỉnh của OBS hay theme=clear có ghi "chữ trắng" thì chữ vẫn tối, đọc được trên thẻ kem.
+   Độ tương phản trên nền #fff7f0: giờ 15.4, dấu hai chấm 5.5, giây 4.8, dòng dưới 7.0, chip trắng trên #c2185b 5.9 (WCAG ≥ 4.5). */
+html.clock .card .kp,html.clock .card .kp *{text-shadow:none !important}
+html.clock .card .kp .t{color:#3a1027 !important;-webkit-text-fill-color:#3a1027 !important}
+html.clock .card .kp .t b{color:#c2185b !important;-webkit-text-fill-color:#c2185b !important}
+html.clock .card .kp .t small{color:#9a5a78 !important;-webkit-text-fill-color:#9a5a78 !important}
+html.clock .card .kp .r{color:#8a3a5f !important;-webkit-text-fill-color:#8a3a5f !important}
+html.clock .card .kp .r span{background:#c2185b !important;color:#fff !important;-webkit-text-fill-color:#fff !important}
 .ka{font-family:'Outfit','Nunito',sans-serif;background:rgba(18,24,38,.9);border:1px solid #2b3550;border-radius:.9em;overflow:hidden;box-shadow:0 .75em 1.9em rgba(0,0,0,.35);color:#fff;white-space:nowrap}
 .ka .bar{display:flex;align-items:center;gap:.4em;padding:.5em .75em;background:rgba(255,255,255,.04);border-bottom:1px solid #232c40;font-size:.72em;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.55);font-weight:500}
 .ka .bar i{width:.8em;height:.8em;border-radius:50%}
