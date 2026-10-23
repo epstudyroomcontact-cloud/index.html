@@ -395,6 +395,34 @@ cron-job.org gửi email khi lịch lỗi, và tự tạm dừng lịch nếu l�
 - **422** (Request body sai): dán lại đúng dòng ở bước B7.
 - Mã cũ không dùng nữa thì xoá ở https://github.com/settings/personal-access-tokens
 
+## PHẦN 18 — Bảng lịch live trên màn hình stream (OBS)
+Trang `overlay.html` hiện kế hoạch buổi live đang chạy (giống thẻ ở trang Lịch): đoạn đang chạy được tô sáng và đếm ngược, các đoạn đã qua mờ đi, danh sách tự cuộn. Trang này không cần đăng nhập, không có nút bấm, chỉ đọc lịch công khai. Sửa lịch ở Admin → Lịch live thì bảng tự cập nhật sau khoảng 3 phút.
+
+**Địa chỉ:** địa chỉ web của bạn + `overlay.html`. Ví dụ web là `https://TENBAN.github.io/index.html/` thì bảng là `https://TENBAN.github.io/index.html/overlay.html`. Mở thử trên trình duyệt trước; chưa tới giờ live thì thêm `?demo=1` vào cuối để xem buổi mẫu.
+
+**Thêm vào OBS:**
+1. Ô **Sources** (Nguồn) → bấm **+** → chọn **Browser** (Trình duyệt) → đặt tên "Lịch live" → **OK**.
+2. Ô **URL**: dán địa chỉ ở trên.
+3. **Width** `520`, **Height** `900` (khung dọc ở cạnh màn hình). Muốn nhỏ hơn thì giảm Height, danh sách tự cuộn cho vừa.
+4. Ô **Custom CSS** để nguyên như mặc định. Bấm **OK**, rồi kéo bảng tới chỗ bạn muốn trên màn hình.
+5. Muốn bảng tải lại ngay (ví dụ vừa sửa lịch xong, không muốn chờ 3 phút): chuột phải vào nguồn → **Properties** → bấm **Refresh cache of current page**.
+
+**Tuỳ chỉnh bằng địa chỉ** (thêm `?` rồi nối các mục bằng `&`, ví dụ `overlay.html?size=1.3&theme=light&total=0`):
+| Thêm | Tác dụng |
+|---|---|
+| `size=1.3` | Chữ to hơn (1 là mặc định, từ 0.6 đến 3) |
+| `rows=8` | Chỉ hiện 8 dòng, tự cuộn theo đoạn đang chạy |
+| `theme=light` | Màu nền: `dark` (mặc định), `light`, `pink`, `clear` (trong suốt, chữ trắng có bóng) |
+| `opacity=0.6` | Độ đậm của nền thẻ, từ 0 đến 1 |
+| `accent=ff3d9a` | Màu chính (mã màu, không có dấu #) |
+| `total=0` | Ẩn dòng "Tổng … phút" |
+| `bar=0`, `chip=0`, `title=0`, `status=0` | Ẩn thanh màu / dòng tóm tắt / tên buổi / nhãn "Đang live" |
+| `now=0` | Ẩn ô "Đang … còn mm:ss" |
+| `list=0` | Ẩn danh sách các mốc (chỉ còn phần đầu và ô đang chạy) |
+| `empty=hide` | Ngày không có live thì bảng ẩn hẳn |
+| `lang=en` | Tiếng Anh |
+| `demo=1` | Xem thử bằng buổi mẫu đang chạy |
+
 ## QUY TẮC CẬP NHẬT WEB LÊN GITHUB (đọc cái này khi cần cập nhật)
 Từ bản 8, các file hay thay đổi (`index.html`, `core.js`, `pages.js`, `admin.js`, `i18n-extra.js`, `app.css`) **đều nằm ở trang gốc của repo**, cùng chỗ với `index.html`. Chỉ còn 4 file ít khi đổi nằm trong thư mục `js`: `art.js`, `i18n.js`, `translate.js`, `firebase-config.js`.
 
