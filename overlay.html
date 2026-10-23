@@ -26,6 +26,7 @@
      after=60        sau khi buổi kết thúc, còn hiện thêm bao nhiêu phút
      lang=vi         tiếng Việt (mặc định tiếng Anh, cho khán giả YouTube quốc tế)
      tz=Asia/Tokyo   hiện giờ theo múi giờ khác (mặc định giờ Việt Nam)
+     view=timer      chỉ hiện một đồng hồ lớn "Session 1/10 · 30:18" (nền trong suốt), chạy theo giờ lịch
      demo=1          xem thử bằng một buổi mẫu đang chạy (để căn chỉnh khi chưa tới giờ live)
    ========================================================= -->
 <style>
@@ -43,6 +44,8 @@ html{font-size:var(--fs)}
 body{font-family:'Nunito',system-ui,sans-serif;color:var(--ink);text-shadow:var(--tshadow);padding:.6rem;-webkit-font-smoothing:antialiased}
 .card{display:flex;flex-direction:column;max-height:100%;background:var(--card);border-radius:1.1rem;padding:1rem 1.15rem;box-shadow:var(--shadow)}
 .card.hide{display:none}
+html.timer .card{background:transparent;box-shadow:none;padding:0;height:100%}
+html.timer body{padding:0}
 .top{display:flex;align-items:center;justify-content:space-between;gap:.6rem;flex-wrap:wrap}
 .range{font-family:'Baloo 2','Nunito',sans-serif;font-weight:800;font-size:1.45rem;line-height:1.1;letter-spacing:.01em}
 .pill{display:inline-flex;align-items:center;gap:.4rem;font-weight:800;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;padding:.28rem .65rem;border-radius:99rem;background:var(--row-now);white-space:nowrap}
@@ -70,6 +73,9 @@ body{font-family:'Nunito',system-ui,sans-serif;color:var(--ink);text-shadow:var(
 .list li.cur{background:var(--row-now);font-weight:800}
 .list li.cur .p{position:absolute;left:0;bottom:0;height:.14rem;background:var(--c)}
 .total{text-align:center;color:var(--muted);font-weight:700;font-size:.8rem;padding-top:.45rem}
+.tv{display:flex;flex-direction:column;justify-content:center;height:100%;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.6),0 0 2px rgba(0,0,0,.8)}
+.tv .lb{font-weight:700;font-size:calc(var(--tvs) * 11vw);line-height:1.1}
+.tv .cd{font-weight:800;font-size:calc(var(--tvs) * 30vw);line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 .empty{color:var(--muted);font-weight:700;font-size:.95rem}
 </style>
 </head>
@@ -86,9 +92,10 @@ const OPT = {
   size: num('size', 1, .6, 3), rows: Math.round(num('rows', 0, 0, 60)), after: num('after', 60, 0, 720),
   theme: ['dark', 'light', 'pink', 'clear'].includes(Q.get('theme')) ? Q.get('theme') : 'dark',
   lang: Q.get('lang') === 'vi' ? 'vi' : 'en', tz: Q.get('tz') || 'Asia/Ho_Chi_Minh', demo: Q.get('demo') === '1',
-  emptyHide: Q.get('empty') === 'hide', fit: !off('fit') && !Q.get('rows')
+  emptyHide: Q.get('empty') === 'hide', fit: !off('fit') && !Q.get('rows'), timer: Q.get('view') === 'timer'
 };
 const root = document.documentElement;
+if (OPT.timer) { document.documentElement.style.setProperty('--tvs', OPT.size); document.documentElement.classList.add('timer'); }
 root.dataset.theme = OPT.theme; root.lang = OPT.lang;
 root.style.setProperty('--fs', (20 * OPT.size).toFixed(1) + 'px');
 if (Q.has('opacity')) root.style.setProperty('--op', num('opacity', .85, 0, 1));
@@ -100,9 +107,9 @@ const hm = ms => fmtHM.format(new Date(ms));
 
 const TXT = {
   vi: { focus:'Tập trung', short:'Nghỉ ngắn', long:'Nghỉ dài', prep:'Chuẩn bị & chào', live:'Đang live', soon:'Bắt đầu sau {t}', done:'Đã xong', now:'Đang', next:'Tiếp theo', end:'Kết thúc lúc {t}', at:'lúc', total:'Tổng {m} phút', empty:'Hôm nay không có buổi live', loading:'Đang tải lịch…', notyet:'Chưa bắt đầu', first:'Mở đầu',
-        pomo:'{n} × {f}′ tập trung · {s}′ nghỉ · {l}′ nghỉ dài', plan:'{n} khối tập trung · {f} phút tập trung · {b} phút nghỉ' },
+        session:'Phiên {n}/{t}', startsIn:'Bắt đầu sau', pomo:'{n} × {f}′ tập trung · {s}′ nghỉ · {l}′ nghỉ dài', plan:'{n} khối tập trung · {f} phút tập trung · {b} phút nghỉ' },
   en: { focus:'Focus', short:'Short break', long:'Long break', prep:'Warm-up & hello', live:'Live now', soon:'Starts in {t}', done:'Finished', now:'Now', next:'Next', end:'Ends at {t}', at:'at', total:'Total {m} min', empty:'No live session today', loading:'Loading schedule…', notyet:'Not started', first:'First up',
-        pomo:'{n} × {f}′ focus · {s}′ break · {l}′ long break', plan:'{n} focus blocks · {f} min focus · {b} min break' }
+        session:'Session {n}/{t}', startsIn:'Starts in', pomo:'{n} × {f}′ focus · {s}′ break · {l}′ long break', plan:'{n} focus blocks · {f} min focus · {b} min break' }
 }[OPT.lang];
 const tr = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => o[k]);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
@@ -234,13 +241,27 @@ function fit(list, key){
   const over = () => (list && list.scrollHeight > list.clientHeight + 1) || card.scrollHeight > card.clientHeight + 1;
   while (over() && fitScale > .45) { fitScale *= .96; setFs(fitScale); }
 }
+// view=timer: chỉ còn một đồng hồ lớn "Session 1/10 · 30:18" (thay cho đồng hồ bấm tay trong OBS), chạy đúng theo giờ lịch
+function renderTimer(p, now){
+  const s = p.s, segs = s.segs || [], nF = segs.filter(g => g.type === 'focus').length;
+  let lb = '', end = 0;
+  if (p.mode === 'soon') { lb = TXT.startsIn; end = s.start; }
+  else if (p.mode === 'live') {
+    let t = s.start;
+    for (const g of segs) { const b = t + g.min * 60e3; if (now < b) { lb = g.type === 'focus' ? (g.name || tr(TXT.session, { n:g.n, t:nF })) : labelOf(g); end = b; break; } t = b; }
+    if (!end) { lb = s.title || TXT.live; end = s.end; }
+  }
+  if (!end) { card.classList.add('hide'); return; }                 // đã xong: ẩn đồng hồ
+  card.innerHTML = `<div class="tv"><div class="lb">${esc(lb)}</div><div class="cd"${end - now >= 3600e3 ? ' style="font-size:calc(var(--tvs) * 20vw)"' : ''}>${clock(end - now)}</div></div>`;
+}
 function render(){
   const now = Date.now(), p = pick(now);
   if (!p) {
-    card.classList.toggle('hide', OPT.emptyHide && sessions !== null);
+    card.classList.toggle('hide', (OPT.emptyHide || OPT.timer) && sessions !== null);
     card.innerHTML = `<div class="empty">${esc(sessions === null ? TXT.loading : TXT.empty)}</div>`; lastKey = ''; return;
   }
   card.classList.remove('hide');
+  if (OPT.timer) return renderTimer(p, now);
   const s = p.s, segs = s.segs || [];
   let t = s.start, cur = -1;
   const rows = segs.map((g, i) => { const a = t; t += g.min * 60e3; if (p.mode === 'live' && now >= a && now < t) cur = i; return { g, a, b:t }; });

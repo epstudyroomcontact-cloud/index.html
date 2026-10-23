@@ -422,6 +422,7 @@ Trang `overlay.html` hiện kế hoạch buổi live đang chạy (giống thẻ
 | `list=0` | Ẩn danh sách các mốc (chỉ còn phần đầu và ô đang chạy) |
 | `empty=hide` | Ngày không có live thì bảng ẩn hẳn |
 | `lang=vi` | Chữ tiếng Việt (mặc định bảng hiện tiếng Anh) |
+| `view=timer` | Chỉ hiện một đồng hồ lớn "Session 1/10 · 30:18" trên nền trong suốt, tự chạy đúng giờ lịch (dùng thay đồng hồ bấm tay trong OBS) |
 | `demo=1` | Xem thử bằng buổi mẫu đang chạy |
 
 ## QUY TẮC CẬP NHẬT WEB LÊN GITHUB (đọc cái này khi cần cập nhật)
