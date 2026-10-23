@@ -78,6 +78,9 @@ html.mv .tc{opacity:1}
 .tset .r label{flex:1 1 8rem}
 .tset button{font:800 14px 'Nunito',sans-serif;border:0;border-radius:.5rem;padding:.4rem .7rem;background:rgba(255,255,255,.15);color:#fff;cursor:pointer}
 .tset button.pri{background:var(--accent)}
+.tset button.on{background:#2e9e6b}
+.tset .src{font-size:13px;opacity:.95}
+.tset .ok{color:#7dffb0;margin-left:.4rem}
 .tset small{opacity:.7;font-size:11px}
 .tc button{font:800 15px 'Nunito',sans-serif;border:0;border-radius:.6rem;padding:.4rem .6rem;background:rgba(0,0,0,.65);color:#fff;cursor:pointer}
 html.clock body{padding:.3rem;display:flex;align-items:flex-end;justify-content:flex-end}
@@ -400,8 +403,8 @@ if (Q.get('view') === 'timer') {
   const nameOf = g => g.type === 'focus' ? (g.name || tr(T.session, { n:g.n, t:plan().filter(x => x.type === 'focus').length })) : labelOf(g);
   // Nút + bảng ⚙ nằm ngoài thẻ (thẻ vẽ lại 4 lần/giây, nút trong đó sẽ bị thay mất giữa lúc bấm)
   const V = Q.get('ui') !== 'en';                       // bảng điều khiển cho người stream: mặc định tiếng Việt (ui=en để đổi)
-  const L = V ? { set:'Cài đặt bộ đếm', focus:'Tập trung (phút)', short:'Nghỉ ngắn (phút)', long:'Nghỉ dài (phút)', rounds:'Số phiên tập trung', every:'Nghỉ dài sau mỗi … phiên', prep:'Chuẩn bị đầu buổi (phút)', save:'Lưu', admin:'Dùng lịch Admin', close:'Đóng', jump:'Nhảy tới', left:'Còn lại (phút)', setLeft:'Đặt', hint:'Bấm một mẫu để dùng ngay, hoặc gõ số rồi bấm Lưu. Bảng này hiện lên stream khi đang mở, xong bấm Đóng.' }
-              : { set:'Timer settings', focus:'Focus (min)', short:'Short break (min)', long:'Long break (min)', rounds:'Focus sessions', every:'Long break every … sessions', prep:'Warm-up (min)', save:'Save', admin:'Use Admin schedule', close:'Close', jump:'Jump to', left:'Time left (min)', setLeft:'Set', hint:'Tap a preset, or type numbers and Save. This panel shows on stream while open; Close when done.' };
+  const L = V ? { set:'Cài đặt bộ đếm', focus:'Tập trung (phút)', short:'Nghỉ ngắn (phút)', long:'Nghỉ dài (phút)', rounds:'Số phiên tập trung', every:'Nghỉ dài sau mỗi … phiên', prep:'Chuẩn bị đầu buổi (phút)', save:'Lưu', admin:'Dùng lịch Admin', close:'Đóng', jump:'Nhảy tới', left:'Còn lại (phút)', setLeft:'Đặt', using:'Đang dùng', srcAdmin:'lịch Admin hôm nay', srcNone:'mẫu mặc định 50/10 (hôm nay chưa có lịch trong Admin)', srcUrl:'thời gian ghi trên địa chỉ', srcOwn:'tự đặt', srcPre:'mẫu', adminOn:'✓ Đang theo lịch Admin', okAdmin:'Đã quay về lịch Admin.', okNoAdmin:'Hôm nay chưa có lịch trong Admin nên dùng mẫu 50/10.', okSave:'Đã lưu.', okPre:'Đã chọn mẫu', okLeft:'Đã đặt lại số phút.', hint:'Bấm một mẫu để dùng ngay, hoặc gõ số rồi bấm Lưu. Bảng này hiện lên stream khi đang mở, xong bấm Đóng.' }
+              : { set:'Timer settings', focus:'Focus (min)', short:'Short break (min)', long:'Long break (min)', rounds:'Focus sessions', every:'Long break every … sessions', prep:'Warm-up (min)', save:'Save', admin:'Use Admin schedule', close:'Close', jump:'Jump to', left:'Time left (min)', setLeft:'Set', using:'Using', srcAdmin:"today's Admin schedule", srcNone:'default 50/10 (no Admin schedule today)', srcUrl:'times from the address', srcOwn:'custom', srcPre:'preset', adminOn:'✓ Following Admin schedule', okAdmin:'Back on the Admin schedule.', okNoAdmin:'No Admin schedule today, using 50/10.', okSave:'Saved.', okPre:'Preset', okLeft:'Time left updated.', hint:'Tap a preset, or type numbers and Save. This panel shows on stream while open; Close when done.' };
   const PRESETS_T = [                                    // mẫu bấm một lần là dùng (nhớ cho lần sau)
     { n:'25 / 5', c:{ focus:25, short:5, long:15, rounds:4, every:4, prep:0 } },
     { n:'50 / 10', c:{ focus:50, short:10, long:30, rounds:4, every:4, prep:0 } },
@@ -416,28 +419,31 @@ if (Q.get('view') === 'timer') {
     const cur = () => saved || (() => { const f = plan().filter(g => g.type === 'focus'), sh = plan().find(g => g.type === 'short'), lg = plan().find(g => g.type === 'long'), pr = plan().find(g => g.type === 'prep');
       const li = plan().findIndex(g => g.type === 'long'), every = li < 0 ? f.length : plan().slice(0, li).filter(g => g.type === 'focus').length;
       return { focus:f.length ? f[0].min : 50, short:sh ? sh.min : 10, long:lg ? lg.min : 30, rounds:f.length || 4, every:every || 4, prep:pr ? pr.min : 0 }; })();
-    const fill = () => { const c = cur(), segs = plan();
+    let msg = '';
+    const preOf = () => saved ? PRESETS_T.find(x => sig(mkPlan(x.c)) === sig(mkPlan(saved))) : null;
+    const src = () => saved ? (preOf() ? `${L.srcPre} ${preOf().n}` : L.srcOwn) : custom ? L.srcUrl : schedSegs ? L.srcAdmin : L.srcNone;
+    const fill = () => { const c = cur(), segs = plan(), onAdmin = !saved && !custom;
       const fld = (k, min) => `<label>${esc(L[k])}<input type="number" name="${k}" min="${min}" max="600" value="${c[k]}"></label>`;
-      ps.innerHTML = `<b>${esc(L.set)}</b><div class="r pre">${PRESETS_T.map((x, i) => `<button type="button" data-p="pre" data-i="${i}"${saved && sig(mkPlan(saved)) === sig(mkPlan(x.c)) ? ' class="pri"' : ''}>${esc(x.n)}</button>`).join('')}</div><div class="g">${fld('focus', 1)}${fld('short', 0)}${fld('long', 0)}${fld('rounds', 1)}${fld('every', 1)}${fld('prep', 0)}</div>`
-        + `<div class="r"><button type="submit" class="pri">${esc(L.save)}</button>${!custom ? `<button type="button" data-p="admin">${esc(L.admin)}</button>` : ''}<button type="button" data-p="close">${esc(L.close)}</button></div>`
+      ps.innerHTML = `<b>${esc(L.set)}</b><div class="src">${esc(L.using)}: <b>${esc(src())}</b>${msg ? ` <span class="ok">${esc(msg)}</span>` : ''}</div><div class="r pre">${PRESETS_T.map((x, i) => `<button type="button" data-p="pre" data-i="${i}"${saved && sig(mkPlan(saved)) === sig(mkPlan(x.c)) ? ' class="pri"' : ''}>${esc(x.n)}</button>`).join('')}</div><div class="g">${fld('focus', 1)}${fld('short', 0)}${fld('long', 0)}${fld('rounds', 1)}${fld('every', 1)}${fld('prep', 0)}</div>`
+        + `<div class="r"><button type="submit" class="pri">${esc(L.save)}</button>${!custom ? `<button type="button" data-p="admin"${onAdmin ? ' class="on"' : ''}>${esc(onAdmin ? L.adminOn : L.admin)}</button>` : ''}<button type="button" data-p="close">${esc(L.close)}</button></div>`
         + `<div class="r"><label>${esc(L.jump)}<select name="jump">${segs.map((g, i) => `<option value="${i}"${i === st.idx ? ' selected' : ''}>${esc(nameOf(g))} · ${g.min}′</option>`).join('')}</select></label>`
         + `<label>${esc(L.left)}<input type="number" name="left" min="0" max="600" step="1" value="${Math.max(0, Math.round(left() / 60e3))}"></label><button type="button" data-p="left">${esc(L.setLeft)}</button></div><small>${esc(L.hint)}</small>`; };
-    const pickPreset = c => { saved = { ...c }; store.set(PKEY, saved); userSegs = mkPlan(saved); apply(userSegs); fill(); };
+    const pickPreset = c => { saved = { ...c }; msg = `${L.okPre} ${(PRESETS_T.find(x => x.c === c) || {}).n || ''}`; store.set(PKEY, saved); userSegs = mkPlan(saved); apply(userSegs); fill(); };
     const apply = segs => {                              // đổi danh sách hiệp: giữ hiệp đang ở (nếu còn) và trạng thái chạy
       const i = Math.min(st.idx, segs.length - 1); st.sig = sig(segs); st.idx = i; st.done = false; st.left = segs[i].min * 60e3;
       if (st.running) st.endAt = Date.now() + st.left; save(); };
     ps.addEventListener('submit', e => { e.preventDefault();
       const n = k => +ps.elements[k].value;
       saved = { focus:Math.max(1, n('focus')), short:Math.max(0, n('short')), long:Math.max(0, n('long')), rounds:Math.max(1, n('rounds')), every:Math.max(1, n('every')), prep:Math.max(0, n('prep')) };
-      store.set(PKEY, saved); userSegs = mkPlan(saved); apply(userSegs); fill(); draw(); });
+      store.set(PKEY, saved); userSegs = mkPlan(saved); apply(userSegs); msg = L.okSave; fill(); draw(); });
     ps.addEventListener('change', e => { if (e.target.name === 'jump') { go(+e.target.value, true); fill(); draw(); } });
     ps.addEventListener('click', e => { const k = e.target.dataset && e.target.dataset.p; if (!k) return;
       if (k === 'pre') pickPreset(PRESETS_T[+e.target.dataset.i].c);
       if (k === 'close') { ps.hidden = true; root.classList.remove('setopen'); }
-      if (k === 'admin') { try { localStorage.removeItem(PKEY); } catch (er) {} saved = null; userSegs = null; apply(plan()); fill(); }
-      if (k === 'left') { const m = Math.max(0, +ps.elements.left.value) * 60e3 || 1e3; if (st.running) st.endAt = Date.now() + m; else st.left = m; save(); }
+      if (k === 'admin') { try { localStorage.removeItem(PKEY); } catch (er) {} saved = null; userSegs = null; apply(plan()); msg = schedSegs ? L.okAdmin : L.okNoAdmin; fill(); }
+      if (k === 'left') { const m = Math.max(0, +ps.elements.left.value) * 60e3 || 1e3; if (st.running) st.endAt = Date.now() + m; else st.left = m; save(); msg = L.okLeft; fill(); }
       draw(); });
-    ACT.settings = () => { ps.hidden = !ps.hidden; root.classList.toggle('setopen', !ps.hidden); if (!ps.hidden) fill(); };
+    ACT.settings = () => { msg = ''; ps.hidden = !ps.hidden; root.classList.toggle('setopen', !ps.hidden); if (!ps.hidden) fill(); };
   }
   function autoState(now){                               // start=auto: vị trí theo giờ lịch
     const p = pick(now); if (!p || p.mode === 'done') return null;
