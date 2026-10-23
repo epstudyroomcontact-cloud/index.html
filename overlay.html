@@ -30,8 +30,12 @@
                      (thêm: align=left|center, name=…/name=0, city=…, sec=0 ẩn giây, date=0 ẩn ngày)
      view=timer      bộ đếm giờ "Session 1/10 · 49:59": bấm Cách để chạy/tạm dừng (Interact trong OBS), → ← đổi hiệp, ↑ ↓ ±1 phút, R làm lại;
                      focus=50&short=10&long=30&rounds=4&every=4&prep=0 tự đặt hiệp (không ghi thì lấy từ lịch Admin hôm nay);
-                     mặc định chạy theo lịch Admin + giờ bấm "Bắt đầu" trong Admin, start=manual để tự bấm; scene_focus=…&scene_break=… tự đổi cảnh OBS; sound=1 chuông; next=0; controls=0
-     demo=1          xem thử bằng một buổi mẫu đang chạy (để căn chỉnh khi chưa tới giờ live)
+                     mặc định chạy theo lịch Admin + giờ bấm "Bắt đầu" trong Admin, start=manual để tự bấm; scene_focus=…&scene_break=… tự đổi cảnh OBS; next=0; controls=0
+     rowcd=0         dòng đang chạy hiện số phút thay vì đếm ngược (mặc định đếm ngược ngay trên dòng đó)
+     sound=0         tắt chuông khi sang đoạn (mặc định bật; sound=break chỉ báo khi vào nghỉ; vol=0…100)
+     autostart=0     không tự bắt đầu khi bấm Start Streaming trong OBS (mặc định: bấm Start Streaming = buổi live bắt đầu từ lúc đó;
+                     cần Properties → Page permissions ≥ "Read access to OBS status information")
+     demo=1          xem thử bằng một buổi mẫu đang chạy (để căn chỉnh khi chưa tới giờ live; ago=-10: buổi mẫu bắt đầu sau 10 phút)
    ========================================================= -->
 <style>
 :root{
@@ -82,6 +86,7 @@ html.mv .tc{opacity:1}
 .tset .src{font-size:13px;opacity:.95}
 .tset .ok{color:#7dffb0;margin-left:.4rem}
 .tset small{opacity:.7;font-size:11px}
+.tset input[type=range]{padding:0;accent-color:var(--accent)}
 .tc button{font:800 15px 'Nunito',sans-serif;border:0;border-radius:.6rem;padding:.4rem .6rem;background:rgba(0,0,0,.65);color:#fff;cursor:pointer}
 html.clock body{padding:.3rem;display:flex;align-items:flex-end;justify-content:flex-end}
 html.clock .card{padding:.45em .9em .5em;font-size:calc(var(--cs) * 5vw);text-align:right}
@@ -119,6 +124,7 @@ html.clock[data-theme="clear"] .card{padding:0 .1em}
 .list li .m{color:var(--muted);font-variant-numeric:tabular-nums}
 .list li.past{opacity:.35}
 .list li.cur{background:var(--row-now);font-weight:800}
+.list li .m.cd{color:var(--c);font-weight:800}
 .list li.cur .p{position:absolute;left:0;bottom:0;height:.14rem;background:var(--c)}
 .total{text-align:center;color:var(--muted);font-weight:700;font-size:.8rem;padding-top:.45rem}
 .empty{color:var(--muted);font-weight:700;font-size:.95rem}
@@ -240,27 +246,62 @@ async function fallbackWeek(key){
 }
 const store = { get(k){ try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }, set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
 let sessions = null, loadT = 0;
-/* Giờ bắt đầu THẬT: trong Admin bấm "Bắt đầu buổi live bây giờ" → settings/onair = { start, sched }.
+/* ---------- âm báo: chuông nhẹ khi sang đoạn (vào nghỉ đi xuống, vào tập trung đi lên, hết buổi 4 nốt) ---------- */
+const SKEY = 'ep-overlay-timer-sound';                // âm báo (bảng lịch + bộ đếm): chỉnh trong bảng ⚙ của bộ đếm, hoặc trên địa chỉ sound=0 | sound=break, vol=0…100
+const snd = { on:true, vol:70, when:'all', ...(store.get(SKEY) || {}) };
+if (Q.has('sound')) { snd.on = Q.get('sound') !== '0'; if (Q.get('sound') === 'break') snd.when = 'break'; }
+if (Q.has('vol')) snd.vol = Math.max(0, Math.min(100, +Q.get('vol') || 0));
+const kindOf = g => !g ? 'end' : g.type === 'short' || g.type === 'long' ? 'break' : 'focus';
+const NOTES = { break:[1319, 1047, 784], focus:[784, 1047, 1319], end:[1047, 1319, 1568, 2093] };
+let actx = null;
+const chime = (kind, force) => {                       // chuông nhẹ: vào nghỉ đi xuống, vào tập trung đi lên, hết buổi 4 nốt
+  if (!force && (!snd.on || (snd.when === 'break' && kind !== 'break'))) return;
+  try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume();
+    const v = .4 * snd.vol / 100, t0 = actx.currentTime + .05; if (!v) return;
+    NOTES[kind].forEach((f, i) => { const t = t0 + i * (kind === 'break' ? .42 : .24);
+      [[f, 1], [f * 2.76, .15]].forEach(([fq, a]) => { const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = fq; o.connect(g); g.connect(actx.destination);
+        g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v * a, t + .015); g.gain.exponentialRampToValueAtTime(.0001, t + 1.6);
+        o.start(t); o.stop(t + 1.7); }); }); } catch (e) {}
+};
+/* Giờ bắt đầu THẬT, lấy cái mới nhất trong hai nguồn:
+   - bấm Start Streaming trong OBS (sự kiện obsStreamingStarted, nhớ trong máy: ep-overlay-obsstart; tắt bằng autostart=0)
+   - trong Admin bấm "Bắt đầu buổi live bây giờ" / chỉnh ±phút → settings/onair = { start, sched, at } (dùng để sửa khi bấm nhầm)
    Buổi có giờ theo lịch = sched được dời sang start (cả buổi dời theo), nên bảng lịch và bộ đếm khớp lúc bạn thật sự bắt đầu.
-   Đọc lại 30 giây một lần khi gần giờ live (còn lại 5 phút một lần): 1 lượt đọc Firebase mỗi lần. */
-let base = null, onair = store.get('ep-overlay-onair'), onairOn = false;
+   settings/onair đọc lại 30 giây một lần khi gần giờ live (còn lại 5 phút một lần): 1 lượt đọc Firebase mỗi lần. */
+let base = null, onair = store.get('ep-overlay-onair'), onairOn = false, obsStart = store.get('ep-overlay-obsstart');
+const curOnair = () => [onair, obsStart].filter(o => o && o.at).sort((a, b) => b.at - a.at)[0] || (onair && onair.start ? onair : null);
 const DOCS = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents/`;
 function applyOnair(){
   if (!base) return;
-  sessions = base.map(s => onair && onair.start && s.start === onair.sched ? { ...s, start:onair.start, end:onair.start + (s.end - s.start) } : s).sort((a, b) => a.start - b.start);
+  const o = curOnair();
+  sessions = base.map(s => o && o.start && s.start === o.sched ? { ...s, start:o.start, end:o.start + (s.end - s.start) } : s).sort((a, b) => a.start - b.start);
 }
 async function fetchOnair(){
   try {
     const r = await fetch(DOCS + 'settings/onair?key=' + API_KEY, { cache:'no-store' });
     const j = r.status === 404 ? {} : r.ok ? await r.json() : null; if (!j) return;
-    const f = j.fields ? dec({ mapValue:{ fields:j.fields } }) : {}, nx = { start:+f.start || 0, sched:+f.sched || 0 };
-    if (!onair || nx.start !== onair.start || nx.sched !== onair.sched) { onair = nx; store.set('ep-overlay-onair', onair); applyOnair(); }
+    const f = j.fields ? dec({ mapValue:{ fields:j.fields } }) : {}, nx = { start:+f.start || 0, sched:+f.sched || 0, at:+f.at || 0 };
+    if (!onair || nx.start !== onair.start || nx.sched !== onair.sched || nx.at !== onair.at) { onair = nx; store.set('ep-overlay-onair', onair); applyOnair(); }
   } catch (e) {}
 }
 function onairLoop(){
   const now = Date.now(), near = (base || []).some(s => now > s.start - 6 * 3600e3 && now < s.end + 6 * 3600e3);
   fetchOnair().then(() => setTimeout(onairLoop, near ? 30e3 : 300e3));
 }
+// Bấm Start Streaming trong OBS → buổi live gần nhất bắt đầu từ lúc này. Mất mạng rồi stream lại giữa buổi thì giữ nguyên giờ cũ.
+// Cần Properties của nguồn → Page permissions ≥ "Read access to OBS status information".
+function streamStarted(){
+  if (!base) return;
+  const now = Date.now(), o = curOnair(), dur = s => s.end - s.start;
+  const endOf = s => o && o.start && o.sched === s.start ? o.start + dur(s) : s.end;
+  const x = base.filter(s => endOf(s) + 3600e3 > now && s.start - 18 * 3600e3 < now)[0];
+  if (!x) return;
+  if (o && o.start && o.sched === x.start && now >= o.start && now < o.start + dur(x)) return;   // buổi này đang chạy rồi (stream lại sau khi rớt mạng)
+  obsStart = { start:now, sched:x.start, at:now }; store.set('ep-overlay-obsstart', obsStart); applyOnair();
+  if (!Q.get('view')) render();
+}
+if (Q.get('autostart') !== '0') window.addEventListener('obsStreamingStarted', streamStarted);
+window.addEventListener('storage', e => { if (e.key === 'ep-overlay-obsstart') { obsStart = store.get('ep-overlay-obsstart'); applyOnair(); } });   // nguồn khác trong OBS vừa ghi
 async function load(){
   const now = Date.now(), mons = [...new Set([mondayVN(now - DAY), mondayVN(now), mondayVN(now + DAY)])];
   const cache = store.get('ep-overlay-weeks') || {};
@@ -276,10 +317,11 @@ async function load(){
   if (!onairOn) { onairOn = true; onairLoop(); }
   return !failed;
 }
-function demo(){                                        // buổi mẫu giống ảnh: bắt đầu 95 phút trước
-  const st = Date.now() - 95 * 60e3, segs = buildPlan(cleanPomo({ prep:20, focus:50, short:10, long:120, rounds:10, longEvery:4 }));
+function demo(){                                        // buổi mẫu giống ảnh: bắt đầu 95 phút trước (demo=1&ago=-10: bắt đầu sau 10 phút)
+  if (base) return;
+  const st = Date.now() - (Q.has('ago') ? +Q.get('ago') : 95) * 60e3, segs = buildPlan(cleanPomo({ prep:20, focus:50, short:10, long:120, rounds:10, longEvery:4 }));
   const mins = segs.reduce((a, g) => a + g.min, 0);
-  sessions = [{ start:st, end:st + mins * 60e3, mins, title:'All day', segs, chip:chipOf({ pomo:{ prep:20, focus:50, short:10, long:120, rounds:10, longEvery:4 } }, segs) }];
+  base = [{ start:st, end:st + mins * 60e3, mins, title:'All day', segs, chip:chipOf({ pomo:{ prep:20, focus:50, short:10, long:120, rounds:10, longEvery:4 } }, segs) }]; applyOnair();
 }
 
 /* ---------- chọn buổi để hiện: đang live → sắp tới trong hôm nay/24 giờ → vừa xong ---------- */
@@ -296,7 +338,7 @@ function clock(ms){ const t = Math.max(0, Math.ceil(ms / 1000)), h = Math.floor(
 
 /* ---------- vẽ ---------- */
 const card = document.getElementById('card');
-let lastKey = '', fitScale = 1;
+let lastKey = '', fitScale = 1, lastCk = '';
 // Tự thu nhỏ chữ cho vừa khung OBS để thấy hết lịch (tắt bằng fit=0, hoặc khi đặt rows=…).
 // Chỉ tính lại khi đổi buổi / trạng thái / kích thước khung, nên chữ không nhảy mỗi giây.
 function fit(list, key){
@@ -317,6 +359,8 @@ function render(){
   const s = p.s, segs = s.segs || [];
   let t = s.start, cur = -1;
   const rows = segs.map((g, i) => { const a = t; t += g.min * 60e3; if (p.mode === 'live' && now >= a && now < t) cur = i; return { g, a, b:t }; });
+  const ck = `${s.start}|${p.mode}|${cur}`;              // chuông khi vừa sang đoạn mới / vừa hết buổi
+  if (ck !== lastCk) { if (lastCk && (p.mode === 'live' && cur >= 0 ? now - rows[cur].a < 10e3 : p.mode === 'done' && now - s.end < 10e3)) chime(p.mode === 'done' ? 'end' : kindOf(rows[cur].g)); lastCk = ck; }
   const state = i => p.mode === 'done' ? 'past' : p.mode === 'soon' ? '' : i < cur ? 'past' : i === cur ? 'cur' : '';
   const pill = p.mode === 'live' ? `<span class="pill live"><i></i>${esc(TXT.live)}</span>` : p.mode === 'soon' ? `<span class="pill">${esc(tr(TXT.soon, { t:clock(s.start - now) }))}</span>` : `<span class="pill">${esc(TXT.done)}</span>`;
   let h = `<div class="top"><div class="range">${hm(s.start)} – ${hm(s.end)}</div>${off('status') ? '' : pill}</div>`;
@@ -336,7 +380,7 @@ function render(){
   }
   if (segs.length && !off('list')) {
     h += `<ol class="list" id="list">${rows.map((r, i) => { const st = state(i), c = COLOR[r.g.type];
-      return `<li class="${st}" style="--c:${c}"><span class="d" style="background:${c}"></span><span class="t">${hm(r.a)}</span><span>${esc(labelOf(r.g))}</span><span class="m">${r.g.min}′</span>${st === 'cur' ? `<span class="p" style="width:${((now - r.a) / (r.b - r.a) * 100).toFixed(1)}%"></span>` : ''}</li>`; }).join('')}</ol>`;
+      return `<li class="${st}" style="--c:${c}"><span class="d" style="background:${c}"></span><span class="t">${hm(r.a)}</span><span>${esc(labelOf(r.g))}</span>${st === 'cur' && !off('rowcd') ? `<span class="m cd">${clock(r.b - now)}</span>` : `<span class="m">${r.g.min}′</span>`}${st === 'cur' ? `<span class="p" style="width:${((now - r.a) / (r.b - r.a) * 100).toFixed(1)}%"></span>` : ''}</li>`; }).join('')}</ol>`;
   }
   if (!off('total')) h += `<div class="total">${esc(tr(TXT.total, { m:s.mins }))}</div>`;
   card.innerHTML = h;
@@ -365,7 +409,8 @@ async function refresh(){
    ↑/↓ cộng/trừ 1 phút, R = làm lại từ đầu; rê chuột vào cũng hiện nút. Trạng thái được nhớ, tải lại trang vẫn chạy tiếp.
    start=auto: như mặc định.
    scene_focus=study&scene_break=Break: tự đổi cảnh OBS khi sang hiệp (cần Page permissions = Advanced access to OBS).
-   sound=1: chuông ngắn khi hết mỗi hiệp. next=0: ẩn dòng "Next". */
+   Âm báo bật sẵn: chuông nhẹ đi xuống khi vào giờ nghỉ, đi lên khi vào lại tập trung (bật/tắt, âm lượng, thử âm trong bảng ⚙).
+   sound=0 tắt, sound=break chỉ báo khi vào nghỉ, vol=0…100. next=0: ẩn dòng "Next". */
 if (Q.get('view') === 'timer') {
   root.classList.add('timer'); root.style.setProperty('--ts', OPT.size);
   if (!Q.has('theme')) root.dataset.theme = 'clear';
@@ -388,14 +433,6 @@ if (Q.get('view') === 'timer') {
   const scene = g => {
     const nm = g.type === 'focus' ? Q.get('scene_focus') : g.type === 'prep' ? (Q.get('scene_prep') || Q.get('scene_focus')) : Q.get('scene_break');
     try { if (nm && window.obsstudio && window.obsstudio.setCurrentScene) window.obsstudio.setCurrentScene(nm); } catch (e) {}
-  };
-  let actx = null;
-  const chime = () => {
-    if (Q.get('sound') !== '1') return;
-    try { actx = actx || new (window.AudioContext || window.webkitAudioContext)();
-      [0, .28, .56].forEach(t => { const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = 880; o.connect(g); g.connect(actx.destination);
-        g.gain.setValueAtTime(.0001, actx.currentTime + t); g.gain.exponentialRampToValueAtTime(.3, actx.currentTime + t + .02); g.gain.exponentialRampToValueAtTime(.0001, actx.currentTime + t + .22);
-        o.start(actx.currentTime + t); o.stop(actx.currentTime + t + .25); }); } catch (e) {}
   };
   function go(i, keepRun){                               // sang hiệp i (giữ trạng thái chạy / dừng)
     const segs = plan(); flash = Date.now();
@@ -427,14 +464,33 @@ if (Q.get('view') === 'timer') {
   const nameOf = g => g.type === 'focus' ? (g.name || tr(T.session, { n:g.n, t:plan().filter(x => x.type === 'focus').length })) : labelOf(g);
   // Nút + bảng ⚙ nằm ngoài thẻ (thẻ vẽ lại 4 lần/giây, nút trong đó sẽ bị thay mất giữa lúc bấm)
   const V = Q.get('ui') !== 'en';                       // bảng điều khiển cho người stream: mặc định tiếng Việt (ui=en để đổi)
-  const L = V ? { set:'Cài đặt bộ đếm', focus:'Tập trung (phút)', short:'Nghỉ ngắn (phút)', long:'Nghỉ dài (phút)', rounds:'Số phiên tập trung', every:'Nghỉ dài sau mỗi … phiên', prep:'Chuẩn bị đầu buổi (phút)', save:'Lưu', admin:'Dùng lịch Admin', close:'Đóng', jump:'Nhảy tới', left:'Còn lại (phút)', setLeft:'Đặt', using:'Đang dùng', srcAdmin:'lịch Admin hôm nay', srcNone:'mẫu mặc định 50/10 (hôm nay chưa có lịch trong Admin)', srcUrl:'thời gian ghi trên địa chỉ', srcOwn:'tự đặt', srcPre:'mẫu', adminOn:'✓ Đang theo lịch Admin', okAdmin:'Đã quay về lịch Admin.', okNoAdmin:'Hôm nay chưa có lịch trong Admin nên dùng mẫu 50/10.', okSave:'Đã lưu.', okPre:'Đã chọn mẫu', okLeft:'Đã đặt lại số phút.', hint:'Bấm một mẫu để dùng ngay, hoặc gõ số rồi bấm Lưu. Bảng này hiện lên stream khi đang mở, xong bấm Đóng.' }
-              : { set:'Timer settings', focus:'Focus (min)', short:'Short break (min)', long:'Long break (min)', rounds:'Focus sessions', every:'Long break every … sessions', prep:'Warm-up (min)', save:'Save', admin:'Use Admin schedule', close:'Close', jump:'Jump to', left:'Time left (min)', setLeft:'Set', using:'Using', srcAdmin:"today's Admin schedule", srcNone:'default 50/10 (no Admin schedule today)', srcUrl:'times from the address', srcOwn:'custom', srcPre:'preset', adminOn:'✓ Following Admin schedule', okAdmin:'Back on the Admin schedule.', okNoAdmin:'No Admin schedule today, using 50/10.', okSave:'Saved.', okPre:'Preset', okLeft:'Time left updated.', hint:'Tap a preset, or type numbers and Save. This panel shows on stream while open; Close when done.' };
+  const L = V ? { set:'Cài đặt bộ đếm', focus:'Tập trung (phút)', short:'Nghỉ ngắn (phút)', long:'Nghỉ dài (phút)', rounds:'Số phiên tập trung', every:'Nghỉ dài sau mỗi … phiên', prep:'Chuẩn bị đầu buổi (phút)', save:'Lưu', admin:'Dùng lịch Admin', close:'Đóng', jump:'Nhảy tới', left:'Còn lại (phút)', setLeft:'Đặt', using:'Đang dùng', srcAdmin:'lịch Admin hôm nay', srcNone:'mẫu mặc định 50/10 (hôm nay chưa có lịch trong Admin)', srcUrl:'thời gian ghi trên địa chỉ', srcOwn:'tự đặt', srcPre:'mẫu', adminOn:'✓ Đang theo lịch Admin', okAdmin:'Đã quay về lịch Admin.', okNoAdmin:'Hôm nay chưa có lịch trong Admin nên dùng mẫu 50/10.', okSave:'Đã lưu.', okPre:'Đã chọn mẫu', okLeft:'Đã đặt lại số phút.', sndT:'Âm báo', sndOn:'🔔 Âm báo: Bật', sndOff:'🔕 Âm báo: Tắt', vol:'Âm lượng', when:'Báo khi', wAll:'Vào nghỉ + vào học', wBreak:'Chỉ khi vào nghỉ', test:'▶ Thử âm', sndHint:'Muốn người xem nghe thấy: Properties của nguồn này → tick Control audio via OBS.', hint:'Bấm một mẫu để dùng ngay, hoặc gõ số rồi bấm Lưu. Bảng này hiện lên stream khi đang mở, xong bấm Đóng.' }
+              : { set:'Timer settings', focus:'Focus (min)', short:'Short break (min)', long:'Long break (min)', rounds:'Focus sessions', every:'Long break every … sessions', prep:'Warm-up (min)', save:'Save', admin:'Use Admin schedule', close:'Close', jump:'Jump to', left:'Time left (min)', setLeft:'Set', using:'Using', srcAdmin:"today's Admin schedule", srcNone:'default 50/10 (no Admin schedule today)', srcUrl:'times from the address', srcOwn:'custom', srcPre:'preset', adminOn:'✓ Following Admin schedule', okAdmin:'Back on the Admin schedule.', okNoAdmin:'No Admin schedule today, using 50/10.', okSave:'Saved.', okPre:'Preset', okLeft:'Time left updated.', sndT:'Sound', sndOn:'🔔 Sound: On', sndOff:'🔕 Sound: Off', vol:'Volume', when:'Play when', wAll:'Breaks + focus', wBreak:'Breaks only', test:'▶ Test', sndHint:'For viewers to hear it: this source\'s Properties → tick Control audio via OBS.', hint:'Tap a preset, or type numbers and Save. This panel shows on stream while open; Close when done.' };
   const PRESETS_T = [                                    // mẫu bấm một lần là dùng (nhớ cho lần sau)
     { n:'25 / 5', c:{ focus:25, short:5, long:15, rounds:4, every:4, prep:0 } },
     { n:'50 / 10', c:{ focus:50, short:10, long:30, rounds:4, every:4, prep:0 } },
     { n:'90 / 20', c:{ focus:90, short:20, long:30, rounds:3, every:3, prep:0 } },
     { n:'60 / 10', c:{ focus:60, short:10, long:30, rounds:4, every:4, prep:0 } }
   ];
+  const sndHtml = () => `<b>${esc(L.sndT)}</b><div class="r"><button type="button" data-p="snd"${snd.on ? ' class="on"' : ''}>${esc(snd.on ? L.sndOn : L.sndOff)}</button>`
+    + `<label>${esc(L.vol)} · ${snd.vol}%<input type="range" name="vol" min="0" max="100" step="5" value="${snd.vol}"></label>`
+    + `<label>${esc(L.when)}<select name="when">${[['all', L.wAll], ['break', L.wBreak]].map(([v, t]) => `<option value="${v}"${snd.when === v ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>`
+    + `<button type="button" data-p="test">${esc(L.test)}</button></div><small>${esc(L.sndHint)}</small>`;
+  const sndSave = () => store.set(SKEY, { on:snd.on, vol:snd.vol, when:snd.when });
+  if (AUTO && Q.get('controls') !== '0') {               // tự chạy theo lịch: chỉ có nút ⚙ cho âm báo
+    const tc = document.createElement('div'); tc.className = 'tc'; tc.innerHTML = `<button type="button" data-k="settings">⚙</button>`;
+    const ps = document.createElement('form'); ps.className = 'tset'; ps.hidden = true;
+    document.body.append(tc, ps);
+    const fill = () => { ps.innerHTML = sndHtml() + `<div class="r"><button type="button" data-p="close">${esc(L.close)}</button></div>`; };
+    ps.addEventListener('submit', e => e.preventDefault());
+    ps.addEventListener('change', e => { if (e.target.name === 'vol') { snd.vol = +e.target.value; sndSave(); fill(); chime('break', true); }
+      if (e.target.name === 'when') { snd.when = e.target.value; sndSave(); } });
+    ps.addEventListener('click', e => { const k = e.target.dataset && e.target.dataset.p; if (!k) return;
+      if (k === 'snd') { snd.on = !snd.on; sndSave(); fill(); if (snd.on) chime('break', true); }
+      if (k === 'test') chime('break', true);
+      if (k === 'close') { ps.hidden = true; root.classList.remove('setopen'); } });
+    ACT.settings = () => { ps.hidden = !ps.hidden; root.classList.toggle('setopen', !ps.hidden); if (!ps.hidden) fill(); };
+  }
   if (!AUTO && Q.get('controls') !== '0') {
     const tc = document.createElement('div'); tc.className = 'tc';
     tc.innerHTML = [['prev', '⏮'], ['minus', '−1′'], ['toggle', '⏯'], ['plus', '+1′'], ['next', '⏭'], ['reset', '↺'], ['settings', '⚙']].map(([k, t]) => `<button type="button" data-k="${k}">${t}</button>`).join('');
@@ -451,7 +507,7 @@ if (Q.get('view') === 'timer') {
       ps.innerHTML = `<b>${esc(L.set)}</b><div class="src">${esc(L.using)}: <b>${esc(src())}</b>${msg ? ` <span class="ok">${esc(msg)}</span>` : ''}</div><div class="r pre">${PRESETS_T.map((x, i) => `<button type="button" data-p="pre" data-i="${i}"${saved && sig(mkPlan(saved)) === sig(mkPlan(x.c)) ? ' class="pri"' : ''}>${esc(x.n)}</button>`).join('')}</div><div class="g">${fld('focus', 1)}${fld('short', 0)}${fld('long', 0)}${fld('rounds', 1)}${fld('every', 1)}${fld('prep', 0)}</div>`
         + `<div class="r"><button type="submit" class="pri">${esc(L.save)}</button>${!custom ? `<button type="button" data-p="admin"${onAdmin ? ' class="on"' : ''}>${esc(onAdmin ? L.adminOn : L.admin)}</button>` : ''}<button type="button" data-p="close">${esc(L.close)}</button></div>`
         + `<div class="r"><label>${esc(L.jump)}<select name="jump">${segs.map((g, i) => `<option value="${i}"${i === st.idx ? ' selected' : ''}>${esc(nameOf(g))} · ${g.min}′</option>`).join('')}</select></label>`
-        + `<label>${esc(L.left)}<input type="number" name="left" min="0" max="600" step="1" value="${Math.max(0, Math.round(left() / 60e3))}"></label><button type="button" data-p="left">${esc(L.setLeft)}</button></div><small>${esc(L.hint)}</small>`; };
+        + `<label>${esc(L.left)}<input type="number" name="left" min="0" max="600" step="1" value="${Math.max(0, Math.round(left() / 60e3))}"></label><button type="button" data-p="left">${esc(L.setLeft)}</button></div><small>${esc(L.hint)}</small>` + sndHtml(); };
     const pickPreset = c => { saved = { ...c }; msg = `${L.okPre} ${(PRESETS_T.find(x => x.c === c) || {}).n || ''}`; store.set(PKEY, saved); userSegs = mkPlan(saved); apply(userSegs); fill(); };
     const apply = segs => {                              // đổi danh sách hiệp: giữ hiệp đang ở (nếu còn) và trạng thái chạy
       const i = Math.min(st.idx, segs.length - 1); st.sig = sig(segs); st.idx = i; st.done = false; st.left = segs[i].min * 60e3;
@@ -460,8 +516,12 @@ if (Q.get('view') === 'timer') {
       const n = k => +ps.elements[k].value;
       saved = { focus:Math.max(1, n('focus')), short:Math.max(0, n('short')), long:Math.max(0, n('long')), rounds:Math.max(1, n('rounds')), every:Math.max(1, n('every')), prep:Math.max(0, n('prep')) };
       store.set(PKEY, saved); userSegs = mkPlan(saved); apply(userSegs); msg = L.okSave; fill(); draw(); });
-    ps.addEventListener('change', e => { if (e.target.name === 'jump') { go(+e.target.value, true); fill(); draw(); } });
+    ps.addEventListener('change', e => { if (e.target.name === 'jump') { go(+e.target.value, true); fill(); draw(); }
+      if (e.target.name === 'vol') { snd.vol = +e.target.value; sndSave(); fill(); chime('break', true); }
+      if (e.target.name === 'when') { snd.when = e.target.value; sndSave(); } });
     ps.addEventListener('click', e => { const k = e.target.dataset && e.target.dataset.p; if (!k) return;
+      if (k === 'snd') { snd.on = !snd.on; sndSave(); fill(); if (snd.on) chime('break', true); }
+      if (k === 'test') chime('break', true);
       if (k === 'pre') pickPreset(PRESETS_T[+e.target.dataset.i].c);
       if (k === 'close') { ps.hidden = true; root.classList.remove('setopen'); }
       if (k === 'admin') { try { localStorage.removeItem(PKEY); } catch (er) {} saved = null; userSegs = null; apply(plan()); msg = schedSegs ? L.okAdmin : L.okNoAdmin; fill(); }
@@ -476,20 +536,21 @@ if (Q.get('view') === 'timer') {
     for (let i = 0; i < segs.length; i++) { const b = t + segs[i].min * 60e3; if (now < b) return { lb:nameOf(segs[i]), ms:b - now, nx:segs[i + 1], g:segs[i] }; t = b; }
     return null;
   }
-  let lastAutoLb = '';
+  let lastAutoLb = '', lastMs = 0;
   function draw(){
     const now = Date.now(), segs = plan();
     if (!custom && !userSegs && sessions === null) { card.innerHTML = ''; return; }   // chờ tải lịch Admin
     if (!AUTO && st.running && now >= st.endAt) {        // hết hiệp: sang hiệp sau, nối tiếp thời gian (không trôi giờ)
-      const over = now - st.endAt; if (over < 5e3) chime(); go(st.idx + 1, false);
+      const over = now - st.endAt; go(st.idx + 1, false); if (over < 5e3) chime(st.done ? 'end' : kindOf(segs[st.idx]));
       if (!st.done) { st.endAt = now - over + segMs(st.idx); save(); }
     }
     let lb, ms, nx, sub = '', g;
     if (AUTO) {
       const a = sessions === null ? null : autoState(now);
-      if (!a) { card.innerHTML = ''; card.classList.add('hide'); return; }
+      if (!a) { if (lastAutoLb && lastMs < 3e3) chime('end'); lastAutoLb = ''; card.innerHTML = ''; card.classList.add('hide'); return; }
       ({ lb, ms, nx, g } = a); card.classList.remove('hide');
-      if (lb !== lastAutoLb) { if (lastAutoLb && g) { chime(); scene(g); } lastAutoLb = lb; }
+      if (lb !== lastAutoLb) { if (lastAutoLb && g) { if (g.min * 60e3 - ms < 10e3) chime(kindOf(g)); scene(g); } lastAutoLb = lb; }   // chỉ báo khi hiệp vừa bắt đầu (không báo khi dời giờ trong Admin)
+      lastMs = ms;
     } else {
       card.classList.remove('hide');
       if (st.done) { lb = T.done; ms = 0; }
@@ -502,7 +563,7 @@ if (Q.get('view') === 'timer') {
   }
   draw(); setInterval(draw, 250);
   if (AUTO || !custom) {                                 // cần lịch Admin: đọc giống bảng lịch (3 phút / lần)
-    const pull = async () => { const ok = await load().catch(() => false);
+    const pull = async () => { const ok = OPT.demo ? (demo(), true) : await load().catch(() => false);
       if (!custom) { const p = pick(Date.now()) || (sessions || []).filter(s => s.start > Date.now() - DAY).map(s => ({ s }))[0];
         const segs = p && p.s.segs && p.s.segs.length ? p.s.segs : null;
         if (segs) schedSegs = segs;
