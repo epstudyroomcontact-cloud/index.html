@@ -360,9 +360,10 @@ const chime = (kind, force) => {                       // chuông nhẹ: vào ng
    - bấm Start Streaming trong OBS (sự kiện obsStreamingStarted, nhớ trong máy: ep-overlay-obsstart; tắt bằng autostart=0)
    - trong Admin bấm "Bắt đầu buổi live bây giờ" / chỉnh ±phút → settings/onair = { start, sched, at } (dùng để sửa khi bấm nhầm)
    Buổi có giờ theo lịch = sched được dời sang start (cả buổi dời theo), nên bảng lịch và bộ đếm khớp lúc bạn thật sự bắt đầu.
-   settings/onair đọc lại 30 giây một lần khi gần giờ live (còn lại 5 phút một lần): 1 lượt đọc Firebase mỗi lần. */
+   settings/onair đọc lại 10 giây một lần khi gần giờ live (còn lại 5 phút một lần): 1 lượt đọc Firebase mỗi lần. */
 let base = null, onair = store.get('ep-overlay-onair'), onairOn = false, obsStart = store.get('ep-overlay-obsstart');
-const curOnair = () => [onair, obsStart].filter(o => o && o.at).sort((a, b) => b.at - a.at)[0] || (onair && onair.start ? onair : null);
+const okOnair = o => o && o.start && o.sched && Math.abs(o.start - o.sched) < 12 * 3600e3;   // mốc lệch lịch quá 12 tiếng (gắn nhầm buổi hôm qua) thì bỏ qua
+const curOnair = () => [onair, obsStart].filter(o => okOnair(o) && o.at).sort((a, b) => b.at - a.at)[0] || (okOnair(onair) ? onair : null);
 const DOCS = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents/`;
 function applyOnair(){
   if (!base) return;
@@ -379,7 +380,7 @@ async function fetchOnair(){
 }
 function onairLoop(){
   const now = Date.now(), near = (base || []).some(s => now > s.start - 6 * 3600e3 && now < s.end + 6 * 3600e3);
-  fetchOnair().then(() => setTimeout(onairLoop, near ? 30e3 : 300e3));
+  fetchOnair().then(() => setTimeout(onairLoop, near ? 10e3 : 300e3));
 }
 // Bấm Start Streaming trong OBS → buổi live gần nhất bắt đầu từ lúc này. Mất mạng rồi stream lại giữa buổi thì giữ nguyên giờ cũ.
 // Cần Properties của nguồn → Page permissions ≥ "Read access to OBS status information".
