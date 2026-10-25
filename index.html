@@ -17,12 +17,18 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="app.css?v=84">
+<link rel="stylesheet" href="app.css?v=85">
+<!-- Thư viện từ CDN; mạng/trình chặn quảng cáo của người xem chặn CDN nào thì tải bản dự phòng từ jsDelivr (không thì trang trắng) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.4.4/luxon.min.js"></script>
+<script>window.luxon||document.write('<script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"><\/script>')</script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script>window.firebase||document.write('<script src="https://cdn.jsdelivr.net/npm/firebase@10.8.0/firebase-app-compat.js"><\/script>')</script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<script>window.firebase&&firebase.firestore||document.write('<script src="https://cdn.jsdelivr.net/npm/firebase@10.8.0/firebase-firestore-compat.js"><\/script>')</script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script>window.firebase&&firebase.auth||document.write('<script src="https://cdn.jsdelivr.net/npm/firebase@10.8.0/firebase-auth-compat.js"><\/script>')</script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+<script>window.firebase&&firebase.storage||document.write('<script src="https://cdn.jsdelivr.net/npm/firebase@10.8.0/firebase-storage-compat.js"><\/script>')</script>
 </head>
 <body>
 
@@ -123,18 +129,21 @@
 </div>
 <div id="toast"></div>
 
-<script src="js/firebase-config.js?v=84"></script>
-<script src="js/i18n.js?v=84"></script>
-<script src="i18n-extra.js?v=84"></script>
-<script src="js/translate.js?v=84"></script>
-<script src="js/art.js?v=84"></script>
-<script src="core.js?v=84"></script>
-<script src="pages.js?v=84"></script>
-<script src="moon-story-text.js?v=84"></script>
-<script src="moon-art.js?v=84"></script>
-<script src="moon-rain.js?v=84"></script>
-<script src="moon-fx.js?v=84"></script>
-<script src="moon-story.js?v=84"></script>
-<script>boot();</script>
+<script src="js/firebase-config.js?v=85"></script>
+<script src="js/i18n.js?v=85"></script>
+<script src="i18n-extra.js?v=85"></script>
+<script src="js/translate.js?v=85"></script>
+<script src="js/art.js?v=85"></script>
+<script src="core.js?v=85"></script>
+<script src="pages.js?v=85"></script>
+<script src="moon-story-text.js?v=85"></script>
+<script src="moon-art.js?v=85"></script>
+<script src="moon-rain.js?v=85"></script>
+<script src="moon-fx.js?v=85"></script>
+<script src="moon-story.js?v=85"></script>
+<script>
+if (window.firebase && window.luxon && firebase.firestore && typeof boot === 'function') boot();
+else document.body.insertAdjacentHTML('afterbegin', '<div style="max-width:520px;margin:15vh auto;padding:24px;font:16px/1.5 system-ui,sans-serif;text-align:center;color:#333"><h2 style="margin:0 0 8px">EP Study Room</h2><p>The page could not load (your network or an ad blocker blocked a required file). Please reload, turn off the ad blocker for this site, or try another network.</p><p style="color:#666">Không tải được trang (mạng hoặc trình chặn quảng cáo chặn một tệp cần thiết). Hãy tải lại, tắt chặn quảng cáo cho trang này, hoặc thử mạng khác.</p><button onclick="location.reload()" style="font:inherit;padding:8px 18px;border:0;border-radius:99px;background:#ff3d9a;color:#fff;cursor:pointer">Reload / Tải lại</button></div>');
+</script>
 </body>
 </html>

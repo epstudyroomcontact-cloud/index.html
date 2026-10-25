@@ -239,11 +239,14 @@ function drawSchedule(){
 }
 /* ---------------- Bắt đầu buổi live thật (settings/onair) ----------------
    Có hôm dậy trễ / vào sớm: bấm "Bắt đầu bây giờ" để lưu giờ bắt đầu THẬT của buổi. Bảng lịch và bộ đếm trên OBS (overlay.html)
-   tự dời cả buổi theo mốc này (đọc lại khoảng 30 giây một lần), không cần bấm gì trong OBS. Lịch gốc trong tuần không bị sửa.
+   tự dời cả buổi theo mốc này (đọc lại khoảng 10 giây một lần), không cần bấm gì trong OBS. Lịch gốc trong tuần không bị sửa.
    settings/onair = { start: giờ bắt đầu thật (ms), sched: giờ bắt đầu theo lịch của buổi đó (ms), at, prev: giá trị trước lần bấm gần nhất (để hoàn tác) }
    — ai cũng đọc được, chỉ admin ghi (firestore.rules: settings). Hoàn tác ghi lại đúng at cũ, nên OBS quay về đúng giờ trước đó (kể cả giờ do bấm Start Streaming). */
 let onair = null, onairUnsub = null;
-const onairMatch = () => onair && onair.start ? upcomingPool().find(x => x.start.toMillis() === onair.sched) || null : null;
+// Mốc chỉ còn hiệu lực với buổi đang/sắp chạy: giờ thật lệch lịch < 12 tiếng và chưa quá 1 tiếng sau khi buổi (đã dời) kết thúc.
+// Mốc của hôm qua (vd "trễ 1444 phút") coi như không có: thẻ báo chưa bắt đầu, bấm "Bắt đầu" sẽ gắn vào buổi hôm nay.
+const onairMatch = () => { if (!onair || !onair.start || Math.abs(onair.start - onair.sched) > 12 * 3600e3) return null;
+  const m = upcomingPool().find(x => x.start.toMillis() === onair.sched); return m && Date.now() < onair.start + m.mins * 60e3 + 3600e3 ? m : null; };
 const onairNext = () => { const now = Date.now();
   return upcomingPool().filter(x => x.end.toMillis() + 3600e3 > now && x.start.toMillis() - 18 * 3600e3 < now).sort((a, b) => a.start.toMillis() - b.start.toMillis())[0] || null; };
 function onairCard(){
@@ -261,7 +264,7 @@ function onairCard(){
       <p class="hint">Nếu bạn đã bấm <b>Start Streaming</b> trong OBS thì bảng lịch đã tự tính giờ từ lúc đó, <b>không cần bấm gì ở đây</b>. Chỉ bấm khi muốn tính lại cả buổi từ bây giờ.</p>
       <button class="btn secondary sm mt-s" data-act="onairStart">Bắt đầu lại từ bây giờ</button>` + undo;
   else body = `<p>Buổi tiếp theo theo lịch: <b>${hm(x.start)} – ${hm(x.end)}</b>${x.slot.title ? ` · ${esc(x.slot.title)}` : ''}.</p>
-      <p class="hint">Bấm Start Streaming trong OBS là bảng lịch tự bắt đầu. Nút này để dùng khi không stream bằng OBS hoặc muốn sửa giờ: bảng lịch và bộ đếm sẽ tính lại cả buổi từ lúc bấm, trong khoảng 30 giây.</p>
+      <p class="hint">Bấm Start Streaming trong OBS là bảng lịch tự bắt đầu. Nút này để dùng khi không stream bằng OBS hoặc muốn sửa giờ: bảng lịch và bộ đếm sẽ tính lại cả buổi từ lúc bấm, trong khoảng 10 giây.</p>
       <button class="btn primary mt-s" data-act="onairStart">${ic('play', 'sm')} Bắt đầu buổi live bây giờ</button>` + undo;
   const note = (onair && onair.note) || '';
   body += `<div class="mt" style="border-top:1px dashed var(--line,#ddd);padding-top:12px"><label class="small"><b>Thông báo trên OBS</b> <span class="muted">(hiện nổi bật trên bảng lịch cho người xem, ví dụ mục tiêu hôm nay, nội quy, lời nhắn; để trống là ẩn)</span></label>
@@ -348,15 +351,15 @@ Object.assign(ACTIONS, {
   onairStart: async () => { const m = onairMatch(), x = m || onairNext(), now = Date.now(); if (!x) return toast('Không có buổi live nào sắp tới trong lịch.');
     const running = m ? now >= onair.start && now < onair.start + x.mins * 60e3 : now >= x.start.toMillis() && now < x.end.toMillis();
     if (running && !confirm('Buổi live đang chạy. Bắt đầu lại sẽ tính lại cả buổi từ bây giờ (bảng lịch và bộ đếm trên OBS chạy lại từ đầu). Tiếp tục?\n\nLỡ bấm nhầm thì có nút "Quay về giờ trước đó".')) return;
-    if (await onairSave({ start:now, sched:x.start.toMillis(), prev:onairSnap() })) toast('✓ Đã bắt đầu. OBS sẽ tự theo trong khoảng 30 giây.', 3500); },
+    if (await onairSave({ start:now, sched:x.start.toMillis(), prev:onairSnap() })) toast('✓ Đã bắt đầu. OBS sẽ tự theo trong khoảng 10 giây.', 3500); },
   onairShift: async el => { if (!onairMatch()) return; await onairSave({ start:onair.start + (+el.dataset.m) * 60e3, sched:onair.sched, prev:(onair.prev && Date.now() - onair.at < 600e3) ? onair.prev : onairSnap() }); },
   onairClear: async () => { if (await onairSave({ start:0, sched:0, prev:onairSnap() })) toast('Đã quay về giờ theo lịch.'); },
   onairNote: async () => { const v = ($('onairNote').value || '').trim().slice(0, 300);
     try { if (DEMO) onair = { ...onair, note:v }; else await db.collection('settings').doc('onair').set({ note:v }, { merge:true });   // không đổi at: không ảnh hưởng giờ bắt đầu
-      $('onair').outerHTML = onairCard(); toast(v ? '✓ Đã lưu. OBS hiện thông báo trong khoảng 30 giây.' : 'Đã ẩn thông báo.', 3000); } catch (e) { toast('Chưa lưu được: ' + (e.code || e.message)); } },
+      $('onair').outerHTML = onairCard(); toast(v ? '✓ Đã lưu. OBS hiện thông báo trong khoảng 10 giây.' : 'Đã ẩn thông báo.', 3000); } catch (e) { toast('Chưa lưu được: ' + (e.code || e.message)); } },
   onairNoteClear: () => { $('onairNote').value = ''; return ACTIONS.onairNote(); },
   onairUndo: async () => { const p = onair && onair.prev; if (!p) return;
-    if (await onairSave({ start:p.start || 0, sched:p.sched || 0, prev:null }, p.at || 0)) toast('↶ Đã quay về giờ trước đó. OBS sẽ tự theo trong khoảng 30 giây.', 3500); },
+    if (await onairSave({ start:p.start || 0, sched:p.sched || 0, prev:null }, p.at || 0)) toast('↶ Đã quay về giờ trước đó. OBS sẽ tự theo trong khoảng 10 giây.', 3500); },
 });
 Object.assign(ACTIONS, {
   qeOpen: el => {
