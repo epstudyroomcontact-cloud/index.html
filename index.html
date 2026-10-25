@@ -12,23 +12,37 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="EP Study">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="app.css?v=85">
-<!-- Thư viện từ CDN; mạng/trình chặn quảng cáo của người xem chặn CDN nào thì tải bản dự phòng từ jsDelivr (không thì trang trắng) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.4.4/luxon.min.js"></script>
-<script>window.luxon||document.write('<script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"><\/script>')</script>
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-<script>window.firebase||document.write('<script src="https://cdn.jsdelivr.net/npm/firebase@10.8.0/firebase-app-compat.js"><\/script>')</script>
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-<script>window.firebase&&firebase.firestore||document.write('<script src="https://cdn.jsdelivr.net/npm/firebase@10.8.0/firebase-firestore-compat.js"><\/script>')</script>
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-<script>window.firebase&&firebase.auth||document.write('<script src="https://cdn.jsdelivr.net/npm/firebase@10.8.0/firebase-auth-compat.js"><\/script>')</script>
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
-<script>window.firebase&&firebase.storage||document.write('<script src="https://cdn.jsdelivr.net/npm/firebase@10.8.0/firebase-storage-compat.js"><\/script>')</script>
+<script>
+/* Lưới an toàn: nếu web không chạy được (thư viện bị chặn, trình duyệt quá cũ, lỗi code…) thì hiện lời nhắn + nút tải lại thay vì trang trắng.
+   Viết kiểu JS cũ (ES5) để chạy được cả trên trình duyệt cũ. boot() trong core.js đặt window.EP_BOOTED = true khi đã vẽ xong. */
+(function(){
+  var errs = [];
+  window.addEventListener('error', function(e){ errs.push((e.message || 'load error') + (e.filename ? ' @ ' + String(e.filename).split('/').pop() + ':' + e.lineno : (e.target && e.target.src ? ' @ ' + e.target.src : ''))); }, true);
+  window.EP_FAIL = function(err){
+    if (err) errs.push(String(err && err.message || err));
+    if (window.EP_BOOTED || document.getElementById('ep-fail')) return;
+    var vi = /^vi/i.test(navigator.language || ''), d = document.createElement('div');
+    d.id = 'ep-fail';
+    d.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;background:#080b13;color:#fff;font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;text-align:center';
+    d.innerHTML = '<div style="max-width:420px"><div style="font-size:40px">🌙</div><h2 style="margin:8px 0">' + (vi ? 'Trang chưa tải được' : 'The page did not load') + '</h2>'
+      + '<p style="opacity:.8">' + (vi ? 'Mạng chậm hoặc trình duyệt đang chặn một phần của web. Bấm tải lại; nếu vẫn vậy, thử mở bằng Chrome/Safari (không mở trong Instagram/Facebook/Zalo) hoặc tắt chặn quảng cáo.' : 'Your connection is slow or your browser blocked part of the site. Please reload; if it still fails, open it in Chrome or Safari (not inside Instagram/Facebook/Zalo) or turn off your ad blocker.') + '</p>'
+      + '<button type="button" onclick="location.reload()" style="margin:10px 0;padding:10px 22px;border:0;border-radius:999px;background:#ff3d9a;color:#fff;font:inherit;font-weight:700;cursor:pointer">' + (vi ? 'Tải lại' : 'Reload') + '</button>'
+      + '<p style="opacity:.5;font-size:12px;word-break:break-word">' + (errs.slice(0, 3).join(' · ').replace(/[<>&]/g, '') || 'timeout') + '</p></div>';
+    (document.body || document.documentElement).appendChild(d);
+  };
+  setTimeout(function(){ if (!window.EP_BOOTED) window.EP_FAIL(); }, 15000);   // 15 giây vẫn chưa vẽ được gì → hiện lời nhắn
+})();
+</script>
+<!-- Thư viện để ngay trên web (thư mục vendor/), không tải từ gstatic.com / cdnjs: một số mạng, trình duyệt và chặn quảng cáo chặn các trang đó làm web trắng trơn -->
+<script src="vendor/luxon-3.4.4.min.js"></script>
+<script src="vendor/firebase-app-compat-10.8.0.js"></script>
+<script src="vendor/firebase-firestore-compat-10.8.0.js"></script>
+<script src="vendor/firebase-auth-compat-10.8.0.js"></script>
+<script src="vendor/firebase-storage-compat-10.8.0.js"></script>
 </head>
 <body>
 
@@ -141,9 +155,6 @@
 <script src="moon-rain.js?v=85"></script>
 <script src="moon-fx.js?v=85"></script>
 <script src="moon-story.js?v=85"></script>
-<script>
-if (window.firebase && window.luxon && firebase.firestore && typeof boot === 'function') boot();
-else document.body.insertAdjacentHTML('afterbegin', '<div style="max-width:520px;margin:15vh auto;padding:24px;font:16px/1.5 system-ui,sans-serif;text-align:center;color:#333"><h2 style="margin:0 0 8px">EP Study Room</h2><p>The page could not load (your network or an ad blocker blocked a required file). Please reload, turn off the ad blocker for this site, or try another network.</p><p style="color:#666">Không tải được trang (mạng hoặc trình chặn quảng cáo chặn một tệp cần thiết). Hãy tải lại, tắt chặn quảng cáo cho trang này, hoặc thử mạng khác.</p><button onclick="location.reload()" style="font:inherit;padding:8px 18px;border:0;border-radius:99px;background:#ff3d9a;color:#fff;cursor:pointer">Reload / Tải lại</button></div>');
-</script>
+<script>try { boot(); } catch (e) { window.EP_FAIL && window.EP_FAIL(e); }</script>
 </body>
 </html>

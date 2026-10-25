@@ -757,7 +757,7 @@ const PUSH_VAPID = String(window.FCM_VAPID_KEY || '').trim();
 const PUSH = { on:store.get('push_on', false), id:store.get('push_id', ''), busy:false, err:false };
 const pushSupported = () => !!PUSH_VAPID && !DEMO && !CONFIG_MISSING && NOTIF_OK && window.isSecureContext && 'serviceWorker' in navigator && 'PushManager' in window;
 let msgP = null;
-const loadMessaging = () => msgP || (msgP = loadScript('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js').then(() => firebase.messaging()).catch(e => { msgP = null; throw e; }));
+const loadMessaging = () => msgP || (msgP = loadScript('vendor/firebase-messaging-compat-10.8.0.js').then(() => firebase.messaging()).catch(e => { msgP = null; throw e; }));
 const sha256Hex = async s => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, '0')).join('');
 async function pushSync(ask){
   if (!pushSupported()) throw new Error('push unsupported');
@@ -974,6 +974,7 @@ window.addEventListener('hashchange', () => { document.body.classList.remove('na
 function boot(){
   state.booted = true;
   applyLook(); renderPrefs(); listenAll(); readRoute(); doRender();
+  window.EP_BOOTED = true; const fb = $('ep-fail'); if (fb) fb.remove();   // tắt lưới an toàn trong index.html (trang đã vẽ được)
   $('btn-notif').classList.toggle('on', LR.on); notifBadge();
   pwaRefresh();
   const afterLoad = () => { swRegister(); setTimeout(pushResync, 3000); };   // pushResync: làm mới token thông báo đẩy (trình duyệt thỉnh thoảng đổi token)
