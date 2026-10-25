@@ -316,12 +316,14 @@ function pomoPause(){ if (!pomo.running) return; pomo.remaining = Math.max(0, po
 function pomoReset(){ pomo.running = false; pomo.blockMin = 0; pomo.remaining = pomoDur(pomo.mode); pomoSave(); updateTimerUI(); }
 function pomoMode(m){ pomo.mode = m; pomo.running = false; pomo.blockMin = 0; pomo.remaining = pomoDur(m); pomoSave(); updateTimerUI(); }
 function pomoComplete(natural, silent){
-  const wasFocus = pomo.mode === 'focus';
-  if (wasFocus && natural) { addFocus(pomo.blockMin || pomo.cfg.focus); pomo.cycle++; }
-  pomo.blockMin = 0;
+  const wasFocus = pomo.mode === 'focus', doneMin = pomo.blockMin || pomo.cfg.focus;
+  if (wasFocus && natural) pomo.cycle++;
+  pomo.blockMin = 0; pomo.running = false;
   pomo.mode = wasFocus ? ((pomo.cycle % pomo.cfg.every === 0 && natural) ? 'long' : 'short') : 'focus';
-  pomo.remaining = pomoDur(pomo.mode); pomo.running = !!(pomo.cfg.auto && natural) && !(pomo.mode === 'focus' && focusLimit() && focusUsed() >= focusLimit()); if (pomo.running) pomo.endAt = Date.now() + pomo.remaining;
-  pomoSave();
+  pomo.remaining = pomoDur(pomo.mode);
+  pomoSave();                                                          // chốt trạng thái TRƯỚC khi cộng phút: lỗi phía sau không làm phiên bị cộng lặp mỗi 250ms
+  if (wasFocus && natural) { try { addFocus(doneMin); } catch (e) { console.warn('addFocus', e); } }
+  pomo.running = !!(pomo.cfg.auto && natural) && !(pomo.mode === 'focus' && focusLimit() && focusUsed() >= focusLimit()); if (pomo.running) { pomo.endAt = Date.now() + pomo.remaining; pomoSave(); }
   if (natural && !silent) {
     beep(); toast(t(wasFocus ? 'notify_done_focus' : 'notify_done_break'));
     if ('Notification' in window && Notification.permission === 'granted') new Notification(branding.name, { body:t(wasFocus ? 'notify_done_focus' : 'notify_done_break') });
@@ -343,12 +345,12 @@ function updateTimerUI(){
   document.title = pomo.running ? `${txt} · ${t('mode_' + pomo.mode)} — ${branding.name}` : `${branding.name} · Study With Me`;
 }
 setInterval(pomoTick, 250);
-if (pomo.running && pomo.endAt <= Date.now()) pomoComplete(true, true);     // hết giờ khi đang đóng tab
 
 const todos = () => store.get('todos', []);
 const saveTodos = l => { store.set('todos', l); saveProfileSoon(); };
 const dropTodos = ids => { const s = new Set(ids), l = todos(); store.set('todos_gone', [...new Set([...todosGone(), ...ids])].slice(-300)); store.set('todos', l.filter(x => !s.has(x.id))); if (store.get('todo_cur', '') && s.has(store.get('todo_cur', ''))) store.set('todo_cur', ''); saveProfileNow(); };   // xoá thật: ghi ngay lên hồ sơ, kèm dấu "đã xoá"
 const curTodo = () => { const id = store.get('todo_cur', ''); return id ? todos().find(x => x.id === id && !x.done) : null; };
+if (pomo.running && pomo.endAt <= Date.now()) pomoComplete(true, true);     // hết giờ khi đang đóng tab (đặt sau todos/curTodo: gọi sớm hơn sẽ lỗi "before initialization")
 const plLinked = () => state.companion || state.isAdmin || trialActive() || DEMO;           // có quyền dùng Planner → Focus liên kết với Planner
 function renderTodos(){
   const box = $('todo-list'); if (!box) return;

@@ -8,7 +8,7 @@ const loadScript = src => new Promise((res, rej) => { const s = document.createE
 let emailP = null;
 const loadEmailJS = () => emailP || (emailP = loadScript('https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js').then(() => { emailjs.init("JKo4tonk0gQMwrHFZ"); }).catch(e => { emailP = null; console.warn('EmailJS chưa tải được', e); throw e; }));
 let adminP = null;
-const ASSET_V = '86';                                                // đổi cùng số ?v= trong index.html mỗi lần cập nhật, để trình duyệt không trộn file cũ với file mới
+const ASSET_V = '87';                                                // đổi cùng số ?v= trong index.html mỗi lần cập nhật, để trình duyệt không trộn file cũ với file mới
 const loadAdmin = () => typeof PAGES.admin === 'function' ? Promise.resolve() : (adminP || (adminP = loadScript('admin.js?v=' + ASSET_V).catch(e => { adminP = null; throw e; })));
 let plannerP = null;
 const loadPlanner = () => typeof PAGES.planner === 'function' ? Promise.resolve() : (plannerP || (plannerP = Promise.all([loadScript('planner-i18n.js?v=' + ASSET_V).catch(() => {}), loadScript('planner.js?v=' + ASSET_V)]).catch(e => { plannerP = null; throw e; })));   // planner-i18n.js = bản dịch hi/ja/ko/zh/fr/es; thiếu thì dùng tiếng Anh
@@ -419,7 +419,10 @@ async function loadTrial(u, force){
 }
 const localTodos = () => store.get('todos', []);
 const todosGone = () => store.get('todos_gone', []);                  // id các việc đã xoá (để máy khác / lần tải sau không "sống lại" việc đã xoá)
-const localFocus = () => store.get('focus', {});
+/* Sổ tập trung theo ngày { 'yyyy-mm-dd': { m:phút, s:phiên } }. Một ngày không thể quá 1440 phút, và mỗi phiên ít nhất 1 phút:
+   ngày nào vượt là số liệu hỏng (lỗi cộng lặp cũ) → đưa về 0 để không hiện số vô lý và không đồng bộ tiếp lên tài khoản. */
+const cleanFocus = fl => { const o = {}; Object.entries(fl && typeof fl === 'object' ? fl : {}).forEach(([k, v]) => { const m = Math.round(+(v && v.m) || 0), s = Math.round(+(v && v.s) || 0); o[k] = (m >= 0 && s >= 0 && m <= 1440 && s <= m) ? { m, s } : { m:0, s:0 }; }); return o; };
+const localFocus = () => cleanFocus(store.get('focus', {}));
 auth.onAuthStateChanged(async u => {
   if (DEMO) { render(true); return; }
   state.authReady = true;
@@ -433,7 +436,7 @@ auth.onAuthStateChanged(async u => {
       const d = await profileP; profile = d.exists ? d.data() : {};
       const gone = new Set([...(profile.todosGone || []), ...todosGone()]), todos = (profile.todos || []).filter(x => !gone.has(x.id)); localTodos().forEach(x => { if (!gone.has(x.id) && !todos.find(y => y.id === x.id)) todos.push(x); });
       store.set('todos_gone', [...gone].slice(-300));
-      const fl = { ...(profile.focusLog || {}) }; Object.entries(localFocus()).forEach(([k, v]) => { const o = fl[k] || { m:0, s:0 }; fl[k] = { m:Math.max(o.m, v.m), s:Math.max(o.s, v.s) }; });
+      const fl = cleanFocus(profile.focusLog); Object.entries(localFocus()).forEach(([k, v]) => { const o = fl[k] || { m:0, s:0 }; fl[k] = { m:Math.max(o.m, v.m), s:Math.max(o.s, v.s) }; });
       store.set('todos', todos); store.set('focus', fl); profile.todos = todos; profile.focusLog = fl;
       if (profile.unlock && !store.get('unlock', null)) store.set('unlock', profile.unlock);
       if (!d.exists || !profile.displayName) { profile.displayName = profile.displayName || u.displayName || (u.email || '').split('@')[0]; }
@@ -456,7 +459,7 @@ auth.onAuthStateChanged(async u => {
 });
 const saveProfileNow = () => {
   if (!state.user || DEMO) return;
-  const data = { displayName: profile.displayName || state.user.displayName || '', email: state.user.email, todos: store.get('todos', []), todosGone: todosGone(), focusLog: store.get('focus', {}) };
+  const data = { displayName: profile.displayName || state.user.displayName || '', email: state.user.email, todos: store.get('todos', []), todosGone: todosGone(), focusLog: localFocus() };
   const sig = state.user.uid + JSON.stringify(data);
   if (store.get('profsig', '') === sig) return;          // không có gì thay đổi thì không ghi (tiết kiệm lượt ghi)
   db.collection('users').doc(state.user.uid).set({ ...data, updatedAt: TS() }, { merge:true }).then(() => store.set('profsig', sig)).catch(e => console.warn('save profile', e.code));
