@@ -475,6 +475,7 @@ document.addEventListener('input', e => { if (e.target.dataset && e.target.datas
    SHOP + GIỎ HÀNG + THANH TOÁN
    ========================================================= */
 let cart = store.get('cart', []), coupon = null;
+if (!Array.isArray(cart)) cart = []; cart = cart.filter(x => x && typeof x === 'object' && x.id);   // giỏ hàng lưu trong máy bị hỏng thì bỏ, không làm lỗi cả trang
 const saveCart = () => { store.set('cart', cart); renderChrome(); renderCart(); };
 const cartCount = () => cart.reduce((a, c) => a + c.qty, 0);
 const pprice = (p, cur) => cur === 'VND' ? +p.priceVND || 0 : +p.priceUSD || 0;

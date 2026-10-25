@@ -1,5 +1,5 @@
 'use strict';
-const BUILD = '2026-10-25 · bản 41 (sửa mốc bắt đầu live, chống trang trắng)';   // hiện ở Admin để biết web đang chạy bản nào
+const BUILD = '2026-10-25 · bản 42 (web tự sửa khi mở lỗi)';   // hiện ở Admin để biết web đang chạy bản nào
 /* =========================================================
    CORE — cấu hình, trạng thái, dữ liệu realtime, đăng nhập, router, sự kiện
    ========================================================= */
@@ -8,7 +8,7 @@ const loadScript = src => new Promise((res, rej) => { const s = document.createE
 let emailP = null;
 const loadEmailJS = () => emailP || (emailP = loadScript('https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js').then(() => { emailjs.init("JKo4tonk0gQMwrHFZ"); }).catch(e => { emailP = null; console.warn('EmailJS chưa tải được', e); throw e; }));
 let adminP = null;
-const ASSET_V = '85';                                                // đổi cùng số ?v= trong index.html mỗi lần cập nhật, để trình duyệt không trộn file cũ với file mới
+const ASSET_V = '86';                                                // đổi cùng số ?v= trong index.html mỗi lần cập nhật, để trình duyệt không trộn file cũ với file mới
 const loadAdmin = () => typeof PAGES.admin === 'function' ? Promise.resolve() : (adminP || (adminP = loadScript('admin.js?v=' + ASSET_V).catch(e => { adminP = null; throw e; })));
 let plannerP = null;
 const loadPlanner = () => typeof PAGES.planner === 'function' ? Promise.resolve() : (plannerP || (plannerP = Promise.all([loadScript('planner-i18n.js?v=' + ASSET_V).catch(() => {}), loadScript('planner.js?v=' + ASSET_V)]).catch(e => { plannerP = null; throw e; })));   // planner-i18n.js = bản dịch hi/ja/ko/zh/fr/es; thiếu thì dùng tiếng Anh
@@ -485,7 +485,7 @@ function render(force){
   rq = setTimeout(() => { rq = 0; pendingRender = false; doRender(); }, 0);
 }
 function readRoute(){
-  const p = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean).map(decodeURIComponent);
+  const p = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean).map(x => { try { return decodeURIComponent(x); } catch (e) { return x; } });   // địa chỉ có % lạ không làm lỗi trang
   route.name = p[0] || 'home'; route.args = p.slice(1);
   if (route.name === 'about') { route.name = 'home'; route.args = []; try { history.replaceState(null, '', '#/'); } catch (e) {} }   // link cũ /about → Overview
   if (route.name === 'library') { route.name = 'account'; route.args = ['library']; }
@@ -973,10 +973,20 @@ window.addEventListener('hashchange', () => { document.body.classList.remove('na
 
 function boot(){
   state.booted = true;
-  applyLook(); renderPrefs(); listenAll(); readRoute(); doRender();
+  // Từng bước bắt lỗi riêng: một phần lỗi (giao diện, ngôn ngữ, dữ liệu…) không làm cả trang trắng. Chỉ khi không vẽ nổi trang thì báo cho lưới an toàn trong index.html (tự sửa + tải lại).
+  const step = (nm, fn) => { try { const r = fn(); if (r && r.catch) r.catch(e => console.error('[EP] ' + nm, e)); } catch (e) { console.error('[EP] ' + nm, e); } };
+  step('look', applyLook); step('prefs', renderPrefs); step('data', listenAll);
+  try { readRoute(); doRender(); }
+  catch (e) {                                                        // trang đang mở bị lỗi: thử về Trang chủ trước khi coi là hỏng
+    console.error('[EP] render ' + location.hash, e);
+    if (route.name === 'home') throw e;
+    try { history.replaceState(null, '', '#/'); } catch (er) {}
+    readRoute(); doRender();
+  }
   window.EP_BOOTED = true; const fb = $('ep-fail'); if (fb) fb.remove();   // tắt lưới an toàn trong index.html (trang đã vẽ được)
-  $('btn-notif').classList.toggle('on', LR.on); notifBadge();
-  pwaRefresh();
+  if (window.EP_HEALED) window.EP_HEALED();
+  step('notif', () => { $('btn-notif').classList.toggle('on', LR.on); notifBadge(); });
+  step('pwa', pwaRefresh);
   const afterLoad = () => { swRegister(); setTimeout(pushResync, 3000); };   // pushResync: làm mới token thông báo đẩy (trình duyệt thỉnh thoảng đổi token)
   if (document.readyState === 'complete') afterLoad(); else window.addEventListener('load', afterLoad);   // đăng ký sau khi trang tải xong để không làm chậm lúc mở web
   if (state.user === null && DEMO && DEMO_AS) { render(true); }
