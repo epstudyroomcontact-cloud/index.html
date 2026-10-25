@@ -15,34 +15,67 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="app.css?v=85">
+<link rel="stylesheet" href="app.css?v=86">
 <script>
-/* Lưới an toàn: nếu web không chạy được (thư viện bị chặn, trình duyệt quá cũ, lỗi code…) thì hiện lời nhắn + nút tải lại thay vì trang trắng.
-   Viết kiểu JS cũ (ES5) để chạy được cả trên trình duyệt cũ. boot() trong core.js đặt window.EP_BOOTED = true khi đã vẽ xong. */
+/* Lưới an toàn: web không khởi động được thì TỰ SỬA cho khách, không bắt khách làm gì.
+   Viết kiểu JS cũ (ES5) để chạy được cả trên trình duyệt cũ. boot() trong core.js đặt window.EP_BOOTED = true khi đã vẽ xong.
+   Khởi động lỗi → lần 1: xoá dữ liệu web lưu trong máy (localStorage ep_* trừ bản nhớ Planner, service worker, cache) rồi tự tải lại;
+   lần 2: xoá thêm IndexedDB (đăng xuất) rồi tự tải lại; vẫn lỗi mới hiện lời nhắn + nút Tải lại + dòng lỗi ngắn.
+   Số lần đã thử nhớ trong sessionStorage (chặn được thì ghi lên địa chỉ ?heal=N), nên không bao giờ tải lại vòng vòng. */
 (function(){
-  var errs = [];
-  window.addEventListener('error', function(e){ errs.push((e.message || 'load error') + (e.filename ? ' @ ' + String(e.filename).split('/').pop() + ':' + e.lineno : (e.target && e.target.src ? ' @ ' + e.target.src : ''))); }, true);
+  var errs = [], KEY = 'ep_heal';
+  var tag = function(e){ return (e && (e.message || e.reason && (e.reason.message || e.reason))) || 'error'; };
+  window.addEventListener('error', function(e){ errs.push(tag(e) + (e.filename ? ' @ ' + String(e.filename).split('/').pop().split('?')[0] + ':' + e.lineno : (e.target && e.target.src ? ' @ ' + String(e.target.src).split('/').pop() : ''))); }, true);
+  window.addEventListener('unhandledrejection', function(e){ errs.push('promise: ' + tag(e)); });
+  var level = function(){ var v = null; try { v = sessionStorage.getItem(KEY); } catch (e) {} if (v === null) { var m = /[?&]heal=(\d)/.exec(location.search); v = m ? m[1] : 0; } return +v || 0; };
+  var setLevel = function(n){ try { sessionStorage.setItem(KEY, String(n)); return ''; } catch (e) { return (location.search ? location.search.replace(/[?&]heal=\d/, '') + '&' : '?') .replace(/^&/, '?') + 'heal=' + n; } };
+  window.EP_HEALED = function(){ try { sessionStorage.removeItem(KEY); } catch (e) {} if (/[?&]heal=\d/.test(location.search) && history.replaceState) history.replaceState(null, '', location.pathname + location.search.replace(/[?&]heal=\d/, '').replace(/^&/, '?') + location.hash); };
+  function heal(n, done){
+    var jobs = 0, end = function(){ if (--jobs <= 0) done(); };
+    jobs++;
+    try { var ks = []; for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.indexOf('ep_') === 0 && (n >= 2 || !/^ep_(plw_|todos)/.test(k))) ks.push(k); } for (i = 0; i < ks.length; i++) localStorage.removeItem(ks[i]); } catch (e) {}   // lần 1 giữ bản nhớ Planner / việc cần làm chưa kịp lưu
+    try { if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) { jobs++; navigator.serviceWorker.getRegistrations().then(function(rs){ for (var i = 0; i < rs.length; i++) rs[i].unregister(); }).then(end, end); } } catch (e) {}
+    try { if (window.caches && caches.keys) { jobs++; caches.keys().then(function(ks){ return Promise.all(ks.map(function(k){ return caches.delete(k); })); }).then(end, end); } } catch (e) {}
+    try { if (n >= 2 && window.indexedDB && indexedDB.databases) { jobs++; indexedDB.databases().then(function(ds){ for (var i = 0; i < ds.length; i++) if (ds[i].name) indexedDB.deleteDatabase(ds[i].name); }).then(end, end); } } catch (e) {}
+    setTimeout(done, 3000);   // trình duyệt treo một bước nào đó thì vẫn tải lại
+    end();
+  }
+  var healing = false;
   window.EP_FAIL = function(err){
-    if (err) errs.push(String(err && err.message || err));
-    if (window.EP_BOOTED || document.getElementById('ep-fail')) return;
+    if (err) errs.push(tag(err));
+    if (window.EP_BOOTED || healing || document.getElementById('ep-fail')) return;
+    if (window.console) console.error('[EP] khởi động lỗi:', errs.join(' | '));
+    var n = level();
+    if (n < 2) {                                         // tự sửa: xoá dữ liệu cũ trong máy rồi tải lại
+      healing = true; var q = setLevel(n + 1), go = false;
+      heal(n + 1, function(){ if (go) return; go = true; if (q) location.replace(location.pathname + q + location.hash); else location.reload(); });
+      return;
+    }
     var vi = /^vi/i.test(navigator.language || ''), d = document.createElement('div');
     d.id = 'ep-fail';
     d.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;background:#080b13;color:#fff;font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;text-align:center';
     d.innerHTML = '<div style="max-width:420px"><div style="font-size:40px">🌙</div><h2 style="margin:8px 0">' + (vi ? 'Trang chưa tải được' : 'The page did not load') + '</h2>'
-      + '<p style="opacity:.8">' + (vi ? 'Mạng chậm hoặc trình duyệt đang chặn một phần của web. Bấm tải lại; nếu vẫn vậy, thử mở bằng Chrome/Safari (không mở trong Instagram/Facebook/Zalo) hoặc tắt chặn quảng cáo.' : 'Your connection is slow or your browser blocked part of the site. Please reload; if it still fails, open it in Chrome or Safari (not inside Instagram/Facebook/Zalo) or turn off your ad blocker.') + '</p>'
-      + '<button type="button" onclick="location.reload()" style="margin:10px 0;padding:10px 22px;border:0;border-radius:999px;background:#ff3d9a;color:#fff;font:inherit;font-weight:700;cursor:pointer">' + (vi ? 'Tải lại' : 'Reload') + '</button>'
+      + '<p style="opacity:.8">' + (vi ? 'Xin lỗi bạn, web gặp lỗi khi mở. Bạn bấm tải lại giúp mình nhé.' : 'Sorry, something went wrong while opening the site. Please tap reload.') + '</p>'
+      + '<button type="button" id="ep-fail-btn" style="margin:10px 0;padding:10px 22px;border:0;border-radius:999px;background:#ff3d9a;color:#fff;font:inherit;font-weight:700;cursor:pointer">' + (vi ? 'Tải lại' : 'Reload') + '</button>'
       + '<p style="opacity:.5;font-size:12px;word-break:break-word">' + (errs.slice(0, 3).join(' · ').replace(/[<>&]/g, '') || 'timeout') + '</p></div>';
     (document.body || document.documentElement).appendChild(d);
+    document.getElementById('ep-fail-btn').onclick = function(){ var q = setLevel(0); heal(2, function(){ if (q) location.replace(location.pathname + q + location.hash); else location.reload(); }); };
   };
-  setTimeout(function(){ if (!window.EP_BOOTED) window.EP_FAIL(); }, 15000);   // 15 giây vẫn chưa vẽ được gì → hiện lời nhắn
+  setTimeout(function(){ if (!window.EP_BOOTED) window.EP_FAIL(errs.length ? null : 'timeout'); }, 20000);   // 20 giây vẫn chưa vẽ được gì
 })();
 </script>
-<!-- Thư viện để ngay trên web (thư mục vendor/), không tải từ gstatic.com / cdnjs: một số mạng, trình duyệt và chặn quảng cáo chặn các trang đó làm web trắng trơn -->
+<!-- Thư viện để ngay trên web (thư mục vendor/): một số mạng, trình duyệt và chặn quảng cáo chặn gstatic.com / cdnjs làm web trắng trơn.
+     File nào trong vendor/ không tải được (bị tiện ích chặn…) thì dòng ngay sau nó tải bản dự phòng từ CDN. -->
 <script src="vendor/luxon-3.4.4.min.js"></script>
+<script>window.luxon||document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.4.4/luxon.min.js"><\/script>')</script>
 <script src="vendor/firebase-app-compat-10.8.0.js"></script>
+<script>window.firebase||document.write('<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"><\/script>')</script>
 <script src="vendor/firebase-firestore-compat-10.8.0.js"></script>
+<script>window.firebase&&firebase.firestore||document.write('<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"><\/script>')</script>
 <script src="vendor/firebase-auth-compat-10.8.0.js"></script>
+<script>window.firebase&&firebase.auth||document.write('<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"><\/script>')</script>
 <script src="vendor/firebase-storage-compat-10.8.0.js"></script>
+<script>window.firebase&&firebase.storage||document.write('<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"><\/script>')</script>
 </head>
 <body>
 
@@ -143,18 +176,18 @@
 </div>
 <div id="toast"></div>
 
-<script src="js/firebase-config.js?v=85"></script>
-<script src="js/i18n.js?v=85"></script>
-<script src="i18n-extra.js?v=85"></script>
-<script src="js/translate.js?v=85"></script>
-<script src="js/art.js?v=85"></script>
-<script src="core.js?v=85"></script>
-<script src="pages.js?v=85"></script>
-<script src="moon-story-text.js?v=85"></script>
-<script src="moon-art.js?v=85"></script>
-<script src="moon-rain.js?v=85"></script>
-<script src="moon-fx.js?v=85"></script>
-<script src="moon-story.js?v=85"></script>
+<script src="js/firebase-config.js?v=86"></script>
+<script src="js/i18n.js?v=86"></script>
+<script src="i18n-extra.js?v=86"></script>
+<script src="js/translate.js?v=86"></script>
+<script src="js/art.js?v=86"></script>
+<script src="core.js?v=86"></script>
+<script src="pages.js?v=86"></script>
+<script src="moon-story-text.js?v=86"></script>
+<script src="moon-art.js?v=86"></script>
+<script src="moon-rain.js?v=86"></script>
+<script src="moon-fx.js?v=86"></script>
+<script src="moon-story.js?v=86"></script>
 <script>try { boot(); } catch (e) { window.EP_FAIL && window.EP_FAIL(e); }</script>
 </body>
 </html>
