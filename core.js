@@ -201,6 +201,11 @@ function parseTime(str, baseVN){
 }
 const weekStart = off => DT.now().setZone(VN).plus({ weeks: off }).startOf('week');
 const weekKeyFor = off => { const d = weekStart(off); return `${d.year}-W${d.weekNumber}`; };
+/* lịch lưu theo tuần giờ VN, còn trang Lịch hiện theo tuần giờ của người xem (thứ Hai 00:00 → Chủ nhật 24:00 ở userTZ) */
+const localWeekStart = off => DT.now().setZone(userTZ).plus({ weeks: off }).startOf('week');
+const vnOffOf = dt => Math.round(dt.setZone(VN).startOf('week').diff(weekStart(0), 'weeks').weeks);
+// các tuần VN cần đọc để vẽ tuần `off` của người xem (lùi thêm 1 ngày để thấy buổi dài kéo sang từ tối Chủ nhật)
+const weeksFor = off => { const ls = localWeekStart(off), a = vnOffOf(ls.minus({ days:1 })), b = vnOffOf(ls.plus({ days:7 }).minus({ milliseconds:1 })); const out = []; for (let o = a; o <= b; o++) out.push(o); return out; };
 function getItems(off, days){
   const ws = weekStart(off), out = [];
   (days || []).forEach((raw, i) => {
@@ -212,7 +217,7 @@ function getItems(off, days){
   });
   return out;
 }
-const poolAll = () => [0, 1].flatMap(o => weekDocs[o] ? getItems(o, weekDocs[o]) : []);
+const poolAll = () => [-1, 0, 1].flatMap(o => weekDocs[o] ? getItems(o, weekDocs[o]) : []);
 const upcomingPool = () => poolAll().filter(x => !x.cancelled);
 const watchUrl = () => branding.contacts.live || (branding.ytChannelId ? `https://www.youtube.com/channel/${branding.ytChannelId}/live` : '');
 
@@ -244,7 +249,7 @@ function listenWeek(off){
     err => { console.warn('schedule', err.code); weekDocs[off] = null; render(); });
 }
 function listenWeeks(){
-  const keep = new Set([0, 1, weekOffset]);
+  const keep = new Set([-1, 0, 1, weekOffset, ...weeksFor(weekOffset)]);
   Object.keys(unsubs).filter(k => k[0] === 'w').forEach(k => { const o = +k.slice(1); if (!keep.has(o)) { unsubs[k](); delete unsubs[k]; delete weekDocs[o]; } });
   keep.forEach(listenWeek);
 }
@@ -970,7 +975,7 @@ document.addEventListener('focusout', e => {
   setTimeout(() => { if (pendingRender && !typingInPage()) render(); }, 50);
 });
 $('sel-lang').addEventListener('change', e => { state.lang = e.target.value; store.set('lang', state.lang); renderPrefs(); render(true); pushResync(); });
-$('sel-tz').addEventListener('change', e => { state.tz = e.target.value; store.set('tz', state.tz); userTZ = state.tz === 'auto' ? DT.local().zoneName : state.tz; render(true); pushResync(); });
+$('sel-tz').addEventListener('change', e => { state.tz = e.target.value; store.set('tz', state.tz); userTZ = state.tz === 'auto' ? DT.local().zoneName : state.tz; listenWeeks(); render(true); pushResync(); });
 $('chk-calm').addEventListener('change', e => { state.calm = e.target.checked; store.set('calm', state.calm); applyLook(); });
 window.addEventListener('hashchange', () => { document.body.classList.remove('nav-open'); $('cart-drawer').classList.remove('open'); render(true); window.scrollTo({ top:0 }); });
 
