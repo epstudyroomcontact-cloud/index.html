@@ -29,10 +29,9 @@ function slotChip(s, mins){
 }
 function slotCard(x){
   const s = x.slot, su = x.start.setZone(userTZ), eu = x.end.setZone(userTZ), nowMs = Date.now();
-  const live = !x.cancelled && nowMs >= x.start.toMillis() && nowMs < x.end.toMillis();
-  const dayVN = weekStart(x.off).plus({ days:x.di });
-  const diff = Math.round(DT.fromISO(su.toISODate()).diff(DT.fromISO(dayVN.toISODate()), 'days').days);
-  const mark = diff ? `<span class="daymark" title="${esc(t(diff > 0 ? 'next_day' : 'prev_day'))}">${diff > 0 ? '+' : '−'}1d</span>` : '';
+  const live = !x.cancelled && nowMs >= x.start.toMillis() && nowMs < Math.min(x.end.toMillis(), su.plus({ days:1 }).startOf('day').toMillis());   // sau nửa đêm thì thẻ "tiếp nối" ở ngày sau báo live
+  // buổi kéo qua nửa đêm (giờ của người xem): ghi rõ ngày kết thúc, phần sau nửa đêm cũng hiện ở ngày hôm sau (contCard)
+  const mark = eu.toISODate() !== su.toISODate() ? `<span class="daymark">${esc(t('ends_on', { d:eu.setLocale(state.lang).toFormat('ccc'), t:eu.toFormat('HH:mm') }))}</span>` : '';
   let bar = '', plan = '', toggle = '';
   const segs = slotSegs(s);
   if (segs) {
@@ -42,29 +41,45 @@ function slotCard(x){
     toggle = `<button type="button" class="plan-toggle" data-act="plan" data-k="${x.key}">${esc(expanded.has(x.key) ? t('hide_plan') : t('show_plan'))}</button>`;
   }
   const chip = `<div class="pomo-chip">${esc(slotChip(s, x.mins))}</div>`;
-  const reason = s.cancelled && L(s.cancelNote) ? ': ' + esc(L(s.cancelNote)) : '';
+  const note = L(s.cancelNote) || L(x.day.cancelNote), reason = x.cancelled && note ? ': ' + esc(note) : '';   // huỷ cả ngày (giờ VN) thì báo trên từng buổi, vì ở giờ người xem các buổi có thể rơi vào ngày khác
   const url = watchUrl();
   return `<div class="slot ${live ? 'is-live' : ''} ${x.cancelled ? 'is-cancel' : ''}">
     <div class="slot-top"><span class="s-time">${su.toFormat('HH:mm')} – ${eu.toFormat('HH:mm')}</span>${mark}${live ? `<span class="badge live">${esc(t('live_now'))}</span>` : ''}</div>
     ${s.title ? `<div class="s-title">${esc(s.title)}</div>` : ''}${bar}${chip}${plan}${toggle}
     ${state.isAdmin ? `<button type="button" class="btn secondary sm mt-s" style="width:100%" data-act="qeOpen" data-o="${x.off}" data-d="${x.di}" data-s="${x.si}">${ic('pen', 'sm')} Sửa buổi này</button>` : ''}
     ${live && url ? `<a class="btn primary sm mt-s" style="width:100%" href="#/watch">${ic('play', 'sm')} ${esc(t('watch'))}</a>` : ''}
-    ${s.cancelled ? `<div class="ribbon">${esc(t('cancelled'))}${reason}</div>` : ''}</div>`;
+    ${x.cancelled ? `<div class="ribbon">${esc(t('cancelled'))}${reason}</div>` : ''}</div>`;
 }
+// phần còn lại của một buổi bắt đầu từ hôm trước (theo giờ người xem), hiện ở đầu ngày `d`
+function contCard(x, d){
+  const su = x.start.setZone(userTZ), eu = x.end.setZone(userTZ), nowMs = Date.now(), dEnd = d.plus({ days:1 });
+  const live = !x.cancelled && nowMs >= d.toMillis() && nowMs < Math.min(x.end.toMillis(), dEnd.toMillis()), url = watchUrl();
+  return `<div class="slot is-cont ${live ? 'is-live' : ''} ${x.cancelled ? 'is-cancel' : ''}">
+    <div class="slot-top"><span class="s-time">00:00 – ${eu < dEnd ? eu.toFormat('HH:mm') : '24:00'}</span>${live ? `<span class="badge live">${esc(t('live_now'))}</span>` : ''}</div>
+    <div class="pomo-chip">${esc(t('cont_from', { d:su.setLocale(state.lang).toFormat('ccc'), t:su.toFormat('HH:mm') }))}${x.slot.title ? ' · ' + esc(x.slot.title) : ''}</div>
+    ${live && url ? `<a class="btn primary sm mt-s" style="width:100%" href="#/watch">${ic('play', 'sm')} ${esc(t('watch'))}</a>` : ''}
+    ${x.cancelled ? `<div class="ribbon">${esc(t('cancelled'))}</div>` : ''}</div>`;
+}
+const tzName = dt => `${dt.zoneName.replace(/_/g, ' ')} (GMT${dt.toFormat('Z')})`;
 const legendHTML = () => `<div class="legend"><span><i style="background:var(--seg-focus)"></i>${esc(t('focus'))}</span><span><i style="background:var(--seg-short)"></i>${esc(t('short_break'))}</span><span><i style="background:var(--seg-long)"></i>${esc(t('long_break'))}</span><span><i style="background:var(--seg-prep)"></i>${esc(t('prep_break'))}</span></div>`;
 
 PAGES.schedule = function(){
-  const ws = weekStart(weekOffset), we = ws.plus({ days:6 }), items = getItems(weekOffset, weekDocs[weekOffset]), todayVN = DT.now().setZone(VN).toISODate();
+  // mọi giờ đổi sang múi giờ của người xem: mỗi buổi nằm đúng ngày nó bắt đầu ở chỗ họ, "Hôm nay" cũng theo giờ của họ
+  const ls = localWeekStart(weekOffset), we = ls.plus({ days:6 }), nowL = DT.now().setZone(userTZ), todayL = nowL.toISODate();
+  const offs = weeksFor(weekOffset), all = offs.flatMap(o => weekDocs[o] ? getItems(o, weekDocs[o]) : []).sort((a, b) => a.start - b.start);
+  const offDays = {};                              // ngày nghỉ (đặt theo ngày VN) gắn vào ngày cùng ngày-tháng ở trang này
+  offs.forEach(o => (weekDocs[o] || []).forEach((raw, i) => { const day = normDay(raw); if (day.cancelled) offDays[weekStart(o).plus({ days:i }).toISODate()] = day; }));
   let rows = '';
   for (let i = 0; i < 7; i++) {
-    const dayVN = ws.plus({ days:i }), day = normDay((weekDocs[weekOffset] || [])[i]), its = items.filter(x => x.di === i);
-    const isToday = dayVN.toISODate() === todayVN;
-    rows += `<div class="arow ${isToday ? 'today' : ''} ${day.cancelled ? 'is-off' : ''}">
-      <div class="a-day"><b>${esc((DAYS[state.lang] || DAYS.en)[i])}</b><span>${dayVN.toFormat('dd/MM')}</span>${isToday ? `<span class="badge">${esc(t('today'))}</span>` : ''}</div>
-      ${its.length || day.cancelled ? `<div class="a-slots">${day.cancelled ? `<div class="a-off">${esc(t('day_off'))}${L(day.cancelNote) ? ' — ' + esc(L(day.cancelNote)) : ''}</div>` : ''}${its.map(slotCard).join('')}</div>` : `<div class="a-none">${esc(t('rest'))}</div>`}</div>`;
+    const d = ls.plus({ days:i }), dEnd = d.plus({ days:1 }), key = d.toISODate(), isToday = key === todayL, off = offDays[key];
+    const conts = all.filter(x => x.start < d && x.end > d), its = all.filter(x => x.start >= d && x.start < dEnd);
+    const has = conts.length || its.length;
+    rows += `<div class="arow ${isToday ? 'today' : ''} ${off && !has ? 'is-off' : ''}">
+      <div class="a-day"><b>${esc((DAYS[state.lang] || DAYS.en)[i])}</b><span>${d.toFormat('dd/MM')}</span>${isToday ? `<span class="badge">${esc(t('today'))}</span>` : ''}</div>
+      ${has || off ? `<div class="a-slots">${off ? `<div class="a-off">${esc(t('day_off'))}${L(off.cancelNote) ? ' — ' + esc(L(off.cancelNote)) : ''}</div>` : ''}${conts.map(x => contCard(x, d)).join('')}${its.map(slotCard).join('')}</div>` : `<div class="a-none">${esc(t('rest'))}</div>`}</div>`;
   }
-  page(`${head('sch_title', 'sch_sub', `<div class="week-nav"><button class="btn secondary icon" data-act="week" data-d="-1" aria-label="prev">${ic('chev-l')}</button><span class="lbl">${ws.toFormat('dd/MM')} – ${we.toFormat('dd/MM')}</span><button class="btn secondary icon" data-act="week" data-d="1" aria-label="next">${ic('chev-r')}</button></div>`, 'curl', 2)}
-    <div class="row between" style="margin-bottom:16px">${legendHTML()}<span class="small faint mono">${esc(t('tz_label'))}: ${esc(userTZ)}</span></div>
+  page(`${head('sch_title', 'sch_sub', `<div class="week-nav"><button class="btn secondary icon" data-act="week" data-d="-1" aria-label="prev">${ic('chev-l')}</button><span class="lbl">${ls.toFormat('dd/MM')} – ${we.toFormat('dd/MM')}</span><button class="btn secondary icon" data-act="week" data-d="1" aria-label="next">${ic('chev-r')}</button></div>`, 'curl', 2)}
+    <div class="row between" style="margin-bottom:16px">${legendHTML()}<span class="small faint">${esc(t('tz_label'))}: <b class="mono">${esc(tzName(nowL))}</b>${/Ho_Chi_Minh|Saigon/.test(userTZ) ? '' : ' · ' + esc(t('tz_auto'))}</span></div>
     <div class="agenda">${rows}</div>`);
 };
 function changeWeek(d){ weekOffset += d; listenWeeks(); render(true); }
