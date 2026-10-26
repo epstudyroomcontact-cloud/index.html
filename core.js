@@ -556,9 +556,9 @@ const navLabel = n => (n.label && (n.label[state.lang] || (isNativeContent() ? '
 function renderChrome(){
   const items = navItems().filter(n => n.visible !== false && n.id !== 'about');   // About đã gộp vào Overview
   const cartN = cartCount();
-  const logo = branding.logoUrl ? `<img src="${esc(branding.logoUrl)}" alt="">` : esc((branding.name || 'E').trim().slice(0, 2).toUpperCase());
+  const logo = `<img src="${esc(branding.logoUrl || 'icons/logo.svg')}" alt="">`;
   $('sidebar').innerHTML = `
-    <a class="sb-brand" href="#/"><span class="logo-mark">${logo}</span><span>${esc(branding.name)}</span></a>
+    <a class="sb-brand" href="#/"><span class="logo-mark${branding.logoUrl ? '' : ' is-moon'}">${logo}</span><span>${esc(branding.name)}</span></a>
     ${items.map(n => n.url
       ? `<a class="sb-item" href="${esc(n.url)}" target="_blank" rel="noopener">${ic('link')}<span>${esc(navLabel(n))}</span></a>`
       : `<a class="sb-item ${route.name === n.id || (n.id === 'home' && route.name === 'home') ? 'active' : ''}" href="#${n.path}" data-act="closeNav">${ic(n.icon)}<span>${esc(navLabel(n))}</span>${n.id === 'shop' && cartN ? `<span class="count">${cartN}</span>` : ''}${isLocked(n.id) ? `<span class="lk" title="${esc(t('lock_title'))}">${ic('lock', 'sm')}</span>` : ''}</a>`).join('')}
