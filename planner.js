@@ -150,7 +150,6 @@ const PL_COLORS = ['#f2b8c6', '#c9b8ec', '#f6c9a0', '#f4e08c', '#a9dcc6', '#a8cd
 const PL = { off:0, key:'', tasks:null, gone:[], state:'idle', save:'', prev:null, timer:0, sel:null, seq:0, slow:false, hist:{}, prefs:null, remTasks:null, sent:{}, remT:0, pinT:0, mday:null };
 const plWeekStart = off => DT.now().setZone(userTZ).plus({ weeks:off }).startOf('week');
 const plKey = off => { const d = plWeekStart(off); return `${d.weekYear}-W${d.weekNumber}`; };
-const plDaysLeft = () => Math.ceil(DT.fromISO(state.companionUntil, { zone:userTZ }).endOf('day').diff(DT.now().setZone(userTZ), 'days').days);
 const plAccess = () => DEMO || state.companion || state.isAdmin || trialActive();
 const plRef = key => db.collection('users').doc(state.user.uid).collection('planner').doc(key);
 const plId = () => Math.random().toString(36).slice(2, 9);
@@ -456,7 +455,7 @@ function plPreview(){                                              // giao diệ
 function plUpsell(){
   const login = !state.user;
   return `${head('pl_title', '', '', 'moonwalk', 4)}<section class="card pad stack" style="max-width:640px"><div class="row"><span class="badge">${ic('heart', 'sm')} ${esc(t('comp_badge'))}</span></div>
-    <h2 style="font-size:1.3rem">${esc(t('pl_up_title'))}</h2><p class="muted">${esc(login ? t('pl_up_login') : state.companionUntil ? t('pl_up_expired', { d:state.companionUntil }) : t('pl_up_text'))}</p>
+    <h2 style="font-size:1.3rem">${esc(t('pl_up_title'))}</h2><p class="muted">${esc(login ? t('pl_up_login') : state.companionUntil ? t('pl_up_expired', { d:DT.fromISO(state.companionUntil).toFormat('dd/MM/yyyy') }) : t('pl_up_text'))}</p>
     ${login ? `<a class="btn primary" href="#/account">${esc(t('club_login_btn'))}</a>` : `${trialBox()}${compClaimHTML()}<a class="btn secondary" href="#/donate">${esc(t('pl_up_cta'))}</a>`}</section>
     <div class="pl-previewhead"><span class="badge">${ic('lock', 'sm')} ${esc(t('pl_preview'))}</span><small class="faint">${esc(t('pl_preview_note'))}</small></div>
     <div class="pl-locked" inert aria-hidden="true">${plPreview()}</div>`;
@@ -564,7 +563,7 @@ PAGES.planner = function(){
   if (PL.state === 'error') body = `<p class="muted">${esc(t('pl_load_err'))}</p><button class="btn primary" data-act="plRetry">${esc(t('club_retry'))}</button>${PL.err ? `<p class="small faint">${esc(PL.err)}</p>` : ''}`;
   else if (!PL.tasks) body = `<p class="muted">${esc(t(PL.slow ? 'pl_slow' : 'pl_loading'))}</p>${PL.slow ? `<button class="btn primary" data-act="plRetry">${esc(t('club_retry'))}</button>` : ''}`;
   else { const S = plStats(PL.tasks, PL.off, PL.gone); body = `${plKpis(S)}${plQuickBar()}<p class="small faint pl-hint" style="margin:4px 0 10px">${esc(t('pl_hint'))}</p><div class="pl-main"><div class="card pad pl-gridcard">${plGrid()}</div>${plSide()}</div>${plAnalysis(S)}`; }
-  page(`${head('pl_title', 'pl_sub', '', 'moonwalk', 4)}${hintNote('new_pl')}${trialActive() && !state.companion && !state.isAdmin ? `<p class="small muted" style="margin:-6px 0 12px">${esc(t('trial_active', { d:trialEnd() }))} <a href="#/donate">${esc(t('pl_up_cta'))}</a></p>` : ''}${state.companionUntil && !state.isAdmin ? (plDaysLeft() <= 5 ? `<div class="card pad stack" style="margin-bottom:14px"><p class="small">${esc(t('pl_soon', { d:state.companionUntil }))}</p>${(() => { const r = plRecent(); return r && r.n ? `<p class="small"><b>${esc(t('pl_soon_stats', { n:r.n, t:fmtMin(r.t) }))}</b></p>` : ''; })()}${compClaimHTML()}</div>` : `<p class="small muted" style="margin:-6px 0 12px">${esc(t('pl_until', { d:state.companionUntil }))}</p>`) : ''}${nav}${body}`);
+  page(`${head('pl_title', 'pl_sub', '', 'moonwalk', 4)}${hintNote('new_pl')}${trialActive() && !state.companion && !state.isAdmin ? `<p class="small muted" style="margin:-6px 0 12px">${esc(t('trial_active', { d:trialEnd() }))} <a href="#/donate">${esc(t('pl_up_cta'))}</a></p>` : ''}${state.companion && state.companionUntil && !state.isAdmin ? (compRenewOpen() ? `<div class="card pad stack" style="margin-bottom:14px"><p class="small">${esc(t('pl_soon', { d:compUntilDay() }))}</p>${(() => { const r = plRecent(); return r && r.n ? `<p class="small"><b>${esc(t('pl_soon_stats', { n:r.n, t:fmtMin(r.t) }))}</b></p>` : ''; })()}${compClaimHTML()}</div>` : `<p class="small muted" style="margin:-6px 0 12px">${esc(compUntilText())}</p>`) : ''}${nav}${body}`);
 };
 /* ---------- hộp thoại thêm / sửa ---------- */
 function plForm(x, isNew, day, start){

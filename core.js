@@ -8,7 +8,7 @@ const loadScript = src => new Promise((res, rej) => { const s = document.createE
 let emailP = null;
 const loadEmailJS = () => emailP || (emailP = loadScript('https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js').then(() => { emailjs.init("JKo4tonk0gQMwrHFZ"); }).catch(e => { emailP = null; console.warn('EmailJS chưa tải được', e); throw e; }));
 let adminP = null;
-const ASSET_V = ((document.currentScript && /[?&]v=(\w+)/.exec(document.currentScript.src)) || [])[1] || '90';   // lấy đúng số ?v= của core.js trong index.html, để admin.js / planner.js tải cùng bản (không phải sửa tay ở đây nữa)
+const ASSET_V = ((document.currentScript && /[?&]v=(\w+)/.exec(document.currentScript.src)) || [])[1] || '91';   // lấy đúng số ?v= của core.js trong index.html, để admin.js / planner.js tải cùng bản (không phải sửa tay ở đây nữa)
 const loadAdmin = () => typeof PAGES.admin === 'function' ? Promise.resolve() : (adminP || (adminP = loadScript('admin.js?v=' + ASSET_V).catch(e => { adminP = null; throw e; })));
 let plannerP = null;
 const loadPlanner = () => typeof PAGES.planner === 'function' ? Promise.resolve() : (plannerP || (plannerP = Promise.all([loadScript('planner-i18n.js?v=' + ASSET_V).catch(() => {}), loadScript('planner.js?v=' + ASSET_V)]).catch(e => { plannerP = null; throw e; })));   // planner-i18n.js = bản dịch hi/ja/ko/zh/fr/es; thiếu thì dùng tiếng Anh
@@ -66,7 +66,7 @@ let music = { picks:[], recent:[] }, gear = { items:[] };
 let supporters = { items:[] };                                       // settings/supporters: tên người đồng hành hiện ở mục cảm ơn (admin quản lý)
 const thanksList = () => (supporters.items || []).filter(x => x && x.show !== false && x.name && (!x.until || x.until >= DT.now().toISODate())).sort((a, b) => String(a.since || '').localeCompare(String(b.since || '')));
 /* Tự thêm https:// cho các link thanh toán nếu người dùng quên */
-function fixPayUrls(p) { const o = { ...p }; ['stripe', 'paypal', 'kofi', 'companionUrl', 'momoQr'].forEach(k => { const v = (o[k] || '').trim(); o[k] = v && !/^(https?:)?\/\//i.test(v) && !/^data:/i.test(v) ? 'https://' + v : v; }); return o; }
+function fixPayUrls(p) { const o = { ...p }; ['stripe', 'paypal', 'kofi', 'companionUrl'].forEach(k => { const v = (o[k] || '').trim(); o[k] = v && !/^(https?:)?\/\//i.test(v) && !/^data:/i.test(v) ? 'https://' + v : v; }); return o; }
 state.companion = false; state.companionUntil = ''; state.compReq = null; state.compCheckedAt = 0;
 state.trial = null;                                                  // mã dùng thử: { code, endsAt (ms) } hoặc null — xem loadTrial
 let weekDocs = {}, weekOffset = 0;
@@ -337,7 +337,7 @@ function listenLegacy(){
 function loadDemo(){
   branding = { ...branding, announcement:{ vi:'Chào mừng đến EP Study Room (chế độ xem thử)', en:'Welcome to EP Study Room (demo preview)' }, contacts:{ live:'https://youtube.com' }, socialLinks:{ YouTube:'https://youtube.com', Instagram:'https://instagram.com' }, ytLiveId:'jfKfPfyJRdk',
     videos:[{ url:'https://youtu.be/jfKfPfyJRdk', title:'lofi hip hop radio — beats to relax/study to' },{ url:'https://youtu.be/5qap5aO4i9A', title:'Study with me — 2 hours Pomodoro 50/10' },{ url:'https://youtu.be/lTRiuFIWV54', title:'Rainy night study session' }] };
-  payments = { bankBin:'970436', accountNo:'0123456789', accountName:'NGUYEN VAN A', momoPhone:'0900000000', stripe:'https://stripe.com' };
+  payments = { bankBin:'970436', accountNo:'0123456789', accountName:'NGUYEN VAN A', stripe:'https://stripe.com' };
   music = { picks:[{ title:{ en:'Rain & piano', vi:'Mưa và piano' }, note:{ en:'Soft, no lyrics', vi:'Nhẹ nhàng, không lời' }, url:'https://www.youtube.com/watch?v=jfKfPfyJRdk' }, { title:{ en:'Focus playlist', vi:'Danh sách tập trung' }, note:{}, url:'https://open.spotify.com/playlist/37i9dQZF1DWZeKCadgRdKQ' }], recent:[{ title:{ en:'Late-night study mix', vi:'Mix học khuya' }, note:{ en:'What I have on repeat this week', vi:'Tuần này mình nghe đi nghe lại' }, url:'https://open.spotify.com/playlist/37i9dQZF1DX8Uebhn9wzrS' }] };
   supporters = { items:[{ id:'u1', name:'Linh', show:true, since:'2026-09-01' }, { id:'u2', name:'Daniel', show:true, since:'2026-09-20' }, { id:'u3', name:'Mai', show:true, since:'2026-10-05' }] };
   gear = { items:[{ id:'lamp', name:{ en:'Warm desk lamp', vi:'Đèn bàn ánh vàng' }, note:{ en:'Soft light for late sessions.', vi:'Ánh sáng dịu cho những buổi học khuya.' }, cat:{ en:'Desk', vi:'Bàn học' }, price:'', store:'Amazon', url:'https://example.com/lamp', img:'' }, { id:'headphones', name:{ en:'Noise-cancelling headphones', vi:'Tai nghe chống ồn' }, note:{ en:'Keeps the room quiet.', vi:'Giữ cho căn phòng yên tĩnh.' }, cat:{ en:'Audio', vi:'Âm thanh' }, price:'', store:'Shopee', url:'https://example.com/headphones', img:'' }, { id:'notebook', name:{ en:'Dotted notebook', vi:'Sổ chấm bi' }, note:{ en:'For plans and to-do lists.', vi:'Để ghi kế hoạch và việc cần làm.' }, cat:{ en:'Stationery', vi:'Văn phòng phẩm' }, price:'', store:'', url:'https://example.com/notebook', img:'' }] };
@@ -433,7 +433,7 @@ auth.onAuthStateChanged(async u => {
   state.authReady = true;
   if (typeof stopAdminWatch === 'function') stopAdminWatch();
   try { Object.keys(localStorage).filter(k => k.startsWith('ep_plw_') && !(u && k.startsWith('ep_plw_' + u.uid + '_'))).forEach(k => localStorage.removeItem(k)); } catch (e) {}   // bản nhớ planner chỉ giữ cho tài khoản đang đăng nhập
-  state.user = u; state.isAdmin = false; state.companion = false; state.trial = null; state.compReq = null; state.compCheckedAt = 0; state.moonReward = undefined; state.profileReady = false; state.profileFailed = false; library = []; profile = {};
+  state.user = u; state.isAdmin = false; state.companion = false; state.companionUntil = ''; state.trial = null; state.compReq = null; state.compCheckedAt = 0; state.moonReward = undefined; state.profileReady = false; state.profileFailed = false; library = []; profile = {};
   if (unsubLib) { unsubLib(); unsubLib = null; }
   if (u) {
     const profileP = db.collection('users').doc(u.uid).get(); profileP.catch(() => {});      // tải hồ sơ song song với làm mới token, không chờ nhau
@@ -454,8 +454,8 @@ auth.onAuthStateChanged(async u => {
     state.isAdmin = isAdminUser(u);
     if (state.isAdmin) { goLegacy(); loadAdmin().then(() => { if (typeof ensureSitePublished === 'function') ensureSitePublished(); if (typeof adminWatchRequests === 'function') adminWatchRequests(); }).catch(() => {}); }
     const cc = store.get('comp_' + u.uid, null);                       // tiết kiệm lượt đọc: nhớ kết quả 30 phút
-    if (cc && Date.now() - cc.t < 30 * 60e3) state.companion = !!cc.v;
-    else { try { const cd = await db.collection('companions').doc(u.uid).get(); state.companion = cd.exists && !(cd.data().until && cd.data().until < DT.now().toISODate()); store.set('comp_' + u.uid, { t:Date.now(), v:state.companion }); } catch (e) {} }
+    if (cc && Date.now() - cc.t < 30 * 60e3) { state.companion = !!cc.v; state.companionUntil = cc.u || ''; }
+    else { try { const cd = await db.collection('companions').doc(u.uid).get(); state.companion = cd.exists && !(cd.data().until && cd.data().until < DT.now().toISODate()); state.companionUntil = cd.exists && cd.data().until || ''; store.set('comp_' + u.uid, { t:Date.now(), v:state.companion, u:state.companionUntil }); } catch (e) {} }
     await loadTrial(u);
     startLibrary();
     if (state.companion || state.isAdmin || trialActive()) loadPlanner().then(() => plPrefetch()).catch(() => {});     // tải sẵn planner.js lúc rảnh để mở Planner không phải chờ tải file
@@ -512,8 +512,8 @@ async function refreshCompanion(force){
   try {
     const cd = await db.collection('companions').doc(u.uid).get(), d = cd.exists ? cd.data() : null;
     state.companion = !!d && !(d.until && d.until < DT.now().toISODate()); state.companionUntil = d && d.until || '';
-    store.set('comp_' + u.uid, { t:Date.now(), v:state.companion });
-    if (!state.companion) { try { const r = await db.collection('companion_requests').doc(u.uid).get(); state.compReq = r.exists ? r.data() : null; } catch (e) {} } else state.compReq = null;
+    store.set('comp_' + u.uid, { t:Date.now(), v:state.companion, u:state.companionUntil });
+    try { const r = await db.collection('companion_requests').doc(u.uid).get(); state.compReq = r.exists ? r.data() : null; } catch (e) {}     // cả Companion còn hạn: để biết đã gửi yêu cầu gia hạn chưa
   } catch (e) { console.warn('companion check', e.code); }
   return before !== sig();
 }
