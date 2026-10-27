@@ -360,9 +360,9 @@ function plTrend(){
    Khi đã đóng web: máy này lưu mã nhận thông báo (FCM token) vào users/<uid>.plPush, GitHub Actions (scripts/push-planner.mjs)
    đọc Planner khoảng 5 phút một lần và gửi thông báo đẩy. Hai đường dùng cùng tag nên đang mở web cũng chỉ hiện 1 thông báo. */
 const plRemOn = () => !!store.get('pl_rem', false);
-async function plNotify(title, body, tag){                          // điện thoại Android chỉ cho hiện thông báo qua service worker (new Notification bị lỗi)
+async function plNotify(title, body, tag, rang){                    // điện thoại Android chỉ cho hiện thông báo qua service worker (new Notification bị lỗi)
   if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
-  const opts = { body, tag, silent:!document.hidden && plChimeOn(), renotify:true, vibrate:[200, 100, 200, 100, 300], icon:'icons/icon-192.png', data:{ url:location.href.split('#')[0] + '#/planner' } };
+  const opts = { body, tag, silent:!!rang, renotify:true, vibrate:[200, 100, 200, 100, 300], icon:'icons/icon-192.png', data:{ url:location.href.split('#')[0] + '#/planner' } };
   try { const reg = await swRegister(); if (reg && reg.showNotification) return await reg.showNotification(title, opts); } catch (e) {}
   try { new Notification(title, opts); } catch (e) {}
 }
@@ -388,16 +388,17 @@ async function plPushOff(){                                         // tắt nh�
 }
 const plPushHere = () => { const p = store.get('pl_push', null); return !!(p && state.user && p.uid === state.user.uid && plPushOk()); };
 const plChimeOn = () => store.get('pl_chime', true) !== false;
-function plChime(){                                                 // chuông 2 tiếng tự tạo bằng Web Audio (không cần file âm thanh)
-  if (!plChimeOn() || typeof audio !== 'function') return;
-  const a = audio(); if (!a) return;
+function plChime(){                                                 // chuông 2 tiếng tự tạo bằng Web Audio (không cần file âm thanh); trả về true nếu chuông kêu được
+  if (!plChimeOn() || typeof audio !== 'function') return false;
+  const a = audio(); if (!a || a.state !== 'running') return false;   // trình duyệt còn khoá tiếng (khách chưa chạm vào trang): không xếp chuông, để thông báo của máy kêu thay
   [0, .55].forEach(d => [[880, .22], [1318, .09], [1760, .04]].forEach(([f, v]) => { const o = a.createOscillator(), g = a.createGain(), at = a.currentTime + d; o.type = 'sine'; o.frequency.value = f; g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(v, at + .01); g.gain.exponentialRampToValueAtTime(.0008, at + 1.1); o.connect(g); g.connect(a.destination); o.start(at); o.stop(at + 1.2); }));
+  return true;
 }
 const plWeekNow = u => PL.key === plKey(0) && PL.tasks && PL.uid === u.uid ? PL.tasks : (PL.remTasks && PL.remTasks.uid === u.uid ? PL.remTasks.tasks : null);   // việc tuần này đang có trong máy (không cần tải)
 function plRemTick(){
   const u = state.user; if (!u || !plAccess() || !plRemOn()) return;
   const tasks = plWeekNow(u); if (!tasks) return;
-  const now = DT.now().setZone(userTZ), di = now.weekday - 1, mins = now.hour * 60 + now.minute, day = now.toISODate(), say = (title, body, tag) => { plNotify(title, body, tag); toast(body); plChime(); };
+  const now = DT.now().setZone(userTZ), di = now.weekday - 1, mins = now.hour * 60 + now.minute, day = now.toISODate(), say = (title, body, tag) => { const rang = plChime(); plNotify(title, body, tag, rang); toast(body); };
   tasks.forEach(x => { if (x.done || x.day !== di || !x.start) return; const st = hm(x.start), k = x.id + day; if (mins >= st - 10 && mins < st + 5 && !PL.sent[k]) { PL.sent[k] = 1; say(t('pl_rem_title'), t('pl_rem_soon', { t:x.title || '—', s:x.start }), 'pl-' + x.id + '-' + day); } });
   const left = tasks.filter(x => !x.done && x.day === di).length;
   if (mins >= 1200 && mins < 1260 && left && !PL.sent['eve' + day]) { PL.sent['eve' + day] = 1; say(t('pl_rem_title'), t('pl_rem_eve', { n:left }), 'pl-eve-' + day); }

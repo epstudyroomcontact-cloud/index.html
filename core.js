@@ -8,7 +8,7 @@ const loadScript = src => new Promise((res, rej) => { const s = document.createE
 let emailP = null;
 const loadEmailJS = () => emailP || (emailP = loadScript('https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js').then(() => { emailjs.init("JKo4tonk0gQMwrHFZ"); }).catch(e => { emailP = null; console.warn('EmailJS chưa tải được', e); throw e; }));
 let adminP = null;
-const ASSET_V = ((document.currentScript && /[?&]v=(\w+)/.exec(document.currentScript.src)) || [])[1] || '91';   // lấy đúng số ?v= của core.js trong index.html, để admin.js / planner.js tải cùng bản (không phải sửa tay ở đây nữa)
+const ASSET_V = ((document.currentScript && /[?&]v=(\w+)/.exec(document.currentScript.src)) || [])[1] || '92';   // lấy đúng số ?v= của core.js trong index.html, để admin.js / planner.js tải cùng bản (không phải sửa tay ở đây nữa)
 const loadAdmin = () => typeof PAGES.admin === 'function' ? Promise.resolve() : (adminP || (adminP = loadScript('admin.js?v=' + ASSET_V).catch(e => { adminP = null; throw e; })));
 let plannerP = null;
 const loadPlanner = () => typeof PAGES.planner === 'function' ? Promise.resolve() : (plannerP || (plannerP = Promise.all([loadScript('planner-i18n.js?v=' + ASSET_V).catch(() => {}), loadScript('planner.js?v=' + ASSET_V)]).catch(e => { plannerP = null; throw e; })));   // planner-i18n.js = bản dịch hi/ja/ko/zh/fr/es; thiếu thì dùng tiếng Anh
@@ -820,7 +820,7 @@ const plRemIsOn = () => !!store.get('pl_rem', false);
 function plRemHTML(){
   if (!plCan()) return '';
   const on = plRemIsOn(), bg = on && typeof plPushHere === 'function' && plPushHere();
-  return `<div class="switch"><span><b>${esc(t('plr_on'))}</b></span><input type="checkbox" data-change="plRemOn" ${on ? 'checked' : ''}></div><p class="lr-note ${on ? 'ok' : ''}">${esc(t(on ? (bg ? 'plr_ok' : 'plr_fg') : 'plr_note'))}</p><hr class="lr-hr">${plPinHTML()}`;
+  return `<div class="switch"><span><b>${esc(t('plr_on'))}</b></span><input type="checkbox" data-change="plRemOn" ${on ? 'checked' : ''}></div><p class="lr-note ${on ? 'ok' : ''}">${esc(t(on ? (bg ? 'plr_ok' : 'plr_fg') : 'plr_note'))}</p>${on && audioLocked() ? `<p class="lr-note warn">${esc(t('lr_tap'))}</p>` : ''}<hr class="lr-hr">${plPinHTML()}`;
 }
 /* Việc hôm nay ngoài màn hình: thông báo yên lặng khi thoát web (hiện bằng plPinShow trong planner.js). Mặc định tắt, khách tự bật trên từng máy */
 const plPinOn = () => !!store.get('pl_pin', false);
@@ -842,10 +842,11 @@ async function plPinSet(on){
   } catch (e) { console.warn('planner pin', e); }
 }
 async function plRemSet(on, quiet){
+  if (on && !quiet && typeof audio === 'function') audio();          // mở khoá chuông ngay trong lần bấm này (trình duyệt chỉ cho phát tiếng sau khi khách bấm)
   try { await loadPlanner(); if (typeof plRemToggle === 'function') await plRemToggle(on, quiet); } catch (e) { console.warn('planner rem', e); }
   renderLiveRem(); if (route.name === 'planner') render(true);
 }
-['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => { if (LR.on && lrSound() && typeof audio === 'function' && audioLocked()) { audio(); if ($('live-rem').classList.contains('open')) setTimeout(renderLiveRem, 50); } }, { passive:true }));
+['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => { if ((LR.on && lrSound() || plRemIsOn()) && typeof audio === 'function' && audioLocked()) { audio(); if ($('live-rem').classList.contains('open')) setTimeout(renderLiveRem, 50); } }, { passive:true }));
 function tickClock(){
   const n = DT.now().setZone(userTZ), txt = n.toFormat('hh:mm:ss a');
   document.querySelectorAll('[data-clock]').forEach(e => e.textContent = txt);
