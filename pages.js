@@ -195,7 +195,7 @@ let pomo = { ...pomoDefault(), ...store.get('pomo', {}) }; pomo.cfg = { ...pomoD
 const pomoDur = m => (pomo.cfg[m] || 25) * 60e3;
 const pomoSave = () => store.set('pomo', pomo);
 let actx = null;
-function audio(){ if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (actx && actx.state === 'suspended') actx.resume(); return actx; }
+function audio(){ if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (actx && actx.state !== 'running' && actx.state !== 'closed') { const r = actx.resume(); if (r && r.catch) r.catch(() => {}); } return actx; }
 function beep(){
   const a = audio(); if (!a) return;
   [0, .25, .5].forEach((d, i) => { const o = a.createOscillator(), g = a.createGain(), at = a.currentTime + d; o.type = 'sine'; o.frequency.value = i === 2 ? 988 : 784; g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(.2, at + .02); g.gain.exponentialRampToValueAtTime(.001, at + .22); o.connect(g); g.connect(a.destination); o.start(at); o.stop(at + .25); });
