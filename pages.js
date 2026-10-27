@@ -29,7 +29,9 @@ function slotChip(s, mins){
 }
 function slotCard(x){
   const s = x.slot, su = x.start.setZone(userTZ), eu = x.end.setZone(userTZ), nowMs = Date.now();
-  const live = !x.cancelled && nowMs >= x.start.toMillis() && nowMs < Math.min(x.end.toMillis(), su.plus({ days:1 }).startOf('day').toMillis());   // sau nửa đêm thì thẻ "tiếp nối" ở ngày sau báo live
+  const live = isLive(x, nowMs) && nowMs < su.plus({ days:1 }).startOf('day').toMillis(), wait = !live && isWaiting(x, nowMs);   // sau nửa đêm thì thẻ "tiếp nối" ở ngày sau báo live
+  // đã bấm bắt đầu trễ/sớm: giờ trên thẻ là giờ thật, ghi thêm giờ dự kiến cho người xem đối chiếu
+  const moved = x.started && x.start.toMillis() !== x.sched.toMillis() ? `<span class="daymark">${esc(t('live_moved', { t:x.sched.setZone(userTZ).toFormat('HH:mm') }))}</span>` : '';
   // buổi kéo qua nửa đêm (giờ của người xem): ghi rõ ngày kết thúc, phần sau nửa đêm cũng hiện ở ngày hôm sau (contCard)
   const mark = eu.toISODate() !== su.toISODate() ? `<span class="daymark">${esc(t('ends_on', { d:eu.setLocale(state.lang).toFormat('ccc'), t:eu.toFormat('HH:mm') }))}</span>` : '';
   let bar = '', plan = '', toggle = '';
@@ -44,7 +46,7 @@ function slotCard(x){
   const note = L(s.cancelNote) || L(x.day.cancelNote), reason = x.cancelled && note ? ': ' + esc(note) : '';   // huỷ cả ngày (giờ VN) thì báo trên từng buổi, vì ở giờ người xem các buổi có thể rơi vào ngày khác
   const url = watchUrl();
   return `<div class="slot ${live ? 'is-live' : ''} ${x.cancelled ? 'is-cancel' : ''}">
-    <div class="slot-top"><span class="s-time">${su.toFormat('HH:mm')} – ${eu.toFormat('HH:mm')}</span>${mark}${live ? `<span class="badge live">${esc(t('live_now'))}</span>` : ''}</div>
+    <div class="slot-top"><span class="s-time">${su.toFormat('HH:mm')} – ${eu.toFormat('HH:mm')}</span>${mark}${moved}${live ? `<span class="badge live">${esc(t('live_now'))}</span>` : wait ? `<span class="badge warn">${esc(t('live_waiting'))}</span>` : ''}</div>
     ${s.title ? `<div class="s-title">${esc(s.title)}</div>` : ''}${bar}${chip}${plan}${toggle}
     ${state.isAdmin ? `<button type="button" class="btn secondary sm mt-s" style="width:100%" data-act="qeOpen" data-o="${x.off}" data-d="${x.di}" data-s="${x.si}">${ic('pen', 'sm')} Sửa buổi này</button>` : ''}
     ${live && url ? `<a class="btn primary sm mt-s" style="width:100%" href="#/watch">${ic('play', 'sm')} ${esc(t('watch'))}</a>` : ''}
@@ -53,7 +55,7 @@ function slotCard(x){
 // phần còn lại của một buổi bắt đầu từ hôm trước (theo giờ người xem), hiện ở đầu ngày `d`
 function contCard(x, d){
   const su = x.start.setZone(userTZ), eu = x.end.setZone(userTZ), nowMs = Date.now(), dEnd = d.plus({ days:1 });
-  const live = !x.cancelled && nowMs >= d.toMillis() && nowMs < Math.min(x.end.toMillis(), dEnd.toMillis()), url = watchUrl();
+  const live = isLive(x, nowMs) && nowMs >= d.toMillis() && nowMs < dEnd.toMillis(), url = watchUrl();
   return `<div class="slot is-cont ${live ? 'is-live' : ''} ${x.cancelled ? 'is-cancel' : ''}">
     <div class="slot-top"><span class="s-time">00:00 – ${eu < dEnd ? eu.toFormat('HH:mm') : '24:00'}</span>${live ? `<span class="badge live">${esc(t('live_now'))}</span>` : ''}</div>
     <div class="pomo-chip">${esc(t('cont_from', { d:su.setLocale(state.lang).toFormat('ccc'), t:su.toFormat('HH:mm') }))}${x.slot.title ? ' · ' + esc(x.slot.title) : ''}</div>
@@ -131,8 +133,8 @@ PAGES.home = function(){
     const v0 = videos[0];
     html += `<div class="grid g-main mt">
       <section class="card pad"><div class="card-h"><h2 ${cms('sec_today')}>${esc(ctext('sec_today'))}</h2><a class="link" href="#/schedule">${esc(t('nav_schedule'))} ${ic('arrow', 'sm')}</a></div>
-        ${tItems.length ? tItems.map(x => { const su = x.start.setZone(userTZ), eu = x.end.setZone(userTZ), live = !x.cancelled && Date.now() >= x.start.toMillis() && Date.now() < x.end.toMillis();
-          return `<div class="today-item ${live ? 'live' : ''} ${x.cancelled ? 'off' : ''}"><span class="tm">${su.toFormat('HH:mm')} – ${eu.toFormat('HH:mm')}</span><div style="flex:1;min-width:0">${x.slot.title ? `<div style="font-weight:600;font-size:.9rem">${esc(x.slot.title)}</div>` : ''}<div class="pomo-chip">${esc(slotChip(x.slot, x.mins))}</div></div>${live ? `<span class="badge live">${esc(t('live_now'))}</span>` : x.cancelled ? `<span class="badge danger">${esc(t('cancelled'))}</span>` : ''}</div>`; }).join('') : emptyBox('calendar', t('nothing_today'), '')}</section>
+        ${tItems.length ? tItems.map(x => { const su = x.start.setZone(userTZ), eu = x.end.setZone(userTZ), live = isLive(x, Date.now()), wait = isWaiting(x, Date.now());
+          return `<div class="today-item ${live ? 'live' : ''} ${x.cancelled ? 'off' : ''}"><span class="tm">${su.toFormat('HH:mm')} – ${eu.toFormat('HH:mm')}</span><div style="flex:1;min-width:0">${x.slot.title ? `<div style="font-weight:600;font-size:.9rem">${esc(x.slot.title)}</div>` : ''}<div class="pomo-chip">${esc(slotChip(x.slot, x.mins))}</div></div>${live ? `<span class="badge live">${esc(t('live_now'))}</span>` : wait ? `<span class="badge warn">${esc(t('live_waiting'))}</span>` : x.cancelled ? `<span class="badge danger">${esc(t('cancelled'))}</span>` : ''}</div>`; }).join('') : emptyBox('calendar', t('nothing_today'), '')}</section>
       <div class="stack">
         <section class="card pad"><div class="card-h"><h2>${esc(t('nav_focus'))}</h2><span class="badge" data-pomo-mode>${esc(t('mode_focus'))}</span></div>
           <div class="mono" style="font-size:2.6rem;font-weight:700;letter-spacing:-.04em" data-pomo-time>25:00</div><a class="btn primary mt-s" href="#/focus">${ic('timer', 'sm')} ${esc(t('btn_start_focus'))}</a></section>
@@ -175,12 +177,12 @@ function pickPlayable(){
 }
 const liveEmbedSrc = () => branding.ytLiveId ? `https://www.youtube.com/embed/${youTubeId(branding.ytLiveId)}?rel=0` : (branding.ytChannelId ? `https://www.youtube.com/embed/live_stream?channel=${encodeURIComponent(branding.ytChannelId)}` : '');
 PAGES.watch = function(){
-  const liveSrc = liveEmbedSrc(), { live, next } = liveState(), url = watchUrl(), replay = !playingId && !live && !watchLive, pv = replay ? pickPlayable() : null;
+  const liveSrc = liveEmbedSrc(), { live, waiting, next } = liveState(), url = watchUrl(), replay = !playingId && !live && !watchLive, pv = replay ? pickPlayable() : null;
   const src = playingId ? `https://www.youtube-nocookie.com/embed/${playingId}?autoplay=1&rel=0` : (live || watchLive) ? liveSrc : pv ? `https://www.youtube-nocookie.com/embed/${pv}?rel=0` : '';
   page(`${head('watch_title', 'watch_sub', url ? `<a class="btn secondary" target="_blank" rel="noopener" href="${esc(url)}">${ic('link', 'sm')} ${esc(t('open_youtube'))}</a>` : '', 'gaze', 5)}
     <div class="grid g-main"><div><div class="player">${src ? `<iframe src="${esc(src)}" title="YouTube" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe>` : `<div class="ph">${paint('gaze', { crop:'banner', seed:4 })}<div class="glass" style="position:relative"><h3 style="margin-bottom:4px">${esc(t('offline'))}</h3><p class="muted small">${esc(t('offline_sub'))}</p></div></div>`}</div>${replay && pv ? `<p class="small muted mt-s">${esc(t('stream_replay'))}</p>` : ''}</div>
       <aside class="card pad stack"><div class="row between"><b>${esc(live ? t('live_now') : t('nav_schedule'))}</b>${live ? `<span class="badge live">LIVE</span>` : ''}</div>
-        <div class="card pad" style="background:var(--surface2)"><div class="small muted">${esc(live ? t('live_now') : next ? t('next_live') : t('no_next'))}</div><div class="mono" id="next-card-w" style="font-size:1.5rem;font-weight:700;color:var(--accent-strong)">${live ? `${live.start.setZone(userTZ).toFormat('HH:mm')} – ${live.end.setZone(userTZ).toFormat('HH:mm')}` : next ? `${next.start.setZone(userTZ).toFormat('ccc HH:mm')}` : '—'}</div></div>
+        <div class="card pad" style="background:var(--surface2)"><div class="small muted">${esc(live ? t('live_now') : waiting ? t('live_waiting') : next ? t('next_live') : t('no_next'))}</div><div class="mono" id="next-card-w" style="font-size:1.5rem;font-weight:700;color:var(--accent-strong)">${live ? `${live.start.setZone(userTZ).toFormat('HH:mm')} – ${live.end.setZone(userTZ).toFormat('HH:mm')}` : waiting ? esc(t('live_waiting_b', { t:waiting.sched.setZone(userTZ).toFormat('HH:mm') })) : next ? `${next.start.setZone(userTZ).toFormat('ccc HH:mm')}` : '—'}</div></div>
         ${playingId ? `<button class="btn secondary" data-act="playLive">${ic('play', 'sm')} ${esc(t('nav_watch'))}</button>` : replay ? `<button class="btn secondary" data-act="watchCheckLive">${ic('play', 'sm')} ${esc(t('watch_check_live'))}</button>` : ''}
         <a class="btn primary" href="#/schedule">${ic('calendar', 'sm')} ${esc(t('btn_see_schedule'))}</a><a class="btn secondary" href="#/focus">${ic('timer', 'sm')} ${esc(t('btn_start_focus'))}</a></aside></div>
     <h2 style="font-size:1.2rem;margin:30px 0 14px">${esc(t('latest_videos'))}</h2>

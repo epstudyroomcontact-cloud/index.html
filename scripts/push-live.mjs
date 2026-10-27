@@ -2,7 +2,8 @@
    MÁY GỬI THÔNG BÁO ĐẨY KHI LIVE — chạy trên GitHub Actions (.github/workflows/push-live.yml), không cần máy chủ riêng.
    Mỗi lần chạy (khoảng 5 phút một lần):
    1. Đọc lịch live tuần này / tuần sau trong Firestore (weekly_schedules, giờ Việt Nam, giống hệt cách web tính).
-   2. Có buổi sắp bắt đầu (từ PUSH_LEAD_MIN phút trước giờ bắt đầu tới PUSH_LATE_MIN phút sau) mà chưa gửi → gửi cho mọi token.
+   2. Lịch chỉ là giờ dự kiến: chỉ báo buổi admin ĐÃ bấm "Bắt đầu buổi live bây giờ" (settings/onair = { start, sched }),
+      tính theo giờ bắt đầu thật (tới PUSH_LATE_MIN phút sau đó) và chưa gửi → gửi cho mọi token. Chưa bấm thì không báo, dù đã quá giờ lịch.
    3. Admin bấm "Gửi thông báo live ngay" (push_admin/now) → gửi ngay ở lần chạy này.
    Gửi qua Firebase Cloud Messaging HTTP v1 bằng tài khoản dịch vụ trong GitHub Secret FIREBASE_SERVICE_ACCOUNT (phần dùng chung ở fcm.mjs).
    ========================================================= */
@@ -42,7 +43,7 @@ function daySlots(d){
 }
 async function sessions(){
   const mons = new Map();
-  [NOW - LATE * 60e3, NOW, NOW + LEAD * 60e3].forEach(ms => { const m = mondayVN(ms); mons.set(m.getTime(), m); });
+  [NOW - 13 * 3600e3, NOW - LATE * 60e3, NOW, NOW + LEAD * 60e3].forEach(ms => { const m = mondayVN(ms); mons.set(m.getTime(), m); });
   const out = [];
   for (const mon of mons.values()) {
     const doc = await getDoc('weekly_schedules/' + encodeURIComponent(weekKey(mon)));
@@ -108,9 +109,13 @@ if (req && req.at > nowDone) {
   if (NOW - req.at < 2 * 3600e3) jobs.push({ custom:String(req.text || '').trim().slice(0, 200), label:'nút trong Admin' });
 }
 if (MODE === 'auto') {
-  for (const s of await sessions()) {
-    if (sent[s.start] || NOW < s.start - LEAD * 60e3 || NOW >= s.start + LATE * 60e3) continue;
-    sent[s.start] = NOW; jobs.push({ ...s, label:'theo lịch ' + hhmm(s.start) });
+  // giờ bắt đầu thật do admin bấm (cùng điều kiện với core.js / overlay.html: lệch lịch quá 12 tiếng là mốc cũ, bỏ qua)
+  const oa = (await getDoc('settings/onair')) || {}, o = { start:+oa.start || 0, sched:+oa.sched || 0 };
+  if (o.start && o.sched && Math.abs(o.start - o.sched) < 12 * 3600e3) {
+    for (const s of await sessions()) {
+      if (s.start !== o.sched || sent[s.start] || NOW < o.start - LEAD * 60e3 || NOW >= o.start + LATE * 60e3) continue;   // "đã gửi" vẫn khoá theo giờ lịch: bấm bắt đầu lại không gửi lặp
+      sent[s.start] = NOW; jobs.push({ ...s, start:o.start, label:`bắt đầu lúc ${hhmm(o.start)} (lịch ${hhmm(s.start)})` });
+    }
   }
 }
 if (!jobs.length && nowDone === nowDone0) { console.log('Không có buổi live nào cần báo lúc này.'); process.exit(0); }
