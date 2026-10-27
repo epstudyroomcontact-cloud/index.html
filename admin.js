@@ -627,11 +627,10 @@ async function tabReviews(){
 }
 
 /* ---------------- Thanh toán ---------------- */
-const PAY_FIELDS = { 'py-bin':'bankBin', 'py-acc':'accountNo', 'py-name':'accountName', 'py-momo':'momoPhone', 'py-momoqr':'momoQr', 'py-stripe':'stripe', 'py-paypal':'paypal', 'py-kofi':'kofi', 'py-tpl':'orderTemplate', 'py-claimtpl':'claimTemplate', 'py-dvnd':'donateVND', 'py-dusd':'donateUSD', 'py-comp':'companionUrl', 'py-cvnd':'companionVND', 'py-cusd':'companionUSD' };
+const PAY_FIELDS = { 'py-bin':'bankBin', 'py-acc':'accountNo', 'py-name':'accountName', 'py-stripe':'stripe', 'py-paypal':'paypal', 'py-kofi':'kofi', 'py-tpl':'orderTemplate', 'py-claimtpl':'claimTemplate', 'py-dvnd':'donateVND', 'py-dusd':'donateUSD', 'py-comp':'companionUrl', 'py-cvnd':'companionVND', 'py-cusd':'companionUSD' };
 function tabPayments(){
   const p = payments;
-  A(`${aCard('Chuyển khoản VietQR (khách Việt Nam)', `<div class="f3">${fld('Mã ngân hàng / BIN', 'py-bin', p.bankBin, '', 'VD: 970436 (Vietcombank), 970422 (MB)…')}${fld('Số tài khoản', 'py-acc', p.accountNo)}${fld('Tên chủ tài khoản', 'py-name', p.accountName, '', 'IN HOA, không dấu')}</div><p class="hint">Mã QR tự điền số tiền + mã đơn. Quét được bằng mọi app ngân hàng và bằng MoMo (Chuyển tiền → Quét mã).</p>
-      <div class="f2 mt-s">${fld('SĐT MoMo (tuỳ chọn)', 'py-momo', p.momoPhone)}${imgField('Ảnh QR MoMo (tuỳ chọn)', 'py-momoqr', p.momoQr)}</div>`)}
+  A(`${aCard('Chuyển khoản VietQR (khách Việt Nam)', `<div class="f3">${fld('Mã ngân hàng / BIN', 'py-bin', p.bankBin, '', 'VD: 970436 (Vietcombank), 970422 (MB)…')}${fld('Số tài khoản', 'py-acc', p.accountNo)}${fld('Tên chủ tài khoản', 'py-name', p.accountName, '', 'IN HOA, không dấu')}</div><p class="hint">Mã QR tự điền số tiền + mã đơn. Quét được bằng mọi app ngân hàng.</p>`)}
     ${aCard('Thanh toán quốc tế (mặc định cho mọi sản phẩm)', `<div class="f3">${fld('Stripe Payment Link (Visa/Mastercard)', 'py-stripe', p.stripe)}${fld('PayPal.me', 'py-paypal', p.paypal)}${fld('Ko-fi', 'py-kofi', p.kofi)}</div>`)}
     ${aCard('Ủng hộ & Người đồng hành (trang "Support")', `<p class="hint" style="margin-bottom:10px">Trang Support dùng chính thông tin VietQR (khách Việt Nam) và PayPal / Ko-fi / Stripe (khách nước ngoài) ở trên. Chỉ cần thêm các mục dưới đây.</p>
       <div class="f2">${fld('Các mức tiền gợi ý — VND (cách nhau dấu phẩy)', 'py-dvnd', p.donateVND, '', 'VD: 20000, 50000, 100000, 200000')}${fld('Các mức tiền gợi ý — USD', 'py-dusd', p.donateUSD, '', 'VD: 3, 5, 10, 25')}</div>
@@ -654,7 +653,7 @@ function tabPayments(){
       <div class="f2">${fld('Mã tháng này', 'py-code', '', 'autocomplete="off" spellcheck="false" placeholder="Bấm Tạo mã ngẫu nhiên, hoặc tự gõ"', 'Không phân biệt chữ hoa/thường')}${fld('Hết hạn vào ngày', 'py-until', branding.focusCodeUntil || DT.now().plus({ months:1 }).endOf('month').toISODate(), 'type="date"', 'Mặc định: cuối tháng sau')}</div>
       <div class="row mt-s"><button class="btn secondary" data-act="genCode">${ic('sliders', 'sm')} Tạo mã ngẫu nhiên</button><button class="btn primary" data-act="saveCode">Lưu mã</button>${branding.focusCodeHash ? `<button class="btn danger" data-act="clearCode">Tắt mã</button>` : ''}</div>`)}
     ${aCard('Email xác nhận đơn (EmailJS)', `${fld('Template ID', 'py-tpl', p.orderTemplate, '', 'Biến: {{user_name}} {{user_email}} {{order_code}} {{items}} {{total}}')}`)}
-    ${aCard('Email báo cho bạn khi có người bấm “Tôi đã thanh toán” (EmailJS, tuỳ chọn)', `${fld('Template ID', 'py-claimtpl', p.claimTemplate, '', 'Tạo thêm một template trên EmailJS gửi tới CHÍNH email của bạn (ô To Email gõ cố định). Biến: {{user_name}} {{user_email}} {{months}} {{method}} {{note}} {{message}}. Để trống = không gửi email; bạn vẫn thấy thông báo ngay trên trang này khi đang mở web.')}`)}
+    ${aCard('Email báo cho bạn khi có người bấm “Tôi đã thanh toán” (EmailJS, tuỳ chọn)', `${fld('Template ID', 'py-claimtpl', p.claimTemplate, '', 'Tạo thêm một template trên EmailJS gửi tới CHÍNH email của bạn (ô To Email gõ cố định). Biến: {{user_name}} {{user_email}} {{months}} {{method}} (kofi / bank / paypal / other) {{note}} {{message}}. Để trống = không gửi email; bạn vẫn thấy thông báo ngay trên trang này khi đang mở web.')}`)}
     <button class="btn primary" data-act="savePay">Lưu thanh toán</button>`);
 }
 
@@ -682,7 +681,7 @@ function adminWatchRequests(){
   }, e => console.warn('requests', e.code));
 }
 function stopAdminWatch(){ if (reqUnsub) { reqUnsub(); reqUnsub = null; } state.compPending = 0; reqFirst = true; }
-const METHOD_VI = { kofi:'Ko-fi', bank:'Chuyển khoản', paypal:'PayPal', momo:'MoMo', other:'Khác' };
+const METHOD_VI = { kofi:'Ko-fi', bank:'Chuyển khoản', paypal:'PayPal', momo:'MoMo', other:'Khác' };      // momo: chỉ để hiện đúng yêu cầu cũ, web không còn cho chọn MoMo
 /* Chuỗi điểm danh Hành trình trăng của một người, đọc từ hồ sơ users/<uid>.moon (admin đọc được): chuỗi hiện tại (còn sống nếu ngày cuối là hôm nay/hôm qua giờ VN), dài nhất, và đã đạt mốc 60 ngày chưa (cùng điều kiện với firestore.rules) */
 function moonStat(m){
   const days = [...new Set(Array.isArray(m && m.days) ? m.days : [])].filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort(), last = days[days.length - 1] || '';

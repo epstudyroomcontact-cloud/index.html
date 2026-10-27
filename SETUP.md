@@ -76,7 +76,7 @@ Mặc định trang hiển thị **tiếng Anh**. Khách đổi ngôn ngữ ở 
 
 ## PHẦN 5 — Nhận ủng hộ (trang "Support")
 
-### 5.1. Chuyển khoản trong nước (VietQR, MoMo quét được)
+### 5.1. Chuyển khoản trong nước (VietQR)
 1. Vào Admin console → tab **Thanh toán & Ủng hộ**.
 2. **Mã ngân hàng / BIN**: điền mã của ngân hàng bạn:
 
@@ -168,7 +168,7 @@ Cách hoạt động: người xem miễn phí tập trung tối đa **2 tiếng
 4. Bấm **Lưu mã**. Mã cũ hết tác dụng ngay.
 5. Sang Ko-fi, sửa **Welcome message** (hoặc đăng bài mới cho thành viên) với mã mới.
 
-### 10.3. Người trả bằng chuyển khoản (VietQR/MoMo) hoặc PayPal
+### 10.3. Người trả bằng chuyển khoản (VietQR) hoặc PayPal
 Họ chuyển tiền, báo bạn (nhắn Instagram/email kèm nội dung chuyển khoản). Bạn **nhắn lại mã của tháng** cho họ. Số người ít thì rất nhẹ; nếu muốn đỡ việc, hãy hướng mọi người sang Ko-fi.
 
 ### Lưu ý
