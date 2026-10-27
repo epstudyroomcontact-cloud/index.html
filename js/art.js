@@ -12,7 +12,7 @@
    Mỗi cảnh có thể vẽ ở nhiều khung: full (trang chủ), banner (đầu trang), card (ảnh bìa nhỏ), tall (ảnh dọc).
 
    Tranh tĩnh (nền vệt cọ + nhân vật) được vẽ MỘT lần thành ảnh SVG rồi cache; lớp chuyển động nhẹ phía trên
-   (sao lấp lánh, ánh sáng thở, bụi sáng, mưa…) là SVG thường — hiệu ứng trong css/app.css (class rs-*).
+   (sao lấp lánh, ánh sáng thở, bụi sáng, mưa…) là SVG thường — hiệu ứng trong app.css (class rs-*).
 
    paint(scene, { crop, seed, anim })  → chuỗi <svg>
    moonSVG(days, total)               → mặt trăng theo tiến độ điểm danh
