@@ -732,6 +732,8 @@ button.sb-item{width:100%;background:none;border:0;font:inherit;font-weight:600;
 .pl-li.pl-gone{opacity:.62}.pl-li.pl-gone span{cursor:default}.pl-gi{flex:none;width:18px;height:18px;border-radius:50%;border:2px dashed;display:grid;place-items:center;font-style:normal;font-size:.7rem;color:var(--ink3)}
 /* Hành trình trăng: trăng tích trữ và hộp dùng trăng giữ chuỗi */
 .mj-rescue{width:100%;max-width:360px;padding:12px 14px;border-radius:14px;border:1.5px solid #ffd23f;background:rgba(255,228,77,.1);align-items:center}
+.switch.mj-rem{width:100%;max-width:340px;gap:12px;text-align:left;font-weight:600;color:var(--ink2);margin-top:2px}
+.switch.mj-rem input{flex:none}
 .mj-grid circle.sv{fill:#fff2c4;stroke:#ffd23f;stroke-width:1.6}
 /* Planner: thống kê tuần / tháng (giờ tập trung + tỉ lệ việc xong + lời nhận xét) */
 .pl-ps-h{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}.pl-ps-h h3{margin:0}

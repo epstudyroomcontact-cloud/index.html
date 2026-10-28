@@ -365,3 +365,51 @@
   };
   Object.keys(CT).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], CT[l]); });
 })();
+
+/* ---------- nhắc giữ chuỗi Hành trình trăng (bảng chuông 🔔 và trang Hành trình trăng, pages.js mjRemTick).
+   mjr_keep / mjr_moon / mjr_rescue cũng có trong scripts/push-moon.mjs (thông báo khi đã đóng web): sửa ở đây thì sửa cả bên đó ---------- */
+(function () {
+  const MJR = {
+    en:{ mjr_on:"Remind me at {h} to keep my Moon Journey streak", mjr_note:"Turn on to get one gentle reminder at {h} on days you haven't checked in yet.",
+      mjr_ok:"On: this device reminds you at {h} if you haven't checked in, even with the site closed (it can be a few minutes late).",
+      mjr_fg:"On, but this device can only remind you while the site is open. Allow notifications to be reminded with the site closed.",
+      mjr_keep:"You haven't checked in today. Check in before midnight to keep your {n}-day streak.", mjr_moon:"If you miss today, you can still keep it with a saved full moon (you have 🌕 × {b}).",
+      mjr_rescue:"Your {n}-day streak broke, but you can keep it with 🌕 × {g}. Open Moon Journey to use them, then check in.", mjr_on_toast:"🌙 Streak reminder on", mjr_off_toast:"Streak reminder off" },
+    vi:{ mjr_on:"Nhắc mình lúc {h} để giữ chuỗi Hành trình trăng", mjr_note:"Bật để được nhắc nhẹ một lần lúc {h} vào những ngày bạn chưa điểm danh.",
+      mjr_ok:"Đã bật: máy này nhắc bạn lúc {h} nếu chưa điểm danh, kể cả khi đã đóng web (có thể trễ vài phút).",
+      mjr_fg:"Đã bật, nhưng máy này chỉ nhắc được khi web đang mở. Cho phép thông báo để được nhắc cả khi đã đóng web.",
+      mjr_keep:"Hôm nay bạn chưa điểm danh. Điểm danh trước nửa đêm để giữ chuỗi {n} ngày nhé.", mjr_moon:"Lỡ quên thì vẫn giữ được chuỗi bằng một trăng tròn tích trữ (bạn đang có 🌕 × {b}).",
+      mjr_rescue:"Chuỗi {n} ngày vừa đứt, nhưng bạn giữ lại được bằng 🌕 × {g}. Mở Hành trình trăng để dùng trăng rồi điểm danh nhé.", mjr_on_toast:"🌙 Đã bật nhắc giữ chuỗi", mjr_off_toast:"Đã tắt nhắc giữ chuỗi" },
+    hi:{ mjr_on:"{h} बजे याद दिलाएँ ताकि चंद्रमा यात्रा की स्ट्रीक बनी रहे", mjr_note:"जिस दिन आपने अभी तक चेक इन नहीं किया, उस दिन {h} बजे एक हल्का रिमाइंडर पाने के लिए चालू करें।",
+      mjr_ok:"चालू: अगर आपने चेक इन नहीं किया है तो यह डिवाइस {h} बजे याद दिलाएगा, साइट बंद होने पर भी (कुछ मिनट देर हो सकती है)।",
+      mjr_fg:"चालू है, पर यह डिवाइस सिर्फ़ साइट खुली होने पर याद दिला सकता है। साइट बंद होने पर भी याद दिलाने के लिए सूचनाएँ चालू करें।",
+      mjr_keep:"आपने आज अभी तक चेक इन नहीं किया। अपनी {n} दिन की स्ट्रीक बनाए रखने के लिए आधी रात से पहले चेक इन करें।", mjr_moon:"आज छूट भी जाए तो एक जमा पूर्णिमा से इसे बचा सकते हैं (आपके पास 🌕 × {b} हैं)।",
+      mjr_rescue:"आपकी {n} दिन की स्ट्रीक टूट गई, पर 🌕 × {g} से इसे बचा सकते हैं। चंद्रमा यात्रा खोलकर पूर्णिमा इस्तेमाल करें, फिर चेक इन करें।", mjr_on_toast:"🌙 स्ट्रीक रिमाइंडर चालू", mjr_off_toast:"स्ट्रीक रिमाइंडर बंद" },
+    ja:{ mjr_on:"{h}に月の旅の連続記録をお知らせ", mjr_note:"オンにすると、まだチェックインしていない日の{h}に一度だけやさしくお知らせします。",
+      mjr_ok:"オン：チェックインしていなければ、サイトを閉じていても{h}にこの端末へお知らせします（数分遅れることがあります）。",
+      mjr_fg:"オンですが、この端末ではサイトを開いている間だけお知らせできます。閉じていても受け取るには通知を許可してください。",
+      mjr_keep:"今日はまだチェックインしていません。{n}日の連続記録を守るため、0時までにチェックインしましょう。", mjr_moon:"もし忘れても、貯めた満月で守れます（いま 🌕 × {b}）。",
+      mjr_rescue:"{n}日の連続記録が途切れましたが、🌕 × {g} で守れます。月の旅を開いて満月を使ってから、チェックインしましょう。", mjr_on_toast:"🌙 連続記録のお知らせをオンにしました", mjr_off_toast:"連続記録のお知らせをオフにしました" },
+    ko:{ mjr_on:"{h}에 달 여행 연속 기록 알림 받기", mjr_note:"켜 두면 아직 체크인하지 않은 날 {h}에 한 번 살짝 알려 드려요.",
+      mjr_ok:"켜짐: 체크인하지 않았다면 사이트를 닫아도 {h}에 이 기기로 알려 드려요(몇 분 늦을 수 있어요).",
+      mjr_fg:"켜져 있지만 이 기기는 사이트가 열려 있을 때만 알릴 수 있어요. 닫아도 받으려면 알림을 허용하세요.",
+      mjr_keep:"오늘 아직 체크인하지 않았어요. 자정 전에 체크인하고 {n}일 연속 기록을 지켜요.", mjr_moon:"혹시 놓쳐도 모아 둔 보름달로 지킬 수 있어요(지금 🌕 × {b}).",
+      mjr_rescue:"{n}일 연속 기록이 끊겼지만 🌕 × {g}로 지킬 수 있어요. 달 여행을 열어 보름달을 쓴 뒤 체크인하세요.", mjr_on_toast:"🌙 연속 기록 알림 켜짐", mjr_off_toast:"연속 기록 알림 꺼짐" },
+    zh:{ mjr_on:"{h} 提醒我保持月亮之旅的连续记录", mjr_note:"开启后，在你还没签到的日子，{h} 会轻轻提醒你一次。",
+      mjr_ok:"已开启：如果还没签到，这台设备会在 {h} 提醒你，即使关闭网站也可以（可能晚几分钟）。",
+      mjr_fg:"已开启，但这台设备只能在网站打开时提醒。允许通知后，关闭网站也能收到。",
+      mjr_keep:"你今天还没签到。午夜前签到，就能保住 {n} 天的连续记录。", mjr_moon:"就算错过了，也可以用存下的满月保住它（你现在有 🌕 × {b}）。",
+      mjr_rescue:"你 {n} 天的连续记录中断了，但可以用 🌕 × {g} 保住它。打开月亮之旅使用满月，然后再签到。", mjr_on_toast:"🌙 已开启连续记录提醒", mjr_off_toast:"已关闭连续记录提醒" },
+    fr:{ mjr_on:"Me rappeler à {h} de garder ma série du Voyage lunaire", mjr_note:"Activez pour recevoir un petit rappel à {h} les jours où vous n'avez pas encore pointé.",
+      mjr_ok:"Activé : si vous n'avez pas pointé, cet appareil vous le rappelle à {h}, même site fermé (parfois avec quelques minutes de retard).",
+      mjr_fg:"Activé, mais cet appareil ne peut rappeler que lorsque le site est ouvert. Autorisez les notifications pour être prévenu site fermé.",
+      mjr_keep:"Vous n'avez pas encore pointé aujourd'hui. Pointez avant minuit pour garder votre série de {n} jours.", mjr_moon:"Si vous oubliez, vous pourrez encore la garder avec une pleine lune en réserve (vous avez 🌕 × {b}).",
+      mjr_rescue:"Votre série de {n} jours est interrompue, mais vous pouvez la garder avec 🌕 × {g}. Ouvrez le Voyage lunaire pour les utiliser, puis pointez.", mjr_on_toast:"🌙 Rappel de série activé", mjr_off_toast:"Rappel de série désactivé" },
+    es:{ mjr_on:"Recordarme a las {h} mantener mi racha del Viaje a la luna", mjr_note:"Actívalo para recibir un aviso suave a las {h} los días que aún no te hayas registrado.",
+      mjr_ok:"Activado: si no te has registrado, este dispositivo te avisa a las {h}, incluso con el sitio cerrado (puede llegar unos minutos tarde).",
+      mjr_fg:"Activado, pero este dispositivo solo puede avisarte con el sitio abierto. Permite las notificaciones para recibirlo con el sitio cerrado.",
+      mjr_keep:"Hoy aún no te has registrado. Regístrate antes de medianoche para mantener tu racha de {n} días.", mjr_moon:"Si se te pasa, aún puedes mantenerla con una luna llena guardada (tienes 🌕 × {b}).",
+      mjr_rescue:"Tu racha de {n} días se rompió, pero puedes mantenerla con 🌕 × {g}. Abre el Viaje a la luna para usarlas y luego regístrate.", mjr_on_toast:"🌙 Aviso de racha activado", mjr_off_toast:"Aviso de racha desactivado" }
+  };
+  Object.keys(MJR).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], MJR[l]); });
+})();
