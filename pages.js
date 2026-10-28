@@ -899,7 +899,8 @@ PAGES.club = function(){
   /* bố cục: thẻ điểm danh + con đường tìm Moon (moon-story.js) + chương mới nhất, rồi lịch cả hành trình, kho trăng, ưu đãi */
   page(`${head('club_title', 'club_sub', '', 'gaze', 9)}
     <div class="mj-layout"><div class="mj-a-status">${main}</div><div class="mj-a-map">${mjMapCard(m)}</div>
-      <div class="mj-a-side stack">${mjLatestCard(m)}${m ? tabsHTML('mj', [   // lịch 480 ngày · kho trăng · cách chơi: gom thành tab, đỡ một đoạn cuộn dài
+      <div class="mj-a-side stack">${mjLatestCard(m)}</div>
+      <div class="mj-a-tabs">${m ? tabsHTML('mj', [   // lịch 480 ngày · kho trăng · cách chơi: gom thành tab, đỡ một đoạn cuộn dài
           ['grid', t('mj_grid', { t:moonRoad() }), `<section class="card pad"><div class="card-h"><h3>${esc(t('mj_grid', { t:moonRoad() }))}</h3><span class="small faint">${esc(t('mj_cal', { n:L.i + 1, a:L.a + 1, b:L.b }))}</span></div>${moonGrid(m, doneToday)}<p class="small faint mt-s">${esc(t('mj_grid_note'))}</p></section>`],
           ['bank', t('mj_bank_t'), `<div class="stack">${moonBankCard(m, doneToday)}${moonRewardCard(m)}</div>`],
           ['how', t('club_how'), mjHowCard()]]) : mjHowCard()}</div></div>

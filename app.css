@@ -807,3 +807,16 @@ button.sb-item{width:100%;background:none;border:0;font:inherit;font-weight:600;
   .hero{min-height:0}.hero-copy{margin:24px 20px 96px}
   .about-img{aspect-ratio:16/9}
 }
+/* máy tính: Hành trình trăng xếp 2 hàng cân nhau (bản đồ | điểm danh, rồi tab | trạm mới nhất) thay vì một cột phải rất dài;
+   khối chào trang chủ thấp hơn để thấy thêm nội dung ngay màn hình đầu */
+.mj-a-tabs{grid-area:tabs;min-width:0}
+@media(min-width:901px){
+  .mj-layout{grid-template-areas:"map status" "map side" "tabs side"}
+  .mj-a-map{position:static}
+  .mj-a-status .moon-big{width:min(140px,48vw)}
+  .mj-scroll{height:min(64vh,560px)}
+  .mj-grid{max-width:420px;margin-left:auto;margin-right:auto}
+}
+@media(max-width:900px){.mj-layout{grid-template-areas:"status" "map" "side" "tabs"}}
+@media(min-width:641px){.hero{min-height:480px}}
+.club-promo>div:last-child{flex:1;min-width:240px}
