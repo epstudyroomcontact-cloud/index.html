@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "EP Study Room",
-  "short_name": "EP Study",
-  "description": "Study With Me: lịch live, phòng tập trung, planner và chuông nhắc live.",
+  "name": "Ép Study Room",
+  "short_name": "Ép Study Room",
+  "description": "Ép Study Room: Study With Me, lịch live, phòng tập trung, planner và chuông nhắc live.",
   "start_url": "./#/",
   "scope": "./",
   "display": "standalone",

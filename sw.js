@@ -6,7 +6,7 @@
    nên không ai bị kẹt bản cũ. Chỉ lưu sẵn một trang "Bạn đang offline" để hiện khi mất mạng.
    Đổi SW_V mỗi khi sửa file này hoặc offline.html.
    ========================================================= */
-const SW_V = 'v6', OFFLINE_CACHE = 'ep-offline-' + SW_V, OFFLINE_URL = 'offline.html';
+const SW_V = 'v7', OFFLINE_CACHE = 'ep-offline-' + SW_V, OFFLINE_URL = 'offline.html';
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(OFFLINE_CACHE).then(c => c.add(new Request(OFFLINE_URL, { cache:'reload' }))).then(() => self.skipWaiting()));
 });
@@ -33,7 +33,7 @@ self.addEventListener('push', e => {
     : { body: d.body || n.body || '', tag: d.tag || 'live-now', renotify: true, silent: false, icon: 'icons/icon-192.png',
         vibrate: [200, 100, 200, 100, 300],                      // rung trên Android (tiếng chuông do cài đặt thông báo của máy quyết định)
         data: { url } };
-  e.waitUntil(stale.then(() => self.registration.showNotification(d.title || n.title || 'EP Study Room', opts)));
+  e.waitUntil(stale.then(() => self.registration.showNotification(d.title || n.title || 'Ép Study Room', opts)));
 });
 self.addEventListener('notificationclick', e => {
   e.notification.close();

@@ -360,7 +360,7 @@ function updateTimerUI(){
   const main = $('tm-main'); if (main) main.innerHTML = pomo.running ? `${ic('pause')} ${esc(t('pause'))}` : `${ic('play')} ${esc(left < total ? t('resume') : t('start'))}`;
   document.querySelectorAll('[data-seg]').forEach(b => b.classList.toggle('on', b.dataset.seg === pomo.mode));
   const cyc = $('tm-cycle'); if (cyc) { const f = pomo.cycle % pomo.cfg.every || (pomo.mode === 'long' ? pomo.cfg.every : 0); cyc.innerHTML = Array.from({ length:pomo.cfg.every }, (_, i) => `<i class="${i < f ? 'on' : ''}"></i>`).join(''); }
-  document.title = pomo.running ? `${txt} · ${t('mode_' + pomo.mode)} — ${branding.name}` : `${branding.name} · Study With Me`;
+  document.title = pomo.running ? `${txt} · ${t('mode_' + pomo.mode)} — ${branding.name}` : branding.name;
 }
 setInterval(pomoTick, 250);
 

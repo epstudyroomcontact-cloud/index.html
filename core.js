@@ -60,7 +60,7 @@ const state = {
 };
 if (!['rain', 'pop', 'violet', 'teal'].includes(state.theme)) state.theme = null;   // bỏ giá trị theme cũ của các bản trước
 let userTZ = state.tz === 'auto' ? DT.local().zoneName : state.tz;
-let branding = { name:'EP Study Room', themeColor:'#ff3d9a', defaultTheme:'rain', font:'baloo', logoUrl:'', mascotUrl:'', ytChannelId:'', ytLiveId:'', videos:[], contacts:{}, socialLinks:{}, announcement:{}, nav:null, homeSections:{}, focusLimit:120, focusCodeHash:'', focusCodeUntil:'',
+let branding = { name:'Ép Study Room', themeColor:'#ff3d9a', defaultTheme:'rain', font:'baloo', logoUrl:'', mascotUrl:'', ytChannelId:'', ytLiveId:'', videos:[], contacts:{}, socialLinks:{}, announcement:{}, nav:null, homeSections:{}, focusLimit:120, focusCodeHash:'', focusCodeUntil:'',
   blogCats:[
     { id:'journal', label:{ en:'Journal', vi:'Nhật ký' }, desc:{ en:'Personal notes and updates.', vi:'Ghi chép và cập nhật cá nhân.' } },
     { id:'study', label:{ en:'Study notes', vi:'Ghi chép học tập' }, desc:{ en:'Methods, routines and what works.', vi:'Phương pháp, thói quen và điều hiệu quả.' } },
@@ -306,7 +306,7 @@ async function loadFallback(){                         // file tĩnh do admin t�
   } catch (e) { return false; }
 }
 const normBranding = (b, d) => { const a = d.announcement;
-  return { ...b, ...d, name:d.name || 'EP Study Room', contacts:d.contacts || {}, socialLinks:d.socialLinks || {}, videos:d.videos || [], homeSections:d.homeSections || {}, announcement: typeof a === 'string' ? { vi:a, en:a } : (a || {}), defaultTheme: ['rain','pop','violet','teal'].includes(d.defaultTheme) ? d.defaultTheme : 'rain', font: FONTS[d.font] ? d.font : 'baloo', themeColor: ['#ff7da3','#ff7da3'].includes(d.themeColor) || !d.themeColor ? '#ff3d9a' : d.themeColor }; };
+  return { ...b, ...d, name:d.name || 'Ép Study Room', contacts:d.contacts || {}, socialLinks:d.socialLinks || {}, videos:d.videos || [], homeSections:d.homeSections || {}, announcement: typeof a === 'string' ? { vi:a, en:a } : (a || {}), defaultTheme: ['rain','pop','violet','teal'].includes(d.defaultTheme) ? d.defaultTheme : 'rain', font: FONTS[d.font] ? d.font : 'baloo', themeColor: ['#ff7da3','#ff7da3'].includes(d.themeColor) || !d.themeColor ? '#ff3d9a' : d.themeColor }; };
 function applySite(s){
   if (s.branding && Object.keys(s.branding).length) branding = normBranding(branding, s.branding);
   content = { texts:{}, images:{}, faq:null, ...(s.content || {}) };
@@ -371,7 +371,7 @@ function listenLegacy(){
   listenWeeks();
 }
 function loadDemo(){
-  branding = { ...branding, announcement:{ vi:'Chào mừng đến EP Study Room (chế độ xem thử)', en:'Welcome to EP Study Room (demo preview)' }, contacts:{ live:'https://youtube.com' }, socialLinks:{ YouTube:'https://youtube.com', Instagram:'https://instagram.com' }, ytLiveId:'jfKfPfyJRdk',
+  branding = { ...branding, announcement:{ vi:'Chào mừng đến Ép Study Room (chế độ xem thử)', en:'Welcome to Ép Study Room (demo preview)' }, contacts:{ live:'https://youtube.com' }, socialLinks:{ YouTube:'https://youtube.com', Instagram:'https://instagram.com' }, ytLiveId:'jfKfPfyJRdk',
     videos:[{ url:'https://youtu.be/jfKfPfyJRdk', title:'lofi hip hop radio — beats to relax/study to' },{ url:'https://youtu.be/5qap5aO4i9A', title:'Study with me — 2 hours Pomodoro 50/10' },{ url:'https://youtu.be/lTRiuFIWV54', title:'Rainy night study session' }] };
   payments = { bankBin:'970436', accountNo:'0123456789', accountName:'NGUYEN VAN A', stripe:'https://stripe.com' };
   music = { picks:[{ title:{ en:'Rain & piano', vi:'Mưa và piano' }, note:{ en:'Soft, no lyrics', vi:'Nhẹ nhàng, không lời' }, url:'https://www.youtube.com/watch?v=jfKfPfyJRdk' }, { title:{ en:'Focus playlist', vi:'Danh sách tập trung' }, note:{}, url:'https://open.spotify.com/playlist/37i9dQZF1DWZeKCadgRdKQ' }], recent:[{ title:{ en:'Late-night study mix', vi:'Mix học khuya' }, note:{ en:'What I have on repeat this week', vi:'Tuần này mình nghe đi nghe lại' }, url:'https://open.spotify.com/playlist/37i9dQZF1DX8Uebhn9wzrS' }] };
@@ -625,7 +625,7 @@ function renderChrome(){
   const dot = $('cart-dot'); dot.textContent = cartN; dot.classList.toggle('hidden', !cartN);
   $('btn-edit').classList.toggle('hidden', !state.isAdmin);
   $('btn-edit').classList.toggle('on', state.editMode);
-  $('tab-title').textContent = branding.name + ' · Study With Me';
+  $('tab-title').textContent = branding.name;
   const a = (CONFIG_MISSING && !DEMO) ? 'Firebase chưa được cấu hình — mở file SETUP.md, PHẦN 2, rồi điền js/firebase-config.js' : L(branding.announcement), bar = $('ann-bar'); bar.classList.toggle('hidden', !a); $('ann-text').textContent = a;
 }
 function renderPrefs(){

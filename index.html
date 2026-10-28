@@ -4,14 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#080b13">
-<title id="tab-title">EP Study Room</title>
+<title id="tab-title">Ép Study Room</title>
 <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="EP Study">
+<meta name="apple-mobile-web-app-title" content="Ép Study Room">
+<meta name="application-name" content="Ép Study Room">
+<meta name="description" content="Ép Study Room: Study With Me, lịch live, phòng tập trung, planner và chuông nhắc live.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Ép Study Room">
+<meta property="og:title" content="Ép Study Room">
+<meta property="og:description" content="Study With Me: lịch live, phòng tập trung, planner và chuông nhắc live.">
+<meta property="og:image" content="https://epstudyroomcontact-cloud.github.io/index.html/icons/icon-512.png">
+<meta name="twitter:card" content="summary">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -37,14 +45,14 @@
   /* Lời nhắn khi lỗi, 8 ngôn ngữ: [tiêu đề, lời xin lỗi, nút tải lại, gợi ý xoá dữ liệu web, tiêu đề lỗi 1 trang, lời nhắn lỗi 1 trang, nút về Tổng quan].
      Dùng chung cho trang báo lỗi lúc mở web (ở đây) và lúc một trang bị lỗi sau khi web đã chạy (pageCrash trong core.js). */
   var TXT = {
-    en:['The page did not load','Sorry, something went wrong while opening EP Study Room. Tap Reload and the site will tidy itself up and try again.','Reload',"Still not working? Turn off ad blockers for this site, try a private window, or clear this site's data in your browser settings. Your account and synced planner stay safe online.",'This page hit a snag','Something went wrong while showing this page. The rest of the site still works.','Back to Overview'],
+    en:['The page did not load','Sorry, something went wrong while opening Ép Study Room. Tap Reload and the site will tidy itself up and try again.','Reload',"Still not working? Turn off ad blockers for this site, try a private window, or clear this site's data in your browser settings. Your account and synced planner stay safe online.",'This page hit a snag','Something went wrong while showing this page. The rest of the site still works.','Back to Overview'],
     vi:['Trang chưa tải được','Xin lỗi bạn, web gặp lỗi khi mở. Bạn bấm Tải lại để web tự dọn dẹp và thử lại nhé.','Tải lại','Vẫn chưa được? Bạn thử tắt chặn quảng cáo cho trang này, mở bằng cửa sổ ẩn danh, hoặc xoá dữ liệu của trang này trong cài đặt trình duyệt. Tài khoản và planner đã đồng bộ vẫn an toàn trên mạng.','Trang này gặp trục trặc','Có lỗi khi hiển thị trang này. Các phần khác của web vẫn dùng bình thường.','Về trang Tổng quan'],
-    hi:['पेज लोड नहीं हुआ','माफ़ कीजिए, EP Study Room खोलते समय कुछ गड़बड़ हो गई। दोबारा लोड करें दबाएँ, साइट खुद ठीक होकर फिर कोशिश करेगी।','दोबारा लोड करें','अब भी नहीं चल रहा? इस साइट के लिए ऐड ब्लॉकर बंद करें, प्राइवेट विंडो में खोलें, या ब्राउज़र सेटिंग में इस साइट का डेटा साफ़ करें। आपका खाता और सिंक हुआ प्लानर ऑनलाइन सुरक्षित रहता है।','इस पेज में दिक्कत आई','यह पेज दिखाते समय कुछ गड़बड़ हो गई। साइट के बाकी हिस्से ठीक चल रहे हैं।','अवलोकन पर लौटें'],
-    ja:['ページを読み込めませんでした','申し訳ありません、EP Study Room を開くときに問題が起きました。「再読み込み」を押すと、サイトが自動で整理してもう一度試します。','再読み込み','それでも直らない場合は、このサイトの広告ブロックをオフにする、シークレットウィンドウで開く、またはブラウザの設定でこのサイトのデータを削除してみてください。アカウントと同期済みのプランナーはオンラインで安全に保存されています。','このページで問題が起きました','このページの表示中にエラーが起きました。サイトのほかの部分は通常どおり使えます。','ホームに戻る'],
-    ko:['페이지를 불러오지 못했어요','죄송해요, EP Study Room을 여는 중에 문제가 생겼어요. 새로고침을 누르면 사이트가 스스로 정리하고 다시 시도해요.','새로고침','그래도 안 되면 이 사이트의 광고 차단을 끄거나, 시크릿 창으로 열거나, 브라우저 설정에서 이 사이트의 데이터를 삭제해 보세요. 계정과 동기화된 플래너는 온라인에 안전하게 저장돼 있어요.','이 페이지에 문제가 생겼어요','이 페이지를 표시하는 중에 오류가 났어요. 사이트의 다른 부분은 정상적으로 작동해요.','홈으로 돌아가기'],
-    zh:['页面没有加载出来','抱歉，打开 EP Study Room 时出了点问题。点“重新加载”，网站会自动清理并再试一次。','重新加载','还是不行？试试为本站关闭广告拦截、用无痕窗口打开，或在浏览器设置中清除本站数据。你的账号和已同步的计划都安全地保存在线上。','这个页面出了点问题','显示这个页面时出错了。网站的其他部分仍可正常使用。','返回概览'],
-    fr:["La page ne s'est pas chargée","Désolé, un problème est survenu à l'ouverture d'EP Study Room. Appuyez sur Recharger : le site fera le ménage et réessaiera.",'Recharger',"Toujours rien ? Désactivez le bloqueur de pubs pour ce site, essayez une fenêtre privée ou effacez les données de ce site dans les réglages du navigateur. Votre compte et votre planner synchronisé restent en sécurité en ligne.",'Cette page a rencontré un souci',"Un problème est survenu à l'affichage de cette page. Le reste du site fonctionne normalement.","Retour à l'aperçu"],
-    es:['La página no se cargó','Lo sentimos, algo salió mal al abrir EP Study Room. Pulsa Recargar y el sitio se ordenará solo y lo intentará de nuevo.','Recargar','¿Sigue sin funcionar? Desactiva el bloqueador de anuncios para este sitio, prueba una ventana privada o borra los datos de este sitio en los ajustes del navegador. Tu cuenta y tu planner sincronizado siguen a salvo en línea.','Esta página tuvo un problema','Algo salió mal al mostrar esta página. El resto del sitio funciona con normalidad.','Volver al resumen']
+    hi:['पेज लोड नहीं हुआ','माफ़ कीजिए, Ép Study Room खोलते समय कुछ गड़बड़ हो गई। दोबारा लोड करें दबाएँ, साइट खुद ठीक होकर फिर कोशिश करेगी।','दोबारा लोड करें','अब भी नहीं चल रहा? इस साइट के लिए ऐड ब्लॉकर बंद करें, प्राइवेट विंडो में खोलें, या ब्राउज़र सेटिंग में इस साइट का डेटा साफ़ करें। आपका खाता और सिंक हुआ प्लानर ऑनलाइन सुरक्षित रहता है।','इस पेज में दिक्कत आई','यह पेज दिखाते समय कुछ गड़बड़ हो गई। साइट के बाकी हिस्से ठीक चल रहे हैं।','अवलोकन पर लौटें'],
+    ja:['ページを読み込めませんでした','申し訳ありません、Ép Study Room を開くときに問題が起きました。「再読み込み」を押すと、サイトが自動で整理してもう一度試します。','再読み込み','それでも直らない場合は、このサイトの広告ブロックをオフにする、シークレットウィンドウで開く、またはブラウザの設定でこのサイトのデータを削除してみてください。アカウントと同期済みのプランナーはオンラインで安全に保存されています。','このページで問題が起きました','このページの表示中にエラーが起きました。サイトのほかの部分は通常どおり使えます。','ホームに戻る'],
+    ko:['페이지를 불러오지 못했어요','죄송해요, Ép Study Room을 여는 중에 문제가 생겼어요. 새로고침을 누르면 사이트가 스스로 정리하고 다시 시도해요.','새로고침','그래도 안 되면 이 사이트의 광고 차단을 끄거나, 시크릿 창으로 열거나, 브라우저 설정에서 이 사이트의 데이터를 삭제해 보세요. 계정과 동기화된 플래너는 온라인에 안전하게 저장돼 있어요.','이 페이지에 문제가 생겼어요','이 페이지를 표시하는 중에 오류가 났어요. 사이트의 다른 부분은 정상적으로 작동해요.','홈으로 돌아가기'],
+    zh:['页面没有加载出来','抱歉，打开 Ép Study Room 时出了点问题。点“重新加载”，网站会自动清理并再试一次。','重新加载','还是不行？试试为本站关闭广告拦截、用无痕窗口打开，或在浏览器设置中清除本站数据。你的账号和已同步的计划都安全地保存在线上。','这个页面出了点问题','显示这个页面时出错了。网站的其他部分仍可正常使用。','返回概览'],
+    fr:["La page ne s'est pas chargée","Désolé, un problème est survenu à l'ouverture d'Ép Study Room. Appuyez sur Recharger : le site fera le ménage et réessaiera.",'Recharger',"Toujours rien ? Désactivez le bloqueur de pubs pour ce site, essayez une fenêtre privée ou effacez les données de ce site dans les réglages du navigateur. Votre compte et votre planner synchronisé restent en sécurité en ligne.",'Cette page a rencontré un souci',"Un problème est survenu à l'affichage de cette page. Le reste du site fonctionne normalement.","Retour à l'aperçu"],
+    es:['La página no se cargó','Lo sentimos, algo salió mal al abrir Ép Study Room. Pulsa Recargar y el sitio se ordenará solo y lo intentará de nuevo.','Recargar','¿Sigue sin funcionar? Desactiva el bloqueador de anuncios para este sitio, prueba una ventana privada o borra los datos de este sitio en los ajustes del navegador. Tu cuenta y tu planner sincronizado siguen a salvo en línea.','Esta página tuvo un problema','Algo salió mal al mostrar esta página. El resto del sitio funciona con normalidad.','Volver al resumen']
   };
   var EP_TXT = window.EP_TXT = function(){
     var l = null; try { l = JSON.parse(localStorage.getItem('ep_lang')); } catch (e) {}

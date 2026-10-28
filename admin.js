@@ -824,7 +824,7 @@ Object.assign(ACTIONS, {
   pickInto: el => { const id = el.dataset.target; openImagePicker('Chọn ảnh', u => { $(id).value = u; toast('Đã chọn ảnh — nhớ bấm Lưu'); }, 'site'); },
   swatch: el => { $('ad-color').value = el.dataset.c; },
   saveBrand: () => {
-    const data = { name:val('ad-name') || 'EP Study Room', defaultTheme:val('ad-theme'), themeColor:$('ad-color').value, font:val('ad-font'), logoUrl:val('ad-logo'), mascotUrl:val('ad-mascot') };
+    const data = { name:val('ad-name') || 'Ép Study Room', defaultTheme:val('ad-theme'), themeColor:$('ad-color').value, font:val('ad-font'), logoUrl:val('ad-logo'), mascotUrl:val('ad-mascot') };
     dbSet('settings', 'branding', data).then(() => { Object.assign(branding, data); applyLook(); renderChrome(); ok(); }).catch(fail);
   },
   navMove: el => { adminNav = readNav(); const i = +el.dataset.i, j = i + +el.dataset.d; if (j < 0 || j >= adminNav.length) return; [adminNav[i], adminNav[j]] = [adminNav[j], adminNav[i]]; $('nav-list').innerHTML = navRows(); },
