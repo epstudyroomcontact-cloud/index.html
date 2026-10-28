@@ -416,6 +416,33 @@ function streamCard(){
     ${open ? `${sel ? `<div class="mt-s">${sel}</div>` : ''}${src ? `<div class="player mt-s"><iframe src="${esc(src)}" title="YouTube" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>` : `<p class="small muted mt-s"><b>${esc(t('offline'))}.</b> ${esc(t('offline_sub'))}</p>`}` : ''}</section>`;
 }
 CHANGES.fsPick = el => { fsPick = el.value; render(true); };ACTIONS.fsToggle = () => { store.set('fs_open', !store.get('fs_open', true)); render(true); };
+/* Ô mời nhỏ ở Phòng tập trung: giới thiệu Planner của Người đồng hành cho ai chưa có quyền lợi (không hiện với Người đồng hành, admin, người đang dùng thử / có mã).
+   Bấm X thì ẩn 7 ngày. */
+(function(){
+  const G = {
+    en:{ fn_title:'Your own weekly Planner', fn_text:'Companions get a private Planner with a weekly focus summary, from {p} a month.', fn_cta:'Become a Companion', fn_peek:'Take a look' },
+    vi:{ fn_title:'Planner tuần của riêng bạn', fn_text:'Người đồng hành có Planner riêng, tự tổng kết năng suất mỗi tuần, chỉ từ {p}/tháng.', fn_cta:'Trở thành Người đồng hành', fn_peek:'Xem thử' },
+    hi:{ fn_title:'आपका अपना साप्ताहिक Planner', fn_text:'साथियों को हर हफ़्ते फ़ोकस सारांश के साथ निजी Planner मिलता है, सिर्फ़ {p} प्रति माह से।', fn_cta:'साथी बनें', fn_peek:'एक नज़र देखें' },
+    ja:{ fn_title:'自分だけの週間プランナー', fn_text:'仲間たちは毎週の集中まとめ付きの専用プランナーを使えます。月 {p} から。', fn_cta:'仲間になる', fn_peek:'見てみる' },
+    ko:{ fn_title:'나만의 주간 플래너', fn_text:'동반자는 매주 집중 요약이 담긴 개인 플래너를 쓸 수 있어요. 월 {p}부터.', fn_cta:'동반자 되기', fn_peek:'살펴보기' },
+    zh:{ fn_title:'专属于你的每周计划表', fn_text:'同伴可使用专属计划表，每周自动汇总专注情况，每月仅需 {p} 起。', fn_cta:'成为同伴', fn_peek:'看一看' },
+    fr:{ fn_title:'Ton propre Planner de la semaine', fn_text:'Les Compagnons ont un Planner privé avec un bilan de concentration chaque semaine, dès {p} par mois.', fn_cta:'Devenir Compagnon', fn_peek:'Jeter un œil' },
+    es:{ fn_title:'Tu propio Planner semanal', fn_text:'Los Acompañantes tienen un Planner privado con un resumen de concentración cada semana, desde {p} al mes.', fn_cta:'Hazte Acompañante', fn_peek:'Echar un vistazo' }
+  };
+  Object.keys(G).forEach(l => { I18N[l] = I18N[l] || {}; Object.keys(G[l]).forEach(k => { if (I18N[l][k] === undefined) I18N[l][k] = G[l][k]; }); });
+})();
+const FN_SNOOZE = 7 * 864e5;
+function focusNudge(){
+  if (focusUnlimited() || !compPayMode() || Date.now() - (+store.get('fn_off', 0) || 0) < FN_SNOOZE) return '';
+  const p = effCurrency() === 'VND' ? money(compBase(), 'VND') : money(compBaseUSD(), 'USD');
+  return `<section class="card pad fn-card"><button type="button" class="fn-x" data-act="fnOff" aria-label="${esc(t('close'))}" title="${esc(t('close'))}">${ic('x', 'sm')}</button>
+    <div class="fn-top"><span class="don-ic">${ic('moon')}</span><div><b>${esc(t('fn_title'))}</b><p class="small muted">${esc(t('fn_text', { p }))}</p></div></div>
+    <div class="row"><a class="btn primary sm" href="#/donate" data-act="fnGo">${ic('heart', 'sm')} ${esc(t('fn_cta'))}</a><a class="btn ghost sm" href="#/planner">${esc(t('fn_peek'))}</a></div></section>`;
+}
+Object.assign(ACTIONS, {
+  fnOff: el => { store.set('fn_off', Date.now()); const c = el.closest('.fn-card'); if (c) c.remove(); },
+  fnGo: () => { TABS.don = 'comp'; }
+});
 PAGES.focus = function(){
   const fl = localFocus(), today = DT.now().setZone(userTZ), days = Array.from({ length:7 }, (_, i) => today.minus({ days:6 - i })), vals = days.map(d => (fl[d.toISODate()] || { m:0 }).m), mx = Math.max(30, ...vals), td = fl[today.toISODate()] || { m:0, s:0 };
   const c = pomo.cfg, num = (k, lab) => `<div class="field"><label class="label">${esc(lab)}</label><input class="input" type="number" min="1" max="180" value="${c[k]}" data-change="cfg" data-k="${k}"></div>`;
@@ -434,7 +461,7 @@ PAGES.focus = function(){
     <div class="stack">${streamCard()}<section class="card pad"><div class="card-h"><h2>${esc(t('todo_title'))}</h2></div>
         <form class="row" style="flex-wrap:nowrap" data-form="todo"><input class="input" id="todo-in" placeholder="${esc(t('todo_ph'))}" maxlength="140" autocomplete="off"><button class="btn primary icon" type="submit" aria-label="add">${ic('plus')}</button></form>
         <div id="todo-list" class="mt-s"></div><div id="todo-pl"></div>${!state.user ? `<p class="hint mt-s">${esc(t('sync_note'))} <a class="link" href="#/account">${esc(t('signin'))}</a></p>` : ''}</section>
-      <div class="grid g2 keep2"><div class="card tile"><span class="t-l">${esc(t('sessions_today'))}</span><span class="t-v">${td.s}</span></div><div class="card tile"><span class="t-l">${esc(t('minutes_today'))}</span><span class="t-v">${td.m}</span></div></div>
+      ${focusNudge()}<div class="grid g2 keep2"><div class="card tile"><span class="t-l">${esc(t('sessions_today'))}</span><span class="t-v">${td.s}</span></div><div class="card tile"><span class="t-l">${esc(t('minutes_today'))}</span><span class="t-v">${td.m}</span></div></div>
       <section class="card pad"><div class="card-h"><h2>${esc(t('week_chart'))}</h2></div><div class="bars">${days.map((d, i) => `<div><i style="height:${Math.max(3, vals[i] / mx * 100)}%" title="${vals[i]} ${esc(t('min'))}"></i><small>${esc(d.setLocale(state.lang).toFormat('ccc'))}</small></div>`).join('')}</div></section></div></div><div class="mt">${musicCard()}</div>
     <h2 class="mt" style="font-size:1.3rem;margin:40px 0 14px">${ic('heart', 'sm')} ${esc(t('nav_donate'))}</h2>${donateHTML()}`);   // phần Support nằm ngay trong Focus room
   renderTodos();
