@@ -268,7 +268,7 @@ Kết quả ước tính: web chịu được khoảng **10.000 người xem kh�
 - Xem tình trạng ở **Admin → Tổng quan → "Dữ liệu cho người xem & bản sao dự phòng"**: có giờ xuất bản gần nhất và nút **Xuất bản ngay** (dùng khi bạn nghi bản gộp chưa mới).
 - Người xem thấy thay đổi của bạn trong vòng khoảng 10 phút (hoặc ngay khi họ tải lại sau đó). Riêng bạn (admin) luôn thấy thay đổi tức thì.
 
-**Bản sao dự phòng:** cũng ở thẻ trên có nút **"Tải bản sao dữ liệu (file .json)"**. Nên bấm khoảng mỗi tuần và cất file vào ổ đĩa của bạn (bài viết, sản phẩm, cài đặt nằm trong Firebase, đây là bản dự phòng nếu có sự cố).
+**Bản sao dự phòng:** cũng ở thẻ trên có nút **"Tải bản sao dữ liệu (file .json)"**. Nên bấm khoảng mỗi tuần và cất file vào ổ đĩa của bạn (bài viết, sản phẩm, cài đặt nằm trong Firebase, đây là bản dự phòng nếu có sự cố). Từ phần 19, toàn bộ Firestore (cả thành viên, Hành trình trăng, Planner) đã được **sao lưu tự động mỗi đêm**; nút này vẫn dùng được khi bạn muốn tự giữ một bản.
 
 **Tự kiểm tra mức dùng:** vào Firebase → **Firestore Database → tab Usage**. Mục "Reads" phải ở mức rất thấp. Nếu một ngày thấy gần 50.000, báo mình.
 
@@ -435,6 +435,50 @@ Trang `overlay.html` hiện kế hoạch buổi live đang chạy (giống thẻ
 **Tự bắt đầu khi bấm Start Streaming trong OBS (mặc định):** bảng lịch (và bộ đếm) nghe nút **Start Streaming** của OBS: bấm là buổi live gần nhất tính lại từ đúng lúc đó, dòng đang chạy đếm ngược và có chuông khi vào nghỉ / vào học. Cần một lần: Properties của nguồn → **Page permissions** chọn **Read access to OBS status information** trở lên (đang dùng tự đổi cảnh thì giữ Advanced) và tick **Control audio via OBS** để người xem nghe chuông. Rớt mạng rồi stream lại giữa buổi thì giờ cũ được giữ nguyên; tải lại nguồn cũng không mất. Thêm `autostart=0` vào địa chỉ để tắt cách này. Giờ mới nhất giữa OBS và nút Admin bên dưới sẽ được dùng, nên bấm nhầm thì sửa trong Admin.
 
 **Hoặc bắt đầu bằng nút trong Admin (dậy trễ / vào sớm / sửa giờ):** vào **Admin** (tab Tổng quan hoặc Lịch live), ô **Bắt đầu buổi live** → bấm **▶ Bắt đầu buổi live bây giờ** một lần. Trong khoảng 10 giây, bảng lịch và bộ đếm trên OBS tự dời cả buổi theo giờ bạn bấm. Bấm nhầm thì dùng **−5 / −1 / +1 / +5 phút**, **Bắt đầu lại từ bây giờ**, hoặc **Về giờ theo lịch**. Lịch gốc trong tuần không bị đổi; trang Lịch cho khách và thông báo đẩy vẫn theo giờ lịch.
+
+## PHẦN 19 — Sao lưu Firestore tự động mỗi đêm (và cách khôi phục)
+
+**Cách chạy:** mỗi đêm khoảng **2:17 sáng** (giờ Việt Nam), GitHub Actions chạy workflow **Sao lưu Firestore** (`.github/workflows/backup-firestore.yml`, file `scripts/backup-firestore.mjs`). Máy này **chỉ đọc**, không sửa gì: lấy toàn bộ dữ liệu trong Firestore (thành viên, tiến độ Hành trình trăng, Planner của từng người, đơn hàng, mã dùng thử, bài viết, cài đặt…), nén lại, **khoá bằng mật khẩu của bạn**, mở thử lại để chắc chắn file dùng được, rồi cất vào mục **Artifacts** của lần chạy đó. Mỗi bản được giữ **90 ngày**, nên lúc nào cũng có khoảng 90 bản của 90 đêm gần nhất.
+
+**Chi phí: 0 đồng.** Repo công khai nên GitHub Actions và chỗ cất Artifacts miễn phí. Mỗi đêm tốn số lượt đọc Firestore bằng số tài liệu đang có (ví dụ 3.000 tài liệu = khoảng 3.000 lượt đọc, hạn mức miễn phí là 50.000 / ngày). Dùng chung khoá tài khoản dịch vụ `FIREBASE_SERVICE_ACCOUNT` đã thêm ở **17.1**, không cần khoá mới.
+
+**Vì sao phải khoá file:** repo công khai, nên người có tài khoản GitHub có thể tải Artifacts. File đã khoá thì không có mật khẩu sẽ không mở được (chỉ thấy chữ lộn xộn). Nhật ký của lần chạy chỉ in tên bảng và số lượng (ví dụ `users: 812`), không in email hay nội dung. Nếu chưa có mật khẩu, máy sao lưu **dừng hẳn**, không bao giờ cất file chưa khoá.
+
+### 19.1. Việc bạn làm một lần (khoảng 5 phút)
+1. **Tạo mật khẩu khoá file:** dài **ít nhất 16 ký tự**, ví dụ 4–5 từ ngẫu nhiên nối bằng dấu gạch (`trang-mua-den-o-goc-pho-7`). Không dùng lại mật khẩu đăng nhập nào.
+2. **Cất mật khẩu thật kỹ** ở chỗ không phụ thuộc vào web: trình quản lý mật khẩu (Google Password Manager, Bitwarden…) hoặc viết ra giấy cất trong ngăn kéo. **Mất mật khẩu là mất luôn mọi bản sao lưu** (mình cũng không mở được).
+3. **Thêm secret trên GitHub:** repo `index.html` → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**. Name: `BACKUP_PASSWORD`. Secret: dán mật khẩu ở bước 1. Bấm **Add secret**.
+4. **Chạy thử:** tab **Actions** → cột trái chọn **Sao lưu Firestore** → **Run workflow** → **Run workflow**. Khoảng 1 phút sau bấm vào lần chạy:
+   - Bước **Sao lưu** có dòng **"Xong: đã sao lưu … tài liệu (… KB, đã khoá)"**.
+   - Kéo xuống cuối trang, mục **Artifacts** có một file tên `firestore-backup-…`. Vậy là xong.
+5. Nếu bị lỗi đỏ: dòng "Chưa có secret BACKUP_PASSWORD" hoặc "quá ngắn" thì làm lại bước 3. Dòng có `403` / `PERMISSION_DENIED` thì khoá tài khoản dịch vụ thiếu quyền: tạo khoá mới đúng như **17.1 bước 3–4** (ở tab **Service accounts** của Firebase) và thay secret `FIREBASE_SERVICE_ACCOUNT`.
+
+> GitHub tự gửi email cho bạn khi một lần sao lưu bị lỗi. Thỉnh thoảng (khoảng mỗi tháng) nên mở tab **Actions** → **Sao lưu Firestore** xem các lần gần đây đều có dấu ✅ xanh.
+
+### 19.2. Khôi phục khi có sự cố
+Dùng khi dữ liệu bị xoá nhầm, bị sửa sai, hay Firestore gặp sự cố. **Không chế độ nào xoá dữ liệu**: dữ liệu tạo sau ngày sao lưu (ví dụ thành viên mới đăng ký hôm nay) vẫn giữ nguyên.
+
+1. **Chọn bản sao lưu:** tab **Actions** → **Sao lưu Firestore** → bấm vào lần chạy của **đêm trước khi xảy ra sự cố** (có dấu ✅). Nhìn thanh địa chỉ trình duyệt: `…/actions/runs/`**`18234567890`**. Chép lại dãy số cuối đó (không lấy phần `/job/…` nếu có).
+2. **Xem trước (không ghi gì):** cột trái chọn **Khôi phục Firestore** → **Run workflow**:
+   - Ô **run_id**: dán dãy số ở bước 1.
+   - Ô **mode**: để `thu`.
+   - Ô **only**: để trống (khôi phục tất cả), hoặc gõ `users` (chỉ bảng thành viên), hoặc `users/<uid>` (một người, kể cả Planner và Hành trình trăng của họ; `<uid>` xem ở Admin → Thành viên hoặc Firebase → Authentication).
+   - Ô **confirm**: để trống. Bấm **Run workflow**.
+   Mở lần chạy, bước **Khôi phục** in ra: **"Đang bị mất: …"**, **"Đang khác bản sao lưu: …"**, **"Giống hệt: …"**. Đọc kỹ con số này trước khi làm bước 3.
+3. **Khôi phục thật:** chạy lại **Khôi phục Firestore** với cùng `run_id` (và `only` nếu có), chọn **mode**:
+   - `them-thieu` (**nên dùng trước**): chỉ tạo lại những gì **đang bị mất**. Dữ liệu đang có không bị đụng tới.
+   - `ghi-de`: tạo lại những gì bị mất **và** đưa những tài liệu đang khác về đúng như đêm sao lưu. Chỉ dùng khi dữ liệu bị **sửa sai** (ví dụ chuỗi điểm danh của mọi người về 0). Lưu ý: thay đổi thật của khách từ đêm đó tới giờ trong các tài liệu này cũng sẽ quay về như cũ, nên tốt nhất dùng kèm ô `only` cho đúng phần bị hỏng.
+   - Ô **confirm**: gõ đúng `KHOI PHUC` (viết hoa, có dấu cách). Thiếu ô này thì workflow dừng ngay, không ghi gì.
+4. Trước khi ghi, workflow **tự sao lưu dữ liệu hiện tại** (artifact `firestore-backup-truoc-khoi-phuc-…` trong chính lần chạy đó). Lỡ khôi phục nhầm thì làm lại bước 1–3 với **số của lần chạy khôi phục đó**, chế độ `ghi-de`, để quay về như trước khi khôi phục.
+5. Xong thì mở web kiểm tra, rồi vào **Admin → Tổng quan → Xuất bản ngay** để bản gộp cho người xem cập nhật theo.
+
+### 19.3. Lưu ý
+- **Không sao lưu:** tài khoản đăng nhập (email / mật khẩu nằm ở Firebase **Authentication**, không phải Firestore, và không mất khi Firestore gặp sự cố) và ảnh / file tải lên **Storage**.
+- Bản sao lưu chỉ giữ **90 ngày**. Muốn giữ lâu hơn (ví dụ bản đầu mỗi tháng): mở lần chạy → mục **Artifacts** → bấm tên file để tải về, cất vào Google Drive. File đã khoá nên cất ở đâu cũng an toàn.
+- **Muốn tự xem bên trong một bản sao lưu** (tuỳ chọn, cần cài Node từ https://nodejs.org): giải nén file `.zip` vừa tải, rồi trong thư mục chứa repo chạy `node scripts/decrypt-backup.mjs firestore-….enc`, gõ mật khẩu. Ra file `.json` **không được khoá** (có email, đơn hàng của khách): xem xong thì xoá, **không đưa lên GitHub**.
+- Đổi mật khẩu: sửa secret `BACKUP_PASSWORD`. Các bản cũ vẫn mở bằng **mật khẩu cũ**, nên giữ mật khẩu cũ thêm 90 ngày.
+- Như phần 17: GitHub tạm dừng lịch tự chạy nếu repo **60 ngày** không có thay đổi. Lâu không cập nhật web thì vào tab **Actions**, thấy nút **Enable workflow** thì bấm.
+- **Tầng bảo vệ thêm (chỉ khi đã lên gói Blaze):** Google Cloud có sẵn sao lưu theo lịch và "khôi phục về thời điểm bất kỳ trong 7 ngày" cho Firestore (Google Cloud Console → **Firestore** → **Disaster recovery**). Có tính phí theo dung lượng (rất nhỏ với web này). Không bắt buộc: bản sao lưu ở trên đã đủ dùng.
 
 ## QUY TẮC CẬP NHẬT WEB LÊN GITHUB (đọc cái này khi cần cập nhật)
 Từ bản 8, các file hay thay đổi (`index.html`, `core.js`, `pages.js`, `admin.js`, `i18n-extra.js`, `app.css`) **đều nằm ở trang gốc của repo**, cùng chỗ với `index.html`. Chỉ còn 4 file ít khi đổi nằm trong thư mục `js`: `art.js`, `i18n.js`, `translate.js`, `firebase-config.js`. Thư mục `css` và các bản cũ `js/core.js`, `js/pages.js`, `js/admin.js`, `js/i18n-extra.js` đã bỏ hẳn (web không dùng), nếu máy bạn còn thì không cần tải lên nữa.
