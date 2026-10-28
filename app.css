@@ -778,3 +778,4 @@ button.sb-item{width:100%;background:none;border:0;font:inherit;font-weight:600;
   .about-feats .feat .tile{grid-row:span 2}.about-feats .feat h3{margin:0 0 2px!important}
 }
 @media(max-width:520px){.today-item{flex-wrap:wrap;gap:4px 12px}.today-item .tm{flex-basis:100%;min-width:0}}
+.home-about{margin:34px 0}.home-about:first-child{margin-top:0}   /* khối giới thiệu: đứng đầu trang thì không cách trên */
