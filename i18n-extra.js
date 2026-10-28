@@ -352,4 +352,16 @@
     es:{ club_full_sub:"Llegaste a una nueva parada del camino. Abre su dibujo para verla.", club_how3:"Cada día es un paso en el camino. La luna se llena un poco cada día y queda llena al terminar todo el camino.", mj_full_plus:"¡+1 luna llena guardada! Si algún día olvidas registrarte, úsala para mantener tu racha.", mj_how4:"El camino dura {t} días y tiene {s} paradas. Las paradas a las que llegaste siguen abiertas aunque se rompa la racha. Cada {e} días seguidos guardas una luna llena: si olvidas un día, úsala para salvar tu racha.", mj_bank:"lunas llenas guardadas. Usa una para mantener tu racha si olvidas un día.", mj_rescue:"Te faltaron {g} día(s), así que tu racha de {n} días se rompió. Puedes usar {g} luna(s) llena(s) guardada(s) para mantenerla.", mj_rescue_btn:"Usar {g} luna(s) llena(s) para mantener mi racha", mj_rescue_note:"Si te registras sin usar una luna, tu racha vuelve a empezar desde el día 1.", mj_rescued:"Usaste {g} luna(s) llena(s). ¡Tu racha de {n} días está a salvo!", mj_bank_t:"Reserva de lunas", mj_bank_note:"¿Te faltó un día? Usa 1 luna para mantener tu racha.", mj_cur:"Racha actual", mj_best_l:"Racha más larga", mj_nextmoon:"Próxima luna", mj_nextmoon_v:"en {n} días", mj_nextmoon_today:"regístrate hoy", mj_nextmoon_tmr:"mañana", mj_used:"Lunas usadas", mj_h1:"Estudia con el stream y pulsa registrarse. Una vez al día basta.", mj_h2:"Cada día es un paso en el camino de {t} días. Cada parada a la que llegas abre un dibujo y queda abierta.", mj_h3:"Cada {e} días seguidos ganas una luna. Si te falta un día, úsala para mantener tu racha.", mj_leg:"Faltan {n} días para la siguiente parada", mj_leg_one:"Regístrate mañana para llegar a la siguiente parada", mj_leg_today:"Regístrate hoy para llegar a la siguiente parada", mj_grid:"Tus {t} días", mj_grid_note:"Cada punto es un día de tu racha. Los círculos son las paradas del camino.", mj_after:"Recorriste todo el camino. Cada día sigue contando.", mj_450:"Un trozo de luz de luna", mj_480:"En casa con Moon" }
   };
   Object.keys(MJ2).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], MJ2[l]); });
+  /* Người đồng hành lâu năm: thời gian đồng hành cạnh tên (mốc 3 / 6 / 12 tháng) */
+  const CT = {
+    en:{ ct_m:"{n} months", ct_y1:"1 year", ct_y:"{n} years", ct_for:"Companion for {d}. Thank you for staying with us!" },
+    vi:{ ct_m:"{n} tháng", ct_y1:"1 năm", ct_y:"{n} năm", ct_for:"Đã đồng hành {d}. Cảm ơn bạn đã ở lại cùng mình!" },
+    hi:{ ct_m:"{n} महीने", ct_y1:"1 साल", ct_y:"{n} साल", ct_for:"{d} से साथी। साथ बने रहने के लिए धन्यवाद!" },
+    ja:{ ct_m:"{n}か月", ct_y1:"1年", ct_y:"{n}年", ct_for:"仲間になって{d}。いつも一緒にいてくれてありがとう！" },
+    ko:{ ct_m:"{n}개월", ct_y1:"1년", ct_y:"{n}년", ct_for:"{d}째 함께하는 동반자. 늘 함께해 줘서 고마워요!" },
+    zh:{ ct_m:"{n} 个月", ct_y1:"1 年", ct_y:"{n} 年", ct_for:"已陪伴 {d}。谢谢你一直都在！" },
+    fr:{ ct_m:"{n} mois", ct_y1:"1 an", ct_y:"{n} ans", ct_for:"Compagnon depuis {d}. Merci d'être toujours là !" },
+    es:{ ct_m:"{n} meses", ct_y1:"1 año", ct_y:"{n} años", ct_for:"Acompañante desde hace {d}. ¡Gracias por seguir con nosotros!" }
+  };
+  Object.keys(CT).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], CT[l]); });
 })();
