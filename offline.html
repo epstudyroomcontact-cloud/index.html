@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<!-- Bảo mật: không cho nhúng plugin cũ (Flash/Java), không cho đổi địa chỉ gốc của trang, form chỉ gửi về chính web này -->
-<meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self'">
+<!-- Bảo mật (CSP chặt): chỉ chạy đúng đoạn mã viết thẳng bên dưới, khoá bằng mã băm. Sửa đoạn mã đó thì chạy "node scripts/csp-hash.mjs" và thay mã băm mới vào dòng ngay dưới đây. -->
+<meta http-equiv="Content-Security-Policy" content="script-src 'sha256-oPg9iqCTg1A2w4GIMxmAn20Q9blLlwQiop7W3jpqqJ8='; script-src-attr 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; connect-src 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#080b13">
 <title>Ép Study Room</title>

@@ -514,6 +514,16 @@ Sáng thứ Hai (khoảng 8 giờ, giờ Việt Nam) GitHub tự mở web bằng
 
 **Địa chỉ web:** máy kiểm tra tự lấy từ GitHub Pages. Nếu sau này dùng tên miền riêng mà báo cáo vẫn mở địa chỉ cũ: **Settings → Secrets and variables → Actions → Variables → New repository variable**, Name `SITE_URL`, Value là địa chỉ web (ví dụ `https://tenmien.com/`).
 
+## PHẦN 21 — Lớp chặn mã lạ (CSP chặt)
+
+Đầu `index.html`, `overlay.html` và `offline.html` có một dòng `Content-Security-Policy`. Nó bảo trình duyệt: **chỉ chạy mã nằm trong file `.js` của chính web này** (cộng đúng 3 đường dẫn dự phòng của thư viện Luxon, Firebase, EmailJS). Mã viết thẳng trong trang, mã trong thuộc tính như `onclick=`, `javascript:` và `eval` đều bị chặn. Nhờ vậy, dù ai đó có chèn được một đoạn chữ lạ vào trang, đoạn đó cũng không chạy được.
+
+Khi sửa web (hoặc nhờ mình sửa), cần nhớ:
+- Đừng viết `<script>` có mã ngay trong file `.html` và đừng dùng `onclick="..."`: hãy đặt mã vào file `.js` (với nút bấm thì dùng `data-act="tên"` như các nút khác trong web).
+- Muốn gọi thêm một dịch vụ bên ngoài (một trang nhúng, một API mới…) thì phải thêm địa chỉ của nó vào dòng `Content-Security-Policy` ở `index.html` (mục `connect-src` cho lệnh gọi dữ liệu, `frame-src` cho khung nhúng). Quên bước này thì trình duyệt chặn và tính năng đó không chạy.
+- `offline.html` là ngoại lệ: mã viết thẳng trong đó được khoá bằng mã băm. Sửa mã đó thì chạy `node scripts/csp-hash.mjs` và dán mã băm mới vào dòng CSP của file.
+- Máy kiểm tra sức khoẻ mỗi tuần (Phần 20) có thêm mục "Lớp chặn mã lạ (CSP) không chặn nhầm tính năng": đỏ nghĩa là có nguồn bị chặn nhầm, báo mình xử lý.
+
 ## QUY TẮC CẬP NHẬT WEB LÊN GITHUB (đọc cái này khi cần cập nhật)
 Từ bản 8, các file hay thay đổi (`index.html`, `core.js`, `pages.js`, `admin.js`, `i18n-extra.js`, `app.css`) **đều nằm ở trang gốc của repo**, cùng chỗ với `index.html`. Chỉ còn 4 file ít khi đổi nằm trong thư mục `js`: `art.js`, `i18n.js`, `translate.js`, `firebase-config.js`. Thư mục `css` và các bản cũ `js/core.js`, `js/pages.js`, `js/admin.js`, `js/i18n-extra.js` đã bỏ hẳn (web không dùng), nếu máy bạn còn thì không cần tải lên nữa.
 

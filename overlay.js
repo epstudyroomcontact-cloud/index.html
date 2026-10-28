@@ -1,0 +1,532 @@
+(function(){
+'use strict';
+/* ---------- tuỳ chọn trên địa chỉ ---------- */
+const Q = new URLSearchParams(location.search);
+const num = (k, d, lo, hi) => { const v = parseFloat(Q.get(k)); return isNaN(v) ? d : Math.min(hi, Math.max(lo, v)); };
+// Mặc định GỌN (khung hẹp ~340px): khối đếm giờ lớn + 2 đoạn kế tiếp + thanh thông báo. compact=0 = bảng cả ngày như cũ.
+const CMP = !['0', 'false'].includes(Q.get('compact')) && !Q.has('view');
+const off = k => Q.get(k) === '0' || Q.get(k) === 'false' || (CMP && ['title', 'chip', 'now', 'total', 'bar'].includes(k) && Q.get(k) !== '1');
+const OPT = {
+  size: num('size', 1, .6, 3), rows: Math.round(num('rows', 0, 0, 60)), after: num('after', 60, 0, 720),
+  theme: ['dark', 'light', 'pink', 'clear'].includes(Q.get('theme')) ? Q.get('theme') : 'dark',
+  lang: Q.get('lang') === 'vi' ? 'vi' : 'en', tz: Q.get('tz') || 'Asia/Ho_Chi_Minh', demo: Q.get('demo') === '1',
+  emptyHide: Q.get('empty') === 'hide', fit: !off('fit') && !Q.get('rows') && !CMP
+};
+const root = document.documentElement;
+if (CMP) root.classList.add('cmp');
+if (Q.get('view') === 'note') root.classList.add('noteonly');
+root.dataset.align = Q.get('align') === 'right' ? 'right' : 'left';
+root.dataset.theme = OPT.theme; root.lang = OPT.lang;
+root.style.setProperty('--fs', (20 * OPT.size).toFixed(1) + 'px');
+if (Q.has('opacity')) root.style.setProperty('--op', num('opacity', .85, 0, 1));
+if (/^[0-9a-f]{3}([0-9a-f]{3})?$/i.test(Q.get('accent') || '')) root.style.setProperty('--accent', '#' + Q.get('accent'));
+let fmtHM;
+try { fmtHM = new Intl.DateTimeFormat('en-GB', { timeZone: OPT.tz, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }); }
+catch (e) { fmtHM = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }); }
+const hm = ms => fmtHM.format(new Date(ms));
+
+const TXT = {
+  vi: { focus:'Tập trung', short:'Nghỉ ngắn', long:'Nghỉ dài', prep:'Chuẩn bị & chào', live:'Đang live', soon:'Bắt đầu sau {t}', done:'Đã xong', now:'Đang', next:'Tiếp theo', end:'Kết thúc lúc {t}', at:'lúc', total:'Tổng {m} phút', empty:'Hôm nay không có buổi live', loading:'Đang tải lịch…', notyet:'Chưa bắt đầu', first:'Mở đầu',
+        pomo:'{n} × {f}′ tập trung · {s}′ nghỉ · {l}′ nghỉ dài', plan:'{n} khối tập trung · {f} phút tập trung · {b} phút nghỉ' },
+  en: { focus:'Focus', short:'Short break', long:'Long break', prep:'Warm-up & hello', live:'Live now', soon:'Starts in {t}', done:'Finished', now:'Now', next:'Next', end:'Ends at {t}', at:'at', total:'Total {m} min', empty:'No live session today', loading:'Loading schedule…', notyet:'Not started', first:'First up',
+        pomo:'{n} × {f}′ focus · {s}′ break · {l}′ long break', plan:'{n} focus blocks · {f} min focus · {b} min break' }
+}[OPT.lang];
+const tr = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => o[k]);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+const COLOR = { focus:'var(--accent)', short:'var(--short)', long:'var(--long)', prep:'var(--prep)' };
+
+/* ---------- lịch live: cùng cách tính với core.js (normSlot, slotSegs, buildPlan, weekKeyFor) ---------- */
+const VN_OFF = 7 * 3600e3, DAY = 864e5;                 // Việt Nam luôn UTC+7
+function isoWeek(y, m, d){
+  const t = new Date(Date.UTC(y, m - 1, d)), wd = t.getUTCDay() || 7;
+  t.setUTCDate(t.getUTCDate() + 4 - wd);
+  return Math.ceil(((t - Date.UTC(t.getUTCFullYear(), 0, 1)) / DAY + 1) / 7);
+}
+function mondayVN(ms){                                  // thứ Hai 00:00 giờ VN (tính như một mốc UTC) của tuần chứa ms
+  const v = new Date(ms + VN_OFF), wd = v.getUTCDay() || 7;
+  return Date.UTC(v.getUTCFullYear(), v.getUTCMonth(), v.getUTCDate() - (wd - 1));
+}
+const weekKey = mon => { const d = new Date(mon); return `${d.getUTCFullYear()}-W${isoWeek(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate())}`; };
+const n0 = (v, d, min = 1) => Math.max(min, Math.round(+v || d));
+function cleanPomo(p){ p = p || {}; return { focus:n0(p.focus, 25), short:n0(p.short, 5, 0), long:n0(p.long, 15, 0), rounds:n0(p.rounds, 4), longEvery:n0(p.longEvery, 4), prep:n0(p.prep, 0, 0) }; }
+function buildPlan(p){
+  const segs = []; if (p.prep > 0) segs.push({ type:'prep', min:p.prep });
+  for (let i = 1; i <= p.rounds; i++) {
+    segs.push({ type:'focus', min:p.focus, n:i });
+    if (i % p.longEvery === 0) { if (p.long) segs.push({ type:'long', min:p.long }); }
+    else if (i < p.rounds && p.short) segs.push({ type:'short', min:p.short });
+  }
+  return segs;
+}
+const SEG_TYPE = { f:'focus', s:'short', l:'long', p:'prep' };
+function slotSegs(s){
+  if (Array.isArray(s.plan) && s.plan.length) { let n = 0; return s.plan.map(x => { const type = SEG_TYPE[x.t] || 'focus', seg = { type, min:n0(x.m, 1) }; if (type === 'focus') seg.n = ++n; const nm = String(x.nm || '').trim().slice(0, 40); if (nm) seg.name = nm; return seg; }); }
+  return s.pomo ? buildPlan(cleanPomo(s.pomo)) : null;
+}
+function chipOf(s, segs){
+  if (Array.isArray(s.plan) && s.plan.length) { const f = segs.filter(g => g.type === 'focus'); return tr(TXT.plan, { n:f.length, f:f.reduce((a, g) => a + g.min, 0), b:segs.filter(g => g.type === 'short' || g.type === 'long').reduce((a, g) => a + g.min, 0) }); }
+  const p = cleanPomo(s.pomo); return tr(TXT.pomo, { n:p.rounds, f:p.focus, s:p.short, l:p.long });
+}
+const labelOf = g => g.name || (g.type === 'focus' ? `${TXT.focus} ${g.n}` : TXT[g.type]);
+function daySlots(d){                                   // hỗ trợ cả định dạng cũ {m,a,e,m_h,…}
+  d = d || {};
+  if (Array.isArray(d.slots)) return { cancelled:!!d.cancelled, slots:d.slots.filter(Boolean) };
+  return { cancelled:false, slots:['m', 'a', 'e'].filter(k => d[k]).map(k => ({ time:d[k], manualH:d[k + '_h'] })) };
+}
+function sessionsOf(mon, days){
+  const out = [];
+  (days || []).forEach((raw, i) => {
+    const day = daySlots(raw); if (day.cancelled) return;
+    day.slots.forEach(s => {
+      if (s.cancelled) return;
+      const p = String(s.time || '').trim().split(':'), h = parseInt(p[0], 10), mi = parseInt(p[1], 10);
+      if (p.length < 2 || isNaN(h) || isNaN(mi)) return;
+      const segs = slotSegs(s), mins = segs ? segs.reduce((a, g) => a + g.min, 0) : Math.round((parseFloat(s.manualH) || 2) * 60);
+      const start = mon + i * DAY + (h * 60 + mi) * 60e3 - VN_OFF;
+      out.push({ start, end:start + mins * 60e3, mins, title:String(s.title || ''), segs, chip:segs ? chipOf(s, segs) : '' });
+    });
+  });
+  return out;
+}
+
+/* ---------- đọc dữ liệu công khai (Firestore REST, không cần đăng nhập) ---------- */
+const PROJECT = 'epstudyroom-web', API_KEY = 'AIzaSyD4K9ugw33zVJnpRAHKzY6Bq8i8IOXLjmo';   // giống js/firebase-config.js, khoá công khai
+const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents/weekly_schedules/`;
+function dec(v){
+  if (!v || typeof v !== 'object') return null;
+  if ('mapValue' in v) { const o = {}, f = v.mapValue.fields || {}; for (const k in f) o[k] = dec(f[k]); return o; }
+  if ('arrayValue' in v) return (v.arrayValue.values || []).map(dec);
+  if ('integerValue' in v) return +v.integerValue;
+  if ('doubleValue' in v) return +v.doubleValue;
+  if ('booleanValue' in v) return !!v.booleanValue;
+  if ('stringValue' in v) return v.stringValue;
+  if ('timestampValue' in v) return v.timestampValue;
+  return null;
+}
+async function fetchWeek(key){
+  const r = await fetch(BASE + encodeURIComponent(key) + '?mask.fieldPaths=days&key=' + API_KEY, { cache:'no-store' });
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error('firestore ' + r.status);
+  const j = await r.json(); return j.fields && j.fields.days ? dec(j.fields.days) : null;
+}
+let fallback = null;
+async function fallbackWeek(key){
+  if (!fallback) { const r = await fetch('site-fallback.json?d=' + new Date().toISOString().slice(0, 10), { cache:'no-cache' }); fallback = r.ok ? await r.json() : {}; }
+  const w = fallback.site && fallback.site.weeks; return w && key in w ? w[key] : null;
+}
+const store = { get(k){ try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }, set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+let sessions = null, loadT = 0;
+/* ---------- âm báo: chuông nhẹ khi sang đoạn (vào nghỉ đi xuống, vào tập trung đi lên, hết buổi 4 nốt) ---------- */
+const SKEY = 'ep-overlay-timer-sound';                // âm báo (bảng lịch + bộ đếm): chỉnh trong bảng ⚙ của bộ đếm, hoặc trên địa chỉ sound=0 | sound=break, vol=0…100
+const snd = { on:true, vol:70, when:'all', ...(store.get(SKEY) || {}) };
+if (Q.has('sound')) { snd.on = Q.get('sound') !== '0'; if (Q.get('sound') === 'break') snd.when = 'break'; }
+if (Q.has('vol')) snd.vol = Math.max(0, Math.min(100, +Q.get('vol') || 0));
+const kindOf = g => !g ? 'end' : g.type === 'short' || g.type === 'long' ? 'break' : 'focus';
+const NOTES = { break:[1319, 1047, 784], focus:[784, 1047, 1319], end:[1047, 1319, 1568, 2093] };
+let actx = null;
+const chime = (kind, force) => {                       // chuông nhẹ: vào nghỉ đi xuống, vào tập trung đi lên, hết buổi 4 nốt
+  if (!force && (!snd.on || (snd.when === 'break' && kind !== 'break'))) return;
+  try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume();
+    const v = .4 * snd.vol / 100, t0 = actx.currentTime + .05; if (!v) return;
+    NOTES[kind].forEach((f, i) => { const t = t0 + i * (kind === 'break' ? .42 : .24);
+      [[f, 1], [f * 2.76, .15]].forEach(([fq, a]) => { const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = fq; o.connect(g); g.connect(actx.destination);
+        g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v * a, t + .015); g.gain.exponentialRampToValueAtTime(.0001, t + 1.6);
+        o.start(t); o.stop(t + 1.7); }); }); } catch (e) {}
+};
+/* Giờ bắt đầu THẬT, lấy cái mới nhất trong hai nguồn:
+   - bấm Start Streaming trong OBS (sự kiện obsStreamingStarted, nhớ trong máy: ep-overlay-obsstart; tắt bằng autostart=0)
+   - trong Admin bấm "Bắt đầu buổi live bây giờ" / chỉnh ±phút → settings/onair = { start, sched, at } (dùng để sửa khi bấm nhầm)
+   Buổi có giờ theo lịch = sched được dời sang start (cả buổi dời theo), nên bảng lịch và bộ đếm khớp lúc bạn thật sự bắt đầu.
+   settings/onair đọc lại 10 giây một lần khi gần giờ live (còn lại 5 phút một lần): 1 lượt đọc Firebase mỗi lần. */
+let base = null, onair = store.get('ep-overlay-onair'), onairOn = false, obsStart = store.get('ep-overlay-obsstart');
+const okOnair = o => o && o.start && o.sched && Math.abs(o.start - o.sched) < 12 * 3600e3;   // mốc lệch lịch quá 12 tiếng (gắn nhầm buổi hôm qua) thì bỏ qua
+const curOnair = () => [onair, obsStart].filter(o => okOnair(o) && o.at).sort((a, b) => b.at - a.at)[0] || (okOnair(onair) ? onair : null);
+const DOCS = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents/`;
+function applyOnair(){
+  if (!base) return;
+  const o = curOnair();
+  sessions = base.map(s => o && o.start && s.start === o.sched ? { ...s, start:o.start, end:o.start + (s.end - s.start) } : s).sort((a, b) => a.start - b.start);
+}
+async function fetchOnair(){
+  try {
+    const r = await fetch(DOCS + 'settings/onair?key=' + API_KEY, { cache:'no-store' });
+    const j = r.status === 404 ? {} : r.ok ? await r.json() : null; if (!j) return;
+    const f = j.fields ? dec({ mapValue:{ fields:j.fields } }) : {}, nx = { start:+f.start || 0, sched:+f.sched || 0, at:+f.at || 0, note:String(f.note || '').trim() };
+    if (!onair || nx.start !== onair.start || nx.sched !== onair.sched || nx.at !== onair.at || nx.note !== onair.note) { onair = nx; store.set('ep-overlay-onair', onair); applyOnair(); }
+  } catch (e) {}
+}
+function onairLoop(){
+  const now = Date.now(), near = (base || []).some(s => now > s.start - 6 * 3600e3 && now < s.end + 6 * 3600e3);
+  fetchOnair().then(() => setTimeout(onairLoop, near ? 10e3 : 300e3));
+}
+// Bấm Start Streaming trong OBS → buổi live gần nhất bắt đầu từ lúc này. Mất mạng rồi stream lại giữa buổi thì giữ nguyên giờ cũ.
+// Cần Properties của nguồn → Page permissions ≥ "Read access to OBS status information".
+function streamStarted(){
+  if (!base) return;
+  const now = Date.now(), o = curOnair(), dur = s => s.end - s.start;
+  const ran = s => o && o.start && o.sched === s.start, endOf = s => ran(s) ? o.start + dur(s) : s.end;
+  // buổi đã chạy xong thật (đã bắt đầu rồi hết giờ) thì bỏ qua: ngày 2 buổi, stream buổi chiều không làm buổi sáng chạy lại
+  const x = base.filter(s => !(ran(s) && now >= endOf(s)) && endOf(s) + 3600e3 > now && s.start - 18 * 3600e3 < now)[0];
+  if (!x) return;
+  if (o && o.start && o.sched === x.start && now >= o.start && now < o.start + dur(x)) return;   // buổi này đang chạy rồi (stream lại sau khi rớt mạng)
+  obsStart = { start:now, sched:x.start, at:now }; store.set('ep-overlay-obsstart', obsStart); applyOnair();
+  if (!Q.get('view')) render();
+}
+if (Q.get('autostart') !== '0') window.addEventListener('obsStreamingStarted', streamStarted);
+window.addEventListener('storage', e => { if (e.key === 'ep-overlay-obsstart') { obsStart = store.get('ep-overlay-obsstart'); applyOnair(); } });   // nguồn khác trong OBS vừa ghi
+async function load(){
+  const now = Date.now(), mons = [...new Set([mondayVN(now - DAY), mondayVN(now), mondayVN(now + DAY)])];
+  const cache = store.get('ep-overlay-weeks') || {};
+  let all = [], failed = false;
+  for (const mon of mons) {
+    const key = weekKey(mon); let days;
+    try { days = await fetchWeek(key); cache[key] = days; }
+    catch (e) { failed = true; days = key in cache ? cache[key] : await fallbackWeek(key).catch(() => null); }
+    all = all.concat(sessionsOf(mon, days));
+  }
+  store.set('ep-overlay-weeks', cache);
+  base = all.sort((a, b) => a.start - b.start); loadT = now; applyOnair();
+  if (!onairOn) { onairOn = true; onairLoop(); }
+  return !failed;
+}
+function demo(){                                        // buổi mẫu giống ảnh: bắt đầu 95 phút trước (demo=1&ago=-10: bắt đầu sau 10 phút)
+  if (base) return;
+  const st = Date.now() - (Q.has('ago') ? +Q.get('ago') : 95) * 60e3, segs = buildPlan(cleanPomo({ prep:20, focus:50, short:10, long:120, rounds:10, longEvery:4 }));
+  const mins = segs.reduce((a, g) => a + g.min, 0);
+  base = [{ start:st, end:st + mins * 60e3, mins, title:'All day', segs, chip:chipOf({ pomo:{ prep:20, focus:50, short:10, long:120, rounds:10, longEvery:4 } }, segs) }]; applyOnair();
+  if (!onairOn) { onairOn = true; onairLoop(); }
+}
+
+/* ---------- chọn buổi để hiện: đang live → sắp tới trong hôm nay/24 giờ → vừa xong ---------- */
+function pick(now){
+  if (!sessions) return null;
+  const live = sessions.find(s => now >= s.start && now < s.end); if (live) return { s:live, mode:'live' };
+  const next = sessions.find(s => s.start > now && s.start - now < DAY);
+  const prev = sessions.filter(s => s.end <= now && now - s.end < OPT.after * 60e3).pop();
+  if (prev && (!next || next.start - now > 30 * 60e3)) return { s:prev, mode:'done' };
+  return next ? { s:next, mode:'soon' } : null;
+}
+const pad = n => String(n).padStart(2, '0');
+function clock(ms){ const t = Math.max(0, Math.ceil(ms / 1000)), h = Math.floor(t / 3600), m = Math.floor(t / 60) % 60, s = t % 60; return h ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`; }
+
+/* ---------- vẽ ---------- */
+const card = document.getElementById('card');
+let lastKey = '', fitScale = 1, lastCk = '';
+// Tự thu nhỏ chữ cho vừa khung OBS để thấy hết lịch (tắt bằng fit=0, hoặc khi đặt rows=…).
+// Chỉ tính lại khi đổi buổi / trạng thái / kích thước khung, nên chữ không nhảy mỗi giây.
+function fit(list, key){
+  if (!OPT.fit) return;
+  const setFs = k => root.style.setProperty('--fs', (20 * OPT.size * k).toFixed(2) + 'px');
+  if (key === lastKey) { setFs(fitScale); return; }
+  lastKey = key; fitScale = 1; setFs(1);
+  const over = () => (list && list.scrollHeight > list.clientHeight + 1) || card.scrollHeight > card.clientHeight + 1;
+  while (over() && fitScale > .45) { fitScale *= .96; setFs(fitScale); }
+}
+// Thanh thông báo (nhập trong Admin): phần tử riêng dưới thẻ, chỉ vẽ lại khi đổi chữ. Dài hơn 2 dòng thì tự chạy chữ ngang.
+const noteEl = document.getElementById('note');
+let noteTxt = null;
+function drawNote(){
+  const t = onair && onair.note && !off('note') && !['big'].includes(Q.get('view')) ? onair.note : '';
+  if (t === noteTxt) return; noteTxt = t;
+  noteEl.hidden = !t; noteEl.classList.remove('mq'); noteEl.innerHTML = t ? `<span>${esc(t)}</span>` : '';
+  if (!t) return;
+  const sp = noteEl.firstChild, lh = parseFloat(getComputedStyle(sp).lineHeight) || 24;
+  if (sp.offsetHeight > lh * 2.2) {                    // dài hơn 2 dòng: 1 dòng chạy chữ một chiều phải → trái, lặp vòng liền mạch (2 bản chữ nối nhau)
+    noteEl.classList.add('mq'); sp.innerHTML = `<em>${esc(t)}</em><em>${esc(t)}</em>`;
+    const dx = sp.firstChild.offsetWidth;              // trượt đúng 1 bản chữ + khoảng trống thì bản thứ 2 nằm đúng chỗ bản đầu
+    noteEl.style.setProperty('--dx', -dx + 'px'); noteEl.style.setProperty('--d', Math.max(8, dx / 60).toFixed(1) + 's');
+  }
+}
+function render(){
+  drawNote();
+  if (Q.get('view') === 'note') { card.classList.add('hide'); return; }   // view=note: chỉ thanh thông báo
+  const now = Date.now(), p = pick(now);
+  if (!p) {
+    card.classList.toggle('hide', OPT.emptyHide && sessions !== null);
+    card.innerHTML = `<div class="empty">${esc(sessions === null ? TXT.loading : TXT.empty)}</div>`; lastKey = ''; return;
+  }
+  card.classList.remove('hide');
+  const s = p.s, segs = s.segs || [];
+  let t = s.start, cur = -1;
+  const rows = segs.map((g, i) => { const a = t; t += g.min * 60e3; if (p.mode === 'live' && now >= a && now < t) cur = i; return { g, a, b:t }; });
+  const ck = `${s.start}|${p.mode}|${cur}`;              // chuông khi vừa sang đoạn mới / vừa hết buổi
+  if (ck !== lastCk) { if (lastCk && (p.mode === 'live' && cur >= 0 ? now - rows[cur].a < 10e3 : p.mode === 'done' && now - s.end < 10e3)) chime(p.mode === 'done' ? 'end' : kindOf(rows[cur].g)); lastCk = ck; }
+  const state = i => p.mode === 'done' ? 'past' : p.mode === 'soon' ? '' : i < cur ? 'past' : i === cur ? 'cur' : '';
+  const pill = p.mode === 'live' ? `<span class="pill live"><i></i>${esc(TXT.live)}</span>` : p.mode === 'soon' ? `<span class="pill">${esc(tr(TXT.soon, { t:clock(s.start - now) }))}</span>` : `<span class="pill">${esc(TXT.done)}</span>`;
+  // Khối đếm giờ LỚN ở đầu bảng (đọc được trên điện thoại): "FOCUS 3/10" / "LONG BREAK" + số đếm ngược to. big=0 để ẩn, view=big chỉ hiện khối này.
+  let big = '';
+  if (!off('big') && segs.length && p.mode !== 'done') {
+    const r = p.mode === 'live' && cur >= 0 ? rows[cur] : null, g = r ? r.g : segs[0], nx = r ? rows[cur + 1] : null, nf = segs.filter(x => x.type === 'focus').length;
+    const longs = rows.filter(x => x.g.type === 'long'), li = r && g.type === 'long' ? longs.indexOf(r) + 1 : 0;
+    const lb = !r ? tr(TXT.soon, { t:'' }).trim() : g.type === 'focus' ? `${TXT.focus} ${g.n}/${nf}` : labelOf(g) + (li && longs.length > 1 ? ` ${li}/${longs.length}` : '');
+    const sub = !r ? `${labelOf(g)} ${TXT.at} ${hm(s.start)}` : [g.type === 'focus' && g.name ? g.name : '', nx ? `${TXT.next}: ${labelOf(nx.g)} ${TXT.at} ${hm(nx.a)}` : tr(TXT.end, { t:hm(s.end) })].filter(Boolean).join(' · ');
+    const pct = r ? ((now - r.a) / (r.b - r.a) * 100).toFixed(1) : 0;
+    big = `<div class="big" style="--c:${COLOR[g.type]}"><div class="bl"><span>${esc(lb)}</span>${CMP && r && !off('status') ? `<span class="pill live"><i></i>LIVE</span>` : ''}</div><div class="bc">${clock(r ? r.b - now : s.start - now)}</div>${r ? `<div class="bp"><i style="width:${pct}%"></i></div>` : ''}<div class="bn">${esc(sub)}</div></div>`;
+  }
+  if (Q.get('view') === 'big') { root.classList.add('bigonly'); card.classList.toggle('hide', !big); card.innerHTML = big; return; }
+  let h = big + (CMP && big ? '' : `<div class="top"><div class="range">${hm(s.start)} – ${hm(s.end)}</div>${off('status') ? '' : pill}</div>`);
+  if (s.title && !off('title')) h += `<div class="title">${esc(s.title)}</div>`;
+  if (segs.length && !off('bar')) {
+    const pos = p.mode === 'live' ? ((now - s.start) / (s.end - s.start) * 100).toFixed(2) : null;
+    h += `<div class="bar">${rows.map((r, i) => `<i class="${state(i) === 'past' ? 'past' : ''}" style="flex:${r.g.min};background:${COLOR[r.g.type]}"></i>`).join('')}${pos !== null ? `<b style="left:calc(${pos}% - 1px)"></b>` : ''}</div>`;
+  }
+  if (s.chip && !off('chip')) h += `<div class="chip">${esc(s.chip)}</div>`;
+  if (!off('now') && !big && segs.length) {
+    if (p.mode === 'live' && cur >= 0) {
+      const r = rows[cur], nx = rows[cur + 1];
+      h += `<div class="now" style="--c:${COLOR[r.g.type]}"><div><div class="lbl">${esc(TXT.now)}</div><div class="nm">${esc(labelOf(r.g))}</div><div class="nx">${nx ? `${esc(TXT.next)}: ${esc(labelOf(nx.g))} ${esc(TXT.at)} ${hm(nx.a)}` : esc(tr(TXT.end, { t:hm(s.end) }))}</div></div><div class="cd">${clock(r.b - now)}</div></div>`;
+    } else if (p.mode === 'soon') {
+      h += `<div class="now" style="--c:${COLOR[segs[0].type]}"><div><div class="lbl">${esc(TXT.first)}</div><div class="nm">${esc(labelOf(segs[0]))}</div><div class="nx">${esc(TXT.at)} ${hm(s.start)}</div></div><div class="cd">${clock(s.start - now)}</div></div>`;
+    }
+  }
+  // Khung gọn (mặc định): dưới khối đếm giờ lớn chỉ có 2 dòng dễ hiểu —
+  //   "Progress 3 / 10 done" + thanh 10 ô (ô đang chạy đầy dần), và "☕ Long break in 2h 38m · 17:30". track=0 để ẩn.
+  if (CMP && segs.length && !off('track')) {
+    const EN = OPT.lang !== 'vi', fs = rows.filter(x => x.g.type === 'focus'), longs = rows.filter(x => x.g.type === 'long');
+    const done = fs.filter(x => p.mode === 'done' || now >= x.b).length;
+    const dur = ms => { const m = Math.max(1, Math.ceil(ms / 60e3)), hh = Math.floor(m / 60); return hh ? `${hh}h ${pad(m % 60)}m` : `${m}m`; };
+    const cells = fs.map(x => { const f = now >= x.b || p.mode === 'done' ? 100 : now > x.a ? (now - x.a) / (x.b - x.a) * 100 : 0;
+      return `<i class="${f >= 100 ? 'd' : f > 0 ? 'c' : ''}"><b style="width:${f.toFixed(1)}%"></b></i>`; }).join('');
+    h += `<div class="prog"><div class="pk">${EN ? 'Progress' : 'Tiến độ'} <b>${done} / ${fs.length}</b> ${EN ? 'done' : 'xong'}</div><div class="cells">${cells}</div></div>`;
+    const nl = p.mode !== 'done' && longs.find(x => x.a > now);   // chỉ hiện khi còn nghỉ dài phía trước (buổi không có / đã qua hết nghỉ dài thì ẩn dòng)
+    if (nl) {
+      const k = x => longs.length > 1 ? ` ${longs.indexOf(x) + 1}/${longs.length}` : '';
+      h += `<div class="lbk">☕ <span>${EN ? 'Long break' : 'Nghỉ dài'}${k(nl)} ${EN ? 'in' : 'sau'} <b>${dur(nl.a - now)}</b></span><small>${hm(nl.a)}</small></div>`;
+    }
+  }
+  if (segs.length && !off('list') && (!CMP || Q.has('rows'))) {
+    const from = p.mode === 'live' ? (big ? cur + 1 : Math.max(cur, 0)) : p.mode === 'done' ? rows.length : 0, upto = from + (OPT.rows || 2);
+    h += `<ol class="list" id="list">${rows.map((r, i) => { const st = state(i), c = COLOR[r.g.type]; if (CMP && (i < from || i >= upto)) return '';
+      return `<li class="${st}" style="--c:${c}"><span class="d" style="background:${c}"></span><span class="t">${hm(r.a)}</span><span>${esc(labelOf(r.g))}</span>${st === 'cur' && !off('rowcd') ? `<span class="m cd">${clock(r.b - now)}</span>` : `<span class="m">${r.g.min}′</span>`}${st === 'cur' ? `<span class="p" style="width:${((now - r.a) / (r.b - r.a) * 100).toFixed(1)}%"></span>` : ''}</li>`; }).join('')}</ol>`;
+  }
+  if (!off('total')) h += `<div class="total">${esc(tr(TXT.total, { m:s.mins }))}</div>`;
+  card.innerHTML = h;
+  const list = document.getElementById('list');
+  fit(list, `${s.start}|${p.mode}|${segs.length}|${innerWidth}x${innerHeight}`);
+  if (list) {                                           // giữ đoạn đang chạy trong khung: chừa 1 dòng đã qua phía trên
+    const li = list.children;
+    if (OPT.rows && !CMP && li.length > OPT.rows) list.style.maxHeight = (li[0].offsetHeight * OPT.rows) + 'px';
+    const focus = p.mode === 'live' && !CMP ? Math.max(0, cur - 1) : 0;
+    list.scrollTop = li[focus] ? li[focus].offsetTop : 0;
+    list.classList.toggle('more', list.scrollTop + list.clientHeight < list.scrollHeight - 2);   // còn dòng bên dưới: làm mờ dần mép dưới
+  }
+}
+
+/* ---------- chạy: vẽ lại mỗi giây, lấy lịch mới 3 phút một lần (lỗi thì thử lại sau 1 phút) ---------- */
+async function refresh(){
+  let ok = true;
+  if (OPT.demo) demo(); else ok = await load().catch(() => false);
+  render();
+  setTimeout(refresh, ok ? 180e3 : 60e3);
+}
+/* view=timer: bộ đếm giờ cho stream (thay timer Lua trong OBS). Hiện "Session 1/10" + đếm ngược, tự sang hiệp sau.
+   Danh sách hiệp: lấy từ địa chỉ (focus=50&short=10&long=30&rounds=4&every=4&prep=0) hoặc, nếu không ghi, từ buổi live hôm nay trong Admin.
+   Mặc định (không ghi start): chạy theo lịch Admin, dời theo giờ bấm "Bắt đầu buổi live bây giờ" trong Admin — không cần bấm gì trong OBS.
+   start=manual (hoặc khi ghi focus=… trên địa chỉ): bấm để chạy — trong OBS chọn nguồn rồi bấm Interact: phím Cách = chạy/tạm dừng, → hiệp sau, ← hiệp trước,
+   ↑/↓ cộng/trừ 1 phút, R = làm lại từ đầu; rê chuột vào cũng hiện nút. Trạng thái được nhớ, tải lại trang vẫn chạy tiếp.
+   start=auto: như mặc định.
+   scene_focus=study&scene_break=Break: tự đổi cảnh OBS khi sang hiệp (cần Page permissions = Advanced access to OBS).
+   Âm báo bật sẵn: chuông nhẹ đi xuống khi vào giờ nghỉ, đi lên khi vào lại tập trung (bật/tắt, âm lượng, thử âm trong bảng ⚙).
+   sound=0 tắt, sound=break chỉ báo khi vào nghỉ, vol=0…100. next=0: ẩn dòng "Next". */
+if (Q.get('view') === 'timer') {
+  root.classList.add('timer'); root.style.setProperty('--ts', OPT.size);
+  if (!Q.has('theme')) root.dataset.theme = 'clear';
+  root.dataset.align = ['right', 'center'].includes(Q.get('align')) ? Q.get('align') : 'left';
+  const custom = ['focus', 'rounds', 'short', 'long', 'every', 'prep'].some(k => Q.has(k));
+  const AUTO = Q.get('start') === 'auto' || (Q.get('start') !== 'manual' && !custom);   // mặc định: theo lịch Admin + giờ bấm "Bắt đầu" trong Admin
+  const customSegs = custom ? buildPlan(cleanPomo({ focus:Q.get('focus') || 50, short:Q.has('short') ? Q.get('short') : 10, long:Q.has('long') ? Q.get('long') : 30, rounds:Q.get('rounds') || 4, longEvery:Q.get('every') || 4, prep:Q.get('prep') || 0 })) : null;
+  const sig = segs => segs.map(g => g.type[0] + g.min).join('');
+  const KEY = 'ep-overlay-timer' + (custom ? '-' + sig(customSegs) : '');
+  const PKEY = 'ep-overlay-timer-plan';                // cài đặt gõ trong bảng ⚙ (ưu tiên hơn địa chỉ và lịch Admin)
+  const mkPlan = c => buildPlan(cleanPomo({ focus:c.focus, short:c.short, long:c.long, rounds:c.rounds, longEvery:c.every, prep:c.prep }));
+  let saved = store.get(PKEY), userSegs = saved ? mkPlan(saved) : null;
+  let st = store.get(KEY) || {}, schedSegs = null, flash = 0;
+  const plan = () => userSegs || customSegs || schedSegs || buildPlan(cleanPomo({ focus:50, short:10, long:30, rounds:4, longEvery:4 }));
+  const save = () => store.set(KEY, st);
+  const segMs = i => plan()[i].min * 60e3;
+  function fresh(){ st = { sig:sig(plan()), idx:0, started:false, running:false, left:segMs(0), endAt:0, done:false }; save(); }
+  if ((custom || userSegs) && st.sig !== sig(plan())) fresh();             // theo lịch Admin: kiểm tra sau khi tải lịch
+  const left = () => st.running ? st.endAt - Date.now() : st.left;
+  const scene = g => {
+    const nm = g.type === 'focus' ? Q.get('scene_focus') : g.type === 'prep' ? (Q.get('scene_prep') || Q.get('scene_focus')) : Q.get('scene_break');
+    try { if (nm && window.obsstudio && window.obsstudio.setCurrentScene) window.obsstudio.setCurrentScene(nm); } catch (e) {}
+  };
+  function go(i, keepRun){                               // sang hiệp i (giữ trạng thái chạy / dừng)
+    const segs = plan(); flash = Date.now();
+    if (i >= segs.length) { st.done = true; st.running = false; st.left = 0; save(); return; }
+    st.idx = Math.max(0, i); st.done = false; st.left = segMs(st.idx);
+    if (st.running && keepRun) st.endAt = Date.now() + st.left;
+    save(); if (st.running) scene(segs[st.idx]);
+  }
+  const ACT = {
+    toggle(){ if (AUTO) return; if (st.done) fresh();
+      if (st.running) { st.left = Math.max(0, st.endAt - Date.now()); st.running = false; }
+      else { st.running = true; st.endAt = Date.now() + st.left; if (!st.started) { st.started = true; scene(plan()[st.idx]); } }
+      save(); },
+    next(){ if (!AUTO) go(st.idx + 1, true); }, prev(){ if (!AUTO) go(st.idx - 1, true); },
+    plus(){ if (AUTO) return; if (st.running) st.endAt += 60e3; else st.left += 60e3; save(); },
+    minus(){ if (AUTO) return; if (st.running) st.endAt = Math.max(Date.now() + 1e3, st.endAt - 60e3); else st.left = Math.max(1e3, st.left - 60e3); save(); },
+    reset(){ if (!AUTO) fresh(); }
+  };
+  document.addEventListener('keydown', e => {
+    if (e.target.closest && e.target.closest('input,select')) return;
+    const k = { ' ':'toggle', Enter:'toggle', ArrowRight:'next', ArrowLeft:'prev', ArrowUp:'plus', ArrowDown:'minus', r:'reset', R:'reset', s:'settings', S:'settings' }[e.key];
+    if (k && ACT[k]) { e.preventDefault(); ACT[k](); draw(); }
+  });
+  let mvT = 0;                                           // nút chỉ hiện khi đang rê chuột (Interact), 3 giây sau tự ẩn
+  document.addEventListener('mousemove', () => { root.classList.add('mv'); clearTimeout(mvT); mvT = setTimeout(() => root.classList.remove('mv'), 3000); });
+  document.addEventListener('click', e => { const b = e.target.closest('[data-k]'); if (b) { ACT[b.dataset.k](); draw(); } });
+  const T = OPT.lang === 'vi' ? { ready:'Sẵn sàng', paused:'Tạm dừng', done:'Xong buổi rồi!', next:'Tiếp theo', session:'Phiên {n}/{t}', soon:'Bắt đầu sau' }
+                              : { ready:'Ready', paused:'Paused', done:'All done!', next:'Next', session:'Session {n}/{t}', soon:'Starts in' };
+  const nameOf = g => g.type === 'focus' ? (g.name || tr(T.session, { n:g.n, t:plan().filter(x => x.type === 'focus').length })) : labelOf(g);
+  // Nút + bảng ⚙ nằm ngoài thẻ (thẻ vẽ lại 4 lần/giây, nút trong đó sẽ bị thay mất giữa lúc bấm)
+  const V = Q.get('ui') !== 'en';                       // bảng điều khiển cho người stream: mặc định tiếng Việt (ui=en để đổi)
+  const L = V ? { set:'Cài đặt bộ đếm', focus:'Tập trung (phút)', short:'Nghỉ ngắn (phút)', long:'Nghỉ dài (phút)', rounds:'Số phiên tập trung', every:'Nghỉ dài sau mỗi … phiên', prep:'Chuẩn bị đầu buổi (phút)', save:'Lưu', admin:'Dùng lịch Admin', close:'Đóng', jump:'Nhảy tới', left:'Còn lại (phút)', setLeft:'Đặt', using:'Đang dùng', srcAdmin:'lịch Admin hôm nay', srcNone:'mẫu mặc định 50/10 (hôm nay chưa có lịch trong Admin)', srcUrl:'thời gian ghi trên địa chỉ', srcOwn:'tự đặt', srcPre:'mẫu', adminOn:'✓ Đang theo lịch Admin', okAdmin:'Đã quay về lịch Admin.', okNoAdmin:'Hôm nay chưa có lịch trong Admin nên dùng mẫu 50/10.', okSave:'Đã lưu.', okPre:'Đã chọn mẫu', okLeft:'Đã đặt lại số phút.', sndT:'Âm báo', sndOn:'🔔 Âm báo: Bật', sndOff:'🔕 Âm báo: Tắt', vol:'Âm lượng', when:'Báo khi', wAll:'Vào nghỉ + vào học', wBreak:'Chỉ khi vào nghỉ', test:'▶ Thử âm', sndHint:'Muốn người xem nghe thấy: Properties của nguồn này → tick Control audio via OBS.', hint:'Bấm một mẫu để dùng ngay, hoặc gõ số rồi bấm Lưu. Bảng này hiện lên stream khi đang mở, xong bấm Đóng.' }
+              : { set:'Timer settings', focus:'Focus (min)', short:'Short break (min)', long:'Long break (min)', rounds:'Focus sessions', every:'Long break every … sessions', prep:'Warm-up (min)', save:'Save', admin:'Use Admin schedule', close:'Close', jump:'Jump to', left:'Time left (min)', setLeft:'Set', using:'Using', srcAdmin:"today's Admin schedule", srcNone:'default 50/10 (no Admin schedule today)', srcUrl:'times from the address', srcOwn:'custom', srcPre:'preset', adminOn:'✓ Following Admin schedule', okAdmin:'Back on the Admin schedule.', okNoAdmin:'No Admin schedule today, using 50/10.', okSave:'Saved.', okPre:'Preset', okLeft:'Time left updated.', sndT:'Sound', sndOn:'🔔 Sound: On', sndOff:'🔕 Sound: Off', vol:'Volume', when:'Play when', wAll:'Breaks + focus', wBreak:'Breaks only', test:'▶ Test', sndHint:'For viewers to hear it: this source\'s Properties → tick Control audio via OBS.', hint:'Tap a preset, or type numbers and Save. This panel shows on stream while open; Close when done.' };
+  const PRESETS_T = [                                    // mẫu bấm một lần là dùng (nhớ cho lần sau)
+    { n:'25 / 5', c:{ focus:25, short:5, long:15, rounds:4, every:4, prep:0 } },
+    { n:'50 / 10', c:{ focus:50, short:10, long:30, rounds:4, every:4, prep:0 } },
+    { n:'90 / 20', c:{ focus:90, short:20, long:30, rounds:3, every:3, prep:0 } },
+    { n:'60 / 10', c:{ focus:60, short:10, long:30, rounds:4, every:4, prep:0 } }
+  ];
+  const sndHtml = () => `<b>${esc(L.sndT)}</b><div class="r"><button type="button" data-p="snd"${snd.on ? ' class="on"' : ''}>${esc(snd.on ? L.sndOn : L.sndOff)}</button>`
+    + `<label>${esc(L.vol)} · ${snd.vol}%<input type="range" name="vol" min="0" max="100" step="5" value="${snd.vol}"></label>`
+    + `<label>${esc(L.when)}<select name="when">${[['all', L.wAll], ['break', L.wBreak]].map(([v, t]) => `<option value="${v}"${snd.when === v ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>`
+    + `<button type="button" data-p="test">${esc(L.test)}</button></div><small>${esc(L.sndHint)}</small>`;
+  const sndSave = () => store.set(SKEY, { on:snd.on, vol:snd.vol, when:snd.when });
+  if (AUTO && Q.get('controls') !== '0') {               // tự chạy theo lịch: chỉ có nút ⚙ cho âm báo
+    const tc = document.createElement('div'); tc.className = 'tc'; tc.innerHTML = `<button type="button" data-k="settings">⚙</button>`;
+    const ps = document.createElement('form'); ps.className = 'tset'; ps.hidden = true;
+    document.body.append(tc, ps);
+    const fill = () => { ps.innerHTML = sndHtml() + `<div class="r"><button type="button" data-p="close">${esc(L.close)}</button></div>`; };
+    ps.addEventListener('submit', e => e.preventDefault());
+    ps.addEventListener('change', e => { if (e.target.name === 'vol') { snd.vol = +e.target.value; sndSave(); fill(); chime('break', true); }
+      if (e.target.name === 'when') { snd.when = e.target.value; sndSave(); } });
+    ps.addEventListener('click', e => { const k = e.target.dataset && e.target.dataset.p; if (!k) return;
+      if (k === 'snd') { snd.on = !snd.on; sndSave(); fill(); if (snd.on) chime('break', true); }
+      if (k === 'test') chime('break', true);
+      if (k === 'close') { ps.hidden = true; root.classList.remove('setopen'); } });
+    ACT.settings = () => { ps.hidden = !ps.hidden; root.classList.toggle('setopen', !ps.hidden); if (!ps.hidden) fill(); };
+  }
+  if (!AUTO && Q.get('controls') !== '0') {
+    const tc = document.createElement('div'); tc.className = 'tc';
+    tc.innerHTML = [['prev', '⏮'], ['minus', '−1′'], ['toggle', '⏯'], ['plus', '+1′'], ['next', '⏭'], ['reset', '↺'], ['settings', '⚙']].map(([k, t]) => `<button type="button" data-k="${k}">${t}</button>`).join('');
+    const ps = document.createElement('form'); ps.className = 'tset'; ps.hidden = true;
+    document.body.append(tc, ps);
+    const cur = () => saved || (() => { const f = plan().filter(g => g.type === 'focus'), sh = plan().find(g => g.type === 'short'), lg = plan().find(g => g.type === 'long'), pr = plan().find(g => g.type === 'prep');
+      const li = plan().findIndex(g => g.type === 'long'), every = li < 0 ? f.length : plan().slice(0, li).filter(g => g.type === 'focus').length;
+      return { focus:f.length ? f[0].min : 50, short:sh ? sh.min : 10, long:lg ? lg.min : 30, rounds:f.length || 4, every:every || 4, prep:pr ? pr.min : 0 }; })();
+    let msg = '';
+    const preOf = () => saved ? PRESETS_T.find(x => sig(mkPlan(x.c)) === sig(mkPlan(saved))) : null;
+    const src = () => saved ? (preOf() ? `${L.srcPre} ${preOf().n}` : L.srcOwn) : custom ? L.srcUrl : schedSegs ? L.srcAdmin : L.srcNone;
+    const fill = () => { const c = cur(), segs = plan(), onAdmin = !saved && !custom;
+      const fld = (k, min) => `<label>${esc(L[k])}<input type="number" name="${k}" min="${min}" max="600" value="${c[k]}"></label>`;
+      ps.innerHTML = `<b>${esc(L.set)}</b><div class="src">${esc(L.using)}: <b>${esc(src())}</b>${msg ? ` <span class="ok">${esc(msg)}</span>` : ''}</div><div class="r pre">${PRESETS_T.map((x, i) => `<button type="button" data-p="pre" data-i="${i}"${saved && sig(mkPlan(saved)) === sig(mkPlan(x.c)) ? ' class="pri"' : ''}>${esc(x.n)}</button>`).join('')}</div><div class="g">${fld('focus', 1)}${fld('short', 0)}${fld('long', 0)}${fld('rounds', 1)}${fld('every', 1)}${fld('prep', 0)}</div>`
+        + `<div class="r"><button type="submit" class="pri">${esc(L.save)}</button>${!custom ? `<button type="button" data-p="admin"${onAdmin ? ' class="on"' : ''}>${esc(onAdmin ? L.adminOn : L.admin)}</button>` : ''}<button type="button" data-p="close">${esc(L.close)}</button></div>`
+        + `<div class="r"><label>${esc(L.jump)}<select name="jump">${segs.map((g, i) => `<option value="${i}"${i === st.idx ? ' selected' : ''}>${esc(nameOf(g))} · ${g.min}′</option>`).join('')}</select></label>`
+        + `<label>${esc(L.left)}<input type="number" name="left" min="0" max="600" step="1" value="${Math.max(0, Math.round(left() / 60e3))}"></label><button type="button" data-p="left">${esc(L.setLeft)}</button></div><small>${esc(L.hint)}</small>` + sndHtml(); };
+    const pickPreset = c => { saved = { ...c }; msg = `${L.okPre} ${(PRESETS_T.find(x => x.c === c) || {}).n || ''}`; store.set(PKEY, saved); userSegs = mkPlan(saved); apply(userSegs); fill(); };
+    const apply = segs => {                              // đổi danh sách hiệp: giữ hiệp đang ở (nếu còn) và trạng thái chạy
+      const i = Math.min(st.idx, segs.length - 1); st.sig = sig(segs); st.idx = i; st.done = false; st.left = segs[i].min * 60e3;
+      if (st.running) st.endAt = Date.now() + st.left; save(); };
+    ps.addEventListener('submit', e => { e.preventDefault();
+      const n = k => +ps.elements[k].value;
+      saved = { focus:Math.max(1, n('focus')), short:Math.max(0, n('short')), long:Math.max(0, n('long')), rounds:Math.max(1, n('rounds')), every:Math.max(1, n('every')), prep:Math.max(0, n('prep')) };
+      store.set(PKEY, saved); userSegs = mkPlan(saved); apply(userSegs); msg = L.okSave; fill(); draw(); });
+    ps.addEventListener('change', e => { if (e.target.name === 'jump') { go(+e.target.value, true); fill(); draw(); }
+      if (e.target.name === 'vol') { snd.vol = +e.target.value; sndSave(); fill(); chime('break', true); }
+      if (e.target.name === 'when') { snd.when = e.target.value; sndSave(); } });
+    ps.addEventListener('click', e => { const k = e.target.dataset && e.target.dataset.p; if (!k) return;
+      if (k === 'snd') { snd.on = !snd.on; sndSave(); fill(); if (snd.on) chime('break', true); }
+      if (k === 'test') chime('break', true);
+      if (k === 'pre') pickPreset(PRESETS_T[+e.target.dataset.i].c);
+      if (k === 'close') { ps.hidden = true; root.classList.remove('setopen'); }
+      if (k === 'admin') { try { localStorage.removeItem(PKEY); } catch (er) {} saved = null; userSegs = null; apply(plan()); msg = schedSegs ? L.okAdmin : L.okNoAdmin; fill(); }
+      if (k === 'left') { const m = Math.max(0, +ps.elements.left.value) * 60e3 || 1e3; if (st.running) st.endAt = Date.now() + m; else st.left = m; save(); msg = L.okLeft; fill(); }
+      draw(); });
+    ACT.settings = () => { msg = ''; ps.hidden = !ps.hidden; root.classList.toggle('setopen', !ps.hidden); if (!ps.hidden) fill(); };
+  }
+  function autoState(now){                               // start=auto: vị trí theo giờ lịch
+    const p = pick(now); if (!p || p.mode === 'done') return null;
+    if (p.mode === 'soon') return { lb:T.soon, ms:p.s.start - now, nx:p.s.segs && p.s.segs[0] };
+    let t = p.s.start; const segs = p.s.segs || [];
+    for (let i = 0; i < segs.length; i++) { const b = t + segs[i].min * 60e3; if (now < b) return { lb:nameOf(segs[i]), ms:b - now, nx:segs[i + 1], g:segs[i] }; t = b; }
+    return null;
+  }
+  let lastAutoLb = '', lastMs = 0;
+  function draw(){
+    const now = Date.now(), segs = plan();
+    if (!custom && !userSegs && sessions === null) { card.innerHTML = ''; return; }   // chờ tải lịch Admin
+    if (!AUTO && st.running && now >= st.endAt) {        // hết hiệp: sang hiệp sau, nối tiếp thời gian (không trôi giờ)
+      const over = now - st.endAt; go(st.idx + 1, false); if (over < 5e3) chime(st.done ? 'end' : kindOf(segs[st.idx]));
+      if (!st.done) { st.endAt = now - over + segMs(st.idx); save(); }
+    }
+    let lb, ms, nx, sub = '', g;
+    if (AUTO) {
+      const a = sessions === null ? null : autoState(now);
+      if (!a) { if (lastAutoLb && lastMs < 3e3) chime('end'); lastAutoLb = ''; card.innerHTML = ''; card.classList.add('hide'); return; }
+      ({ lb, ms, nx, g } = a); card.classList.remove('hide');
+      if (lb !== lastAutoLb) { if (lastAutoLb && g) { if (g.min * 60e3 - ms < 10e3) chime(kindOf(g)); scene(g); } lastAutoLb = lb; }   // chỉ báo khi hiệp vừa bắt đầu (không báo khi dời giờ trong Admin)
+      lastMs = ms;
+    } else {
+      card.classList.remove('hide');
+      if (st.done) { lb = T.done; ms = 0; }
+      else { g = segs[st.idx]; lb = nameOf(g); ms = left(); nx = segs[st.idx + 1]; sub = !st.started ? T.ready : !st.running ? T.paused : ''; }
+    }
+    const big = ms >= 3600e3;
+    card.innerHTML = `<div class="tv${now - flash < 1200 ? ' flash' : ''}"><div class="lb">${esc(lb)}${sub ? ` <span class="st">· ${esc(sub)}</span>` : ''}</div>`
+      + `<div class="cd${big ? ' big' : ''}">${st.done && !AUTO ? '' : clock(ms)}</div>`
+      + (nx && !off('next') ? `<div class="nx">${esc(T.next)}: ${esc(nameOf(nx))} · ${nx.min}′</div>` : '') + `</div>`;
+  }
+  draw(); setInterval(draw, 250);
+  if (AUTO || !custom) {                                 // cần lịch Admin: đọc giống bảng lịch (3 phút / lần)
+    const pull = async () => { const ok = OPT.demo ? (demo(), true) : await load().catch(() => false);
+      if (!custom) { const p = pick(Date.now()) || (sessions || []).filter(s => s.start > Date.now() - DAY).map(s => ({ s }))[0];
+        const segs = p && p.s.segs && p.s.segs.length ? p.s.segs : null;
+        if (segs) schedSegs = segs;
+        if (!st.sig || (st.sig !== sig(plan()) && !st.started) || st.idx >= plan().length) fresh(); }
+      draw(); setTimeout(pull, ok ? 180e3 : 60e3); };
+    pull();
+  }
+  return;
+}
+/* view=clock: khối gọn "giờ · Vietnam · GMT+7 · ngày" cho góc màn hình stream (không đọc lịch, không tốn lượt đọc Firebase) */
+if (Q.get('view') === 'clock') {
+  root.classList.add('clock'); root.dataset.align = ['left', 'center'].includes(Q.get('align')) ? Q.get('align') : 'right';
+  root.style.setProperty('--cs', OPT.size);
+  const tz = fmtHM.resolvedOptions().timeZone, loc = OPT.lang === 'vi' ? 'vi-VN' : 'en-GB';
+  const VN = tz === 'Asia/Ho_Chi_Minh' || tz === 'Asia/Saigon';
+  const city = Q.get('label') || Q.get('city') || (VN ? (OPT.lang === 'vi' ? 'Việt Nam' : 'Vietnam') : tz.split('/').pop().replace(/_/g, ' '));
+  const brand = Q.get('name') && Q.get('name') !== '0' ? Q.get('name') : '', showSec = !off('sec'), showDate = !off('date'), showGmt = !off('gmt');
+  if (Q.get('style') === 'line') root.dataset.style = 'line';
+  const LOOK = ['glass', 'pastel', 'app', 'simple'].includes(Q.get('look')) ? Q.get('look') : 'pastel';
+  if (LOOK !== 'simple') {
+    root.dataset.look = LOOK;
+    const fl = document.createElement('link'); fl.rel = 'stylesheet';
+    fl.href = 'https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&family=Fredoka:wght@600;700&family=Space+Mono:wght@700&display=swap';
+    document.head.appendChild(fl);
+  }
+  const MOON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><defs><linearGradient id="ov-moon" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF7AB8"/><stop offset="1" stop-color="#E8368F"/></linearGradient></defs><path d="M60.51 20.22 A46 46 0 1 0 95.33 89.86 A39 39 0 0 1 60.51 20.22Z" fill="url(#ov-moon)"/><g stroke="#5A1F48" stroke-width="6" stroke-linejoin="round"><path d="M84 56 Q72 47 58 52 L58 86 Q72 82 84 90 Z" fill="#FFF4F8"/><path d="M84 56 Q96 47 110 52 L110 86 Q96 82 84 90 Z" fill="#FFF4F8"/></g><path d="M108 8 Q110.16 17.84 120 20 Q110.16 22.16 108 32 Q105.84 22.16 96 20 Q105.84 17.84 108 8Z" fill="#FFC94D"/></svg>';
+  const fDate = new Intl.DateTimeFormat(loc, { timeZone:tz, weekday:'short', day:'numeric', month:'short' });
+  const fHMS = new Intl.DateTimeFormat('en-GB', { timeZone:tz, hour:'2-digit', minute:'2-digit', second:'2-digit', hourCycle:'h23' });
+  let fGmt = null; try { fGmt = new Intl.DateTimeFormat('en-US', { timeZone:tz, timeZoneName:'shortOffset' }); } catch (e) {}
+  const gmt = d => { try { return fGmt.formatToParts(d).find(x => x.type === 'timeZoneName').value; } catch (e) { return ''; } };
+  // Gọn 2 dòng: giờ lớn (giây nhỏ) · "Vietnam · GMT+7 · Fri 23 Oct". style=line: tất cả trên 1 dòng. name=… thêm tên kênh nhỏ phía trên.
+  const tick = () => {
+    const d = new Date(), [h, m, sec] = fHMS.format(d).split(':'), dot = '<i>·</i>';
+    const sub = [`<b>${esc(city)}</b>`, showGmt && gmt(d) ? esc(gmt(d)) : '', showDate ? esc(fDate.format(d).replace(',', '')) : ''].filter(Boolean).join(dot);
+    const g = showGmt ? gmt(d) : '', dt = showDate ? fDate.format(d).replace(',', '') : '', tm = `${h}<b class="kb">:</b>${m}`;
+    if (LOOK === 'glass') card.innerHTML = `<div class="kg"><div class="t">${tm}${showSec ? `<small>${sec}</small>` : ''}</div><div class="r"><i></i><span class="cy">${esc(city)}</span>${g ? `<span>${esc(g)}</span>` : ''}${dt ? `<span>${esc(dt)}</span>` : ''}</div></div>`;
+    else if (LOOK === 'pastel') card.innerHTML = `<div class="kp"><div class="ic">${MOON}</div><div><div class="t">${tm}${showSec ? `<small>:${sec}</small>` : ''}</div><div class="r">${esc([city, dt].filter(Boolean).join(' · '))}${g ? `<span>${esc(g)}</span>` : ''}</div></div></div>`;
+    else if (LOOK === 'app') card.innerHTML = `<div class="ka"><div class="bar"><i style="background:#ff5fa8"></i><i style="background:#ffc72c"></i><i style="background:#2ee6c8"></i><em>${esc(brand || 'Local time')}</em></div><div class="bd"><div class="t">${tm}${showSec ? `<small>:${sec}</small>` : ''}</div><div class="d"><strong>${esc(city)}</strong>${esc(dt)}${g ? `<br><span class="chip">${esc(g)}</span>` : ''}</div></div></div>`;
+    else card.innerHTML = `${brand ? `<div class="ck br">${esc(brand)}</div>` : ''}<div class="ck"><div class="tm">${h}:${m}${showSec ? `<small>:${sec}</small>` : ''}</div><div class="sub">${sub}</div></div>`;
+  };
+  const loop = () => { tick(); setTimeout(loop, 1000 - Date.now() % 1000 + 5); };   // đổi giây đúng lúc đồng hồ máy đổi, canh lại mỗi giây nên chạy cả ngày không lệch
+  loop();
+  return;
+}
+const loop = () => { render(); setTimeout(loop, 1000 - Date.now() % 1000 + 5); };   // số đếm ngược đổi cùng lúc với đồng hồ
+refresh(); loop();
+if (document.fonts) document.fonts.ready.then(() => { lastKey = ''; noteTxt = null; render(); });   // phông chữ tải xong thì đo lại cho vừa khung (cả thanh thông báo)
+window.addEventListener('resize', () => { noteTxt = null; render(); });   // đổi kích thước nguồn trong OBS: đo lại xem thông báo có cần chạy chữ không
+})();
