@@ -412,10 +412,9 @@ html[data-font="serif"] h1,html[data-font="serif"] h2,html[data-font="serif"] h3
 .mj-grid circle{fill:var(--line2)}.mj-grid circle.on{fill:var(--c)}.mj-grid circle.st{stroke:var(--c);stroke-width:1.6;fill:var(--surface2)}
 .mj-grid circle.on.st{fill:var(--c);stroke:#fff;stroke-width:1.4}
 .mj-grid circle.nx{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.8}
-.mj-shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
-.mj-badge{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 6px;border-radius:14px;border:1px solid var(--line2);background:var(--surface2);font-size:1.5rem;text-align:center;filter:grayscale(1);opacity:.55}
-.mj-badge small{font-size:.72rem;font-weight:600;color:var(--ink2);line-height:1.2}
-.mj-badge.on{filter:none;opacity:1;border-color:var(--accent);background:var(--accent-soft)}
+.mj-bank-top{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.mj-bank-n{flex:none;padding:6px 14px;border-radius:99px;background:#ffe44d;color:#3d3000;font-weight:800;font-size:1.15rem}
+.mj-bank-r{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--line2);font-size:.92rem}
 /* Hành trình trăng: con đường tìm Moon (moon-story.js, tranh ở moon-art.js). Giấy kem, màu bút sáp tươi, không đổi theo theme */
 .mj-layout{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);grid-template-areas:"map status" "map side";gap:18px;align-items:start}
 .mj-a-status{grid-area:status}.mj-a-map{grid-area:map;position:sticky;top:12px}.mj-a-side{grid-area:side}
@@ -726,6 +725,5 @@ button.sb-item{width:100%;background:none;border:0;font:inherit;font-weight:600;
 .pl-bar i.mv{background:var(--accent);opacity:.38;border-radius:0}.pl-bar i.gx{background:var(--ink3);opacity:.32;border-radius:0}
 .pl-li.pl-gone{opacity:.62}.pl-li.pl-gone span{cursor:default}.pl-gi{flex:none;width:18px;height:18px;border-radius:50%;border:2px dashed;display:grid;place-items:center;font-style:normal;font-size:.7rem;color:var(--ink3)}
 /* Hành trình trăng: trăng tích trữ và hộp dùng trăng giữ chuỗi */
-.mj-bank{display:inline-block;padding:2px 10px;border-radius:99px;background:#ffe44d;color:#3d3000;font-weight:800}
 .mj-rescue{width:100%;max-width:360px;padding:12px 14px;border-radius:14px;border:1.5px solid #ffd23f;background:rgba(255,228,77,.1);align-items:center}
 .mj-grid circle.sv{fill:#fff2c4;stroke:#ffd23f;stroke-width:1.6}
