@@ -587,7 +587,20 @@ function doRender(){
     return;
   }
   const fn = state.locked ? PAGES.locked : (PAGES[route.name] || PAGES.home);
-  renderChrome(); fn(); afterRender();
+  renderChrome(); fn(); afterRender(); pageIn();
+}
+// Trang mới (đổi địa chỉ) thì nội dung hiện dần và nhích lên nhẹ; vẽ lại cùng trang (dữ liệu mới về) thì không chạy lại hiệu ứng
+let pageKey = null;
+function pageIn(){
+  const k = route.name + '/' + route.args.join('/'), pg = $('page'); if (k === pageKey) return;
+  const first = pageKey === null; pageKey = k; if (first && !$('ep-splash')) return;
+  pg.classList.remove('page-in'); void pg.offsetWidth; pg.classList.add('page-in');
+  clearTimeout(pageIn.t); pageIn.t = setTimeout(() => pg.classList.remove('page-in'), 700);
+}
+// Tắt màn chờ (logo + tên) trong index.html: mờ dần rồi gỡ hẳn
+function splashOut(){
+  const sp = $('ep-splash'); if (!sp) return;
+  sp.classList.add('out'); setTimeout(() => sp.remove(), 650);
 }
 function afterRender(){
   if (typeof updateTimerUI === 'function') updateTimerUI();
@@ -1098,6 +1111,13 @@ document.addEventListener('focusout', e => {
 $('sel-lang').addEventListener('change', e => { state.lang = e.target.value; store.set('lang', state.lang); renderPrefs(); render(true); pushResync(); if (needLangs(state.lang)) loadLangs().then(() => { renderPrefs(); render(true); }).catch(e => console.warn('i18n-langs', e)); });   // chưa có bản dịch: vẽ tạm bằng tiếng Anh, tải xong vẽ lại
 $('sel-tz').addEventListener('change', e => { state.tz = e.target.value; store.set('tz', state.tz); userTZ = state.tz === 'auto' ? DT.local().zoneName : state.tz; listenWeeks(); render(true); pushResync(); });
 $('chk-calm').addEventListener('change', e => { state.calm = e.target.checked; store.set('calm', state.calm); applyLook(); });
+// Bấm vào nút, link, ô chọn…: một giọt mưa nhỏ loang ra đúng chỗ bấm (không chạy khi bật giảm chuyển động)
+const motionOff = () => state.calm || !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+document.addEventListener('pointerdown', e => {
+  if (e.button || motionOff() || !e.target.closest || !e.target.closest('a,button,select,label,[data-act],input[type=checkbox],input[type=radio]')) return;
+  const d = document.createElement('i'); d.className = 'tap-drop'; d.style.left = e.clientX + 'px'; d.style.top = e.clientY + 'px';
+  document.body.appendChild(d); setTimeout(() => d.remove(), 700);
+}, { passive:true });
 window.addEventListener('hashchange', () => { document.body.classList.remove('nav-open'); $('cart-drawer').classList.remove('open'); render(true); window.scrollTo({ top:0 }); });
 
 function boot(){
@@ -1113,6 +1133,7 @@ function boot(){
     readRoute(); doRender();
   }
   window.EP_BOOTED = true; const fb = $('ep-fail'); if (fb) fb.remove();   // tắt lưới an toàn trong index.html (trang đã vẽ được)
+  step('splash', splashOut);
   if (window.EP_HEALED) window.EP_HEALED();
   step('notif', () => { $('btn-notif').classList.toggle('on', LR.on); notifBadge(); });
   step('pwa', pwaRefresh);

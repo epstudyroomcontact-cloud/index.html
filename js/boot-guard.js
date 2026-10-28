@@ -4,6 +4,8 @@
    lần 2: xoá thêm IndexedDB (đăng xuất) rồi tự tải lại; vẫn lỗi mới hiện trang báo lỗi thân thiện (8 ngôn ngữ, nút Tải lại, cách xoá dữ liệu web) + dòng lỗi ngắn.
    Giữ lại ep_lang (ngôn ngữ khách đã chọn) để trang báo lỗi nói đúng tiếng của khách.
    Số lần đã thử nhớ trong sessionStorage (chặn được thì ghi lên địa chỉ ?heal=N), nên không bao giờ tải lại vòng vòng. */
+// Khách đã bật "Giảm chuyển động" (⚙️): bật ngay từ đầu để màn chờ lúc mở web cũng đứng yên (core.js applyLook giữ tiếp)
+try { if (JSON.parse(localStorage.getItem('ep_calm'))) document.documentElement.setAttribute('data-calm', '1'); } catch (e) {}
 (function(){
   var errs = [], KEY = 'ep_heal';
   var tag = function(e){ return (e && (e.message || e.reason && (e.reason.message || e.reason))) || 'error'; };
