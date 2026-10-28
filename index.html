@@ -28,9 +28,9 @@
 <!-- Font Google tải song song, không chặn hiện trang: mạng chậm hoặc chặn Google (vd. Trung Quốc) thì web vẫn mở ngay bằng font máy, có font thì tự đổi -->
 <link id="ep-fonts" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap" rel="stylesheet" media="print">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap" rel="stylesheet"></noscript>
-<link rel="stylesheet" href="app.css?v=117">
-<script src="js/boot-guard.js?v=117"></script>
-<script src="js/fonts.js?v=117" defer></script>
+<link rel="stylesheet" href="app.css?v=118">
+<script src="js/boot-guard.js?v=118"></script>
+<script src="js/fonts.js?v=118" defer></script>
 </head>
 <body>
 
@@ -38,7 +38,7 @@
      trong lúc các thư viện bên dưới (Firebase, Luxon… khoảng 600 KB) còn đang tải, nên không còn khoảng màn hình đen.
      boot() trong core.js tắt màn này khi trang đã vẽ xong. Kiểu dáng ở mục "Màn chờ" trong app.css. -->
 <div class="ep-splash" id="ep-splash" role="status" aria-label="Ép Study Room">
-  <div class="sky-rain" aria-hidden="true"></div>
+  <div class="sp-sky" aria-hidden="true"><svg class="sp-tw" viewBox="0 0 20 20" style="left:18%;top:30%;width:12px;height:12px;animation-delay:-0.5s"><path d="M10 0Q11 9 20 10Q11 11 10 20Q9 11 0 10Q9 9 10 0Z"/></svg><svg class="sp-tw" viewBox="0 0 20 20" style="left:76%;top:22%;width:16px;height:16px;animation-delay:-2.1s"><path d="M10 0Q11 9 20 10Q11 11 10 20Q9 11 0 10Q9 9 10 0Z"/></svg><svg class="sp-tw" viewBox="0 0 20 20" style="left:30%;top:72%;width:10px;height:10px;animation-delay:-3.4s"><path d="M10 0Q11 9 20 10Q11 11 10 20Q9 11 0 10Q9 9 10 0Z"/></svg><svg class="sp-tw" viewBox="0 0 20 20" style="left:84%;top:64%;width:13px;height:13px;animation-delay:-1.2s"><path d="M10 0Q11 9 20 10Q11 11 10 20Q9 11 0 10Q9 9 10 0Z"/></svg><svg class="sp-tw" viewBox="0 0 20 20" style="left:58%;top:14%;width:9px;height:9px;animation-delay:-2.8s"><path d="M10 0Q11 9 20 10Q11 11 10 20Q9 11 0 10Q9 9 10 0Z"/></svg><svg class="sp-tw" viewBox="0 0 20 20" style="left:10%;top:58%;width:8px;height:8px;animation-delay:-0.9s"><path d="M10 0Q11 9 20 10Q11 11 10 20Q9 11 0 10Q9 9 10 0Z"/></svg><svg class="sp-tw" viewBox="0 0 20 20" style="left:66%;top:82%;width:11px;height:11px;animation-delay:-3.9s"><path d="M10 0Q11 9 20 10Q11 11 10 20Q9 11 0 10Q9 9 10 0Z"/></svg></div>
   <div class="sp-box" aria-hidden="true">
     <div class="sp-glow"></div>
     <svg class="sp-moon" viewBox="0 0 128 128" width="112" height="112"><defs><linearGradient id="sp-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF7AB8"/><stop offset="1" stop-color="#E8368F"/></linearGradient></defs>
@@ -54,13 +54,13 @@
 <!-- Thư viện (để sau màn chờ để màn chờ hiện ngay, không đợi các file này). Để ngay trên web (thư mục vendor/): một số mạng, trình duyệt và chặn quảng cáo chặn gstatic.com / cdnjs làm web trắng trơn.
      File nào trong vendor/ không tải được (bị tiện ích chặn…) thì dòng ngay sau nó tải bản dự phòng từ CDN. -->
 <script src="vendor/luxon-3.4.4.min.js"></script>
-<script src="js/fallback-luxon.js?v=117"></script>
+<script src="js/fallback-luxon.js?v=118"></script>
 <script src="vendor/firebase-app-compat-10.8.0.js"></script>
-<script src="js/fallback-firebase-app.js?v=117"></script>
+<script src="js/fallback-firebase-app.js?v=118"></script>
 <script src="vendor/firebase-firestore-compat-10.8.0.js"></script>
-<script src="js/fallback-firebase-firestore.js?v=117"></script>
+<script src="js/fallback-firebase-firestore.js?v=118"></script>
 <script src="vendor/firebase-auth-compat-10.8.0.js"></script>
-<script src="js/fallback-firebase-auth.js?v=117"></script>
+<script src="js/fallback-firebase-auth.js?v=118"></script>
 
 <!-- Icon sprite (Lucide-style strokes) -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -110,8 +110,8 @@
   <symbol id="i-volume" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></symbol>
 </svg>
 
-<!-- Bầu trời đêm sau lưng cả trang: sao lấp lánh, mưa nhẹ, quầng trăng và thỉnh thoảng một vệt sao băng (chỉ CSS, xem mục "Bầu trời đêm" trong app.css) -->
-<div class="sky" aria-hidden="true"><i class="sky-glow"></i><i class="sky-stars"></i><i class="sky-stars s2"></i><div class="sky-rain far"></div><div class="sky-rain"></div><i class="sky-shoot"></i></div>
+<!-- Thiên hà sau lưng cả trang: js/sky.js vẽ dải Ngân Hà cùng nét với tranh trong web, chuyển động ở mục "Thiên hà" trong app.css -->
+<div class="sky" id="sky" aria-hidden="true"><i class="sky-core"></i></div>
 
 <div class="app">
   <aside class="sidebar" id="sidebar"></aside>
@@ -162,17 +162,18 @@
 </div>
 <div id="toast"></div>
 
-<script src="js/firebase-config.js?v=117"></script>
-<script src="js/i18n.js?v=117"></script>
-<script src="i18n-extra.js?v=117"></script>
+<script src="js/firebase-config.js?v=118"></script>
+<script src="js/i18n.js?v=118"></script>
+<script src="i18n-extra.js?v=118"></script>
 <!-- Bản dịch lớn hi/ja/ko/zh/fr/es: chỉ tải khi khách đã chọn một trong các tiếng đó (khách tiếng Anh/Việt không phải tải). Đổi ngôn ngữ ở ⚙️ thì core.js tự tải. -->
-<script src="js/lang-loader.js?v=117"></script>
-<script src="js/translate.js?v=117"></script>
-<script src="js/art.js?v=117"></script>
-<script src="core.js?v=117"></script>
-<script src="pages.js?v=117"></script>
-<script src="moon-story-text.js?v=117"></script>
-<script src="moon-story.js?v=117"></script>
-<script src="js/start.js?v=117"></script>
+<script src="js/lang-loader.js?v=118"></script>
+<script src="js/translate.js?v=118"></script>
+<script src="js/art.js?v=118"></script>
+<script src="core.js?v=118"></script>
+<script src="pages.js?v=118"></script>
+<script src="moon-story-text.js?v=118"></script>
+<script src="moon-story.js?v=118"></script>
+<script src="js/start.js?v=118"></script>
+<script src="js/sky.js?v=118" defer></script>
 </body>
 </html>

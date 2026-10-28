@@ -1111,12 +1111,13 @@ document.addEventListener('focusout', e => {
 $('sel-lang').addEventListener('change', e => { state.lang = e.target.value; store.set('lang', state.lang); renderPrefs(); render(true); pushResync(); if (needLangs(state.lang)) loadLangs().then(() => { renderPrefs(); render(true); }).catch(e => console.warn('i18n-langs', e)); });   // chưa có bản dịch: vẽ tạm bằng tiếng Anh, tải xong vẽ lại
 $('sel-tz').addEventListener('change', e => { state.tz = e.target.value; store.set('tz', state.tz); userTZ = state.tz === 'auto' ? DT.local().zoneName : state.tz; listenWeeks(); render(true); pushResync(); });
 $('chk-calm').addEventListener('change', e => { state.calm = e.target.checked; store.set('calm', state.calm); applyLook(); });
-// Bấm vào nút, link, ô chọn…: một giọt mưa nhỏ loang ra đúng chỗ bấm (không chạy khi bật giảm chuyển động)
+// Bấm vào nút, link, ô chọn…: một ngôi sao nhỏ loé lên đúng chỗ bấm (không chạy khi bật giảm chuyển động)
 const motionOff = () => state.calm || !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 document.addEventListener('pointerdown', e => {
   if (e.button || motionOff() || !e.target.closest || !e.target.closest('a,button,select,label,[data-act],input[type=checkbox],input[type=radio]')) return;
-  const d = document.createElement('i'); d.className = 'tap-drop'; d.style.left = e.clientX + 'px'; d.style.top = e.clientY + 'px';
-  document.body.appendChild(d); setTimeout(() => d.remove(), 700);
+  const d = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); d.setAttribute('class', 'tap-star'); d.setAttribute('viewBox', '0 0 20 20');
+  d.innerHTML = '<path d="M10 0Q11 9 20 10Q11 11 10 20Q9 11 0 10Q9 9 10 0Z"/>'; d.style.left = e.clientX + 'px'; d.style.top = e.clientY + 'px';
+  document.body.appendChild(d); setTimeout(() => d.remove(), 650);
 }, { passive:true });
 window.addEventListener('hashchange', () => { document.body.classList.remove('nav-open'); $('cart-drawer').classList.remove('open'); render(true); window.scrollTo({ top:0 }); });
 

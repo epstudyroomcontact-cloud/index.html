@@ -859,78 +859,74 @@ button.sb-item{width:100%;background:none;border:0;font:inherit;font-weight:600;
 
 /* =========================================================
    MÀN CHỜ LÚC MỞ WEB (#ep-splash trong index.html)
-   Hiện ngay khi trình duyệt đọc tới đầu <body>, trong lúc thư viện còn tải: trăng logo bồng bềnh, hai ngôi sao lấp lánh,
-   trang sách khẽ lật, tên web hiện dần, một vệt sáng chạy dưới tên, mưa đêm rơi phía sau.
+   Hiện ngay khi trình duyệt đọc tới đầu <body>, trong lúc thư viện còn tải: trăng logo bồng bềnh giữa một dải sao mờ,
+   vài ngôi sao bốn cánh lấp lánh, tên web hiện dần, một vệt sáng chạy dưới tên.
    boot() trong core.js thêm class .out để mờ dần rồi gỡ hẳn. Máy bật "giảm chuyển động": đứng yên, chỉ hiện logo và tên.
    ========================================================= */
-:root{--rain-near:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='170' height='300'%3E%3Cg stroke='%23c9d8ff' stroke-width='1.3' stroke-linecap='round'%3E%3Cpath d='M56 45v23' stroke-opacity='0.40'/%3E%3Cpath d='M91 110v17' stroke-opacity='0.68'/%3E%3Cpath d='M8 130v17' stroke-opacity='0.41'/%3E%3Cpath d='M72 248v17' stroke-opacity='0.50'/%3E%3Cpath d='M106 284v22' stroke-opacity='0.61'/%3E%3Cpath d='M106 -16v22' stroke-opacity='0.61'/%3E%3Cpath d='M164 14v25' stroke-opacity='0.54'/%3E%3Cpath d='M26 35v19' stroke-opacity='0.88'/%3E%3Cpath d='M32 174v22' stroke-opacity='0.59'/%3E%3Cpath d='M93 19v17' stroke-opacity='0.48'/%3E%3C/g%3E%3C/svg%3E");--rain-far:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='110' height='220'%3E%3Cg stroke='%23a9bbe8' stroke-width='1' stroke-linecap='round'%3E%3Cpath d='M74 94v11' stroke-opacity='0.73'/%3E%3Cpath d='M50 66v14' stroke-opacity='0.80'/%3E%3Cpath d='M28 126v12' stroke-opacity='0.92'/%3E%3Cpath d='M79 63v15' stroke-opacity='0.43'/%3E%3Cpath d='M46 167v10' stroke-opacity='0.67'/%3E%3Cpath d='M6 147v14' stroke-opacity='0.72'/%3E%3Cpath d='M95 69v13' stroke-opacity='0.74'/%3E%3Cpath d='M63 100v14' stroke-opacity='0.96'/%3E%3Cpath d='M52 146v9' stroke-opacity='0.81'/%3E%3Cpath d='M71 218v14' stroke-opacity='0.53'/%3E%3Cpath d='M71 -2v14' stroke-opacity='0.53'/%3E%3C/g%3E%3C/svg%3E")}
-[data-theme="pop"]{--rain-near:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='170' height='300'%3E%3Cg stroke='%235a6c9a' stroke-width='1.3' stroke-linecap='round'%3E%3Cpath d='M66 201v16' stroke-opacity='0.65'/%3E%3Cpath d='M30 35v17' stroke-opacity='0.85'/%3E%3Cpath d='M23 74v20' stroke-opacity='0.92'/%3E%3Cpath d='M15 135v21' stroke-opacity='0.92'/%3E%3Cpath d='M138 259v19' stroke-opacity='0.62'/%3E%3Cpath d='M62 265v26' stroke-opacity='0.45'/%3E%3Cpath d='M31 70v18' stroke-opacity='0.67'/%3E%3Cpath d='M100 79v16' stroke-opacity='0.62'/%3E%3Cpath d='M63 170v26' stroke-opacity='0.80'/%3E%3C/g%3E%3C/svg%3E");--rain-far:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='110' height='220'%3E%3Cg stroke='%237a8ab0' stroke-width='1' stroke-linecap='round'%3E%3Cpath d='M57 136v13' stroke-opacity='0.39'/%3E%3Cpath d='M97 172v14' stroke-opacity='0.87'/%3E%3Cpath d='M44 88v10' stroke-opacity='0.76'/%3E%3Cpath d='M9 15v10' stroke-opacity='0.46'/%3E%3Cpath d='M38 12v9' stroke-opacity='0.45'/%3E%3Cpath d='M13 80v9' stroke-opacity='0.92'/%3E%3Cpath d='M67 33v11' stroke-opacity='0.58'/%3E%3Cpath d='M41 27v14' stroke-opacity='1.00'/%3E%3Cpath d='M51 106v10' stroke-opacity='0.42'/%3E%3Cpath d='M38 58v14' stroke-opacity='0.45'/%3E%3C/g%3E%3C/svg%3E")}
-.ep-splash{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;overflow:hidden;background:radial-gradient(120% 80% at 50% 38%,#1a1430 0%,#0b0e1c 55%,#080b13 100%);color:#f7f3ff;transition:opacity .55s ease,visibility .55s}
+.ep-splash{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;overflow:hidden;background:radial-gradient(120% 80% at 50% 40%,#151231 0%,#0a0d1b 55%,#080b13 100%);color:#f7f3ff;transition:opacity .6s ease,visibility .6s}
+/* dải sao mờ chéo màn hình, cùng hướng với thiên hà phía sau trang */
+.ep-splash::before{content:"";position:absolute;left:-30%;right:-30%;top:50%;height:46vmin;margin-top:-23vmin;transform:rotate(-38deg);background:radial-gradient(50% 50% at 50% 50%,rgba(98,70,170,.32),rgba(176,74,138,.12) 45%,transparent 72%);filter:blur(18px)}
 .ep-splash.out{opacity:0;visibility:hidden;pointer-events:none}
-.ep-splash.out .sp-box{transform:scale(1.06)}
-.ep-splash .sky-rain{position:absolute;opacity:.55}
-.sp-box{position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;transition:transform .55s ease;animation:sp-in .7s cubic-bezier(.2,.8,.2,1) both}
-.sp-glow{position:absolute;top:-34px;left:50%;width:220px;height:220px;margin-left:-110px;border-radius:50%;background:radial-gradient(circle,rgba(255,92,170,.36) 0%,rgba(255,201,77,.12) 42%,transparent 70%);animation:sp-glow 2.8s ease-in-out infinite}
-.sp-moon{position:relative;width:112px;height:112px;overflow:visible;filter:drop-shadow(0 8px 24px rgba(232,54,143,.45))}
-.sp-float{animation:sp-float 3.2s ease-in-out infinite}
+.ep-splash.out .sp-box{transform:scale(1.04)}
+.sp-sky{position:absolute;inset:0}
+.sp-tw{position:absolute;width:14px;height:14px;fill:#ffe08a;animation:tw 4.5s ease-in-out infinite}
+.sp-box{position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;transition:transform .6s ease;animation:sp-in .8s cubic-bezier(.2,.8,.2,1) both}
+.sp-glow{position:absolute;top:-34px;left:50%;width:220px;height:220px;margin-left:-110px;border-radius:50%;background:radial-gradient(circle,rgba(255,92,170,.3) 0%,rgba(255,201,77,.1) 42%,transparent 70%);animation:sp-glow 4s ease-in-out infinite}
+.sp-moon{position:relative;width:112px;height:112px;overflow:visible;filter:drop-shadow(0 8px 24px rgba(232,54,143,.4))}
+.sp-float{animation:sp-float 4.5s ease-in-out infinite}
 .sp-star,.sp-blink,.sp-page-l,.sp-page-r{transform-box:fill-box}
-.sp-star{transform-origin:center;animation:sp-twk 1.8s ease-in-out infinite}
-.sp-star2{animation-delay:.7s}
-.sp-blink{transform-origin:center;animation:sp-blink 3.6s infinite}
-.sp-page-r{transform-origin:0 50%;animation:sp-page 3.2s ease-in-out infinite}
+.sp-star{transform-origin:center;animation:tw 2.8s ease-in-out infinite}
+.sp-star2{animation-delay:-1.2s}
+.sp-blink{transform-origin:center;animation:sp-blink 4.2s infinite}
+.sp-page-r{transform-origin:0 50%;animation:sp-page 4.5s ease-in-out infinite}
 .sp-name{font-family:'Baloo 2','Nunito',system-ui,-apple-system,'Segoe UI',sans-serif;font-weight:800;font-size:clamp(1.5rem,6vw,2rem);letter-spacing:.01em;line-height:1.1;
-  background:linear-gradient(100deg,#f7f3ff 0%,#f7f3ff 38%,#ffc94d 48%,#ff9fd0 54%,#f7f3ff 64%,#f7f3ff 100%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
-  animation:sp-name .8s .15s cubic-bezier(.2,.8,.2,1) both,sp-shine 2.6s 1s ease-in-out infinite}
-.sp-bar{width:120px;height:3px;border-radius:3px;background:rgba(255,255,255,.1);overflow:hidden;animation:sp-name .8s .3s both}
-.sp-bar i{display:block;width:40%;height:100%;border-radius:3px;background:linear-gradient(90deg,transparent,#ff5cad,#ffc94d,transparent);animation:sp-bar 1.4s ease-in-out infinite}
-@keyframes sp-in{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
-@keyframes sp-name{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  background:linear-gradient(100deg,#f7f3ff 0%,#f7f3ff 40%,#ffe2b0 48%,#ffc8dc 53%,#f7f3ff 61%,#f7f3ff 100%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:sp-name .9s .15s cubic-bezier(.2,.8,.2,1) both,sp-shine 3.6s 1s ease-in-out infinite}
+.sp-bar{width:110px;height:2px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden;animation:sp-name .9s .3s both}
+.sp-bar i{display:block;width:40%;height:100%;border-radius:2px;background:linear-gradient(90deg,transparent,#ffc8dc,#ffe2b0,transparent);animation:sp-bar 1.8s ease-in-out infinite}
+@keyframes sp-in{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+@keyframes sp-name{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @keyframes sp-shine{0%{background-position:100% 0}60%,100%{background-position:0 0}}
 @keyframes sp-bar{from{transform:translateX(-110%)}to{transform:translateX(260%)}}
-@keyframes sp-float{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-7px) rotate(-3deg)}}
-@keyframes sp-glow{0%,100%{opacity:.7;transform:scale(.92)}50%{opacity:1;transform:scale(1.06)}}
-@keyframes sp-twk{0%,100%{opacity:.55;transform:scale(.7) rotate(0)}50%{opacity:1;transform:scale(1.15) rotate(20deg)}}
-@keyframes sp-blink{0%,90%,100%{transform:scaleY(1)}94%{transform:scaleY(.1)}}
-@keyframes sp-page{0%,70%,100%{transform:scaleX(1)}82%{transform:scaleX(.55)}}
+@keyframes sp-float{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-6px) rotate(-2.5deg)}}
+@keyframes sp-glow{0%,100%{opacity:.7;transform:scale(.94)}50%{opacity:1;transform:scale(1.05)}}
+@keyframes sp-blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes sp-page{0%,72%,100%{transform:scaleX(1)}84%{transform:scaleX(.6)}}
+/* sao bốn cánh lấp lánh: lúc mờ nhỏ, lúc sáng thì nở ra và xoay nhẹ (dùng chung cho màn chờ, logo, thiên hà) */
+@keyframes tw{0%,100%{opacity:.25;transform:scale(.55) rotate(0)}50%{opacity:1;transform:scale(1) rotate(15deg)}}
 
 /* =========================================================
-   BẦU TRỜI ĐÊM SAU LƯNG CẢ TRANG (.sky trong index.html)
-   Nằm dưới mọi nội dung (z-index:-1, không bắt chuột): quầng trăng thở chậm góc trên, hai lớp sao lấp lánh lệch nhịp,
-   hai lớp mưa xa/gần rơi xiên (lớp xa mảnh và chậm hơn), thỉnh thoảng một vệt sao băng.
-   Chỉ dùng CSS transform/opacity nên máy tự đẩy sang card đồ hoạ, gần như không tốn pin. Theme sáng "Rực rỡ": mưa xám xanh, không sao.
-   Máy bật "giảm chuyển động" hoặc tick "Giảm chuyển động" ở ⚙️: bầu trời đứng yên (còn sao và quầng trăng, không mưa).
+   THIÊN HÀ SAU LƯNG CẢ TRANG (.sky trong index.html, vẽ bởi js/sky.js)
+   Nằm dưới mọi nội dung (z-index:-1, không bắt chuột). Tranh dải Ngân Hà (canvas .sky-gal) trôi rất chậm,
+   lõi sáng (.sky-core) thở, sao bốn cánh (.sky-tw) lấp lánh lệch nhịp, bụi sáng (.sky-mote) bay lên chậm.
+   Chỉ animate transform/opacity nên máy tự đẩy sang card đồ hoạ. Theme sáng "Rực rỡ": không có dải, chỉ còn vài sao hồng nhạt.
+   Giảm chuyển động (máy hoặc ⚙️): tranh đứng yên, không có bụi bay.
    ========================================================= */
-.sky{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;contain:strict}
+.sky{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;contain:strict;opacity:0;transition:opacity 1.6s ease}
+.sky.on{opacity:1}
 .sky>*{position:absolute;display:block}
-.sky-glow{top:-22vmax;right:-14vmax;width:60vmax;height:60vmax;border-radius:50%;background:radial-gradient(circle,rgba(var(--accent-rgb),.14) 0%,rgba(255,201,77,.05) 40%,transparent 68%);animation:sky-glow 9s ease-in-out infinite alternate}
-.sky-stars{inset:0;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='280'%3E%3Cg fill='%23fff6e0'%3E%3Ccircle cx='6' cy='266' r='1' fill-opacity='0.62'/%3E%3Ccircle cx='193' cy='256' r='1' fill-opacity='0.58'/%3E%3Ccircle cx='180' cy='25' r='0.7' fill-opacity='0.71'/%3E%3Ccircle cx='254' cy='100' r='0.6' fill-opacity='0.72'/%3E%3Ccircle cx='218' cy='92' r='0.6' fill-opacity='0.77'/%3E%3Ccircle cx='221' cy='212' r='0.6' fill-opacity='0.88'/%3E%3Ccircle cx='229' cy='207' r='0.6' fill-opacity='0.52'/%3E%3Ccircle cx='138' cy='205' r='0.5' fill-opacity='0.87'/%3E%3Ccircle cx='132' cy='54' r='1' fill-opacity='0.97'/%3E%3Ccircle cx='125' cy='262' r='0.7' fill-opacity='0.97'/%3E%3Ccircle cx='102' cy='62' r='0.6' fill-opacity='0.68'/%3E%3Ccircle cx='95' cy='135' r='1' fill-opacity='0.90'/%3E%3Ccircle cx='134' cy='183' r='1.2' fill-opacity='0.45'/%3E%3Ccircle cx='185' cy='255' r='1.2' fill-opacity='0.85'/%3E%3C/g%3E%3C/svg%3E") 0 0/280px 280px;opacity:.55;animation:sky-twk 5s ease-in-out infinite alternate}
-.sky-stars.s2{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='340' height='340'%3E%3Cg fill='%23ffd9ec'%3E%3Ccircle cx='163' cy='61' r='1.2' fill-opacity='0.60'/%3E%3Ccircle cx='272' cy='330' r='0.8' fill-opacity='0.68'/%3E%3Ccircle cx='253' cy='29' r='0.6' fill-opacity='0.50'/%3E%3Ccircle cx='43' cy='51' r='0.8' fill-opacity='0.88'/%3E%3Ccircle cx='50' cy='281' r='0.8' fill-opacity='0.79'/%3E%3Ccircle cx='119' cy='187' r='0.6' fill-opacity='0.41'/%3E%3Ccircle cx='272' cy='247' r='0.5' fill-opacity='0.72'/%3E%3Ccircle cx='317' cy='147' r='0.6' fill-opacity='0.90'/%3E%3Ccircle cx='72' cy='86' r='0.7' fill-opacity='0.70'/%3E%3Ccircle cx='260' cy='111' r='1' fill-opacity='0.65'/%3E%3C/g%3E%3C/svg%3E") 90px 140px/340px 340px;animation-duration:7s;animation-delay:-3s}
-/* mưa: khung nghiêng (skew) cho hạt rơi xiên theo gió, lớp ::before trượt xuống đúng một ô hoạ tiết rồi lặp lại liền mạch */
-.sky-rain{top:0;bottom:0;left:-30vh;right:0;transform:skewX(-11deg);transform-origin:0 0;overflow:hidden;opacity:.32}
-.sky-rain::before{content:"";position:absolute;left:0;right:0;top:-300px;bottom:0;background:var(--rain-near) 0 0/170px 300px;animation:sky-rain .95s linear infinite;will-change:transform}
-.sky-rain.far{opacity:.24}
-.sky-rain.far::before{top:-220px;background:var(--rain-far) 0 0/110px 220px;animation-duration:1.25s}
-.sky-shoot{top:12vh;left:18vw;width:140px;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,rgba(255,240,210,.9));transform-origin:100% 50%;opacity:0;animation:sky-shoot 17s 4s ease-out infinite}
-@keyframes sky-glow{from{opacity:.65;transform:scale(.94)}to{opacity:1;transform:scale(1.05)}}
-@keyframes sky-twk{from{opacity:.25}to{opacity:.75}}
-@keyframes sky-rain{from{transform:translateY(0)}to{transform:translateY(var(--tile,300px))}}
-@keyframes sky-shoot{0%{opacity:0;transform:translate(0,0) rotate(24deg) scaleX(.3)}2%{opacity:1}6%{opacity:0;transform:translate(46vw,22vw) rotate(24deg) scaleX(1)}100%{opacity:0;transform:translate(46vw,22vw) rotate(24deg)}}
-.sky-rain.far::before{--tile:220px}
-[data-theme="pop"] .sky-stars,[data-theme="pop"] .sky-shoot{display:none}
-[data-theme="pop"] .sky-rain{opacity:.22}[data-theme="pop"] .sky-rain.far{opacity:.16}
-@media(max-width:820px){.sky-rain.far{display:none}.sky-rain{opacity:.26}}
+.sky-gal{left:-4%;top:-4%;width:108%;height:108%;opacity:.62;animation:gal-drift 140s ease-in-out infinite alternate;will-change:transform}
+.sky-core{width:52vmax;height:30vmax;margin:-15vmax 0 0 -26vmax;transform:rotate(-38deg);border-radius:50%;background:radial-gradient(closest-side,rgba(255,214,170,.12),rgba(255,150,200,.05) 55%,transparent);animation:core-breathe 11s ease-in-out infinite}
+.sky-tw{margin:-10px 0 0 -10px;opacity:.25;animation:tw 6s ease-in-out infinite;filter:drop-shadow(0 0 4px rgba(255,224,170,.55))}
+.sky-mote{width:3px;height:3px;border-radius:50%;background:#ffe2b0;box-shadow:0 0 6px 1px rgba(255,214,150,.45);opacity:0;animation:mote 30s linear infinite}
+@keyframes gal-drift{from{transform:translate(0,0) rotate(0) scale(1)}to{transform:translate(-2.2%,1.4%) rotate(1.2deg) scale(1.03)}}
+@keyframes core-breathe{0%,100%{opacity:.6}50%{opacity:1}}
+@keyframes mote{0%{opacity:0;transform:translate(0,0)}12%{opacity:.7}85%{opacity:.5}100%{opacity:0;transform:translate(3vw,-38vh)}}
+[data-theme="pop"] .sky-gal,[data-theme="pop"] .sky-core,[data-theme="pop"] .sky-mote{display:none}
+[data-theme="pop"] .sky-tw path{fill:rgba(var(--accent-rgb),.45)}
+[data-theme="pop"] .sky-tw{filter:none}
 
 /* ---------- chuyển trang: nội dung trang mới hiện dần và nhích lên nhẹ (core.js pageIn) ---------- */
-.page.page-in{animation:page-in .4s cubic-bezier(.2,.8,.2,1) backwards}
-@keyframes page-in{from{opacity:0;transform:translateY(12px)}}
-/* ---------- giọt mưa nhỏ loang ra chỗ vừa bấm (core.js tapDrop) ---------- */
-.tap-drop{position:fixed;z-index:600;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;border:2px solid rgba(var(--accent-rgb),.75);pointer-events:none;animation:tap-drop .6s ease-out forwards}
-.tap-drop::after{content:"";position:absolute;inset:14px;border-radius:50%;border:1.5px solid rgba(var(--accent-rgb),.45);animation:tap-drop .6s .08s ease-out backwards}
-@keyframes tap-drop{from{transform:scale(.15);opacity:1}to{transform:scale(1);opacity:0}}
+.page.page-in{animation:page-in .45s cubic-bezier(.2,.8,.2,1) backwards}
+@keyframes page-in{from{opacity:0;transform:translateY(10px)}}
+/* ---------- bấm vào nút, link: một ngôi sao nhỏ loé lên chỗ vừa bấm (core.js) ---------- */
+.tap-star{position:fixed;z-index:600;width:22px;height:22px;margin:-11px 0 0 -11px;pointer-events:none;fill:#ffe2b0;filter:drop-shadow(0 0 5px rgba(var(--accent-rgb),.7));animation:tap-star .55s ease-out forwards}
+@keyframes tap-star{0%{opacity:0;transform:scale(.2) rotate(0)}35%{opacity:1;transform:scale(1) rotate(25deg)}100%{opacity:0;transform:scale(.6) rotate(45deg)}}
+[data-theme="pop"] .tap-star{fill:var(--accent)}
 /* logo trăng ở thanh bên khẽ bồng bềnh */
-.logo-mark.is-moon img{animation:sp-float 5s ease-in-out infinite}
+.logo-mark.is-moon img{animation:sp-float 6s ease-in-out infinite}
 
 /* giảm chuyển động: `*` ở đầu file không áp cho ::before/::after nên tắt riêng ở đây */
-html[data-calm="1"] .sky-rain,html[data-calm="1"] .sky-shoot,html[data-calm="1"] .tap-drop{display:none}
-html[data-calm="1"] .sp-bar,html[data-calm="1"] .ep-splash .sky-rain{display:none}
-@media (prefers-reduced-motion:reduce){.sky-rain,.sky-shoot,.tap-drop,.sp-bar{display:none}*::before,*::after{animation:none!important}}
+html[data-calm="1"] .sky-mote,html[data-calm="1"] .tap-star,html[data-calm="1"] .sp-bar{display:none}
+html[data-calm="1"] .sky-tw,html[data-calm="1"] .sp-tw{opacity:.7}
+@media (prefers-reduced-motion:reduce){.sky-mote,.tap-star,.sp-bar{display:none}.sky-tw,.sp-tw{opacity:.7}*::before,*::after{animation:none!important}}
