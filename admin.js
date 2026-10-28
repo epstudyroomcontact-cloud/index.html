@@ -694,7 +694,7 @@ const supRemove = id => supSave((supporters.items || []).filter(x => x.id !== id
 let reqUnsub = null, reqFirst = true;
 function notifyNewRequest(r){                  // có người vừa bấm "Tôi đã thanh toán" khi admin đang mở web: toast + chuông + thông báo trình duyệt (nếu đã bật)
   const who = r.email || r.name || '—'; toast('Có yêu cầu Companions mới: ' + who);
-  try { if (typeof beep === 'function') beep(); } catch (e) {}
+  try { if (typeof soundPlay === 'function') soundPlay('admin'); } catch (e) {}
   try { if ('Notification' in window && Notification.permission === 'granted') new Notification(branding.name, { body:'Yêu cầu Companions mới: ' + who + (r.months ? ' · ' + r.months + ' tháng' : '') }); } catch (e) {}
 }
 function adminWatchRequests(){
