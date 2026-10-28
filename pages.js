@@ -740,7 +740,7 @@ Object.assign(ACTIONS, {
     try {
       if (DEMO) return toast('Demo: không có file');
       const d = await db.collection('products_private').doc(el.dataset.id).get(); if (!d.exists) return alert('Chưa có file cho sản phẩm này — hãy liên hệ chủ trang.');
-      const f = d.data(); let url = f.fileUrl; if (f.storagePath && storage) url = await storage.ref(f.storagePath).getDownloadURL();
+      const f = d.data(); let url = f.fileUrl; if (f.storagePath && await loadStorage()) url = await storage.ref(f.storagePath).getDownloadURL();
       if (!url) return alert('Chưa có file cho sản phẩm này — hãy liên hệ chủ trang.'); window.open(url, '_blank', 'noopener');
     } catch (e) { alert(t('err_generic') + e.message); }
   }

@@ -10,6 +10,14 @@ const loadEmailJS = () => emailP || (emailP = loadScript('https://cdn.jsdelivr.n
 let adminP = null;
 const ASSET_V = ((document.currentScript && /[?&]v=(\w+)/.exec(document.currentScript.src)) || [])[1] || '92';   // lấy đúng số ?v= của core.js trong index.html, để admin.js / planner.js tải cùng bản (không phải sửa tay ở đây nữa)
 const loadAdmin = () => typeof PAGES.admin === 'function' ? Promise.resolve() : (adminP || (adminP = loadScript('admin.js?v=' + ASSET_V).catch(e => { adminP = null; throw e; })));
+let moonArtP = null;
+const loadMoonArt = () => typeof mjArt === 'function' ? Promise.resolve() : (moonArtP || (moonArtP = Promise.all(['moon-art.js', 'moon-rain.js', 'moon-fx.js'].map(f => loadScript(f + '?v=' + ASSET_V))).catch(e => { moonArtP = null; throw e; })));   // tranh + mưa + hiệu ứng của Hành trình trăng (~150 KB): chỉ tải khi mở #/club
+let storageP = null;   // Firebase Storage chỉ cần khi tải file lên / tải sản phẩm về: tải lúc cần, không chặn lúc mở web
+const loadStorage = () => storage ? Promise.resolve(storage) : (storageP || (storageP = (window.firebase && firebase.storage ? Promise.resolve() : loadScript('vendor/firebase-storage-compat-10.8.0.js').catch(() => loadScript('https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js')))
+  .then(() => (storage = firebase.storage())).catch(e => { storageP = null; console.warn('Storage chưa sẵn sàng', e); return null; })));
+let langsP = null;   // js/i18n-langs.js: bản dịch lớn hi/ja/ko/zh/fr/es, khách tiếng Anh/Việt không cần tải
+const loadLangs = () => window.EP_LANGS ? Promise.resolve() : (langsP || (langsP = loadScript('js/i18n-langs.js?v=' + ASSET_V).catch(e => { langsP = null; throw e; })));
+const needLangs = l => l !== 'en' && l !== 'vi' && !window.EP_LANGS;
 let plannerP = null;
 const loadPlanner = () => typeof PAGES.planner === 'function' ? Promise.resolve() : (plannerP || (plannerP = Promise.all([loadScript('planner-i18n.js?v=' + ASSET_V).catch(() => {}), loadScript('planner.js?v=' + ASSET_V)]).catch(e => { plannerP = null; throw e; })));   // planner-i18n.js = bản dịch hi/ja/ko/zh/fr/es; thiếu thì dùng tiếng Anh
 const EMAILJS_SERVICE = 'service_a098n5f', EMAILJS_CHALLENGE_TPL = 'template_lhv0y0n';
@@ -18,7 +26,7 @@ const CONFIG_MISSING = !window.FIREBASE_CONFIG || /PASTE_|PLACEHOLDER/.test(JSON
 firebase.initializeApp(window.FIREBASE_CONFIG || { apiKey:'AIzaSyPLACEHOLDER', projectId:'none', appId:'none' });
 const db = firebase.firestore(), auth = firebase.auth();
 try { db.settings({ experimentalForceLongPolling:true, merge:true }); } catch (e) { console.warn('firestore settings', e); }   // một số mạng/trình duyệt chặn hoặc làm chậm kết nối streaming nên lần đọc đầu báo 'unavailable' (Planner không tải được): dùng long-polling luôn, ổn định hơn cho web nhỏ này
-let storage = null; try { storage = firebase.storage(); } catch (e) { console.warn('Storage chưa sẵn sàng', e); }
+let storage = null;   // tải bằng loadStorage() khi cần
 const TS = () => firebase.firestore.FieldValue.serverTimestamp(), DEL = () => firebase.firestore.FieldValue.delete();
 const DT = luxon.DateTime, VN = 'Asia/Ho_Chi_Minh';
 const QP = new URLSearchParams(location.search);
@@ -566,6 +574,11 @@ function doRender(){
     loadAdmin().then(() => render(true)).catch(() => { $('page').innerHTML = '<p class="muted" style="padding:24px">Không tải được trang admin. Kiểm tra mạng rồi tải lại trang.</p>'; });
     return;
   }
+  if (route.name === 'club' && !state.locked && typeof mjArt !== 'function') {   // moon-art.js chưa tải: tải rồi vẽ lại
+    renderChrome(); $('page').innerHTML = '<div class="gate-load"><i></i></div>';
+    loadMoonArt().then(() => render(true)).catch(pageCrash);
+    return;
+  }
   if (route.name === 'planner' && typeof PAGES.planner !== 'function') {        // planner.js chỉ tải khi mở #/planner
     renderChrome(); $('page').innerHTML = '<div class="gate-load"><i></i></div>';
     loadPlanner().then(() => render(true)).catch(pageCrash);   // không tải được planner.js (mạng chập chờn, bị chặn…)
@@ -945,7 +958,8 @@ function saveCmsImage(key, url){
   if (DEMO) { render(true); return; }
   db.collection('settings').doc('content').set({ images:{ [key]: url || DEL() } }, { merge:true }).then(() => { toast(t('saved')); render(true); }).catch(e => alert('Lỗi lưu: ' + e.message));
 }
-function uploadFile(file, path, onProgress){
+async function uploadFile(file, path, onProgress){
+  if (!DEMO) await loadStorage();
   return new Promise((resolve, reject) => {
     if (DEMO) return reject(new Error('Chế độ xem thử không tải được file'));
     if (!storage) return reject(new Error('Firebase Storage chưa bật — xem SETUP.md'));
@@ -1016,7 +1030,7 @@ document.addEventListener('focusout', e => {
   if (state.editMode && el.dataset && el.dataset.cms && el.textContent.trim() !== el.dataset.orig) saveCmsText(el.dataset.cms, el.textContent.trim());   // chỉ lưu khi chữ thật sự đổi
   setTimeout(() => { if (pendingRender && !typingInPage()) render(); }, 50);
 });
-$('sel-lang').addEventListener('change', e => { state.lang = e.target.value; store.set('lang', state.lang); renderPrefs(); render(true); pushResync(); });
+$('sel-lang').addEventListener('change', e => { state.lang = e.target.value; store.set('lang', state.lang); renderPrefs(); render(true); pushResync(); if (needLangs(state.lang)) loadLangs().then(() => { renderPrefs(); render(true); }).catch(e => console.warn('i18n-langs', e)); });   // chưa có bản dịch: vẽ tạm bằng tiếng Anh, tải xong vẽ lại
 $('sel-tz').addEventListener('change', e => { state.tz = e.target.value; store.set('tz', state.tz); userTZ = state.tz === 'auto' ? DT.local().zoneName : state.tz; listenWeeks(); render(true); pushResync(); });
 $('chk-calm').addEventListener('change', e => { state.calm = e.target.checked; store.set('calm', state.calm); applyLook(); });
 window.addEventListener('hashchange', () => { document.body.classList.remove('nav-open'); $('cart-drawer').classList.remove('open'); render(true); window.scrollTo({ top:0 }); });
@@ -1037,6 +1051,7 @@ function boot(){
   if (window.EP_HEALED) window.EP_HEALED();
   step('notif', () => { $('btn-notif').classList.toggle('on', LR.on); notifBadge(); });
   step('pwa', pwaRefresh);
+  if (needLangs(state.lang)) step('langs', () => loadLangs().then(() => { renderPrefs(); render(true); }));   // index.html chưa tải được bản dịch (bị chặn…): tải lại rồi vẽ lại
   const afterLoad = () => { swRegister(); setTimeout(pushResync, 3000); };   // pushResync: làm mới token thông báo đẩy (trình duyệt thỉnh thoảng đổi token)
   if (document.readyState === 'complete') afterLoad(); else window.addEventListener('load', afterLoad);   // đăng ký sau khi trang tải xong để không làm chậm lúc mở web
   if (state.user === null && DEMO && DEMO_AS) { render(true); }

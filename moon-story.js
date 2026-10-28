@@ -159,7 +159,9 @@ function mjChapterHTML(s, best, preview){
     <div class="row between mj-ch-nav">${prev ? `<button class="btn ghost sm" data-act="mjOpen" data-id="${prev.id}">${ic('chev-l', 'sm')} ${esc(t('mjs_prev'))}</button>` : '<span></span>'}${next ? `<button class="btn ghost sm" data-act="mjOpen" data-id="${next.id}">${esc(t('mjs_nextc'))} ${ic('chev-r', 'sm')}</button>` : ''}</div></div></article>`;
 }
 function mjOpenChapter(id){
-  const s = mjStop(id); if (!s) return; const m = moonData(), best = m ? m.best : 0, preview = mjPreview();
+  const s = mjStop(id); if (!s) return;
+  if (typeof mjArt !== 'function') { loadMoonArt().then(() => mjOpenChapter(id)).catch(e => console.warn('moon art', e)); return; }   // tranh chưa tải (mở từ trang khác)
+  const m = moonData(), best = m ? m.best : 0, preview = mjPreview();
   if (!preview && !mjOpen(s, best)) { toast(t('mjs_lock', { n:s.day, k:s.day - best })); return; }
   openModal(mjChapterHTML(s, best, preview)); $('dialog').classList.add('mj-dialog'); $('dialog').scrollTop = 0;
   if (state.editMode) applyEditable();
