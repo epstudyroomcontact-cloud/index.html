@@ -738,6 +738,7 @@ function renderLiveRem(){
     ${notifBroken() ? `<p class="lr-note warn">${esc(t('nh_blocked'))}</p>` : ''}
     ${pushHTML()}
     ${plRemHTML()}
+    ${typeof mjRemHTML === 'function' ? mjRemHTML() : ''}
     <div class="switch"><span>${esc(t('lr_on'))}</span><input type="checkbox" data-change="lrOn" ${LR.on ? 'checked' : ''}></div>
     <div class="${LR.on ? '' : 'lr-off'}">
       <label class="label">${esc(t('lr_before'))}</label>
@@ -795,7 +796,7 @@ async function pushOff(){
 }
 async function pushSet(on){
   PUSH.busy = true; PUSH.err = false; renderLiveRem();
-  try { if (on) await pushSync(true); else await pushOff(); PUSH.on = on; toast(t(on ? 'push_on_toast' : 'push_off_toast')); if (plCan() && (on || plRemIsOn())) plRemSet(true, true); else if (plCan() && plPinOn()) loadPlanner().then(() => plPushSync(true)).catch(() => {}); }   // bật thông báo đẩy = bật luôn nhắc việc; tắt thì token cũ bị xoá nên nhắc việc lấy token mới
+  try { if (on) await pushSync(true); else await pushOff(); PUSH.on = on; toast(t(on ? 'push_on_toast' : 'push_off_toast')); if (plCan() && (on || plRemIsOn())) plRemSet(true, true); else if (plCan() && plPinOn()) loadPlanner().then(() => plPushSync(true)).catch(() => {}); if (typeof mjRemOn === 'function' && mjRemOn()) mjPushSync(true).catch(() => {}); }   // bật thông báo đẩy = bật luôn nhắc việc; tắt thì token cũ bị xoá nên nhắc việc lấy token mới
   catch (e) { console.warn('push', e); PUSH.on = false; PUSH.err = NOTIF_OK && Notification.permission !== 'denied'; }
   store.set('push_on', PUSH.on); PUSH.busy = false; renderLiveRem();
 }
@@ -813,7 +814,7 @@ function pushHTML(){
 }
 /* Cảnh báo trong bảng chuông: những gì web tự biết được (quyền thông báo, iPhone chưa thêm ra Màn hình chính, chưa cài app)
    và hướng dẫn ngắn cho phần web không biết được (Không làm phiền, tắt tiếng, pin, kiểu thông báo Im lặng) */
-const notifBroken = () => NOTIF_OK && ((PUSH.on || store.get('pl_rem', false)) && Notification.permission !== 'granted' || LR.on && lrPop() && Notification.permission === 'denied');   // đã bật nhắc mà quyền thông báo bị chặn / bị thu hồi
+const notifBroken = () => NOTIF_OK && ((PUSH.on || store.get('pl_rem', false) || store.get('mj_rem', false)) && Notification.permission !== 'granted' || LR.on && lrPop() && Notification.permission === 'denied');   // đã bật nhắc mà quyền thông báo bị chặn / bị thu hồi
 const notifBadge = () => { const b = $('btn-notif'); if (b) b.classList.toggle('warn', notifBroken()); };
 function notifHelpHTML(){
   const app = !pwaStandalone() && !pwaIOS && pushSupported() ? `<p class="lr-note">${esc(t('nh_app'))}</p><button type="button" class="btn ghost sm" data-act="pwaInstall">${ic('download', 'sm')} ${esc(t('pwa_install'))}</button>` : '';

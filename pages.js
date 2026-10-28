@@ -731,7 +731,7 @@ Object.assign(ACTIONS, {
   rate: el => { reviewRating = +el.dataset.n; document.querySelectorAll('#rev-stars button').forEach(b => b.classList.toggle('on', +b.dataset.n === reviewRating)); },
   authTab: el => { authTab = el.dataset.t; render(true); },
   forgot: async () => { const m = $('au-email').value.trim(); if (!m) return $('au-err').textContent = t('email') + '?'; try { await auth.sendPasswordResetEmail(m); toast(t('reset_sent')); } catch (e) { $('au-err').textContent = authErr(e); } },
-  signout: async () => { if (DEMO) return toast('Demo'); if (typeof plPushOff === 'function') await plPushOff(); await auth.signOut(); myOrders = null; location.hash = '#/account'; },
+  signout: async () => { if (DEMO) return toast('Demo'); if (typeof plPushOff === 'function') await plPushOff(); await mjPushOff(); await auth.signOut(); myOrders = null; location.hash = '#/account'; },
   resendVerify: () => state.user.sendEmailVerification().then(() => toast(t('verify_sent'))).catch(e => toast(e.message)),
   download: async el => {
     try {
@@ -875,6 +875,7 @@ PAGES.club = function(){
       ${arrived ? `<p class="muted">${esc(n > moonRoad() ? t('mj_after') : t('club_full_sub'))}</p>` : `<div class="progress" style="width:100%;max-width:300px"><i style="width:${d / span * 100}%"></i></div><p class="small faint">${esc(L.a >= moonRoad() ? t('mj_after') : left > 1 ? t('mj_leg', { n:left }) : t(doneToday ? 'mj_leg_one' : 'mj_leg_today'))}</p>`}
       ${!doneToday && m.rescue ? `<div class="mj-rescue stack"><p class="small"><b>🌕 ${esc(t('mj_rescue', { g:m.rescue.length, n:m.lost }))}</b></p><button class="btn primary" data-act="moonRescue">${esc(t('mj_rescue_btn', { g:m.rescue.length }))}</button><p class="small faint">${esc(t('mj_rescue_note'))}</p></div>` : ''}
       <button class="btn ${m.rescue && !doneToday ? 'ghost' : 'primary'} lg" data-act="moonCheckin" ${doneToday ? 'disabled' : ''}>${ic('check', 'sm')} ${esc(doneToday ? t('club_done_today') : t('club_checkin'))}</button>
+      ${mjRemHTML(true)}
       ${!doneToday && !m.rescue ? `<p class="small" style="color:${m.broken ? 'var(--danger)' : 'var(--ink3)'}">${esc(m.broken ? t('club_broken', { n:m.lost }) : n ? t('club_keep') : '')}</p>` : ''}
       ${state.companion ? `${compBadge()}${state.companionUntil ? `<div class="small faint">${esc(compUntilText())}</div>` : ''}` : ''}</div>`;
   }
@@ -887,6 +888,69 @@ PAGES.club = function(){
     <h2 style="font-size:1.2rem;margin:34px 0 14px">${esc(t('club_remind'))}</h2>${challengeCard()}`);
   mjMount();
 };
+/* ---------- nhắc giữ chuỗi (bật ở bảng chuông 🔔 hoặc ngay dưới nút điểm danh; mặc định tắt, mỗi máy bật riêng) ----------
+   Từ MJ_REM_AT (21:00 theo múi giờ của khách) mà hôm nay chưa điểm danh thì nhắc MỘT lần trong ngày:
+   - chuỗi còn (lần cuối điểm danh là hôm qua): điểm danh trước nửa đêm để giữ chuỗi; còn trăng tích trữ thì nói thêm là lỡ quên vẫn giữ được bằng trăng;
+   - chuỗi vừa đứt nhưng đủ trăng để vá (m.rescue): mở Hành trình trăng dùng trăng rồi điểm danh.
+   Đang mở web: mjRemTick nhắc trong trang (toast + chuông + thông báo trình duyệt). Đã đóng web: máy này lưu token vào users/<uid>.mjPush
+   ({ on, tokens, tz, lang }), GitHub Actions (scripts/push-moon.mjs) đọc users/<uid>.moon và gửi cùng câu chữ, cùng tag 'mj-<ngày>' nên chỉ hiện 1 thông báo. */
+const MJ_REM_AT = 21 * 60, mjRemH = () => `${String(MJ_REM_AT / 60 | 0).padStart(2, '0')}:${String(MJ_REM_AT % 60).padStart(2, '0')}`;
+const mjRemOn = () => !!store.get('mj_rem', false);
+function mjRemText(m){
+  if (!m || m.days.includes(todayKey())) return '';
+  if (m.days.length) return t('mjr_keep', { n:m.days.length }) + (m.balance ? ' ' + t('mjr_moon', { b:m.balance }) : '');
+  return m.rescue ? t('mjr_rescue', { n:m.lost, g:m.rescue.length }) : '';
+}
+async function mjNotify(body, tag){                                 // giống plNotify: điện thoại Android chỉ cho hiện thông báo qua service worker
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+  const opts = { body, tag, renotify:true, icon:'icons/icon-192.png', data:{ url:location.href.split('#')[0] + '#/club' } };
+  try { const reg = await swRegister(); if (reg && reg.showNotification) return await reg.showNotification(t('nav_club'), opts); } catch (e) {}
+  try { new Notification(t('nav_club'), opts); } catch (e) {}
+}
+const mjPushOk = () => typeof pushSupported === 'function' && pushSupported() && Notification.permission === 'granted';
+async function mjPushSync(force){                                   // lưu token của máy này cho máy gửi (ghi lại mỗi tuần, hoặc khi token / ngôn ngữ / múi giờ đổi)
+  const u = state.user; if (!u || DEMO || !mjRemOn() || !mjPushOk() || !await swRegister()) return false;
+  const reg = await navigator.serviceWorker.ready, m = await loadMessaging();
+  const token = await m.getToken({ vapidKey:PUSH_VAPID, serviceWorkerRegistration:reg }); if (!token) return false;
+  const old = store.get('mj_push', null), sig = u.uid + '|' + token + '|' + state.lang + '|' + userTZ;
+  if (!force && old && old.sig === sig && Date.now() - old.t < 7 * 864e5) return true;
+  const F = firebase.firestore.FieldValue, ref = db.collection('users').doc(u.uid);
+  if (old && old.uid === u.uid && old.token !== token) await ref.update({ 'mjPush.tokens':F.arrayRemove(old.token) }).catch(() => {});   // token cũ (trình duyệt đã đổi token)
+  await ref.set({ mjPush:{ on:true, tokens:F.arrayUnion(token), tz:String(userTZ).slice(0, 64), lang:state.lang, at:TS() } }, { merge:true });
+  store.set('mj_push', { uid:u.uid, token, sig, t:Date.now() });
+  return true;
+}
+async function mjPushOff(){                                         // tắt nhắc / đăng xuất: máy này thôi nhận nhắc khi đã đóng web
+  const old = store.get('mj_push', null); store.set('mj_push', null);
+  if (!old || DEMO || !state.user || state.user.uid !== old.uid) return;
+  await db.collection('users').doc(old.uid).update({ 'mjPush.tokens':firebase.firestore.FieldValue.arrayRemove(old.token) }).catch(() => {});
+}
+const mjPushHere = () => { const p = store.get('mj_push', null); return !!(p && state.user && p.uid === state.user.uid && mjPushOk()); };
+let mjPushKey = '';
+function mjRemTick(){
+  const u = state.user; if (!u || !mjRemOn() || (!DEMO && !state.profileReady)) return;
+  const pk = u.uid + '|' + state.lang + '|' + userTZ;                 // mở web / đổi tài khoản, ngôn ngữ, múi giờ: báo lại cho máy gửi
+  if (pk !== mjPushKey) { mjPushKey = pk; mjPushSync().catch(e => console.warn('moon push', e)); }
+  const now = DT.now().setZone(userTZ), day = now.toISODate(), k = u.uid + '|' + day;
+  if (now.hour * 60 + now.minute < MJ_REM_AT || store.get('mj_rem_sent', '') === k) return;
+  const body = mjRemText(moonData()); if (!body) return;
+  store.set('mj_rem_sent', k); liveChime('soft'); toast('🌙 ' + body, 9000); mjNotify(body, 'mj-' + day);
+}
+setInterval(mjRemTick, 30000);
+async function mjRemSet(on){
+  if (on && typeof audio === 'function') audio();                   // mở khoá chuông ngay trong lần bấm này
+  if (on && typeof Notification !== 'undefined' && Notification.permission === 'default') { try { await Notification.requestPermission(); } catch (e) {} }
+  store.set('mj_rem', on);
+  try { await (on ? mjPushSync(true) : mjPushOff()); } catch (e) { console.warn('moon push', e); }
+  mjPushKey = ''; toast(t(on ? 'mjr_on_toast' : 'mjr_off_toast')); renderLiveRem(); if (route.name === 'club') render(true);
+}
+CHANGES.mjRemOn = el => mjRemSet(el.checked);
+function mjRemHTML(club){                                           // club: dòng gọn dưới nút điểm danh; không thì dùng trong bảng chuông
+  if (!state.user) return '';
+  const on = mjRemOn(), h = mjRemH(), note = t(on ? (mjPushHere() ? 'mjr_ok' : 'mjr_fg') : 'mjr_note', { h });
+  const sw = `<div class="switch${club ? ' mj-rem' : ''}"><span>${club ? '🔔 ' + esc(t('mjr_on', { h })) : `<b>${esc(t('mjr_on', { h }))}</b>`}</span><input type="checkbox" data-change="mjRemOn" ${on ? 'checked' : ''} aria-label="${esc(t('mjr_on', { h }))}"></div>`;
+  return club ? sw : `${sw}<p class="lr-note ${on && mjPushHere() ? 'ok' : ''}">${esc(note)}</p><hr class="lr-hr">`;
+}
 
 /* =========================================================
    DONATE / COMPANIONS
