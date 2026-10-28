@@ -508,11 +508,35 @@ function tabGear(){
 /* ---------------- Đơn hàng ---------------- */
 async function tabOrders(){
   A('<p class="muted">Đang tải…</p>'); let list = []; try { list = DEMO ? [{ id:'EP-DEMO1', code:'EP-DEMO1', total:79000, currency:'VND', status:'paid', uid:'demo', buyer:{ name:'Linh', email:'linh@mail.com' }, items:[{ id:'planner', name:'30-Day Study Planner (PDF)', qty:1, type:'digital' }], createdAt:Date.now() }] : await getAll('orders', 'createdAt', 100); } catch (e) { return fail(e); }
+  try { [ORD_REF.prods, ORD_REF.coupons] = await Promise.all([getAll('products'), getAll('coupons')]); } catch (e) { console.warn('order check', e.code); }
   A(aCard('Đơn hàng gần đây', list.length ? `<div class="tbl-wrap"><table class="table"><tr><th>Mã / ngày</th><th>Khách</th><th>Sản phẩm</th><th>Tổng</th><th>Trạng thái</th></tr>${list.map(o => `<tr><td><b class="mono">${esc(o.code)}</b><div class="small faint">${esc(dateStr(o.createdAt))}</div></td>
     <td>${esc(o.buyer && o.buyer.name || '')}<div class="small"><b>${esc(o.buyer && o.buyer.email || '')}</b></div>${o.buyer && o.buyer.address ? `<div class="small muted">${esc(o.buyer.address)}</div>` : ''}${o.buyer && o.buyer.note ? `<div class="small faint">“${esc(o.buyer.note)}”</div>` : ''}<div class="small faint">${o.uid ? 'Có tài khoản' : 'Khách vãng lai'}</div></td>
-    <td>${(o.items || []).map(i => `${esc(i.name)} ×${i.qty}`).join('<br>')}</td><td>${money(o.total, o.currency)}${o.coupon ? `<div class="small faint">mã ${esc(o.coupon)}</div>` : ''}</td>
+    <td>${(o.items || []).map(i => `${esc(i.name)} ×${esc(i.qty)}`).join('<br>')}</td><td>${money(o.total, o.currency)}${o.coupon ? `<div class="small faint">mã ${esc(o.coupon)}</div>` : ''}${orderWarn(o) ? `<div class="small" style="color:var(--danger);margin-top:2px">⚠ ${esc(orderWarn(o))}</div>` : ''}</td>
     <td><select class="select" style="min-width:120px" data-change="orderStatus" data-id="${esc(o.id)}">${['pending', 'paid', 'shipped', 'cancelled'].map(s => `<option ${o.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select>${(o.items || []).some(i => i.type !== 'physical') && o.uid && ['paid', 'shipped'].includes(o.status) ? `<button class="btn secondary sm mt-s" data-act="grant" data-id="${esc(o.id)}">Cấp lại quyền tải</button>` : ''}</td></tr>`).join('')}</table></div><p class="hint">Khi bạn chuyển sang <b>paid</b>, các sản phẩm số trong đơn tự động xuất hiện trong Thư viện của khách (nếu họ đã đăng nhập khi mua).</p>` : '<p class="muted">Chưa có đơn hàng.</p>'));
   window._orders = Object.fromEntries(list.map(o => [o.id, o]));
+}
+/* Đơn do trình duyệt của khách tạo nên số tiền/sản phẩm trong đơn có thể bị sửa. Tính lại theo giá thật đang lưu (sản phẩm + mã giảm giá)
+   và báo đỏ nếu khác, để không lỡ bấm "paid" (mở quyền tải) cho đơn chỉ chuyển 1.000đ. Trả về '' nếu khớp. */
+const ORD_REF = { prods:null, coupons:null };
+function orderWarn(o){
+  if (DEMO || !ORD_REF.prods) return '';
+  const cur = o.currency === 'USD' ? 'USD' : 'VND', items = Array.isArray(o.items) ? o.items : [];
+  let sub = 0;
+  for (const i of items) {
+    const p = ORD_REF.prods.find(x => x.id === i.id), q = +i.qty;
+    if (!p) return `Sản phẩm "${String(i.name || i.id).slice(0, 40)}" không có trong cửa hàng: kiểm tra kỹ trước khi xác nhận.`;
+    if (!Number.isInteger(q) || q < 1 || q > 99) return 'Số lượng trong đơn không hợp lệ.';
+    sub += pprice(p, cur) * q;
+  }
+  let disc = 0;
+  if (o.coupon) {
+    const c = (ORD_REF.coupons || []).find(x => x.id === String(o.coupon).toUpperCase());
+    if (!c) return `Mã giảm giá "${String(o.coupon).slice(0, 20)}" không tồn tại.`;
+    const d = c.type === 'percent' ? Math.round(sub * (+c.value || 0)) / 100 : (cur === 'VND' ? +c.valueVND : +c.valueUSD) || 0;
+    disc = Math.min(sub, cur === 'VND' ? Math.round(d) : d);
+  }
+  const want = Math.max(0, sub - disc);
+  return Math.abs(want - (+o.total || 0)) > (cur === 'VND' ? 1 : 0.01) ? `Theo giá hiện tại, đơn này phải là ${money(want, cur)}. Chỉ xác nhận khi đã nhận đủ số này.` : '';
 }
 async function grantLibrary(o){
   if (!o.uid) return toast('Đơn của khách vãng lai — hãy gửi file qua email.');
@@ -522,6 +546,8 @@ async function grantLibrary(o){
   await b.commit(); toast(`Đã cấp quyền tải ${items.length} sản phẩm`);
 }
 CHANGES.orderStatus = async el => {
+  const w = ['paid', 'shipped'].includes(el.value) && orderWarn((window._orders || {})[el.dataset.id] || {});
+  if (w && !confirm('⚠ ' + w + '\n\nVẫn xác nhận đơn này?')) { tabOrders(); return; }
   try {
     if (!DEMO) await db.collection('orders').doc(el.dataset.id).update({ status:el.value });
     const o = (window._orders || {})[el.dataset.id]; if (o) { o.status = el.value; if (['paid', 'shipped'].includes(el.value)) await grantLibrary(o); }

@@ -6,7 +6,7 @@ const BUILD = '2026-10-25 · bản 42 (web tự sửa khi mở lỗi)';   // hi�
 /* Tải theo nhu cầu (không chặn lúc mở trang): EmailJS chỉ khi gửi email, admin.js chỉ khi chủ trang đăng nhập / mở #/admin */
 const loadScript = src => new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('load ' + src)); document.head.appendChild(s); });
 let emailP = null;
-const loadEmailJS = () => emailP || (emailP = loadScript('https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js').then(() => { emailjs.init("JKo4tonk0gQMwrHFZ"); }).catch(e => { emailP = null; console.warn('EmailJS chưa tải được', e); throw e; }));
+const loadEmailJS = () => emailP || (emailP = loadScript('vendor/emailjs-browser-4.4.1.min.js').catch(() => loadScript('https://cdn.jsdelivr.net/npm/@emailjs/browser@4.4.1/dist/email.min.js')).then(() => { emailjs.init("JKo4tonk0gQMwrHFZ"); }).catch(e => { emailP = null; console.warn('EmailJS chưa tải được', e); throw e; }));
 let adminP = null;
 const ASSET_V = ((document.currentScript && /[?&]v=(\w+)/.exec(document.currentScript.src)) || [])[1] || '92';   // lấy đúng số ?v= của core.js trong index.html, để admin.js / planner.js tải cùng bản (không phải sửa tay ở đây nữa)
 const loadAdmin = () => typeof PAGES.admin === 'function' ? Promise.resolve() : (adminP || (adminP = loadScript('admin.js?v=' + ASSET_V).catch(e => { adminP = null; throw e; })));
@@ -36,6 +36,8 @@ const DEMO_AS = QP.get('as');           // ?demo=1&as=admin | as=user → giả 
 /* ---------- helpers ---------- */
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+// Link lấy từ dữ liệu (admin dán, nội dung lưu trên Firestore): chặn kiểu link chạy mã (javascript:, data:, vbscript:), link thường giữ nguyên
+const safeUrl = u => /^(javascript|data|vbscript):/i.test(String(u ?? '').replace(/[\u0000-\u0020\u007f-\u009f]/g, '')) ? '#' : String(u ?? '');
 const store = {
   get(k, d){ try { const v = localStorage.getItem('ep_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v){ try { localStorage.setItem('ep_' + k, JSON.stringify(v)); } catch (e) {} }
@@ -44,7 +46,7 @@ const ic = (n, c = '') => `<svg class="ic ${c}" aria-hidden="true"><use href="#i
 const debounce = (fn, ms) => { let h; return (...a) => { clearTimeout(h); h = setTimeout(() => fn(...a), ms); }; };
 const tsMs = ts => ts && ts.toMillis ? ts.toMillis() : (typeof ts === 'number' ? ts : Date.now());
 const slugify = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
-const money = (n, cur) => new Intl.NumberFormat(cur === 'VND' ? 'vi-VN' : 'en-US', { style:'currency', currency:cur, maximumFractionDigits: cur === 'VND' ? 0 : 2 }).format(n || 0);
+const money = (n, cur) => { cur = cur === 'VND' ? 'VND' : 'USD'; return new Intl.NumberFormat(cur === 'VND' ? 'vi-VN' : 'en-US', { style:'currency', currency:cur, maximumFractionDigits: cur === 'VND' ? 0 : 2 }).format(+n || 0); };   // chỉ VND/USD: đơn có mã tiền tệ lạ không làm hỏng trang admin
 const readMins = html => Math.max(1, Math.round((html || '').replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length / 200));
 function youTubeId(s){
   s = String(s || '').trim(); if (/^[\w-]{11}$/.test(s)) return s;
@@ -611,7 +613,7 @@ function renderChrome(){
   $('sidebar').innerHTML = `
     <a class="sb-brand" href="#/"><span class="logo-mark${branding.logoUrl ? '' : ' is-moon'}">${logo}</span><span>${esc(branding.name)}</span></a>
     ${items.map(n => n.url
-      ? `<a class="sb-item" href="${esc(n.url)}" target="_blank" rel="noopener">${ic('link')}<span>${esc(navLabel(n))}</span></a>`
+      ? `<a class="sb-item" href="${esc(safeUrl(n.url))}" target="_blank" rel="noopener">${ic('link')}<span>${esc(navLabel(n))}</span></a>`
       : `<a class="sb-item ${route.name === n.id || (n.id === 'home' && route.name === 'home') ? 'active' : ''}" href="#${n.path}" data-act="closeNav">${ic(n.icon)}<span>${esc(navLabel(n))}</span>${n.id === 'shop' && cartN ? `<span class="count">${cartN}</span>` : ''}${isLocked(n.id) ? `<span class="lk" title="${esc(t('lock_title'))}">${ic('lock', 'sm')}</span>` : ''}</a>`).join('')}
     ${state.user ? `<div class="sb-label">${esc(t('nav_account'))}</div>
       <a class="sb-item ${route.name === 'account' && route.args[0] === 'library' ? 'active' : ''}" href="#/account/library" data-act="closeNav">${ic('download')}<span>${esc(t('nav_library'))}</span>${library.length ? `<span class="count">${library.length}</span>` : ''}</a>` : ''}
