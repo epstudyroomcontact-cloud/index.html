@@ -5,7 +5,7 @@
 const isPhone = () => window.matchMedia && window.matchMedia('(max-width:760px)').matches;
 const phoneNote = () => isPhone() && !store.get('phone_note_off', false) ? `<aside class="phone-note" role="note"><div><b>${esc(t('phone_note_title'))}</b><p>${esc(t('phone_note_text'))}</p></div><button type="button" class="btn secondary sm" data-act="phoneNoteOff">${esc(t('phone_note_ok'))}</button></aside>` : '';   // giải thích vì sao web ưu tiên máy tính, chỉ hiện trên điện thoại và bấm "Đã hiểu" là không hiện nữa
 /* ghi chú "có gì mới" đóng được (nhớ trong máy): key = new_focus / new_tease / new_pl; có href thì thêm nút dẫn tới trang đó */
-const hintNote = (key, href) => store.get('hint_' + key, false) ? '' : `<aside class="phone-note hint-note" role="note"><div><b>${esc(t(key + '_title'))}</b><p>${esc(t(key + '_text'))}</p></div><span class="row" style="flex:none;gap:6px">${href ? `<a class="btn primary sm" href="${esc(href)}" data-act="hintOff" data-key="${key}">${esc(t(key + '_link'))}</a>` : ''}<button type="button" class="btn secondary sm" data-act="hintOff" data-key="${key}">${esc(t('phone_note_ok'))}</button></span></aside>`;
+const hintNote = (key, href) => store.get('hint_' + key, false) ? '' : `<aside class="phone-note hint-note" role="note"><div><b>${esc(t(key + '_title'))}</b><p>${esc(t(key + '_text'))}</p></div><span class="row" style="flex:none;gap:6px">${href ? `<a class="btn primary sm" href="${esc(safeUrl(href))}" data-act="hintOff" data-key="${key}">${esc(t(key + '_link'))}</a>` : ''}<button type="button" class="btn secondary sm" data-act="hintOff" data-key="${key}">${esc(t('phone_note_ok'))}</button></span></aside>`;
 const page = html => { $('page').innerHTML = phoneNote() + html; };
 const fmtDate = ts => DT.fromMillis(tsMs(ts)).setLocale(state.lang).toLocaleString(DT.DATE_MED);
 const stars = n => `<span class="stars" aria-label="${n}/5">${[1,2,3,4,5].map(i => `<svg class="ic ${i <= n ? '' : 'off'}"><use href="#i-star"/></svg>`).join('')}</span>`;
@@ -179,7 +179,7 @@ const liveEmbedSrc = () => branding.ytLiveId ? `https://www.youtube.com/embed/${
 PAGES.watch = function(){
   const liveSrc = liveEmbedSrc(), { live, waiting, next } = liveState(), url = watchUrl(), replay = !playingId && !live && !watchLive, pv = replay ? pickPlayable() : null;
   const src = playingId ? `https://www.youtube-nocookie.com/embed/${playingId}?autoplay=1&rel=0` : (live || watchLive) ? liveSrc : pv ? `https://www.youtube-nocookie.com/embed/${pv}?rel=0` : '';
-  page(`${head('watch_title', 'watch_sub', url ? `<a class="btn secondary" target="_blank" rel="noopener" href="${esc(url)}">${ic('link', 'sm')} ${esc(t('open_youtube'))}</a>` : '', 'gaze', 5)}
+  page(`${head('watch_title', 'watch_sub', url ? `<a class="btn secondary" target="_blank" rel="noopener" href="${esc(safeUrl(url))}">${ic('link', 'sm')} ${esc(t('open_youtube'))}</a>` : '', 'gaze', 5)}
     <div class="grid g-main"><div><div class="player">${src ? `<iframe src="${esc(src)}" title="YouTube" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe>` : `<div class="ph">${paint('gaze', { crop:'banner', seed:4 })}<div class="glass" style="position:relative"><h3 style="margin-bottom:4px">${esc(t('offline'))}</h3><p class="muted small">${esc(t('offline_sub'))}</p></div></div>`}</div>${replay && pv ? `<p class="small muted mt-s">${esc(t('stream_replay'))}</p>` : ''}</div>
       <aside class="card pad stack"><div class="row between"><b>${esc(live ? t('live_now') : t('nav_schedule'))}</b>${live ? `<span class="badge live">LIVE</span>` : ''}</div>
         <div class="card pad" style="background:var(--surface2)"><div class="small muted">${esc(live ? t('live_now') : waiting ? t('live_waiting') : next ? t('next_live') : t('no_next'))}</div><div class="mono" id="next-card-w" style="font-size:1.5rem;font-weight:700;color:var(--accent-strong)">${live ? `${live.start.setZone(userTZ).toFormat('HH:mm')} – ${live.end.setZone(userTZ).toFormat('HH:mm')}` : waiting ? esc(t('live_waiting_b', { t:waiting.sched.setZone(userTZ).toFormat('HH:mm') })) : next ? `${next.start.setZone(userTZ).toFormat('ccc HH:mm')}` : '—'}</div></div>
@@ -236,7 +236,7 @@ const MOODS = [['lofi', 'lofi study music'], ['piano', 'soft piano for studying'
 let musicSel = null;
 const playerHTML = () => !musicSel ? '' : `<div class="mplayer"><div class="row between"><b class="small">${esc(musicSel.title)}</b><button type="button" class="btn ghost sm" data-act="musicClose">${ic('x', 'sm')} ${esc(t('music_close'))}</button></div>
   <iframe title="${esc(musicSel.title)}" src="${esc(musicSel.src)}" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen style="${musicSel.kind === 'youtube' ? 'aspect-ratio:16/9;height:auto' : 'height:' + musicSel.h + 'px'}"></iframe></div>`;
-const musicRow = (it, kind, i) => { const e = musicEmbed(it.url); return `<div class="mrow"><div class="mi"><b>${esc(L(it.title))}</b>${L(it.note) ? `<span class="small muted">${esc(L(it.note))}</span>` : ''}</div><span class="row">${e ? `<button type="button" class="btn primary sm" data-act="musicPlay" data-k="${kind}" data-i="${i}">${ic('play', 'sm')} ${esc(t('music_play'))}</button>` : ''}<a class="btn secondary sm" target="_blank" rel="noopener" href="${esc(it.url)}">${esc(t('music_open'))}</a></span></div>`; };
+const musicRow = (it, kind, i) => { const e = musicEmbed(it.url); return `<div class="mrow"><div class="mi"><b>${esc(L(it.title))}</b>${L(it.note) ? `<span class="small muted">${esc(L(it.note))}</span>` : ''}</div><span class="row">${e ? `<button type="button" class="btn primary sm" data-act="musicPlay" data-k="${kind}" data-i="${i}">${ic('play', 'sm')} ${esc(t('music_play'))}</button>` : ''}<a class="btn secondary sm" target="_blank" rel="noopener" href="${esc(safeUrl(it.url))}">${esc(t('music_open'))}</a></span></div>`; };
 function musicCard(){
   const picks = (music.picks || []).filter(x => x.url), recent = (music.recent || []).filter(x => x.url);
   return `<section class="card pad music-card"><div class="card-h"><h2>${ic('volume')} ${esc(t('music_title'))}</h2></div><p class="small muted">${esc(t('music_sub'))}</p>
@@ -399,7 +399,7 @@ function streamCard(){
   const src = pick === 'live' ? liveSrc : pick === 'none' ? '' : `https://www.youtube-nocookie.com/embed/${pick}?rel=0${fsPick === 'auto' ? '' : '&autoplay=1'}`;
   const sel = vids.length ? `<select class="select fs-sel" data-change="fsPick" aria-label="${esc(t('focus_stream'))}"><option value="live" ${pick === 'live' ? 'selected' : ''}>● ${esc(t('focus_stream_live'))}</option><optgroup label="${esc(t('focus_stream_past'))}">${vids.map(v => `<option value="${esc(v.id)}" ${pick === v.id ? 'selected' : ''}>${esc((v.title || 'YouTube').slice(0, 64))}</option>`).join('')}</optgroup></select>` : '';
   return `<section class="card pad fstream"><div class="row between"><b class="row" style="gap:8px">${ic('play', 'sm')} ${esc(t('focus_stream'))} ${live && pick === 'live' ? '<span class="badge live">LIVE</span>' : ''}</b>
-    <span class="row" style="gap:4px"><button type="button" class="btn ghost sm" data-act="fsToggle">${esc(open ? t('focus_stream_hide') : t('focus_stream_show'))}</button>${url ? `<a class="btn ghost sm" target="_blank" rel="noopener" href="${esc(url)}" aria-label="${esc(t('open_youtube'))}" title="${esc(t('open_youtube'))}">${ic('link', 'sm')}</a>` : ''}</span></div>
+    <span class="row" style="gap:4px"><button type="button" class="btn ghost sm" data-act="fsToggle">${esc(open ? t('focus_stream_hide') : t('focus_stream_show'))}</button>${url ? `<a class="btn ghost sm" target="_blank" rel="noopener" href="${esc(safeUrl(url))}" aria-label="${esc(t('open_youtube'))}" title="${esc(t('open_youtube'))}">${ic('link', 'sm')}</a>` : ''}</span></div>
     ${open ? `${sel ? `<div class="mt-s">${sel}</div>` : ''}${src ? `<div class="player mt-s"><iframe src="${esc(src)}" title="YouTube" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>` : `<p class="small muted mt-s"><b>${esc(t('offline'))}.</b> ${esc(t('offline_sub'))}</p>`}` : ''}</section>`;
 }
 CHANGES.fsPick = el => { fsPick = el.value; render(true); };ACTIONS.fsToggle = () => { store.set('fs_open', !store.get('fs_open', true)); render(true); };
@@ -574,7 +574,7 @@ FORMS.order = async () => {
 };
 function paymentStep(o){
   const links = { ...(payments.stripe ? { stripe:payments.stripe } : {}), ...(payments.paypal ? { paypal:payments.paypal } : {}), ...(payments.kofi ? { kofi:payments.kofi } : {}) };
-  const linkBtns = Object.entries(links).map(([k, u]) => `<a class="btn ${o.currency === 'VND' ? 'secondary' : 'primary'}" target="_blank" rel="noopener" href="${esc(u)}">${ic('credit', 'sm')} ${esc(k === 'stripe' ? t('pay_card') : k === 'paypal' ? 'PayPal' : 'Ko-fi')}</a>`).join(' ');
+  const linkBtns = Object.entries(links).map(([k, u]) => `<a class="btn ${o.currency === 'VND' ? 'secondary' : 'primary'}" target="_blank" rel="noopener" href="${esc(safeUrl(u))}">${ic('credit', 'sm')} ${esc(k === 'stripe' ? t('pay_card') : k === 'paypal' ? 'PayPal' : 'Ko-fi')}</a>`).join(' ');
   const row = (l, v, copy) => `<div class="kvr"><span>${esc(l)}</span><b>${esc(v)}</b>${copy ? `<button type="button" class="btn secondary sm" data-act="copy" data-v="${esc(copy)}">${esc(t('copy'))}</button>` : ''}</div>`;
   let body = '';
   if (o.currency === 'VND') {
@@ -595,7 +595,7 @@ const faqList = () => Array.isArray(content.faq) && content.faq.length ? content
 let reviewRating = 5;
 const aboutIntroHTML = function(){
   return `<section class="about-hero"><div><span class="badge" ${cms('about_badge')}>${esc(ctext('about_badge'))}</span><h1 style="font-size:clamp(1.8rem,4vw,2.6rem);margin:12px 0" ${cms('about_h')}>${esc(ctext('about_h'))}</h1><p class="muted" style="font-size:1.05rem;white-space:pre-line" ${cms('about_text')}>${esc(ctext('about_text'))}</p>
-      <div class="row mt"><a class="btn primary" href="#/watch">${ic('play', 'sm')} ${esc(t('btn_watch_live'))}</a>${Object.entries(branding.socialLinks || {}).filter(([, u]) => u).map(([n, u]) => `<a class="btn secondary" target="_blank" rel="noopener" href="${esc(u)}">${esc(n)}</a>`).join('')}</div></div>
+      <div class="row mt"><a class="btn primary" href="#/watch">${ic('play', 'sm')} ${esc(t('btn_watch_live'))}</a>${Object.entries(branding.socialLinks || {}).filter(([, u]) => u).map(([n, u]) => `<a class="btn secondary" target="_blank" rel="noopener" href="${esc(safeUrl(u))}">${esc(n)}</a>`).join('')}</div></div>
       <div class="about-img" data-cms-img="about_img">${artOr('about_img', 'moonwalk', { crop:'tall', seed:2 })}</div></section>
     <div class="grid g3 mt" style="margin-top:34px">${[['timer', 1], ['globe', 2], ['sliders', 3]].map(([icn, i]) => `<div class="card pad feat"><div class="tile" style="padding:0"><span class="t-ic">${ic(icn)}</span></div><h3 style="font-size:1.05rem;margin:10px 0 4px" ${cms('about_c' + i + '_t')}>${esc(ctext('about_c' + i + '_t'))}</h3><p class="muted small" ${cms('about_c' + i + '_d')}>${esc(ctext('about_c' + i + '_d'))}</p></div>`).join('')}</div>`;
 };
@@ -614,7 +614,7 @@ PAGES.about = function(){ page(aboutHTML()); };   // trang About đã gộp vào
 FORMS.review = async () => {
   const text = $('rev-text').value.trim(); if (!text) return;
   try {
-    if (!DEMO) await db.collection('reviews').add({ uid:state.user.uid, name:displayName(), rating:reviewRating, text, approved:false, createdAt:TS() });
+    if (!DEMO) await db.collection('reviews').add({ uid:state.user.uid, name:displayName().slice(0, 80), rating:reviewRating, text, approved:false, createdAt:TS() });
     toast(t('review_pending')); $('rev-text').value = '';
   } catch (e) { alert(t('err_generic') + e.message); }
 };
@@ -626,7 +626,7 @@ FORMS.review = async () => {
 let gearFilter = '';
 const gearCard = g => `<article class="pcard gear-card"><div class="cv">${g.img ? `<img loading="lazy" alt="" src="${esc(g.img)}">` : paintFor('g' + (g.id || L(g.name)), { lite:true })}</div>
   <div class="bd"><h3>${esc(L(g.name))}</h3>${L(g.note) ? `<p>${esc(L(g.note))}</p>` : ''}${L(g.cat) ? `<span class="badge">${esc(L(g.cat))}</span>` : ''}
-    <div class="row between" style="margin-top:auto;gap:10px"><span class="small faint">${esc([g.price, g.store].filter(Boolean).join(' · '))}</span><a class="btn primary sm" target="_blank" rel="sponsored nofollow noopener" href="${esc(g.url || '#')}">${esc(t('gear_view'))} ${ic('link', 'sm')}</a></div></div></article>`;
+    <div class="row between" style="margin-top:auto;gap:10px"><span class="small faint">${esc([g.price, g.store].filter(Boolean).join(' · '))}</span><a class="btn primary sm" target="_blank" rel="sponsored nofollow noopener" href="${esc(safeUrl(g.url || '#'))}">${esc(t('gear_view'))} ${ic('link', 'sm')}</a></div></div></article>`;
 PAGES.gear = function(){
   const items = (gear.items || []).filter(g => g.url || g.name), cats = [...new Set(items.map(g => L(g.cat)).filter(Boolean))];
   if (gearFilter && !cats.includes(gearFilter)) gearFilter = '';
@@ -1015,7 +1015,7 @@ function compPayHTML(){
   const seg = bank && kofi ? `<div class="seg"><button type="button" class="${mode === 'vnd' ? 'on' : ''}" data-act="compPay" data-m="vnd">${esc(t('comp_pay_vn'))}</button><button type="button" class="${mode === 'kofi' ? 'on' : ''}" data-act="compPay" data-m="kofi">${esc(t('comp_pay_kofi'))}</button></div>` : '';
   let body;
   if (mode === 'kofi') { const um = payments.paypal ? compMonths : 1; body = `${promoBanner()}${rewardBanner(moonRewardActive())}<div class="row">${(payments.paypal ? [1, 3, 12] : [1]).map(m => `<button type="button" class="chip ${m === um ? 'on' : ''}" data-act="compMonths" data-m="${m}">${esc(t('comp_plan_' + m))} · ${money(compPriceUSD(m), 'USD')}${m > 1 ? ` <small>${esc(t('comp_save', { p:Math.round((1 - compPriceUSD(m) / (compBaseUSD() * m)) * 100) }))}</small>` : ''}${bonusChip(m)}</button>`).join('')}</div>
-    <a class="btn primary lg" target="_blank" rel="noopener" href="${esc(compUsdUrl(um))}">${ic('heart', 'sm')} ${esc(t(um === 1 ? 'comp_cta' : 'comp_pay_prepaid', { a:money(compPriceUSD(um), 'USD') }))}</a>
+    <a class="btn primary lg" target="_blank" rel="noopener" href="${esc(safeUrl(compUsdUrl(um)))}">${ic('heart', 'sm')} ${esc(t(um === 1 ? 'comp_cta' : 'comp_pay_prepaid', { a:money(compPriceUSD(um), 'USD') }))}</a>
     <p class="small faint">${esc(t(um === 1 ? 'comp_usd_note1' : 'comp_usd_note'))}</p>`; }
   else if (!state.user) body = `<p class="small muted">${esc(t('comp_vnd_login'))}</p><a class="btn secondary" href="#/account">${esc(t('signin'))}</a>`;
   else body = `${promoBanner()}${rewardBanner(moonRewardActive())}<div class="row">${[1, 3, 12].map(m => { const pr = compPrice(m); return `<button type="button" class="chip ${m === compMonths ? 'on' : ''}" data-act="compMonths" data-m="${m}">${esc(t('comp_plan_' + m))} · ${money(pr, 'VND')}${m > 1 ? ` <small>${esc(t('comp_save', { p:Math.round((1 - pr / (compBase() * m)) * 100) }))}</small>` : ''}${bonusChip(m)}</button>`; }).join('')}</div><img class="qr" alt="VietQR" src="https://img.vietqr.io/image/${encodeURIComponent(payments.bankBin)}-${encodeURIComponent(payments.accountNo)}-compact2.png?amount=${amt}&addInfo=${encodeURIComponent(code)}&accountName=${encodeURIComponent(payments.accountName || '')}"><p class="small muted" style="text-align:center">${esc(t('donate_scan'))}</p>
@@ -1037,7 +1037,7 @@ const donateHTML = function(){
       <div class="kv"><div class="kvr"><span>${esc(t('acc_no'))}</span><b>${esc(payments.accountNo)}</b><button type="button" class="btn secondary sm" data-act="copy" data-v="${esc(payments.accountNo)}">${esc(t('copy'))}</button></div><div class="kvr"><span>${esc(t('donate_note'))}</span><b>${esc(note)}</b><button type="button" class="btn secondary sm" data-act="copy" data-v="${esc(note)}">${esc(t('copy'))}</button></div></div><p class="small faint">${esc(t('pay_mail_hint'))}</p>` : '';
   } else {
     const pp = payments.paypal ? (/paypal\.me\//i.test(payments.paypal) ? payments.paypal.replace(/\/+$/, '') + '/' + amt + 'USD' : payments.paypal) : '';
-    pay = [pp && `<a class="btn primary lg" target="_blank" rel="noopener" href="${esc(pp)}">PayPal · $${amt}</a>`, payments.kofi && `<a class="btn secondary lg" target="_blank" rel="noopener" href="${esc(payments.kofi)}">Ko-fi</a>`, payments.stripe && `<a class="btn secondary lg" target="_blank" rel="noopener" href="${esc(payments.stripe)}">${ic('credit', 'sm')} Card</a>`].filter(Boolean).join(' ');
+    pay = [pp && `<a class="btn primary lg" target="_blank" rel="noopener" href="${esc(safeUrl(pp))}">PayPal · $${amt}</a>`, payments.kofi && `<a class="btn secondary lg" target="_blank" rel="noopener" href="${esc(safeUrl(payments.kofi))}">Ko-fi</a>`, payments.stripe && `<a class="btn secondary lg" target="_blank" rel="noopener" href="${esc(safeUrl(payments.stripe))}">${ic('credit', 'sm')} Card</a>`].filter(Boolean).join(' ');
     pay = pay ? `<div class="row">${pay}</div>` : '';
   }
   const body = `<div class="grid g2" style="align-items:start">
@@ -1073,7 +1073,7 @@ Object.assign(ACTIONS, {
     const u = state.user; if (!u) return;
     const note = $('cc-note').value.trim().slice(0, 200); if (note.length < 2) { $('cc-err').textContent = t('cc_note_req'); $('cc-note').focus(); return; }   // bắt buộc: để admin đối chiếu khoản thanh toán
     el.disabled = true;
-    const rq = { uid:u.uid, email:u.email || '', name:displayName() || '', method:$('cc-method').value, months:+$('cc-months').value || 1, note, message:($('cc-msg').value || '').trim().slice(0, 300), status:'pending' };
+    const rq = { uid:u.uid, email:u.email || '', name:(displayName() || '').slice(0, 100), method:$('cc-method').value, months:+$('cc-months').value || 1, note, message:($('cc-msg').value || '').trim().slice(0, 300), status:'pending' };
     const bd = compBonusMonths(rq.months); if (bd) rq.bonus = bd;                 // tháng tặng thêm: áp dụng mọi cách thanh toán, admin tự cộng khi duyệt
     if (rq.method === 'bank') rq.amount = compPrice(rq.months);                 // chỉ để admin đối chiếu số tiền
     const rw = moonRewardActive(); if (rw) rq.reward = moonRewardMonths(rw);      // báo có ưu đãi trăng; admin vẫn kiểm moon_rewards/<uid> khi duyệt rồi mới cộng tháng tặng
