@@ -820,3 +820,20 @@ button.sb-item{width:100%;background:none;border:0;font:inherit;font-weight:600;
 @media(max-width:900px){.mj-layout{grid-template-areas:"status" "map" "side" "tabs"}}
 @media(min-width:641px){.hero{min-height:480px}}
 .club-promo>div:last-child{flex:1;min-width:240px}
+/* Trang Support: 2 lựa chọn (Người đồng hành / một lần) + các bước đánh số */
+.don-pick{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.don-opt{display:flex;align-items:center;gap:12px;text-align:left;padding:14px 16px;border:1.5px solid var(--line);border-radius:16px;background:var(--surface2);color:var(--ink);min-width:0}
+.don-opt>span:nth-child(2){flex:1;min-width:0}.don-opt b{display:block;font-size:1.02rem}.don-opt small{display:block;color:var(--ink3);font-size:.8rem;margin-top:2px;line-height:1.35}
+.don-opt.on{border-color:var(--accent);background:var(--surface);box-shadow:0 0 0 3px var(--accent-soft)}
+.don-opt .badge{flex:none}
+.don-ic{flex:none;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--surface);color:var(--accent-strong)}.don-opt.on .don-ic{background:var(--accent);color:var(--on-accent)}
+.don-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:28px;align-items:start}
+.don-step{display:flex;flex-direction:column;gap:10px}.don-step+.don-step{margin-top:20px;padding-top:18px;border-top:1px dashed var(--line2)}
+.don-step h3{display:flex;align-items:center;gap:10px;font-size:1rem;margin:0}
+.don-step h3 i{font-style:normal;flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:var(--on-accent);font-size:.82rem;font-weight:800}
+.don-step .qr{margin:4px auto}.don-step .kv{margin:4px 0}
+.don-tip .btn{align-self:flex-start}
+@media (max-width:760px){.don-cols{grid-template-columns:1fr;gap:20px}}
+@media (max-width:520px){.don-pick{grid-template-columns:1fr;gap:8px}.don-opt{padding:11px 13px}.don-ic{width:34px;height:34px}.don-card.pad{padding:16px}}
+.don-step .qr{max-width:240px}
+@media (min-width:901px){.don-cols>.stack:first-child{position:sticky;top:84px}}
