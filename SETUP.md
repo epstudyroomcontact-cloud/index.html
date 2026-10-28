@@ -479,6 +479,20 @@ Dùng khi dữ liệu bị xoá nhầm, bị sửa sai, hay Firestore gặp sự
 - Đổi mật khẩu: sửa secret `BACKUP_PASSWORD`. Các bản cũ vẫn mở bằng **mật khẩu cũ**, nên giữ mật khẩu cũ thêm 90 ngày.
 - Như phần 17: GitHub tạm dừng lịch tự chạy nếu repo **60 ngày** không có thay đổi. Lâu không cập nhật web thì vào tab **Actions**, thấy nút **Enable workflow** thì bấm.
 - **Tầng bảo vệ thêm (chỉ khi đã lên gói Blaze):** Google Cloud có sẵn sao lưu theo lịch và "khôi phục về thời điểm bất kỳ trong 7 ngày" cho Firestore (Google Cloud Console → **Firestore** → **Disaster recovery**). Có tính phí theo dung lượng (rất nhỏ với web này). Không bắt buộc: bản sao lưu ở trên đã đủ dùng.
+## PHẦN 20 — Kiểm tra sức khoẻ website mỗi tuần (tự động)
+Sáng thứ Hai (khoảng 8 giờ, giờ Việt Nam) GitHub tự mở web bằng Chrome thật (cả kiểu máy tính và điện thoại) và kiểm tra. **Chỉ đọc, không sửa gì trên Firebase.**
+- **Web:** trang chủ và mọi file (js, css, ảnh, manifest…) mở được không; bản trên mạng có đúng bản mới nhất trong repo không; tải nhanh hay chậm, nặng bao nhiêu.
+- **Lỗi:** web có khởi động được không (hay hiện màn hình "Trang chưa tải được"), có lỗi JavaScript khi mở các trang Watch, Focus, Planner, Shop, Blog… không.
+- **Bảo mật Firestore:** thử đọc dữ liệu riêng tư (người dùng, đơn hàng, mã dùng thử, token thông báo…) khi chưa đăng nhập, phải bị chặn; dữ liệu công khai (cài đặt, lịch live) phải đọc được. Nhờ secret `FIREBASE_SERVICE_ACCOUNT` (đã có từ Phần 17), còn so luật đang chạy trên Firebase với file `firestore.rules` / `storage.rules` trong repo, và chạy thử 12 ca (khách không sửa được cài đặt, không tự cấp quyền Người đồng hành, email admin chưa xác minh không làm được admin…) ngay trên luật đang chạy.
+- **Sao lưu:** bản sao lưu Firestore mỗi đêm (Phần 19) có thành công trong 3 ngày gần nhất không.
+
+**Bạn nhận thông báo thế nào:** có vấn đề thì GitHub mở một **issue** tên "⚠️ Kiểm tra web: …" (nhãn `health-check`), giao cho bạn, nên bạn nhận email và thông báo trên app GitHub. Trong issue có danh sách việc cần xem, mỗi dòng kèm 👉 nên làm gì. Tuần sau vẫn còn vấn đề thì thêm bình luận vào cùng issue đó; hết vấn đề thì tự đóng issue. Mọi thứ ổn thì không làm phiền bạn.
+
+**Chạy thử ngay:** GitHub → **Actions** → **Kiểm tra sức khoẻ website** → **Run workflow**. Bấm vào lần chạy, kéo xuống phần **Summary** để xem báo cáo đầy đủ.
+
+**Nếu báo cáo ghi "bỏ qua … không có quyền xem luật":** tài khoản dịch vụ chưa được xem luật bảo mật. Vào https://console.cloud.google.com/iam-admin/iam (chọn project của web) → dòng có email `firebase-adminsdk-…` → bấm ✏️ → **Add another role** → chọn **Firebase Rules Viewer** → **Save**. Không làm cũng được, các phần kiểm tra khác vẫn chạy.
+
+**Địa chỉ web:** máy kiểm tra tự lấy từ GitHub Pages. Nếu sau này dùng tên miền riêng mà báo cáo vẫn mở địa chỉ cũ: **Settings → Secrets and variables → Actions → Variables → New repository variable**, Name `SITE_URL`, Value là địa chỉ web (ví dụ `https://tenmien.com/`).
 
 ## QUY TẮC CẬP NHẬT WEB LÊN GITHUB (đọc cái này khi cần cập nhật)
 Từ bản 8, các file hay thay đổi (`index.html`, `core.js`, `pages.js`, `admin.js`, `i18n-extra.js`, `app.css`) **đều nằm ở trang gốc của repo**, cùng chỗ với `index.html`. Chỉ còn 4 file ít khi đổi nằm trong thư mục `js`: `art.js`, `i18n.js`, `translate.js`, `firebase-config.js`. Thư mục `css` và các bản cũ `js/core.js`, `js/pages.js`, `js/admin.js`, `js/i18n-extra.js` đã bỏ hẳn (web không dùng), nếu máy bạn còn thì không cần tải lên nữa.

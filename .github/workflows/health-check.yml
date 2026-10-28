@@ -1,0 +1,83 @@
+# Kiểm tra sức khoẻ website mỗi tuần (scripts/health-check.mjs): web mở được không, có lỗi không, nhanh hay chậm, luật bảo mật Firestore còn chặn đúng không.
+# Có vấn đề → mở (hoặc cập nhật) một issue gắn nhãn "health-check" và giao cho chủ repo, GitHub gửi email/thông báo app. Hết vấn đề → tự đóng issue.
+# Chỉ ĐỌC, không ghi gì lên Firebase. Xem SETUP.md, PHẦN 20.
+name: Kiểm tra sức khoẻ website
+
+on:
+  schedule:
+    - cron: '17 1 * * 1'          # sáng thứ Hai, khoảng 8:17 giờ Việt Nam (GitHub có thể chạy trễ một chút)
+  workflow_dispatch:              # chạy tay: GitHub → Actions → "Kiểm tra sức khoẻ website" → Run workflow
+  pull_request:                   # thử luôn khi sửa máy kiểm tra
+    paths:
+      - scripts/health-check.mjs
+      - .github/workflows/health-check.yml
+
+concurrency:
+  group: health-check
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write                   # mở/đóng issue báo cáo
+  pages: read                     # đọc địa chỉ web từ GitHub Pages
+  actions: read                   # xem sao lưu Firestore mỗi đêm còn chạy đều không
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Cài Playwright (dùng Chrome có sẵn của máy GitHub, không tải trình duyệt)
+        run: npm install --no-save --no-package-lock --no-audit --no-fund playwright-core@1.56.1
+      - name: Tìm địa chỉ web
+        id: site
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SITE_URL: ${{ vars.SITE_URL }}      # tuỳ chọn: Settings → Secrets and variables → Actions → Variables
+        run: |
+          url="$SITE_URL"
+          [ -z "$url" ] && url=$(gh api "repos/${{ github.repository }}/pages" --jq .html_url 2>/dev/null || true)
+          [ -z "$url" ] && url="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Địa chỉ web: $url"
+      - name: Kiểm tra
+        id: check
+        run: node scripts/health-check.mjs
+        env:
+          SITE_URL: ${{ steps.site.outputs.url }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          GH_TOKEN: ${{ github.token }}
+      - name: Báo cho chủ trang qua issue
+        if: ${{ !cancelled() && steps.check.outcome == 'success' && github.event_name != 'pull_request' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          FAILS: ${{ steps.check.outputs.fails }}
+          WARNS: ${{ steps.check.outputs.warns }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          printf '\n[Xem lần chạy này](%s)\n' "$RUN_URL" >> health-report.md
+          open=$(gh issue list --label health-check --state open --json number --jq '.[0].number // empty')
+          if [ "$FAILS" != "0" ] || [ "$WARNS" != "0" ]; then
+            if [ -n "$open" ]; then
+              gh issue comment "$open" --body-file health-report.md
+            else
+              gh label create health-check --color D93F0B --description "Báo cáo kiểm tra sức khoẻ website" 2>/dev/null || true
+              title="⚠️ Kiểm tra web: $FAILS lỗi, $WARNS cần để ý"
+              gh issue create --title "$title" --label health-check --assignee "$OWNER" --body-file health-report.md \
+                || gh issue create --title "$title" --label health-check --body-file health-report.md
+            fi
+          elif [ -n "$open" ]; then
+            gh issue comment "$open" --body-file health-report.md
+            gh issue close "$open" --reason completed
+          fi
+      - name: Báo đỏ nếu có lỗi
+        if: ${{ steps.check.outputs.fails != '0' }}
+        run: |
+          echo "::error::Có ${{ steps.check.outputs.fails }} lỗi, xem báo cáo ở phần Summary của lần chạy này."
+          exit 1
