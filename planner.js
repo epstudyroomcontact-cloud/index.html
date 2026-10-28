@@ -144,10 +144,61 @@ Object.assign(I18N.vi, {
   pl_del_wipe:"Mình nhập nhầm, xoá hẳn"
 });
 
+/* thống kê tuần / tháng */
+Object.assign(I18N.en, {
+  pl_ps_title:"Week & month stats",
+  pl_ps_w:"Week",
+  pl_ps_m:"Month",
+  pl_ps_focus:"Focus time",
+  pl_ps_focus_sub:"Sessions: {s} · Focus days: {d}",
+  pl_ps_rate:"Tasks completed",
+  pl_ps_rate_sub:"{n} of {m} due tasks done",
+  pl_ps_chart:"Focus time per day",
+  pl_ps_loading:"Loading this month…",
+  pl_ps_rate_none:"No tasks due yet",
+  pl_ps_how:"Focus time comes from the focus sessions you finish in the Focus room. The completion rate counts the tasks that were due, including ones you moved or dropped, so it matches the review above.",
+  pl_ps_c_empty:"Nothing recorded here yet. Finish a focus session or tick off a task and your stats will start to show.",
+  pl_ps_c_nofocus:"No focus sessions recorded yet. Pairing a task with a 25-minute timer can make it easier to start.",
+  pl_ps_c_new:"You logged {t} of focus. A lovely start.",
+  pl_ps_c_up_w:"That is {t} more focus than the same days last week. Lovely momentum.",
+  pl_ps_c_up_m:"That is {t} more focus than the same days last month. Lovely momentum.",
+  pl_ps_c_down_w:"That is {t} less focus than the same days last week. Slow stretches happen; one short session is a good way back in.",
+  pl_ps_c_down_m:"That is {t} less focus than the same days last month. Slow stretches happen; one short session is a good way back in.",
+  pl_ps_c_same_w:"Your focus time is about the same as the same days last week. Nice and steady.",
+  pl_ps_c_same_m:"Your focus time is about the same as the same days last month. Nice and steady.",
+  pl_ps_c_hi:"You finished {r}% of your due tasks. Great follow-through.",
+  pl_ps_c_mid:"You finished {r}% of your due tasks. A steady base to keep building on.",
+  pl_ps_c_lo:"You finished {r}% of your due tasks. Try planning a little less per day so it feels lighter."
+});
+Object.assign(I18N.vi, {
+  pl_ps_title:"Thống kê tuần & tháng",
+  pl_ps_w:"Tuần",
+  pl_ps_m:"Tháng",
+  pl_ps_focus:"Giờ tập trung",
+  pl_ps_focus_sub:"{s} phiên · {d} ngày có tập trung",
+  pl_ps_rate:"Tỉ lệ hoàn thành",
+  pl_ps_rate_sub:"Xong {n}/{m} việc đã đến hạn",
+  pl_ps_chart:"Giờ tập trung mỗi ngày",
+  pl_ps_loading:"Đang tải tháng này…",
+  pl_ps_rate_none:"Chưa có việc nào đến hạn",
+  pl_ps_how:"Giờ tập trung lấy từ các phiên tập trung bạn hoàn thành ở Phòng tập trung. Tỉ lệ hoàn thành đếm các việc đã đến hạn, kể cả việc đã dời hoặc đã bỏ, nên khớp với phần đánh giá ở trên.",
+  pl_ps_c_empty:"Chưa có gì được ghi lại. Hoàn thành một phiên tập trung hoặc tick xong một việc là số liệu sẽ bắt đầu hiện ở đây.",
+  pl_ps_c_nofocus:"Chưa có phiên tập trung nào. Thử ghép một việc với đồng hồ 25 phút, bắt đầu sẽ dễ hơn nhiều.",
+  pl_ps_c_new:"Bạn đã tập trung được {t}. Một khởi đầu thật dễ thương.",
+  pl_ps_c_up_w:"Bạn tập trung nhiều hơn {t} so với cùng những ngày tuần trước. Đà đang lên rồi đó.",
+  pl_ps_c_up_m:"Bạn tập trung nhiều hơn {t} so với cùng những ngày tháng trước. Đà đang lên rồi đó.",
+  pl_ps_c_down_w:"Bạn tập trung ít hơn {t} so với cùng những ngày tuần trước. Ai cũng có lúc chậm lại, một phiên ngắn là đủ để bắt nhịp lại.",
+  pl_ps_c_down_m:"Bạn tập trung ít hơn {t} so với cùng những ngày tháng trước. Ai cũng có lúc chậm lại, một phiên ngắn là đủ để bắt nhịp lại.",
+  pl_ps_c_same_w:"Giờ tập trung gần bằng cùng những ngày tuần trước. Đều đặn lắm.",
+  pl_ps_c_same_m:"Giờ tập trung gần bằng cùng những ngày tháng trước. Đều đặn lắm.",
+  pl_ps_c_hi:"Bạn đã xong {r}% số việc đến hạn. Theo kế hoạch rất tốt.",
+  pl_ps_c_mid:"Bạn đã xong {r}% số việc đến hạn. Một nền vững để làm tiếp.",
+  pl_ps_c_lo:"Bạn đã xong {r}% số việc đến hạn. Thử xếp ít việc hơn mỗi ngày cho nhẹ nhàng hơn nhé."
+});
 const PL_MAX = 300;                                              // số việc tối đa mỗi tuần (giữ tài liệu nhỏ, tránh lỗi quá cỡ)
 const PL_HOUR = 44;                                              // px cho mỗi giờ trong lưới
 const PL_COLORS = ['#f2b8c6', '#c9b8ec', '#f6c9a0', '#f4e08c', '#a9dcc6', '#a8cdee'];   // 6 nhóm: màu pastel, chữ tối cho mọi giao diện
-const PL = { off:0, key:'', tasks:null, gone:[], state:'idle', save:'', prev:null, timer:0, sel:null, seq:0, slow:false, hist:{}, prefs:null, remTasks:null, sent:{}, remT:0, pinT:0, mday:null };
+const PL = { off:0, key:'', tasks:null, gone:[], state:'idle', save:'', prev:null, timer:0, sel:null, seq:0, slow:false, hist:{}, prefs:null, remTasks:null, sent:{}, remT:0, pinT:0, mday:null, raw:{}, moff:0 };
 const plWeekStart = off => DT.now().setZone(userTZ).plus({ weeks:off }).startOf('week');
 const plKey = off => { const d = plWeekStart(off); return `${d.weekYear}-W${d.weekNumber}`; };
 const plAccess = () => DEMO || state.companion || state.isAdmin || trialActive();
@@ -203,7 +254,7 @@ async function plFocusEdit(fn){                                   // fn(tasks) s
   try {
     const key = plKey(0), live = !!(PL.tasks && PL.key === key), tasks = await plWeek0(); if (!tasks || !fn(tasks)) return false;
     if (live) plSave();
-    else { PL.pre = null; plCache(key, tasks); if (state.user) PL.remTasks = { uid:state.user.uid, tasks }; plPinShow(); if (!DEMO) await plRef(key).set({ tasks:tasks.map(plClean), updatedAt:TS() }, { merge:true }); }   // merge: giữ nguyên gone
+    else { PL.pre = null; delete PL.raw[key]; plCache(key, tasks); if (state.user) PL.remTasks = { uid:state.user.uid, tasks }; plPinShow(); if (!DEMO) await plRef(key).set({ tasks:tasks.map(plClean), updatedAt:TS() }, { merge:true }); }   // merge: giữ nguyên gone
     return true;
   } catch (e) { console.warn('focus-planner', e.code); return false; }
 }
@@ -254,7 +305,7 @@ function plFlush(){                                                // lưu ngay 
 function plSave(){
   PL.save = 'saving'; clearTimeout(PL.timer);
   PL.timer = setTimeout(async () => {
-    if (!PL.tasks) return; const key = PL.key, tasks = PL.tasks.map(plClean), gone = (PL.gone || []).map(plGoneClean); plCache(key, tasks, gone); PL.hist[key] = plStats(tasks, PL.off, gone); if (key === plKey(0)) { PL.remTasks = { uid:state.user.uid, tasks }; plPinShow(); }
+    if (!PL.tasks) return; const key = PL.key, tasks = PL.tasks.map(plClean), gone = (PL.gone || []).map(plGoneClean); plCache(key, tasks, gone); PL.hist[key] = plStats(tasks, PL.off, gone); PL.raw[key] = { tasks, gone }; if (key === plKey(0)) { PL.remTasks = { uid:state.user.uid, tasks }; plPinShow(); }
     try { if (!DEMO) await plRef(key).set({ tasks, gone, updatedAt:TS() }); if (PL.key === key) PL.save = 'saved'; }
     catch (e) { console.warn('planner save', e.code); PL.save = 'error'; toast(t('pl_err')); }
     const n = $('pl-status'); if (n) n.textContent = PL.save === 'saved' ? '✓ ' + t('pl_saved') : PL.save === 'error' ? t('pl_err') : t('pl_saving');
@@ -322,10 +373,10 @@ function plInsights(S){
 
 /* ---------- lịch sử tuần, điểm, chuỗi, mục tiêu, tuần mẫu ---------- */
 async function plHist(){                                          // đọc 7 tuần trước để vẽ xu hướng, tính chuỗi tuần và so sánh (mỗi tuần chỉ đọc một lần)
-  const base = PL.off, key = PL.key;
+  const base = PL.off, key = PL.key, raw = PL.raw;
   await Promise.all(Array.from({ length:7 }, (_, i) => base - 1 - i).map(async o => {
     const k = plKey(o); if (k in PL.hist) return;
-    try { const d = await plRef(k).get(), v = d.exists ? d.data() : {}; PL.hist[k] = Array.isArray(v.tasks) ? plStats(v.tasks.map(plClean), o, (Array.isArray(v.gone) ? v.gone : []).map(plGoneClean)) : null; } catch (e) { /* chưa biết: bỏ qua */ }
+    try { const d = await plRef(k).get(), v = d.exists ? d.data() : {}, tasks = Array.isArray(v.tasks) ? v.tasks.map(plClean) : null, gone = (Array.isArray(v.gone) ? v.gone : []).map(plGoneClean); PL.hist[k] = tasks ? plStats(tasks, o, gone) : null; raw[k] = { tasks:tasks || [], gone }; } catch (e) { /* chưa biết: bỏ qua */ }
   }));
   if (PL.key === key) { PL.prev = PL.hist[plKey(base - 1)] || null; render(true); }
 }
@@ -354,6 +405,67 @@ function plRecent(){                                              // tổng vi�
 function plTrend(){
   const bars = Array.from({ length:6 }, (_, i) => { const k = PL.off - 5 + i, S = k === PL.off ? plStats(PL.tasks, PL.off, PL.gone) : PL.hist[plKey(k)]; return { cur:k === PL.off, w:plWeekStart(k).toFormat('dd/MM'), r:S && S.dn >= (k === 0 ? 3 : 1) ? S.rate : null }; });
   return `<div class="pl-trend">${bars.map(b => `<div class="${b.cur ? 'cur' : ''}"><i style="height:${b.r === null ? 3 : Math.max(6, b.r)}%" class="${b.r === null ? 'none' : ''}"></i><b>${b.r === null ? '–' : b.r + '%'}</b><small>${b.w}</small></div>`).join('')}</div>`;
+}
+/* ---------- thống kê tuần / tháng ----------
+   Giờ tập trung: đọc sổ Focus theo ngày (localFocus, đã làm sạch ngày hỏng > 1440 phút ở core.js), ngày theo múi giờ của bạn như addFocus.
+   Tỉ lệ việc xong: dùng lại plStats (đếm việc đã đến hạn, kể cả việc đã dời / đã bỏ), không tính lại theo cách khác.
+   Tháng: gộp các tuần chạm tháng; việc gắn ngày tính theo ngày thật, việc chưa gắn ngày tính cho tháng chứa thứ Năm của tuần (như cách đánh số tuần ISO). */
+const plFocusLog = () => PL.fdemo || localFocus();
+const plOffOf = ws => Math.round(ws.diff(plWeekStart(0), 'weeks').weeks);
+const plWeekData = k => k === PL.key && PL.tasks ? { tasks:PL.tasks, gone:PL.gone || [] } : PL.raw[k];
+const plMonthWeeks = ms => { const out = [], end = ms.endOf('month'); for (let w = ms.startOf('week'); w <= end; w = w.plus({ weeks:1 })) out.push(w); return out; };
+function plFocusSum(days){
+  const fl = plFocusLog(), v = days.map(d => (fl[d.toISODate()] || { m:0 }).m);
+  return { v, m:v.reduce((a, x) => a + x, 0), s:days.reduce((a, d) => a + (fl[d.toISODate()] || { s:0 }).s, 0), act:v.filter(x => x > 0).length };
+}
+function plMonthTasks(ms){
+  const T = { n:0, nd:0, dn:0, dnd:0, miss:0 };
+  plMonthWeeks(ms).forEach(ws => {
+    const o = plOffOf(ws), r = plWeekData(plKey(o)); if (!r) { T.miss++; return; }
+    const inM = day => ws.plus({ days:day === null ? 3 : day }).hasSame(ms, 'month');
+    const S = plStats(r.tasks.filter(x => inM(x.day)), o, r.gone.filter(g => inM(g.day)));
+    T.n += S.n; T.nd += S.nd; T.dn += S.dn; T.dnd += S.dnd;
+  });
+  return T;
+}
+async function plMonthLoad(ms){                                    // đọc các tuần của tháng chưa có trong bộ nhớ (mỗi tuần một lần)
+  if (DEMO || PL.preview || PL.mload || !state.user) return;
+  const raw = PL.raw, keys = plMonthWeeks(ms).map(ws => plKey(plOffOf(ws))).filter(k => k !== PL.key && !(k in raw)); if (!keys.length) return;
+  PL.mload = true;
+  await Promise.all(keys.map(async k => { try { const r = await plFetch(k); raw[k] = { tasks:r.tasks.map(plClean), gone:r.gone.map(plGoneClean) }; } catch (e) { raw[k] = null; } }));   // raw giữ đúng đối tượng của tài khoản lúc bắt đầu đọc
+  PL.mload = false; if (route.name === 'planner') render(true);
+}
+const plHShort = m => m < 60 ? m + 'm' : (Math.round(m / 6) / 10) + 'h';
+function plPeriod(S){
+  const now = DT.now().setZone(userTZ), today = now.toISODate(), wk = (PL.sv || store.get('pl_sv', 'w')) !== 'm', loc = d => d.setLocale(state.lang);
+  let days, prev, T, head;
+  if (wk) {
+    const ws = plWeekStart(PL.off); days = Array.from({ length:7 }, (_, i) => ws.plus({ days:i }));
+    prev = days.slice(0, PL.off === 0 ? now.weekday : 7).map(d => d.minus({ weeks:1 }));         // tuần này: so với đúng các ngày đã qua của tuần trước
+    T = S; head = `<span class="lbl small faint">${ws.toFormat('dd/MM')} – ${ws.plus({ days:6 }).toFormat('dd/MM')}</span>`;
+  } else {
+    const mo = PL.moff || 0, ms = now.startOf('month').plus({ months:mo }), pm = ms.minus({ months:1 });
+    days = Array.from({ length:ms.daysInMonth }, (_, i) => ms.plus({ days:i }));
+    prev = Array.from({ length:Math.min(mo ? ms.daysInMonth : now.day, pm.daysInMonth) }, (_, i) => pm.plus({ days:i }));   // tháng này: so với cùng số ngày đầu của tháng trước
+    T = plMonthTasks(ms); plMonthLoad(ms);
+    head = `<div class="week-nav"><button type="button" class="btn secondary icon sm" data-act="plMon" data-d="-1" aria-label="‹">${ic('chev-l', 'sm')}</button><span class="lbl">${esc(loc(ms).toLocaleString({ month:'long', year:'numeric' }).replace(/^\p{Ll}/u, c => c.toUpperCase()))}</span><button type="button" class="btn secondary icon sm" data-act="plMon" data-d="1" aria-label="›" ${mo >= 0 ? 'disabled' : ''}>${ic('chev-r', 'sm')}</button></div>`;
+  }
+  const F = plFocusSum(days), P = plFocusSum(prev), mx = Math.max(60, ...F.v), r = T.dn ? Math.round(T.dnd / T.dn * 100) : null, k = wk ? 'w' : 'm', wait = !wk && (PL.mload || T.miss) && !PL.preview && !DEMO;
+  const cm = [];
+  if (!F.m && !T.n) cm.push(t('pl_ps_c_empty'));
+  else {
+    if (!F.m) cm.push(t('pl_ps_c_nofocus'));
+    else if (!P.m) cm.push(t('pl_ps_c_new', { t:fmtMin(F.m) }));
+    else { const d = F.m - P.m; cm.push(Math.abs(d) < Math.max(15, P.m * .1) ? t('pl_ps_c_same_' + k) : t((d > 0 ? 'pl_ps_c_up_' : 'pl_ps_c_down_') + k, { t:fmtMin(Math.abs(d)) })); }
+    if (T.dn >= 3) cm.push(t(r >= 80 ? 'pl_ps_c_hi' : r >= 50 ? 'pl_ps_c_mid' : 'pl_ps_c_lo', { r }));
+  }
+  const bars = days.map((d, i) => { const v = F.v[i], iso = d.toISODate(); return `<div class="${iso === today ? 'cur' : ''}" title="${esc(loc(d).toFormat('ccc dd/MM') + ' · ' + fmtMin(v))}">${wk ? `<b>${v ? plHShort(v) : ''}</b>` : ''}<i class="${v ? '' : 'none'}" style="height:${v ? Math.max(4, v / mx * 78) : 2}%"></i><small>${wk ? esc(loc(d).toFormat('ccc')) : d.day === 1 || d.day % 5 === 0 ? d.day : ''}</small></div>`; }).join('');
+  return `<section class="card pad wide pl-ps"><div class="pl-ps-h"><h3>${esc(t('pl_ps_title'))}</h3><div class="pl-ps-ctl"><div class="seg"><button type="button" class="${wk ? 'on' : ''}" data-act="plSv" data-v="w">${esc(t('pl_ps_w'))}</button><button type="button" class="${wk ? '' : 'on'}" data-act="plSv" data-v="m">${esc(t('pl_ps_m'))}</button></div>${head}</div></div>
+    <div class="pl-ps-body"><div class="pl-ps-kpis">
+      <div class="pl-kpi"><span class="pl-kl">${esc(t('pl_ps_focus'))}</span><b>${esc(fmtMin(F.m))}</b><small>${esc(t('pl_ps_focus_sub', { s:F.s, d:F.act }))}</small></div>
+      <div class="pl-kpi"><span class="pl-kl">${esc(t('pl_ps_rate'))}</span><b>${r === null ? '–' : r + '%'}</b>${plBar(T.dnd, T.dn)}<small>${esc(wait ? t('pl_ps_loading') : T.dn ? t('pl_ps_rate_sub', { n:T.dnd, m:T.dn }) : t('pl_ps_rate_none'))}</small></div></div>
+      <div class="pl-ps-chart"><p class="small faint">${esc(t('pl_ps_chart'))}</p><div class="pl-fbars ${wk ? '' : 'm'}">${bars}</div></div></div>
+    <p class="pl-ps-c">${esc(cm.join(' '))}</p><p class="small faint">${esc(t('pl_ps_how'))}</p></section>`;
 }
 /* ---------- nhắc việc ----------
    Khi trang đang mở: plRemTick nhắc ngay trong trang (toast + chuông) và hiện thông báo của trình duyệt nếu đã cho phép.
@@ -446,7 +558,8 @@ function plPreview(){                                              // giao diệ
   const sample = [[0, '07:30', 45, 'vocab', 0], [0, '19:30', 60, 'listen', 0], [1, '09:00', 90, 'read', 0], [1, '18:00', 45, 'gym', 2], [2, '08:00', 120, 'essay', 1], [2, '20:00', 40, 'book', 3], [3, '07:30', 45, 'vocab', 0], [3, '14:00', 60, 'meet', 1], [4, '09:00', 60, 'speak', 0], [4, '19:00', 90, 'movie', 4], [5, '10:00', 60, 'clean', 5], [5, '15:00', 90, 'read', 0], [6, '09:00', 45, 'review', 0]];
   const di = DT.now().setZone(userTZ).weekday - 1, bak = { ...PL };
   try {
-    PL.off = 0; PL.prefs = { goalMin:600, dayGoalMin:120 }; PL.prev = null; PL.hist = {}; PL.gone = [plGoneClean({ id:'g0', t:t('pl_s_clean'), day:1, dur:30, c:5, s:'x' })];
+    PL.off = 0; PL.key = plKey(0); PL.preview = true; PL.raw = {}; PL.moff = 0; PL.prefs = { goalMin:600, dayGoalMin:120 }; PL.prev = null; PL.hist = {};
+    PL.fdemo = {}; const ws = plWeekStart(0); [50, 75, 100, 25, 50, 0, 75, 100, 50, 125, 75, 25, 50, 0].forEach((m, i) => { if (i < 7 + di + 1) PL.fdemo[ws.minus({ days:7 }).plus({ days:i }).toISODate()] = { m, s:Math.round(m / 25) }; });   // giờ tập trung mẫu: tuần trước + tuần này tới hôm nay PL.gone = [plGoneClean({ id:'g0', t:t('pl_s_clean'), day:1, dur:30, c:5, s:'x' })];
     PL.tasks = sample.map(([day, start, dur, k, c], i) => ({ id:'s' + i, title:t('pl_s_' + k), day, start, dur, c, done:day < 4 && i !== 3 }));
     [8, 7, 9, 6, 7].forEach((r, i) => { PL.hist[plKey(-1 - i)] = plStats(Array.from({ length:10 }, (_, j) => ({ id:'h' + j, title:'x', day:j % 5, start:'09:00', dur:60, c:j % 4, done:j < r })), -1); });
     const S = plStats(PL.tasks, -1, PL.gone);
@@ -546,6 +659,7 @@ function plSide(){
 function plAnalysis(S){
   const mx = Math.max(60, ...S.day.map(x => x.plan));
   return `<h2 class="pl-h2">${esc(t('pl_ana'))}</h2><div class="pl-ana">
+    ${plPeriod(S)}
     <section class="card pad"><h3>${esc(t('pl_trend'))}</h3>${plTrend()}</section>
     <section class="card pad"><h3>${esc(t('pl_by_day'))}</h3>${S.day.map((d, i) => `<div class="pl-row"><span>${esc(t('pl_d' + i))}</span><div class="pl-bar tall"><i class="lt" style="width:${Math.min(100, d.plan / mx * 100)}%"></i><i style="width:${Math.min(100, d.done / mx * 100)}%"></i></div><small class="faint">${esc(fmtMin(d.done))} / ${esc(fmtMin(d.plan))}${d.mv || d.x ? ' · ' + esc([d.mv && t('pl_k_mv', { n:d.mv }), d.x && t('pl_k_x2', { n:d.x })].filter(Boolean).join(' · ')) : ''}</small></div>`).join('')}</section>
     <section class="card pad"><h3>${esc(t('pl_by_cat'))}</h3>${S.n ? S.cat.map((c, i) => c.n ? `<div class="pl-row"><span><i class="dot" style="background:${PL_COLORS[i]}"></i> ${esc(t('pl_c' + i))}</span>${plBar(c.nd, c.n, PL_COLORS[i])}<small class="faint">${c.nd}/${c.n}</small></div>` : '').join('') : `<p class="muted small">${esc(t('pl_i_none'))}</p>`}</section>
@@ -555,7 +669,7 @@ PAGES.planner = function(){
   if (!state.user && !state.authReady && !DEMO) return page('<div class="gate-load"><i></i></div>');
   if (!state.user && !DEMO) return page(plUpsell());
   if (!plAccess()) { refreshCompanion().then(ch => ch && render(true)); return page(plUpsell()); }
-  if (PL.uid !== state.user.uid) { clearTimeout(PL.timer); PL.seq++; Object.assign(PL, { uid:state.user.uid, off:0, key:'', tasks:null, gone:[], state:'idle', save:'', prev:null, sel:null, slow:false, hist:{}, prefs:null }); }   // đổi tài khoản trên cùng trình duyệt: không để lộ planner của người trước
+  if (PL.uid !== state.user.uid) { clearTimeout(PL.timer); PL.seq++; Object.assign(PL, { uid:state.user.uid, off:0, key:'', tasks:null, gone:[], state:'idle', save:'', prev:null, sel:null, slow:false, hist:{}, raw:{}, moff:0, prefs:null }); }   // đổi tài khoản trên cùng trình duyệt: không để lộ planner của người trước
   if (!state.companionUntil && !state.isAdmin && !DEMO && !trialActive()) refreshCompanion().then(ch => ch && render(true));       // lấy ngày hết hạn để hiện nhắc gia hạn
   plLoad(); plRemStart();
   const ws = plWeekStart(PL.off), nav = `<div class="row between" style="margin-bottom:16px;flex-wrap:wrap;gap:10px"><div class="week-nav"><button class="btn secondary icon" data-act="plWeek" data-d="-1">${ic('chev-l')}</button><span class="lbl">${ws.toFormat('dd/MM')} – ${ws.plus({ days:6 }).toFormat('dd/MM/yyyy')}</span><button class="btn secondary icon" data-act="plWeek" data-d="1">${ic('chev-r')}</button>${PL.off ? `<button class="btn ghost sm" data-act="plWeek" data-d="0">${esc(t('pl_this'))}</button>` : ''}</div>
@@ -613,6 +727,8 @@ FORMS.plQuick = f => {
   plSave(); render(true); setTimeout(() => { const n = $('pl-quick'); if (n) n.focus(); }, 30);
 };
 Object.assign(ACTIONS, {
+  plSv: el => { PL.sv = el.dataset.v === 'm' ? 'm' : 'w'; store.set('pl_sv', PL.sv); render(true); },
+  plMon: el => { PL.moff = Math.max(-36, Math.min(0, (PL.moff || 0) + (+el.dataset.d || 0))); render(true); },
   plBell: () => { window.scrollTo({ top:0, behavior:'smooth' }); if (!$('live-rem').classList.contains('open')) ACTIONS.notif(); },   // mở bảng chuông 🔔, nơi bật/tắt nhắc việc
   plMday: el => { PL.mday = +el.dataset.d; render(true); },
   plWeek: el => { plFlush(); PL.mday = null; const d = +el.dataset.d; PL.off = d ? PL.off + d : 0; PL.seq++; PL.tasks = null; PL.key = ''; PL.state = 'idle'; render(true); },
