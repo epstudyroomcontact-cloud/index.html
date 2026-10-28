@@ -162,7 +162,7 @@ async function tabOverview(){
 
 /* ---------------- Giao diện & Menu ---------------- */
 let adminNav = [], adminSocial = [], adminVideos = [];
-const HOME_SECTIONS = [['about', 'Giới thiệu chủ kênh'], ['hero', 'Khối chào (hero)'], ['stats', 'Thẻ thống kê'], ['today', 'Buổi live hôm nay'], ['blog', 'Bài viết mới'], ['shop', 'Sản phẩm nổi bật'], ['thanks', 'Lời cảm ơn người đồng hành'], ['challenge', 'Đăng ký Challenge 30 ngày'], ['faq', 'Câu hỏi thường gặp & đánh giá']];
+const HOME_SECTIONS = [['hero', 'Khối chào (hero)'], ['about', 'Giới thiệu chủ kênh'], ['stats', 'Thẻ thống kê'], ['today', 'Buổi live hôm nay'], ['blog', 'Bài viết mới'], ['shop', 'Sản phẩm nổi bật'], ['thanks', 'Lời cảm ơn người đồng hành'], ['challenge', 'Đăng ký Challenge 30 ngày'], ['faq', 'Câu hỏi thường gặp & đánh giá']];
 const homeOn = k => { const hs = branding.homeSections || {}; return k === 'faq' && hs.faq === undefined ? hs.about !== false : hs[k] !== false; };
 function homeRows(order){
   const lab = Object.fromEntries(HOME_SECTIONS);

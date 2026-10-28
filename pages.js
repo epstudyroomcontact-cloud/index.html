@@ -106,7 +106,7 @@ function challengeCard(){
   return `<section class="card pad" style="margin-top:34px"><div class="grid g2" style="align-items:center"><div><span class="badge">${ic('check', 'sm')} 30 days</span><h2 style="font-size:1.5rem;margin:10px 0 6px" ${cms('ch_title')}>${esc(ctext('ch_title'))}</h2><p class="muted" ${cms('ch_desc')}>${esc(ctext('ch_desc'))}</p></div>
     <form class="stack" data-form="challenge"><input class="input" id="ch-name" placeholder="${esc(t('ch_name'))}" required maxlength="60" value="${esc(state.user ? displayName() : '')}"><input class="input" id="ch-email" type="email" placeholder="${esc(t('ch_email'))}" required maxlength="160" value="${esc(state.user ? state.user.email : '')}"><button class="btn primary" type="submit" id="ch-btn">${esc(t('ch_btn'))}</button></form></div></section>`;
 }
-const HOME_KEYS = ['about', 'hero', 'stats', 'today', 'blog', 'shop', 'thanks', 'challenge', 'faq'];
+const HOME_KEYS = ['hero', 'about', 'stats', 'today', 'blog', 'shop', 'thanks', 'challenge', 'faq'];
 function homeOrder(){ const o = (Array.isArray(branding.homeOrder) ? branding.homeOrder : []).filter(k => HOME_KEYS.includes(k)); return [...new Set(o), ...HOME_KEYS.filter(k => !o.includes(k))]; }
 PAGES.home = function(){
   const hs = branding.homeSections || {}, on = k => hs[k] !== false, nowUser = DT.now().setZone(userTZ), hr = nowUser.hour;
@@ -114,7 +114,7 @@ PAGES.home = function(){
   const wk = getItems(0, weekDocs[0]).filter(x => !x.cancelled), hours = wk.reduce((a, x) => a + x.mins, 0) / 60, fm = focusToday(), avg = ratingAvg(), tItems = todayItems();
   const heroImg = cimg('hero_img') || branding.mascotUrl;
   const S = {}; let html = '';   // mỗi khối vào S[khoá] rồi ghép theo thứ tự admin chọn (branding.homeOrder)
-  if (on('about')) { html += `<div style="margin-bottom:34px">${aboutIntroHTML()}</div>`; S.about = html; html = ''; }   // giới thiệu về chủ kênh ở đầu trang
+  if (on('about')) { html += `<div class="home-about">${aboutIntroHTML()}</div>`; S.about = html; html = ''; }   // giới thiệu về chủ kênh (mặc định ngay dưới khối chào)
   if (on('hero')) html += `<section class="hero" data-cms-img="hero_img">${heroImg ? `<img class="art" alt="" src="${esc(heroImg)}">` : paint('moonwalk', { crop:'full', seed:1 })}<div class="hero-copy">
       <span class="badge">${esc(hello)}</span>
       <h1 ${cms('home_title')}>${esc(ctext('home_title'))}</h1>
