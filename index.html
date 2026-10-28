@@ -28,21 +28,39 @@
 <!-- Font Google tải song song, không chặn hiện trang: mạng chậm hoặc chặn Google (vd. Trung Quốc) thì web vẫn mở ngay bằng font máy, có font thì tự đổi -->
 <link id="ep-fonts" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap" rel="stylesheet" media="print">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap" rel="stylesheet"></noscript>
-<link rel="stylesheet" href="app.css?v=116">
-<script src="js/boot-guard.js?v=116"></script>
-<script src="js/fonts.js?v=116" defer></script>
-<!-- Thư viện để ngay trên web (thư mục vendor/): một số mạng, trình duyệt và chặn quảng cáo chặn gstatic.com / cdnjs làm web trắng trơn.
-     File nào trong vendor/ không tải được (bị tiện ích chặn…) thì dòng ngay sau nó tải bản dự phòng từ CDN. -->
-<script src="vendor/luxon-3.4.4.min.js"></script>
-<script src="js/fallback-luxon.js?v=116"></script>
-<script src="vendor/firebase-app-compat-10.8.0.js"></script>
-<script src="js/fallback-firebase-app.js?v=116"></script>
-<script src="vendor/firebase-firestore-compat-10.8.0.js"></script>
-<script src="js/fallback-firebase-firestore.js?v=116"></script>
-<script src="vendor/firebase-auth-compat-10.8.0.js"></script>
-<script src="js/fallback-firebase-auth.js?v=116"></script>
+<link rel="stylesheet" href="app.css?v=117">
+<script src="js/boot-guard.js?v=117"></script>
+<script src="js/fonts.js?v=117" defer></script>
 </head>
 <body>
+
+<!-- Màn chờ lúc mở web: logo trăng + tên web, trăng bồng bềnh dưới mưa đêm. Vẽ ngay khi trình duyệt đọc tới đây,
+     trong lúc các thư viện bên dưới (Firebase, Luxon… khoảng 600 KB) còn đang tải, nên không còn khoảng màn hình đen.
+     boot() trong core.js tắt màn này khi trang đã vẽ xong. Kiểu dáng ở mục "Màn chờ" trong app.css. -->
+<div class="ep-splash" id="ep-splash" role="status" aria-label="Ép Study Room">
+  <div class="sky-rain" aria-hidden="true"></div>
+  <div class="sp-box" aria-hidden="true">
+    <div class="sp-glow"></div>
+    <svg class="sp-moon" viewBox="0 0 128 128" width="112" height="112"><defs><linearGradient id="sp-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF7AB8"/><stop offset="1" stop-color="#E8368F"/></linearGradient></defs>
+      <g class="sp-float"><path d="M60.51 20.22 A46 46 0 1 0 95.33 89.86 A39 39 0 0 1 60.51 20.22Z" fill="url(#sp-g)"/><path class="sp-blink" d="M22 70 Q27 75 32 70" stroke="#5A1F48" stroke-width="3.2" fill="none" stroke-linecap="round"/><ellipse cx="25" cy="80" rx="4.5" ry="3" fill="#FFB3D6"/>
+      <g stroke="#5A1F48" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"><path class="sp-page-l" d="M82 58 Q72 51 60 54 L60 82 Q72 79 82 86 Z" fill="#FFF4F8"/><path class="sp-page-r" d="M82 58 Q92 51 104 54 L104 82 Q92 79 82 86 Z" fill="#FFF4F8"/>
+      <path d="M66 63 Q71 62 76 64.5 M66 70 Q71 69 76 71.5 M88 64.5 Q93 62 98 63 M88 71.5 Q93 69 98 70" stroke="#FF8CC2" stroke-width="2.4" fill="none"/></g></g>
+      <path class="sp-star" d="M104 17 Q105.62 24.38 113 26 Q105.62 27.62 104 35 Q102.38 27.62 95 26 Q102.38 24.38 104 17Z" fill="#FFC94D"/><path class="sp-star sp-star2" d="M116 39.5 Q116.81 43.19 120.5 44 Q116.81 44.81 116 48.5 Q115.19 44.81 111.5 44 Q115.19 43.19 116 39.5Z" fill="#FFC94D"/></svg>
+    <div class="sp-name">Ép Study Room</div>
+    <div class="sp-bar"><i></i></div>
+  </div>
+</div>
+
+<!-- Thư viện (để sau màn chờ để màn chờ hiện ngay, không đợi các file này). Để ngay trên web (thư mục vendor/): một số mạng, trình duyệt và chặn quảng cáo chặn gstatic.com / cdnjs làm web trắng trơn.
+     File nào trong vendor/ không tải được (bị tiện ích chặn…) thì dòng ngay sau nó tải bản dự phòng từ CDN. -->
+<script src="vendor/luxon-3.4.4.min.js"></script>
+<script src="js/fallback-luxon.js?v=117"></script>
+<script src="vendor/firebase-app-compat-10.8.0.js"></script>
+<script src="js/fallback-firebase-app.js?v=117"></script>
+<script src="vendor/firebase-firestore-compat-10.8.0.js"></script>
+<script src="js/fallback-firebase-firestore.js?v=117"></script>
+<script src="vendor/firebase-auth-compat-10.8.0.js"></script>
+<script src="js/fallback-firebase-auth.js?v=117"></script>
 
 <!-- Icon sprite (Lucide-style strokes) -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -91,6 +109,9 @@
   <symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
   <symbol id="i-volume" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></symbol>
 </svg>
+
+<!-- Bầu trời đêm sau lưng cả trang: sao lấp lánh, mưa nhẹ, quầng trăng và thỉnh thoảng một vệt sao băng (chỉ CSS, xem mục "Bầu trời đêm" trong app.css) -->
+<div class="sky" aria-hidden="true"><i class="sky-glow"></i><i class="sky-stars"></i><i class="sky-stars s2"></i><div class="sky-rain far"></div><div class="sky-rain"></div><i class="sky-shoot"></i></div>
 
 <div class="app">
   <aside class="sidebar" id="sidebar"></aside>
@@ -141,17 +162,17 @@
 </div>
 <div id="toast"></div>
 
-<script src="js/firebase-config.js?v=116"></script>
-<script src="js/i18n.js?v=116"></script>
-<script src="i18n-extra.js?v=116"></script>
+<script src="js/firebase-config.js?v=117"></script>
+<script src="js/i18n.js?v=117"></script>
+<script src="i18n-extra.js?v=117"></script>
 <!-- Bản dịch lớn hi/ja/ko/zh/fr/es: chỉ tải khi khách đã chọn một trong các tiếng đó (khách tiếng Anh/Việt không phải tải). Đổi ngôn ngữ ở ⚙️ thì core.js tự tải. -->
-<script src="js/lang-loader.js?v=116"></script>
-<script src="js/translate.js?v=116"></script>
-<script src="js/art.js?v=116"></script>
-<script src="core.js?v=116"></script>
-<script src="pages.js?v=116"></script>
-<script src="moon-story-text.js?v=116"></script>
-<script src="moon-story.js?v=116"></script>
-<script src="js/start.js?v=116"></script>
+<script src="js/lang-loader.js?v=117"></script>
+<script src="js/translate.js?v=117"></script>
+<script src="js/art.js?v=117"></script>
+<script src="core.js?v=117"></script>
+<script src="pages.js?v=117"></script>
+<script src="moon-story-text.js?v=117"></script>
+<script src="moon-story.js?v=117"></script>
+<script src="js/start.js?v=117"></script>
 </body>
 </html>
