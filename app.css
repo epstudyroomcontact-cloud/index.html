@@ -837,3 +837,9 @@ button.sb-item{width:100%;background:none;border:0;font:inherit;font-weight:600;
 @media (max-width:520px){.don-pick{grid-template-columns:1fr;gap:8px}.don-opt{padding:11px 13px}.don-ic{width:34px;height:34px}.don-card.pad{padding:16px}}
 .don-step .qr{max-width:240px}
 @media (min-width:901px){.don-cols>.stack:first-child{position:sticky;top:84px}}
+/* Ô mời Người đồng hành nhỏ ở Phòng tập trung */
+.fn-card{position:relative;display:flex;flex-direction:column;gap:12px;border-color:var(--accent-soft);background:linear-gradient(135deg,var(--accent-soft),transparent 70%),var(--surface)}
+.fn-top{display:flex;gap:12px;align-items:flex-start;padding-right:26px}.fn-top b{display:block;margin-bottom:2px}.fn-top p{margin:0;line-height:1.45}
+.fn-card .don-ic{background:var(--accent);color:var(--on-accent)}
+.fn-x{position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:var(--ink3)}.fn-x:hover{background:var(--surface2);color:var(--ink)}
+@media (min-width:901px){.g-main>.stack>*{order:2}.g-main>.stack>:first-child{order:0}.g-main>.stack>.fn-card{order:1}}
