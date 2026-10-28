@@ -407,11 +407,11 @@ html[data-font="serif"] h1,html[data-font="serif"] h2,html[data-font="serif"] h3
 .moon-big{width:min(300px,72vw)}.moon-big.full .moon-img{filter:drop-shadow(0 0 36px rgba(255,228,77,.5))}
 .moon-sm{width:120px;flex:none}
 .club-promo{display:flex;gap:24px;align-items:center;flex-wrap:wrap}
-.days30{display:grid;grid-template-columns:repeat(10,1fr);gap:8px}
-.day-cell{aspect-ratio:1;border-radius:50%;display:grid;place-items:center;font-size:.78rem;font-weight:700;color:var(--ink3);border:1px solid var(--line2);background:var(--surface2)}
-.day-cell.on{background:#ffe44d;border-color:#ffe44d;color:#3d3000}
-.day-cell.next{border-color:var(--accent);color:var(--accent-strong);box-shadow:0 0 0 3px var(--accent-soft)}
-@media(max-width:520px){.days30{grid-template-columns:repeat(6,1fr)}}
+/* lịch cả hành trình (480 chấm): ngày đã đi tô màu tuyến, trạm là vòng to, ngày cần điểm danh tiếp theo có viền hồng */
+.mj-grid{display:block;width:100%;height:auto;margin-top:4px}
+.mj-grid circle{fill:var(--line2)}.mj-grid circle.on{fill:var(--c)}.mj-grid circle.st{stroke:var(--c);stroke-width:1.6;fill:var(--surface2)}
+.mj-grid circle.on.st{fill:var(--c);stroke:#fff;stroke-width:1.4}
+.mj-grid circle.nx{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.8}
 .mj-shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
 .mj-badge{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 6px;border-radius:14px;border:1px solid var(--line2);background:var(--surface2);font-size:1.5rem;text-align:center;filter:grayscale(1);opacity:.55}
 .mj-badge small{font-size:.72rem;font-weight:600;color:var(--ink2);line-height:1.2}
@@ -534,22 +534,30 @@ html[data-font="serif"] h1,html[data-font="serif"] h2,html[data-font="serif"] h3
 .mj-scroll{height:min(72vh,660px);overflow-y:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:#2c3d70 transparent;background:#0a1228}
 @media(max-width:900px){.mj-scroll{height:min(62vh,560px)}}
 .mj-map{display:block;width:100%;height:auto}
-.mj-map .road-edge path{fill:none;stroke:#050a1c;stroke-width:25;stroke-linecap:round;opacity:.55}
-.mj-map .road path{fill:none;stroke:#26365f;stroke-width:18;stroke-linecap:round}
-.mj-map .road-dash path{fill:none;stroke:#566b9f;stroke-width:1.6;stroke-dasharray:3 9;stroke-linecap:round}
-.mj-map .lit-glow path{fill:none;stroke:#ffd27a;stroke-width:22;stroke-linecap:round;opacity:.32}
-.mj-map .lit path{fill:none;stroke:#fff0b8;stroke-width:5;stroke-linecap:round}
-.mj-map .days circle{fill:#4a5d92}.mj-map .days circle.on{fill:#ffe39a}
+.mj-map .wash{fill:#0a1228;opacity:.28;pointer-events:none}
+/* sơ đồ tuyến tàu: nét dày bo tròn, mỗi vùng một màu; đoạn chưa đi mờ đi, đoạn đã đi sáng màu */
+.mj-map .road-edge path{fill:none;stroke:#060b1e;stroke-width:19;stroke-linecap:round;stroke-linejoin:round;opacity:.85}
+.mj-map .road path{fill:none;stroke-width:11;stroke-linecap:round;stroke-linejoin:round;opacity:.3}
+.mj-map .lit-glow path{fill:none;stroke-width:24;stroke-linecap:round;stroke-linejoin:round;opacity:.22}
+.mj-map .lit path{fill:none;stroke-width:11;stroke-linecap:round;stroke-linejoin:round}
+.mj-map .days circle{fill:#c9d3f0;opacity:.45}.mj-map .days circle.on{fill:#fff;opacity:.95}
+.mj-branch .cs{fill:none;stroke:#060b1e;stroke-width:13;stroke-linecap:round;stroke-linejoin:round;opacity:.8}
+.mj-branch .ln{fill:none;stroke:var(--lc);stroke-width:7;stroke-linecap:round;stroke-linejoin:round;opacity:.28}
+.mj-branch .end{fill:#121c3d;stroke:var(--lc);stroke-width:3;opacity:.6}.mj-branch .ic{color:#6f80b0;fill:#6f80b0}
+.mj-branch.on .ln{opacity:.85}.mj-branch.on .end{fill:#fff;opacity:1}.mj-branch.on .ic{color:#2a1d3f;fill:#2a1d3f}
+.mj-branch .tr{fill:#fff;stroke:var(--lc);stroke-width:2}
 .mj-stop{cursor:pointer;outline:none}
-.mj-stop .disc{fill:#121c3d;stroke:#3a4c7d;stroke-width:2.5;transition:stroke .15s}
+.mj-stop .disc{fill:#121c3d;stroke:var(--lc,#3a4c7d);stroke-opacity:.55;stroke-width:4;transition:stroke .15s}
 .mj-stop .gl{color:#6f80b0;fill:#6f80b0}
-.mj-stop.is-open .disc{fill:#ffd27a;stroke:#fff2c4}.mj-stop.is-open .gl{color:#4a2f0c;fill:#4a2f0c}
-.mj-stop .halo{fill:none;stroke:#ffe9a8;stroke-width:1.5;opacity:.7}
+.mj-stop.is-open .disc{fill:#fff2c4;stroke-opacity:1}.mj-stop.is-open .gl{color:#4a2f0c;fill:#4a2f0c}
+.mj-stop.is-reached .disc{fill:#fff}
+.mj-stop .xr{fill:#fff;stroke-width:3}.mj-stop.is-locked .xr{fill:#121c3d;opacity:.6}
+.mj-stop .halo{fill:none;stroke:var(--lc,#ffe9a8);stroke-width:1.5;opacity:.75}
 .mj-stop .lb,.mj-stop .dy,.mj-walker .here{paint-order:stroke;stroke:#070c1d;stroke-linejoin:round}
 .mj-stop .lb{font:800 12.5px var(--font-h);fill:#fff2c4;stroke-width:4}.mj-stop.is-locked .lb{fill:#8d9bc4}
 .mj-stop .dy{font:700 10px var(--font-b);fill:#a9b8de;stroke-width:3.4}
 .mj-stop .new{fill:#ff5fa0;stroke:#0b1430;stroke-width:2}
-.mj-stop:hover .disc,.mj-stop:focus-visible .disc{stroke:#ff8fc0;stroke-width:3}
+.mj-stop:hover .disc,.mj-stop:focus-visible .disc{stroke:#ff8fc0;stroke-opacity:1;stroke-width:4.5}
 .mj-walker{pointer-events:none}.mj-walker .pulse{fill:#ffd27a;opacity:.25;transform-box:fill-box;transform-origin:center;animation:mjPulse 2.4s ease-in-out infinite}
 .mj-walker .here{font:800 11px var(--font-b);fill:#ffe39a;stroke-width:3.4}
 @keyframes mjPulse{0%,100%{transform:scale(.8);opacity:.35}50%{transform:scale(1.25);opacity:.1}}
