@@ -628,3 +628,66 @@
   const M = {"en": "Fine-tune live reminders", "vi": "Chỉnh nhắc giờ live", "hi": "लाइव रिमाइंडर बदलें", "ja": "ライブのお知らせを調整", "ko": "라이브 알림 세부 설정", "zh": "调整直播提醒", "fr": "Régler les rappels de live", "es": "Ajustar recordatorios del directo"};
   Object.keys(M).forEach(l => { I18N[l] = I18N[l] || {}; I18N[l].lr_more = M[l]; });
 })();
+
+/* mục "Lưu ý khi dùng chuông" trong bảng chuông */
+(function () {
+  const TIPS = {
+ "en": {
+  "snd_tips_t": "Tips for using the chimes",
+  "snd_tip1": "Chimes only play while the site or app is open. Tap the page once after opening it so the browser allows sound.",
+  "snd_tip2": "If your phone is on silent or the volume is low, you will not hear them.",
+  "snd_tip3": "A reminder that arrives after you close the site uses your device's own notification sound, which the site cannot change.",
+  "snd_tip4": "Planner reminders only work for tasks that have a start time."
+ },
+ "vi": {
+  "snd_tips_t": "Lưu ý khi dùng chuông",
+  "snd_tip1": "Chuông chỉ kêu khi web hoặc app đang mở. Sau khi mở, hãy chạm vào trang một lần để trình duyệt cho phép phát tiếng.",
+  "snd_tip2": "Điện thoại đang để im lặng hoặc nhỏ tiếng thì sẽ không nghe được.",
+  "snd_tip3": "Thông báo đến sau khi đã đóng web dùng âm thanh của chính máy bạn, web không đổi được.",
+  "snd_tip4": "Nhắc việc Planner chỉ có với việc đã đặt giờ bắt đầu."
+ },
+ "hi": {
+  "snd_tips_t": "चाइम इस्तेमाल करने की सलाह",
+  "snd_tip1": "चाइम तभी बजती है जब साइट या ऐप खुला हो। खोलने के बाद पेज पर एक बार टैप करें ताकि ब्राउज़र आवाज़ की अनुमति दे।",
+  "snd_tip2": "फ़ोन साइलेंट या आवाज़ कम हो तो आपको सुनाई नहीं देगा।",
+  "snd_tip3": "साइट बंद करने के बाद आने वाली सूचना आपके डिवाइस की अपनी आवाज़ में बजती है, जिसे साइट बदल नहीं सकती।",
+  "snd_tip4": "प्लानर रिमाइंडर सिर्फ़ उन कामों के लिए हैं जिनका शुरू होने का समय तय है।"
+ },
+ "ja": {
+  "snd_tips_t": "チャイムを使うときのご注意",
+  "snd_tip1": "チャイムはサイトやアプリを開いている間だけ鳴ります。開いたあとにページを一度タップして、ブラウザに音を許可させてください。",
+  "snd_tip2": "端末がサイレントや音量が小さい場合は聞こえません。",
+  "snd_tip3": "サイトを閉じた後に届く通知は端末自身の通知音で鳴り、サイト側では変えられません。",
+  "snd_tip4": "プランナーのお知らせは、開始時刻を設定したタスクだけが対象です。"
+ },
+ "ko": {
+  "snd_tips_t": "알림음 사용 안내",
+  "snd_tip1": "알림음은 사이트나 앱이 열려 있을 때만 납니다. 연 뒤 페이지를 한 번 탭해 브라우저가 소리를 허용하게 해 주세요.",
+  "snd_tip2": "기기가 무음이거나 볼륨이 낮으면 들리지 않습니다.",
+  "snd_tip3": "사이트를 닫은 뒤 오는 알림은 기기 자체의 알림음을 사용하며, 사이트에서 바꿀 수 없습니다.",
+  "snd_tip4": "플래너 알림은 시작 시간이 있는 할 일에만 울립니다."
+ },
+ "zh": {
+  "snd_tips_t": "使用铃声的提示",
+  "snd_tip1": "铃声只在网站或应用打开时播放。打开后请点一下页面，浏览器才会允许发声。",
+  "snd_tip2": "手机静音或音量太低时听不到。",
+  "snd_tip3": "关闭网站后收到的提醒使用设备自带的提示音，网站无法更改。",
+  "snd_tip4": "计划提醒只对设置了开始时间的任务有效。"
+ },
+ "fr": {
+  "snd_tips_t": "À savoir sur les carillons",
+  "snd_tip1": "Les carillons ne sonnent que lorsque le site ou l'appli est ouvert. Après l'ouverture, touchez la page une fois pour que le navigateur autorise le son.",
+  "snd_tip2": "Si le téléphone est en silencieux ou le volume bas, vous ne les entendrez pas.",
+  "snd_tip3": "Un rappel reçu après la fermeture du site utilise le son de notification de votre appareil, que le site ne peut pas changer.",
+  "snd_tip4": "Les rappels du Planner ne concernent que les tâches ayant une heure de début."
+ },
+ "es": {
+  "snd_tips_t": "Consejos sobre los avisos sonoros",
+  "snd_tip1": "Los sonidos solo suenan con el sitio o la app abiertos. Tras abrirlos, toca la página una vez para que el navegador permita el sonido.",
+  "snd_tip2": "Si el móvil está en silencio o con el volumen bajo, no los oirás.",
+  "snd_tip3": "Un aviso que llega con el sitio cerrado usa el sonido de notificación del propio dispositivo, que el sitio no puede cambiar.",
+  "snd_tip4": "Los recordatorios del Planner solo funcionan con tareas que tengan hora de inicio."
+ }
+};
+  Object.keys(TIPS).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], TIPS[l]); });
+})();

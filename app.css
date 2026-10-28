@@ -705,7 +705,7 @@ html[data-font="serif"] h1,html[data-font="serif"] h2,html[data-font="serif"] h3
 .lr-help{margin-top:10px;font-size:.8rem}
 .lr-help summary{cursor:pointer;font-weight:700;color:var(--ink2)}
 .lr-steps{margin:6px 0 4px 18px;padding:0;color:var(--ink2);line-height:1.5}
-.lr-hr{border:0;border-top:1px solid var(--line);margin:14px 0 4px}
+.lr-hr{border:0;border-top:1px solid var(--line);margin:8px 0 2px}
 @media(max-width:520px){.lr-pop{position:fixed;left:12px;right:12px;top:64px;width:auto}}
 .lr-pop{max-height:calc(100vh - 80px);overflow-y:auto;overscroll-behavior:contain}
 .lr-chips,.lr-seg{display:flex;flex-wrap:wrap;gap:6px}

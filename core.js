@@ -739,7 +739,7 @@ function sndHTML(){
   return `<details class="lr-help snd" ${SND.open ? 'open' : ''}><summary data-act="sndOpen">${esc(t('snd_title'))}</summary>
     <div class="switch"><span>${esc(t('snd_master'))}</span><input type="checkbox" data-change="sndMaster" ${SND.on ? 'checked' : ''}></div>
     <div class="${SND.on ? '' : 'lr-off'}"><label class="label">${esc(t('lr_vol'))}</label><input type="range" class="snd-vol" min="10" max="100" step="5" value="${Math.round(SND.vol * 100)}" data-change="sndVol" aria-label="${esc(t('lr_vol'))}">
-    <div class="snd-list">${rows}</div></div><p class="lr-note">${esc(t('snd_note'))}</p></details>`;
+    <div class="snd-list">${rows}</div></div></details>`;
 }
 function swRegister(){
   if (swReg || !('serviceWorker' in navigator) || !window.isSecureContext) return Promise.resolve(swReg);
@@ -908,10 +908,11 @@ function pushHTML(){
    và hướng dẫn ngắn cho phần web không biết được (Không làm phiền, tắt tiếng, pin, kiểu thông báo Im lặng) */
 const notifBroken = () => NOTIF_OK && ((PUSH.on || store.get('pl_rem', false) || store.get('mj_rem', false)) && Notification.permission !== 'granted' || LR.on && lrPop() && Notification.permission === 'denied');   // đã bật nhắc mà quyền thông báo bị chặn / bị thu hồi
 const notifBadge = () => { const b = $('btn-notif'); if (b) b.classList.toggle('warn', notifBroken()); };
-function notifHelpHTML(){
+function notifHelpHTML(){                                           // một mục thu gọn: lưu ý khi dùng chuông + cách bật lại âm / thông báo + cài ứng dụng
   const app = !pwaStandalone() && !pwaIOS && pushSupported() ? `<p class="lr-note">${esc(t('nh_app'))}</p><button type="button" class="btn ghost sm" data-act="pwaInstall">${ic('download', 'sm')} ${esc(t('pwa_install'))}</button>` : '';
   const steps = k => `<ol class="lr-steps">${[1, 2, 3].map(i => `<li>${esc(t(k + i))}</li>`).join('')}</ol>`;
-  return `${app}<details class="lr-help"><summary>${esc(t('nh_q'))}</summary><p class="lr-note">${esc(t('nh_intro'))}</p>${pwaIOS ? steps('nh_ios') : steps('nh_and')}</details>`;
+  return `<details class="lr-help"><summary>${esc(t('snd_tips_t'))}</summary><ul class="lr-steps">${[1, 2, 3, 4].map(i => `<li>${esc(t('snd_tip' + i))}</li>`).join('')}</ul>
+    <p class="lr-note">${esc(t('nh_intro'))}</p>${pwaIOS ? steps('nh_ios') : steps('nh_and')}${app}</details>`;
 }
 /* Nhắc việc Planner trong bảng chuông (chỉ người dùng được Planner): bật/tắt bằng plRemToggle trong planner.js */
 const plCan = () => !DEMO && !!state.user && (state.companion || state.isAdmin || (typeof trialActive === 'function' && trialActive()));
