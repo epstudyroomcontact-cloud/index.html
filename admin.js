@@ -245,12 +245,14 @@ function drawSchedule(){
    settings/onair = { start: giờ bắt đầu thật (ms), sched: giờ bắt đầu theo lịch của buổi đó (ms), at, prev: giá trị trước lần bấm gần nhất (để hoàn tác) }
    — ai cũng đọc được, chỉ admin ghi (firestore.rules: settings). Hoàn tác ghi lại đúng at cũ, nên OBS quay về đúng giờ trước đó (kể cả giờ do bấm Start Streaming). */
 let onair = null, onairUnsub = null;
-// Mốc chỉ còn hiệu lực với buổi đang/sắp chạy: giờ thật lệch lịch < 12 tiếng và chưa quá 1 tiếng sau khi buổi (đã dời) kết thúc.
-// Mốc của hôm qua (vd "trễ 1444 phút") coi như không có: thẻ báo chưa bắt đầu, bấm "Bắt đầu" sẽ gắn vào buổi hôm nay.
-const onairMatch = () => { if (!onair || !onair.start || Math.abs(onair.start - onair.sched) > 12 * 3600e3) return null;
-  const m = upcomingPool().find(x => x.sched.toMillis() === onair.sched); return m && Date.now() < onair.start + m.mins * 60e3 + 3600e3 ? m : null; };
-const onairNext = () => { const now = Date.now();
-  return upcomingPool().filter(x => x.end.toMillis() + 3600e3 > now && x.start.toMillis() - 18 * 3600e3 < now).sort((a, b) => a.start.toMillis() - b.start.toMillis())[0] || null; };
+// Mốc chỉ còn hiệu lực khi giờ thật lệch lịch < 12 tiếng (mốc của hôm qua, vd "trễ 1444 phút", coi như không có).
+// Buổi đã bấm bắt đầu và đã chạy hết giờ thì không coi là "đang chạy" nữa: ngày có 2 buổi, ô này chuyển sang buổi kế tiếp (không bắt đầu lại buổi sáng).
+// So khớp theo giờ lịch (x.sched), vì x.start của buổi đã bấm bắt đầu là giờ thật (core.js getItems).
+const onairRan = () => { if (!onair || !onair.start || Math.abs(onair.start - onair.sched) > 12 * 3600e3) return null;
+  return upcomingPool().find(x => x.sched.toMillis() === onair.sched) || null; };
+const onairMatch = () => { const x = onairRan(); return x && Date.now() < onair.start + x.mins * 60e3 ? x : null; };
+const onairNext = () => { const now = Date.now(), done = onairMatch() ? null : onairRan();
+  return upcomingPool().filter(x => !(done && x.key === done.key) && x.end.toMillis() + 3600e3 > now && x.start.toMillis() - 18 * 3600e3 < now).sort((a, b) => a.start.toMillis() - b.start.toMillis())[0] || null; };
 function onairCard(){
   const m = onairMatch(), x = m || onairNext(), hm = d => d.setZone(VN).toFormat('HH:mm');
   const now = Date.now(), prev = onair && onair.prev && now - (onair.at || 0) < 3 * 3600e3 ? onair.prev : null;

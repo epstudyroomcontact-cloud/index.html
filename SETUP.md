@@ -407,10 +407,19 @@ Trang `overlay.html` hiện kế hoạch buổi live đang chạy (giống thẻ
 
 **Địa chỉ:** địa chỉ web của bạn + `overlay.html`. Ví dụ web là `https://TENBAN.github.io/index.html/` thì bảng là `https://TENBAN.github.io/index.html/overlay.html`. Mở thử trên trình duyệt trước; chưa tới giờ live thì thêm `?demo=1` vào cuối để xem buổi mẫu.
 
+**Gợi ý cách đặt trong OBS (đủ dùng, không cần thêm gì khác):**
+| Nguồn Browser | URL | Width × Height |
+|---|---|---|
+| Bảng lịch gọn (đếm giờ lớn + tiến độ + thông báo) | `.../overlay.html` | 380 × 520 |
+| Đồng hồ giờ Việt Nam (thẻ pastel) | `.../overlay.html?view=clock` | 460 × 220 |
+| (tuỳ chọn) Thông báo đặt riêng chỗ khác, khi đó bảng lịch thêm `?note=0` | `.../overlay.html?view=note` | 380 × 160 |
+
+Đã có bảng lịch gọn thì có thể bỏ nguồn `view=timer` (khối đếm giờ lớn ở đầu bảng làm cùng việc), đỡ tốn lượt đọc Firebase; giữ lại cũng không sao. Bảng lịch cần Properties → **Page permissions** ≥ **Read access to OBS status information** để tự bắt đầu khi bấm Start Streaming, và tick **Control audio via OBS** nếu muốn người xem nghe chuông. Sửa file xong (Merge trên GitHub), đợi 2–5 phút rồi trong OBS: chuột phải từng nguồn → **Properties** → **Refresh cache of current page**.
+
 **Thêm vào OBS:**
 1. Ô **Sources** (Nguồn) → bấm **+** → chọn **Browser** (Trình duyệt) → đặt tên "Lịch live" → **OK**.
 2. Ô **URL**: dán địa chỉ ở trên.
-3. **Width** `520`, **Height** `900` (khung dọc ở cạnh màn hình). Đổi kích thước thì chữ tự co lại cho vừa, luôn thấy hết lịch.
+3. **Width** `380`, **Height** `520` (bảng mặc định là khung GỌN rộng khoảng 340px, xem bên dưới). Nếu dùng bảng cả ngày kiểu cũ (`compact=0`) thì đặt Width `520`, Height `900`: chữ tự co lại cho vừa, luôn thấy hết lịch.
 4. Ô **Custom CSS** để nguyên như mặc định. Bấm **OK**, rồi kéo bảng tới chỗ bạn muốn trên màn hình.
 5. Muốn bảng tải lại ngay (ví dụ vừa sửa lịch xong, không muốn chờ 3 phút): chuột phải vào nguồn → **Properties** → bấm **Refresh cache of current page**.
 
@@ -437,7 +446,7 @@ Trang `overlay.html` hiện kế hoạch buổi live đang chạy (giống thẻ
 
 **Khối đếm giờ lớn (cho người xem bằng điện thoại):** đầu bảng lịch luôn có khối to "FOCUS 3/10" / "SHORT BREAK" / "LONG BREAK" + số đếm ngược lớn + thanh tiến độ + "Next: …", tự theo giờ Start Streaming. Chữ to theo bề ngang của nguồn (kéo nguồn rộng ra là chữ to hơn). `big=0` để ẩn; muốn đặt khối này riêng một chỗ: thêm nguồn Browser với `overlay.html?view=big`.
 
-**Bảng gọn + thông báo cho người xem:** thêm `compact=1` vào địa chỉ để bảng chỉ còn đoạn đang chạy + 3 đoạn kế tiếp (đổi số dòng bằng `rows=5`), bỏ tên buổi / tóm tắt / tổng phút. Thông báo (mục tiêu hôm nay, nội quy, lời nhắn…) nhập trong **Admin → ô Bắt đầu buổi live → Thông báo trên OBS → Lưu thông báo**: hiện thành khung màu nổi bật trên bảng lịch trong khoảng 10 giây; để trống / **Ẩn thông báo** là tắt. Muốn đặt khung thông báo ở chỗ khác trên màn hình: thêm một nguồn Browser riêng với `overlay.html?view=note` (`note=0` để ẩn khung này khỏi bảng lịch).
+**Thông báo cho người xem:** bảng gọn (mặc định) đã có sẵn thanh thông báo bên dưới, không cần thêm gì vào địa chỉ. Thông báo (mục tiêu hôm nay, nội quy, lời nhắn…) nhập trong **Admin → ô Bắt đầu buổi live → Thông báo trên OBS → Lưu thông báo**: hiện thành khung màu nổi bật trên bảng lịch trong khoảng 10 giây; để trống / **Ẩn thông báo** là tắt. Muốn đặt khung thông báo ở chỗ khác trên màn hình: thêm một nguồn Browser riêng với `overlay.html?view=note` (`note=0` để ẩn khung này khỏi bảng lịch).
 
 **Tự bắt đầu khi bấm Start Streaming trong OBS (mặc định):** bảng lịch (và bộ đếm) nghe nút **Start Streaming** của OBS: bấm là buổi live gần nhất tính lại từ đúng lúc đó, dòng đang chạy đếm ngược và có chuông khi vào nghỉ / vào học. Cần một lần: Properties của nguồn → **Page permissions** chọn **Read access to OBS status information** trở lên (đang dùng tự đổi cảnh thì giữ Advanced) và tick **Control audio via OBS** để người xem nghe chuông. Rớt mạng rồi stream lại giữa buổi thì giờ cũ được giữ nguyên; tải lại nguồn cũng không mất. Thêm `autostart=0` vào địa chỉ để tắt cách này. Giờ mới nhất giữa OBS và nút Admin bên dưới sẽ được dùng, nên bấm nhầm thì sửa trong Admin.
 
