@@ -791,7 +791,19 @@ button.sb-item{width:100%;background:none;border:0;font:inherit;font-weight:600;
   #page[data-route=club] .art-head,#page[data-route=planner] .art-head{height:110px;margin-bottom:14px}
   #page[data-route=club] .glass,#page[data-route=planner] .glass{left:12px;bottom:12px;padding:10px 14px}
   .mj-a-status .moon-big{width:min(120px,34vw)}
-  .mj-a-status>.card{gap:10px}
+  .mj-a-status>.card{gap:10px;padding:16px 18px 18px}
+  #page[data-route=club] .mj-layout+section{margin-top:18px!important}
   .mj-scroll{height:min(50vh,440px)}
   .pl-kpis4{gap:8px}.pl-kpi{padding:10px 12px;border-radius:14px}.pl-kpi b{font-size:1.25rem}
+}
+/* điện thoại: thanh tab xuống dòng thay vì bị cắt ngang; tuần + nút Thêm việc chung một hàng; khối chào trang chủ không còn khoảng trống thừa */
+@media(max-width:640px){
+  .tab-bar{flex-wrap:wrap;overflow:visible}.tab-bar .chip{min-height:32px;padding:6px 11px}
+  .pl-nav{flex-wrap:nowrap!important;margin-bottom:12px!important}.pl-nav .week-nav{gap:6px;min-width:0}.pl-nav .week-nav .lbl{min-width:0;font-size:.8rem}
+  .pl-nav .week-nav .lbl{white-space:nowrap;font-size:.78rem}.pl-nav .week-nav .btn.icon{width:36px;height:36px}
+  .pl-nav .btn.primary{padding:8px 10px;font-size:.82rem;box-shadow:none;flex:none}
+  .pl-menu summary{justify-content:flex-start;padding:4px 2px;min-height:0;font-size:.84rem;color:var(--accent-strong)}
+  .pl-ps-kpis>.pl-kpi:last-child{grid-column:1/-1}
+  .hero{min-height:0}.hero-copy{margin:24px 20px 96px}
+  .about-img{aspect-ratio:16/9}
 }
