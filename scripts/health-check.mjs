@@ -16,7 +16,7 @@ const env = process.env;
 const SITE = (env.SITE_URL || '').replace(/\/?$/, '/');
 const ROOT = new URL('..', import.meta.url);
 const read = p => fs.readFileSync(new URL(p, ROOT), 'utf8');
-const results = [];   // { area, name, status: ok | warn | fail | skip, detail, fix }
+const results = [];   // { area, name, status: ok | info | warn | fail | skip, detail, fix }. info = chỉ ghi lại, không mở issue
 const add = (area, name, status, detail = '', fix = '') => { results.push({ area, name, status, detail, fix }); console.log(`[${status.toUpperCase()}] ${area} · ${name}${detail ? ' — ' + detail : ''}`); };
 const median = a => [...a].sort((x, y) => x - y)[Math.floor(a.length / 2)];
 const sec = ms => (ms / 1000).toFixed(1) + ' giây';
@@ -113,8 +113,8 @@ async function checkBrowser(){
       if (weight) add(A, `Tổng dung lượng tải trên ${d.name}`, weight > LIMIT.weightWarn ? 'warn' : 'ok', kb(weight) + ' (cả font, Firebase…)');
       add(A, `Lỗi JavaScript trên ${d.name}${d.name === 'máy tính' ? ' (đã mở thử ' + routes.length + ' trang)' : ''}`, jsErr.size ? 'fail' : 'ok', [...jsErr].slice(0, 5).join(' · '), jsErr.size ? 'Có chức năng có thể không chạy. Báo mình kèm đường dẫn issue này.' : '');
       add(A, `File của web bị lỗi khi tải (${d.name})`, ownBad.size ? 'fail' : 'ok', [...ownBad].slice(0, 8).join(', '));
-      if (conErr.size) add(A, `Thông báo lỗi trong console (${d.name})`, 'warn', [...conErr].slice(0, 5).join(' · '), 'Thường không ảnh hưởng khách, nhưng nên xem qua.');
-      if (extBad.size) add(A, `Dịch vụ bên ngoài không tải được (${d.name})`, 'warn', [...extBad].slice(0, 6).join(', '), 'Font, YouTube, Firebase… đôi khi lỗi tạm thời. Lặp lại nhiều tuần thì báo mình.');
+      if (conErr.size) add(A, `Thông báo lỗi trong console (${d.name})`, 'info', [...conErr].slice(0, 5).join(' · '), 'Thường không ảnh hưởng khách.');
+      if (extBad.size) add(A, `Dịch vụ bên ngoài không tải được (${d.name})`, 'info', [...extBad].slice(0, 6).join(', '), 'Font, YouTube, rss2json (danh sách video mới)… đôi khi lỗi tạm thời, web vẫn chạy.');
       await ctx.close();
     }
   } finally { await browser.close(); }
@@ -228,7 +228,7 @@ async function checkRulesAdmin(){
       const wrong = (j.testResults || []).map((t, i) => t.state === 'SUCCESS' ? null : CASES[i][0]).filter(Boolean);
       add(A, `Ca thử bảo mật trên luật ${label} (${CASES.length} ca)`, wrong.length ? 'fail' : 'ok', wrong.length ? 'Sai: ' + wrong.join('; ') : '',
         wrong.length ? (label === 'trong repo' ? 'Đừng dán file luật này lên Firebase, báo mình sửa trước.' : 'Luật đang chạy có lỗ hổng. Dán lại file firestore.rules trong repo lên Firebase, rồi báo mình.') : '');
-    } catch (e) { add(A, `Ca thử bảo mật trên luật ${label}`, 'skip', noPerm(e) ? 'Tài khoản dịch vụ không có quyền chạy thử luật.' : e.message); }
+    } catch (e) { add(A, `Ca thử bảo mật trên luật ${label}`, 'skip', noPerm(e) ? `Tài khoản dịch vụ chưa có quyền chạy thử luật (${e.message}).` : e.message); }
   }
 }
 
@@ -248,12 +248,12 @@ async function checkBackup(){
 for (const f of [checkSite, checkBrowser, checkRulesAnon, checkRulesAdmin, checkBackup]) {
   try { await f(); } catch (e) { add('Máy kiểm tra', f.name, 'warn', 'Bước kiểm tra bị lỗi: ' + e.message); }
 }
-const icon = { ok:'✅', warn:'⚠️', fail:'❌', skip:'⏭️' };
+const icon = { ok:'✅', info:'ℹ️', warn:'⚠️', fail:'❌', skip:'⏭️' };
 const n = s => results.filter(r => r.status === s).length;
 const fails = n('fail'), warns = n('warn');
 const when = new Date().toLocaleString('vi-VN', { timeZone:'Asia/Ho_Chi_Minh', dateStyle:'full', timeStyle:'short' });
 let md = `## ${fails ? '❌ Có lỗi cần xử lý' : warns ? '⚠️ Có điểm cần để ý' : '✅ Mọi thứ ổn'}\n\nKiểm tra ${when} (giờ Việt Nam) · ${env.SITE_URL || ''}\n\n`
-  + `${n('ok')} ổn · ${warns} cần để ý · ${fails} lỗi${n('skip') ? ` · ${n('skip')} bỏ qua` : ''}\n\n`;
+  + `${n('ok')} ổn · ${warns} cần để ý · ${fails} lỗi${n('info') ? ` · ${n('info')} ghi chú` : ''}${n('skip') ? ` · ${n('skip')} bỏ qua` : ''}\n\n`;
 const problems = results.filter(r => r.status === 'fail' || r.status === 'warn');
 if (problems.length) md += '### Cần xem\n\n' + problems.map(r => `- ${icon[r.status]} **${r.name}**${r.detail ? ': ' + r.detail : ''}${r.fix ? `\n  - 👉 ${r.fix}` : ''}`).join('\n') + '\n\n';
 md += '<details><summary>Toàn bộ kết quả</summary>\n\n| | Mục | Chi tiết |\n|---|---|---|\n'

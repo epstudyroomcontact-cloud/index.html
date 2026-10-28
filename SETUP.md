@@ -492,6 +492,10 @@ Sáng thứ Hai (khoảng 8 giờ, giờ Việt Nam) GitHub tự mở web bằng
 
 **Nếu báo cáo ghi "bỏ qua … không có quyền xem luật":** tài khoản dịch vụ chưa được xem luật bảo mật. Vào https://console.cloud.google.com/iam-admin/iam (chọn project của web) → dòng có email `firebase-adminsdk-…` → bấm ✏️ → **Add another role** → chọn **Firebase Rules Viewer** → **Save**. Không làm cũng được, các phần kiểm tra khác vẫn chạy.
 
+**Dòng "bỏ qua Ca thử bảo mật … chưa có quyền chạy thử luật" là bình thường:** muốn chạy 12 ca thử thì tài khoản dịch vụ cần thêm vai trò **Firebase Rules Admin**, mà vai trò này cũng cho phép sửa luật, nên mình khuyên **không thêm**. Phần so luật đang chạy với file trong repo và phần thử đọc như khách lạ đã đủ để biết luật còn đúng.
+
+**Mục "ghi chú" (ℹ️) không mở issue:** đó là dịch vụ bên ngoài (font, danh sách video mới qua rss2json…) lỗi tạm thời, web vẫn chạy.
+
 **Địa chỉ web:** máy kiểm tra tự lấy từ GitHub Pages. Nếu sau này dùng tên miền riêng mà báo cáo vẫn mở địa chỉ cũ: **Settings → Secrets and variables → Actions → Variables → New repository variable**, Name `SITE_URL`, Value là địa chỉ web (ví dụ `https://tenmien.com/`).
 
 ## QUY TẮC CẬP NHẬT WEB LÊN GITHUB (đọc cái này khi cần cập nhật)
