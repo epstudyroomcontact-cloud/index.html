@@ -142,8 +142,8 @@ PAGES.home = function(){
       </div></div>`;
   }
   S.today = html; html = '';
-  if (on('blog') && livePosts().length) S.blog = secHead('sec_blog', '#/blog') + `<div class="pgrid">${livePosts().slice(0, 3).map(blogCard).join('')}</div>`;
-  if (on('shop') && products.length) S.shop = secHead('sec_shop', '#/shop') + `<div class="pgrid">${products.slice(0, 3).map(prodCard).join('')}</div>`;
+  if (on('blog') && livePosts().length) S.blog = secHead('sec_blog', '#/blog') + `<div class="pgrid home-peek">${livePosts().slice(0, 3).map(blogCard).join('')}</div>`;
+  if (on('shop') && products.length) S.shop = secHead('sec_shop', '#/shop') + `<div class="pgrid home-peek">${products.slice(0, 3).map(prodCard).join('')}</div>`;
   if (on('thanks') && thanksList().length) S.thanks = thanksCard();
   if (on('challenge')) S.challenge = clubPromo();
   if (hs.faq !== undefined ? hs.faq : on('about')) S.faq = aboutFaqHTML() + aboutReviewsHTML();   // FAQ rồi đánh giá (mặc định nằm cuối trang)
@@ -597,7 +597,7 @@ const aboutIntroHTML = function(){
   return `<section class="about-hero"><div><span class="badge" ${cms('about_badge')}>${esc(ctext('about_badge'))}</span><h1 style="font-size:clamp(1.8rem,4vw,2.6rem);margin:12px 0" ${cms('about_h')}>${esc(ctext('about_h'))}</h1><p class="muted" style="font-size:1.05rem;white-space:pre-line" ${cms('about_text')}>${esc(ctext('about_text'))}</p>
       <div class="row mt"><a class="btn primary" href="#/watch">${ic('play', 'sm')} ${esc(t('btn_watch_live'))}</a>${Object.entries(branding.socialLinks || {}).filter(([, u]) => u).map(([n, u]) => `<a class="btn secondary" target="_blank" rel="noopener" href="${esc(safeUrl(u))}">${esc(n)}</a>`).join('')}</div></div>
       <div class="about-img" data-cms-img="about_img">${artOr('about_img', 'moonwalk', { crop:'tall', seed:2 })}</div></section>
-    <div class="grid g3 mt" style="margin-top:34px">${[['timer', 1], ['globe', 2], ['sliders', 3]].map(([icn, i]) => `<div class="card pad feat"><div class="tile" style="padding:0"><span class="t-ic">${ic(icn)}</span></div><h3 style="font-size:1.05rem;margin:10px 0 4px" ${cms('about_c' + i + '_t')}>${esc(ctext('about_c' + i + '_t'))}</h3><p class="muted small" ${cms('about_c' + i + '_d')}>${esc(ctext('about_c' + i + '_d'))}</p></div>`).join('')}</div>`;
+    <div class="grid g3 mt about-feats" style="margin-top:34px">${[['timer', 1], ['globe', 2], ['sliders', 3]].map(([icn, i]) => `<div class="card pad feat"><div class="tile" style="padding:0"><span class="t-ic">${ic(icn)}</span></div><h3 style="font-size:1.05rem;margin:10px 0 4px" ${cms('about_c' + i + '_t')}>${esc(ctext('about_c' + i + '_t'))}</h3><p class="muted small" ${cms('about_c' + i + '_d')}>${esc(ctext('about_c' + i + '_d'))}</p></div>`).join('')}</div>`;
 };
 const aboutFaqHTML = function(){
   return `<h2 style="font-size:1.3rem;margin:40px 0 14px" ${cms('faq_title')}>${esc(ctext('faq_title'))}</h2>
@@ -888,7 +888,7 @@ PAGES.club = function(){
       <div class="mj-a-side stack">${mjLatestCard(m)}${m ? `<section class="card pad"><div class="card-h"><h3>${esc(t('mj_grid', { t:moonRoad() }))}</h3><span class="small faint">${esc(t('mj_cal', { n:L.i + 1, a:L.a + 1, b:L.b }))}</span></div>${moonGrid(m, doneToday)}<p class="small faint mt-s">${esc(t('mj_grid_note'))}</p></section>` : ''}
         ${m ? moonBankCard(m, doneToday) + moonRewardCard(m) : ''}
         <section class="card pad"><h3 style="margin-bottom:10px">${esc(t('club_how'))}</h3><ol class="steps"><li>${esc(t('mj_h1'))}</li><li>${esc(t('mj_h2', { t:moonRoad() }))}</li><li>${esc(t('mj_h3', { e:MOON_EARN }))}</li></ol></section></div></div>
-    <h2 style="font-size:1.2rem;margin:34px 0 14px">${esc(t('club_remind'))}</h2>${challengeCard()}`);
+    ${challengeCard()}`);   // thẻ đã có tiêu đề riêng (ch_title), không thêm tiêu đề trùng phía trên
   mjMount();
 };
 /* ---------- nhắc giữ chuỗi (bật ở bảng chuông 🔔 hoặc ngay dưới nút điểm danh; mặc định tắt, mỗi máy bật riêng) ----------
