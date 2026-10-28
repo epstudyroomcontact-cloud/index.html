@@ -50,6 +50,8 @@ html[data-calm="1"] *{animation:none!important;transition:none!important;scroll-
 .sb-brand{display:flex;align-items:center;gap:11px;padding:6px 8px 16px;font-weight:800;font-size:1.05rem;letter-spacing:-.02em}
 .logo-mark{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,var(--accent),var(--accent-strong));color:#fff;display:grid;place-items:center;font-weight:800;font-size:.95rem;flex:none;box-shadow:0 4px 12px rgba(var(--accent-rgb),.4);overflow:hidden}
 .logo-mark img{width:100%;height:100%;object-fit:cover}
+.logo-mark.is-moon{background:none;box-shadow:none;border-radius:0}
+.logo-mark.is-moon img{object-fit:contain}
 .sb-label{font-size:.68rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);padding:14px 10px 6px}
 .sb-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:11px;color:var(--ink2);font-weight:600;font-size:.92rem;transition:.15s;position:relative}
 .sb-item:hover{background:var(--surface2);color:var(--ink)}
@@ -405,15 +407,14 @@ html[data-font="serif"] h1,html[data-font="serif"] h2,html[data-font="serif"] h3
 .moon-big{width:min(300px,72vw)}.moon-big.full .moon-img{filter:drop-shadow(0 0 36px rgba(255,228,77,.5))}
 .moon-sm{width:120px;flex:none}
 .club-promo{display:flex;gap:24px;align-items:center;flex-wrap:wrap}
-.days30{display:grid;grid-template-columns:repeat(10,1fr);gap:8px}
-.day-cell{aspect-ratio:1;border-radius:50%;display:grid;place-items:center;font-size:.78rem;font-weight:700;color:var(--ink3);border:1px solid var(--line2);background:var(--surface2)}
-.day-cell.on{background:#ffe44d;border-color:#ffe44d;color:#3d3000}
-.day-cell.next{border-color:var(--accent);color:var(--accent-strong);box-shadow:0 0 0 3px var(--accent-soft)}
-@media(max-width:520px){.days30{grid-template-columns:repeat(6,1fr)}}
-.mj-shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
-.mj-badge{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 6px;border-radius:14px;border:1px solid var(--line2);background:var(--surface2);font-size:1.5rem;text-align:center;filter:grayscale(1);opacity:.55}
-.mj-badge small{font-size:.72rem;font-weight:600;color:var(--ink2);line-height:1.2}
-.mj-badge.on{filter:none;opacity:1;border-color:var(--accent);background:var(--accent-soft)}
+/* lịch cả hành trình (480 chấm): ngày đã đi tô màu tuyến, trạm là vòng to, ngày cần điểm danh tiếp theo có viền hồng */
+.mj-grid{display:block;width:100%;height:auto;margin-top:4px}
+.mj-grid circle{fill:var(--line2)}.mj-grid circle.on{fill:var(--c)}.mj-grid circle.st{stroke:var(--c);stroke-width:1.6;fill:var(--surface2)}
+.mj-grid circle.on.st{fill:var(--c);stroke:#fff;stroke-width:1.4}
+.mj-grid circle.nx{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.8}
+.mj-bank-top{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.mj-bank-n{flex:none;padding:6px 14px;border-radius:99px;background:#ffe44d;color:#3d3000;font-weight:800;font-size:1.15rem}
+.mj-bank-r{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--line2);font-size:.92rem}
 /* Hành trình trăng: con đường tìm Moon (moon-story.js, tranh ở moon-art.js). Giấy kem, màu bút sáp tươi, không đổi theo theme */
 .mj-layout{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);grid-template-areas:"map status" "map side";gap:18px;align-items:start}
 .mj-a-status{grid-area:status}.mj-a-map{grid-area:map;position:sticky;top:12px}.mj-a-side{grid-area:side}
@@ -532,22 +533,30 @@ html[data-font="serif"] h1,html[data-font="serif"] h2,html[data-font="serif"] h3
 .mj-scroll{height:min(72vh,660px);overflow-y:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:#2c3d70 transparent;background:#0a1228}
 @media(max-width:900px){.mj-scroll{height:min(62vh,560px)}}
 .mj-map{display:block;width:100%;height:auto}
-.mj-map .road-edge path{fill:none;stroke:#050a1c;stroke-width:25;stroke-linecap:round;opacity:.55}
-.mj-map .road path{fill:none;stroke:#26365f;stroke-width:18;stroke-linecap:round}
-.mj-map .road-dash path{fill:none;stroke:#566b9f;stroke-width:1.6;stroke-dasharray:3 9;stroke-linecap:round}
-.mj-map .lit-glow path{fill:none;stroke:#ffd27a;stroke-width:22;stroke-linecap:round;opacity:.32}
-.mj-map .lit path{fill:none;stroke:#fff0b8;stroke-width:5;stroke-linecap:round}
-.mj-map .days circle{fill:#4a5d92}.mj-map .days circle.on{fill:#ffe39a}
+.mj-map .wash{fill:#0a1228;opacity:.28;pointer-events:none}
+/* sơ đồ tuyến tàu: nét dày bo tròn, mỗi vùng một màu; đoạn chưa đi mờ đi, đoạn đã đi sáng màu */
+.mj-map .road-edge path{fill:none;stroke:#060b1e;stroke-width:19;stroke-linecap:round;stroke-linejoin:round;opacity:.85}
+.mj-map .road path{fill:none;stroke-width:11;stroke-linecap:round;stroke-linejoin:round;opacity:.3}
+.mj-map .lit-glow path{fill:none;stroke-width:24;stroke-linecap:round;stroke-linejoin:round;opacity:.22}
+.mj-map .lit path{fill:none;stroke-width:11;stroke-linecap:round;stroke-linejoin:round}
+.mj-map .days circle{fill:#c9d3f0;opacity:.45}.mj-map .days circle.on{fill:#fff;opacity:.95}
+.mj-branch .cs{fill:none;stroke:#060b1e;stroke-width:13;stroke-linecap:round;stroke-linejoin:round;opacity:.8}
+.mj-branch .ln{fill:none;stroke:var(--lc);stroke-width:7;stroke-linecap:round;stroke-linejoin:round;opacity:.28}
+.mj-branch .end{fill:#121c3d;stroke:var(--lc);stroke-width:3;opacity:.6}.mj-branch .ic{color:#6f80b0;fill:#6f80b0}
+.mj-branch.on .ln{opacity:.85}.mj-branch.on .end{fill:#fff;opacity:1}.mj-branch.on .ic{color:#2a1d3f;fill:#2a1d3f}
+.mj-branch .tr{fill:#fff;stroke:var(--lc);stroke-width:2}
 .mj-stop{cursor:pointer;outline:none}
-.mj-stop .disc{fill:#121c3d;stroke:#3a4c7d;stroke-width:2.5;transition:stroke .15s}
+.mj-stop .disc{fill:#121c3d;stroke:var(--lc,#3a4c7d);stroke-opacity:.55;stroke-width:4;transition:stroke .15s}
 .mj-stop .gl{color:#6f80b0;fill:#6f80b0}
-.mj-stop.is-open .disc{fill:#ffd27a;stroke:#fff2c4}.mj-stop.is-open .gl{color:#4a2f0c;fill:#4a2f0c}
-.mj-stop .halo{fill:none;stroke:#ffe9a8;stroke-width:1.5;opacity:.7}
+.mj-stop.is-open .disc{fill:#fff2c4;stroke-opacity:1}.mj-stop.is-open .gl{color:#4a2f0c;fill:#4a2f0c}
+.mj-stop.is-reached .disc{fill:#fff}
+.mj-stop .xr{fill:#fff;stroke-width:3}.mj-stop.is-locked .xr{fill:#121c3d;opacity:.6}
+.mj-stop .halo{fill:none;stroke:var(--lc,#ffe9a8);stroke-width:1.5;opacity:.75}
 .mj-stop .lb,.mj-stop .dy,.mj-walker .here{paint-order:stroke;stroke:#070c1d;stroke-linejoin:round}
 .mj-stop .lb{font:800 12.5px var(--font-h);fill:#fff2c4;stroke-width:4}.mj-stop.is-locked .lb{fill:#8d9bc4}
 .mj-stop .dy{font:700 10px var(--font-b);fill:#a9b8de;stroke-width:3.4}
 .mj-stop .new{fill:#ff5fa0;stroke:#0b1430;stroke-width:2}
-.mj-stop:hover .disc,.mj-stop:focus-visible .disc{stroke:#ff8fc0;stroke-width:3}
+.mj-stop:hover .disc,.mj-stop:focus-visible .disc{stroke:#ff8fc0;stroke-opacity:1;stroke-width:4.5}
 .mj-walker{pointer-events:none}.mj-walker .pulse{fill:#ffd27a;opacity:.25;transform-box:fill-box;transform-origin:center;animation:mjPulse 2.4s ease-in-out infinite}
 .mj-walker .here{font:800 11px var(--font-b);fill:#ffe39a;stroke-width:3.4}
 @keyframes mjPulse{0%,100%{transform:scale(.8);opacity:.35}50%{transform:scale(1.25);opacity:.1}}
@@ -595,6 +604,12 @@ html[data-font="serif"] h1,html[data-font="serif"] h2,html[data-font="serif"] h3
 .thanks-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .thanks-chip{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:99px;background:rgba(var(--accent-rgb),.12);border:1px solid rgba(var(--accent-rgb),.35);font-weight:700;font-size:.9rem}
 .thanks-chip .ic{width:14px;height:14px;color:var(--accent)}
+/* người đồng hành lâu năm: 3 tháng viền bạc, 6 tháng viền vàng, 1 năm vàng đậm có quầng sáng */
+.thanks-chip small{font-size:.72rem;font-weight:600;opacity:.7}
+.ct-moon{font-style:normal;font-size:.95rem;line-height:1}
+.thanks-chip.ct1,.badge.ct1{border:1px solid #a9b6c9;box-shadow:0 0 0 2px rgba(169,182,201,.25)}
+.thanks-chip.ct2,.badge.ct2{border:1px solid #e0b04f;box-shadow:0 0 0 2px rgba(224,176,79,.25)}
+.thanks-chip.ct3,.badge.ct3{border:1.5px solid #f2c14e;box-shadow:0 0 0 2px rgba(242,193,78,.3),0 0 12px rgba(242,193,78,.35)}
 .fs-sel{width:100%;font-size:.86rem;padding:8px 10px}
 /* ---- Planner (Companions) ---- */
 .pl-grid{display:grid;grid-template-columns:44px repeat(7,minmax(84px,1fr));min-width:690px;column-gap:6px}
@@ -715,3 +730,22 @@ button.sb-item{width:100%;background:none;border:0;font:inherit;font-weight:600;
 .pl-mv .pl-dur{flex:1;max-width:240px}
 .pl-bar i.mv{background:var(--accent);opacity:.38;border-radius:0}.pl-bar i.gx{background:var(--ink3);opacity:.32;border-radius:0}
 .pl-li.pl-gone{opacity:.62}.pl-li.pl-gone span{cursor:default}.pl-gi{flex:none;width:18px;height:18px;border-radius:50%;border:2px dashed;display:grid;place-items:center;font-style:normal;font-size:.7rem;color:var(--ink3)}
+/* Hành trình trăng: trăng tích trữ và hộp dùng trăng giữ chuỗi */
+.mj-rescue{width:100%;max-width:360px;padding:12px 14px;border-radius:14px;border:1.5px solid #ffd23f;background:rgba(255,228,77,.1);align-items:center}
+.switch.mj-rem{width:100%;max-width:340px;gap:12px;text-align:left;font-weight:600;color:var(--ink2);margin-top:2px}
+.switch.mj-rem input{flex:none}
+.mj-grid circle.sv{fill:#fff2c4;stroke:#ffd23f;stroke-width:1.6}
+/* Planner: thống kê tuần / tháng (giờ tập trung + tỉ lệ việc xong + lời nhận xét) */
+.pl-ps-h{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}.pl-ps-h h3{margin:0}
+.pl-ps-ctl{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.pl-ps-ctl .week-nav .lbl{min-width:120px;font-family:inherit;font-size:.86rem}
+.pl-ps-body{display:grid;grid-template-columns:minmax(0,250px) minmax(0,1fr);gap:16px;align-items:stretch}
+.pl-ps-kpis{display:grid;gap:10px;align-content:start}.pl-ps-kpis .pl-kpi b{font-size:1.45rem}
+.pl-ps-chart{display:flex;flex-direction:column;min-width:0}.pl-ps-chart>p{margin:0 0 6px}
+.pl-fbars{display:flex;gap:6px;align-items:flex-end;height:150px;flex:1;min-height:130px}
+.pl-fbars>div{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;height:100%}
+.pl-fbars i{display:block;width:100%;max-width:38px;border-radius:7px 7px 3px 3px;background:var(--accent);opacity:.55}
+.pl-fbars .cur i{opacity:1}.pl-fbars i.none{background:var(--line2);opacity:1}
+.pl-fbars b{font-size:.66rem;min-height:1.1em;white-space:nowrap}.pl-fbars small{font-size:.64rem;color:var(--ink3);min-height:1.1em;white-space:nowrap}
+.pl-fbars.m{gap:2px}.pl-fbars.m i{border-radius:3px 3px 1px 1px}
+.pl-ps-c{margin:14px 0 6px;padding:10px 12px;border-radius:12px;background:var(--surface2);font-size:.9rem}
+@media(max-width:700px){.pl-ps-body{grid-template-columns:minmax(0,1fr)}.pl-ps-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.pl-fbars{height:130px}.pl-fbars.m{gap:1px}}

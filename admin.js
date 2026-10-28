@@ -239,12 +239,14 @@ function drawSchedule(){
 }
 /* ---------------- Bắt đầu buổi live thật (settings/onair) ----------------
    Có hôm dậy trễ / vào sớm: bấm "Bắt đầu bây giờ" để lưu giờ bắt đầu THẬT của buổi. Bảng lịch và bộ đếm trên OBS (overlay.html)
-   tự dời cả buổi theo mốc này (đọc lại khoảng 30 giây một lần), không cần bấm gì trong OBS. Lịch gốc trong tuần không bị sửa.
+   tự dời cả buổi theo mốc này (đọc lại khoảng 10 giây một lần), không cần bấm gì trong OBS. Lịch gốc trong tuần không bị sửa.
    settings/onair = { start: giờ bắt đầu thật (ms), sched: giờ bắt đầu theo lịch của buổi đó (ms), at, prev: giá trị trước lần bấm gần nhất (để hoàn tác) }
    — ai cũng đọc được, chỉ admin ghi (firestore.rules: settings). Hoàn tác ghi lại đúng at cũ, nên OBS quay về đúng giờ trước đó (kể cả giờ do bấm Start Streaming). */
 let onair = null, onairUnsub = null;
+// Mốc chỉ còn hiệu lực khi giờ thật lệch lịch < 12 tiếng (mốc của hôm qua, vd "trễ 1444 phút", coi như không có).
 // Buổi đã bấm bắt đầu và đã chạy hết giờ thì không coi là "đang chạy" nữa: ngày có 2 buổi, ô này chuyển sang buổi kế tiếp (không bắt đầu lại buổi sáng).
-const onairRan = () => onair && onair.start ? upcomingPool().find(x => x.start.toMillis() === onair.sched) || null : null;
+const onairRan = () => { if (!onair || !onair.start || Math.abs(onair.start - onair.sched) > 12 * 3600e3) return null;
+  return upcomingPool().find(x => x.start.toMillis() === onair.sched) || null; };
 const onairMatch = () => { const x = onairRan(); return x && Date.now() < onair.start + x.mins * 60e3 ? x : null; };
 const onairNext = () => { const now = Date.now(), done = onairMatch() ? null : onairRan();
   return upcomingPool().filter(x => !(done && x.key === done.key) && x.end.toMillis() + 3600e3 > now && x.start.toMillis() - 18 * 3600e3 < now).sort((a, b) => a.start.toMillis() - b.start.toMillis())[0] || null; };
@@ -263,7 +265,7 @@ function onairCard(){
       <p class="hint">Nếu bạn đã bấm <b>Start Streaming</b> trong OBS thì bảng lịch đã tự tính giờ từ lúc đó, <b>không cần bấm gì ở đây</b>. Chỉ bấm khi muốn tính lại cả buổi từ bây giờ.</p>
       <button class="btn secondary sm mt-s" data-act="onairStart">Bắt đầu lại từ bây giờ</button>` + undo;
   else body = `<p>Buổi tiếp theo theo lịch: <b>${hm(x.start)} – ${hm(x.end)}</b>${x.slot.title ? ` · ${esc(x.slot.title)}` : ''}.</p>
-      <p class="hint">Bấm Start Streaming trong OBS là bảng lịch tự bắt đầu. Nút này để dùng khi không stream bằng OBS hoặc muốn sửa giờ: bảng lịch và bộ đếm sẽ tính lại cả buổi từ lúc bấm, trong khoảng 30 giây.</p>
+      <p class="hint">Bấm Start Streaming trong OBS là bảng lịch tự bắt đầu. Nút này để dùng khi không stream bằng OBS hoặc muốn sửa giờ: bảng lịch và bộ đếm sẽ tính lại cả buổi từ lúc bấm, trong khoảng 10 giây.</p>
       <button class="btn primary mt-s" data-act="onairStart">${ic('play', 'sm')} Bắt đầu buổi live bây giờ</button>` + undo;
   const note = (onair && onair.note) || '';
   body += `<div class="mt" style="border-top:1px dashed var(--line,#ddd);padding-top:12px"><label class="small"><b>Thông báo trên OBS</b> <span class="muted">(hiện nổi bật trên bảng lịch cho người xem, ví dụ mục tiêu hôm nay, nội quy, lời nhắn; để trống là ẩn)</span></label>
@@ -350,15 +352,15 @@ Object.assign(ACTIONS, {
   onairStart: async () => { const m = onairMatch(), x = m || onairNext(), now = Date.now(); if (!x) return toast('Không có buổi live nào sắp tới trong lịch.');
     const running = m ? now >= onair.start && now < onair.start + x.mins * 60e3 : now >= x.start.toMillis() && now < x.end.toMillis();
     if (running && !confirm('Buổi live đang chạy. Bắt đầu lại sẽ tính lại cả buổi từ bây giờ (bảng lịch và bộ đếm trên OBS chạy lại từ đầu). Tiếp tục?\n\nLỡ bấm nhầm thì có nút "Quay về giờ trước đó".')) return;
-    if (await onairSave({ start:now, sched:x.start.toMillis(), prev:onairSnap() })) toast('✓ Đã bắt đầu. OBS sẽ tự theo trong khoảng 30 giây.', 3500); },
+    if (await onairSave({ start:now, sched:x.start.toMillis(), prev:onairSnap() })) toast('✓ Đã bắt đầu. OBS sẽ tự theo trong khoảng 10 giây.', 3500); },
   onairShift: async el => { if (!onairMatch()) return; await onairSave({ start:onair.start + (+el.dataset.m) * 60e3, sched:onair.sched, prev:(onair.prev && Date.now() - onair.at < 600e3) ? onair.prev : onairSnap() }); },
   onairClear: async () => { if (await onairSave({ start:0, sched:0, prev:onairSnap() })) toast('Đã quay về giờ theo lịch.'); },
   onairNote: async () => { const v = ($('onairNote').value || '').trim().slice(0, 300);
     try { if (DEMO) onair = { ...onair, note:v }; else await db.collection('settings').doc('onair').set({ note:v }, { merge:true });   // không đổi at: không ảnh hưởng giờ bắt đầu
-      $('onair').outerHTML = onairCard(); toast(v ? '✓ Đã lưu. OBS hiện thông báo trong khoảng 30 giây.' : 'Đã ẩn thông báo.', 3000); } catch (e) { toast('Chưa lưu được: ' + (e.code || e.message)); } },
+      $('onair').outerHTML = onairCard(); toast(v ? '✓ Đã lưu. OBS hiện thông báo trong khoảng 10 giây.' : 'Đã ẩn thông báo.', 3000); } catch (e) { toast('Chưa lưu được: ' + (e.code || e.message)); } },
   onairNoteClear: () => { $('onairNote').value = ''; return ACTIONS.onairNote(); },
   onairUndo: async () => { const p = onair && onair.prev; if (!p) return;
-    if (await onairSave({ start:p.start || 0, sched:p.sched || 0, prev:null }, p.at || 0)) toast('↶ Đã quay về giờ trước đó. OBS sẽ tự theo trong khoảng 30 giây.', 3500); },
+    if (await onairSave({ start:p.start || 0, sched:p.sched || 0, prev:null }, p.at || 0)) toast('↶ Đã quay về giờ trước đó. OBS sẽ tự theo trong khoảng 10 giây.', 3500); },
 });
 Object.assign(ACTIONS, {
   qeOpen: el => {
@@ -626,11 +628,10 @@ async function tabReviews(){
 }
 
 /* ---------------- Thanh toán ---------------- */
-const PAY_FIELDS = { 'py-bin':'bankBin', 'py-acc':'accountNo', 'py-name':'accountName', 'py-momo':'momoPhone', 'py-momoqr':'momoQr', 'py-stripe':'stripe', 'py-paypal':'paypal', 'py-kofi':'kofi', 'py-tpl':'orderTemplate', 'py-claimtpl':'claimTemplate', 'py-dvnd':'donateVND', 'py-dusd':'donateUSD', 'py-comp':'companionUrl', 'py-cvnd':'companionVND', 'py-cusd':'companionUSD' };
+const PAY_FIELDS = { 'py-bin':'bankBin', 'py-acc':'accountNo', 'py-name':'accountName', 'py-stripe':'stripe', 'py-paypal':'paypal', 'py-kofi':'kofi', 'py-tpl':'orderTemplate', 'py-claimtpl':'claimTemplate', 'py-dvnd':'donateVND', 'py-dusd':'donateUSD', 'py-comp':'companionUrl', 'py-cvnd':'companionVND', 'py-cusd':'companionUSD' };
 function tabPayments(){
   const p = payments;
-  A(`${aCard('Chuyển khoản VietQR (khách Việt Nam)', `<div class="f3">${fld('Mã ngân hàng / BIN', 'py-bin', p.bankBin, '', 'VD: 970436 (Vietcombank), 970422 (MB)…')}${fld('Số tài khoản', 'py-acc', p.accountNo)}${fld('Tên chủ tài khoản', 'py-name', p.accountName, '', 'IN HOA, không dấu')}</div><p class="hint">Mã QR tự điền số tiền + mã đơn. Quét được bằng mọi app ngân hàng và bằng MoMo (Chuyển tiền → Quét mã).</p>
-      <div class="f2 mt-s">${fld('SĐT MoMo (tuỳ chọn)', 'py-momo', p.momoPhone)}${imgField('Ảnh QR MoMo (tuỳ chọn)', 'py-momoqr', p.momoQr)}</div>`)}
+  A(`${aCard('Chuyển khoản VietQR (khách Việt Nam)', `<div class="f3">${fld('Mã ngân hàng / BIN', 'py-bin', p.bankBin, '', 'VD: 970436 (Vietcombank), 970422 (MB)…')}${fld('Số tài khoản', 'py-acc', p.accountNo)}${fld('Tên chủ tài khoản', 'py-name', p.accountName, '', 'IN HOA, không dấu')}</div><p class="hint">Mã QR tự điền số tiền + mã đơn. Quét được bằng mọi app ngân hàng.</p>`)}
     ${aCard('Thanh toán quốc tế (mặc định cho mọi sản phẩm)', `<div class="f3">${fld('Stripe Payment Link (Visa/Mastercard)', 'py-stripe', p.stripe)}${fld('PayPal.me', 'py-paypal', p.paypal)}${fld('Ko-fi', 'py-kofi', p.kofi)}</div>`)}
     ${aCard('Ủng hộ & Người đồng hành (trang "Support")', `<p class="hint" style="margin-bottom:10px">Trang Support dùng chính thông tin VietQR (khách Việt Nam) và PayPal / Ko-fi / Stripe (khách nước ngoài) ở trên. Chỉ cần thêm các mục dưới đây.</p>
       <div class="f2">${fld('Các mức tiền gợi ý — VND (cách nhau dấu phẩy)', 'py-dvnd', p.donateVND, '', 'VD: 20000, 50000, 100000, 200000')}${fld('Các mức tiền gợi ý — USD', 'py-dusd', p.donateUSD, '', 'VD: 3, 5, 10, 25')}</div>
@@ -653,7 +654,7 @@ function tabPayments(){
       <div class="f2">${fld('Mã tháng này', 'py-code', '', 'autocomplete="off" spellcheck="false" placeholder="Bấm Tạo mã ngẫu nhiên, hoặc tự gõ"', 'Không phân biệt chữ hoa/thường')}${fld('Hết hạn vào ngày', 'py-until', branding.focusCodeUntil || DT.now().plus({ months:1 }).endOf('month').toISODate(), 'type="date"', 'Mặc định: cuối tháng sau')}</div>
       <div class="row mt-s"><button class="btn secondary" data-act="genCode">${ic('sliders', 'sm')} Tạo mã ngẫu nhiên</button><button class="btn primary" data-act="saveCode">Lưu mã</button>${branding.focusCodeHash ? `<button class="btn danger" data-act="clearCode">Tắt mã</button>` : ''}</div>`)}
     ${aCard('Email xác nhận đơn (EmailJS)', `${fld('Template ID', 'py-tpl', p.orderTemplate, '', 'Biến: {{user_name}} {{user_email}} {{order_code}} {{items}} {{total}}')}`)}
-    ${aCard('Email báo cho bạn khi có người bấm “Tôi đã thanh toán” (EmailJS, tuỳ chọn)', `${fld('Template ID', 'py-claimtpl', p.claimTemplate, '', 'Tạo thêm một template trên EmailJS gửi tới CHÍNH email của bạn (ô To Email gõ cố định). Biến: {{user_name}} {{user_email}} {{months}} {{method}} {{note}} {{message}}. Để trống = không gửi email; bạn vẫn thấy thông báo ngay trên trang này khi đang mở web.')}`)}
+    ${aCard('Email báo cho bạn khi có người bấm “Tôi đã thanh toán” (EmailJS, tuỳ chọn)', `${fld('Template ID', 'py-claimtpl', p.claimTemplate, '', 'Tạo thêm một template trên EmailJS gửi tới CHÍNH email của bạn (ô To Email gõ cố định). Biến: {{user_name}} {{user_email}} {{months}} {{method}} (kofi / bank / paypal / other) {{note}} {{message}}. Để trống = không gửi email; bạn vẫn thấy thông báo ngay trên trang này khi đang mở web.')}`)}
     <button class="btn primary" data-act="savePay">Lưu thanh toán</button>`);
 }
 
@@ -681,7 +682,7 @@ function adminWatchRequests(){
   }, e => console.warn('requests', e.code));
 }
 function stopAdminWatch(){ if (reqUnsub) { reqUnsub(); reqUnsub = null; } state.compPending = 0; reqFirst = true; }
-const METHOD_VI = { kofi:'Ko-fi', bank:'Chuyển khoản', paypal:'PayPal', momo:'MoMo', other:'Khác' };
+const METHOD_VI = { kofi:'Ko-fi', bank:'Chuyển khoản', paypal:'PayPal', momo:'MoMo', other:'Khác' };      // momo: chỉ để hiện đúng yêu cầu cũ, web không còn cho chọn MoMo
 /* Chuỗi điểm danh Hành trình trăng của một người, đọc từ hồ sơ users/<uid>.moon (admin đọc được): chuỗi hiện tại (còn sống nếu ngày cuối là hôm nay/hôm qua giờ VN), dài nhất, và đã đạt mốc 60 ngày chưa (cùng điều kiện với firestore.rules) */
 function moonStat(m){
   const days = [...new Set(Array.isArray(m && m.days) ? m.days : [])].filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort(), last = days[days.length - 1] || '';
@@ -727,7 +728,7 @@ async function approveCompanion(id, name, months = 1, email = '', bonusMonths = 
   const ref = db.collection('companions').doc(id), cur = await ref.get(), today = DT.now().toISODate(), old = cur.exists ? cur.data().until : '';
   const base = old && old > today ? DT.fromISO(old) : DT.now(), until = base.plus({ months:months + bonusMonths }).toISODate();           // gia hạn thì cộng tiếp từ ngày hết hạn cũ
   await ref.set({ name:name || (cur.exists ? cur.data().name : '') || '', email:email || (cur.exists ? cur.data().email : '') || '', since:cur.exists && cur.data().since || TS(), until });
-  if (supItem(id)) await supUpsert(id, { until }); else await supUpsert(id, { name:name || '', show:true, until });
+  if (supItem(id)) await supUpsert(id, { until }); else await supUpsert(id, { name:name || '', show:true, until, ...(cur.exists && sinceISO(cur.data().since) ? { since:sinceISO(cur.data().since) } : {}) });     // giữ ngày bắt đầu đồng hành thật (mốc người đồng hành lâu năm)
   return until;
 }
 Object.assign(ACTIONS, {
@@ -790,12 +791,12 @@ function membersView(users, signups, comps, reqs, loadingUsers){
   A(`${window._memReqErr ? `<div class="limit-box small" style="border-color:var(--danger);margin-bottom:12px">⚠ Chưa tải được danh sách yêu cầu chờ duyệt (có thể đang có khách báo thanh toán mà bạn chưa thấy). <button class="btn primary sm" data-act="memReload">Thử lại</button></div>` : ''}${expCard}${reqs.length ? aCard(`Yêu cầu Companions chờ duyệt (${reqs.length})`, reqs.map(r => `<div class="ord-row"><div><b>${esc(r.email || r.name || '—')}</b> <span class="badge">${esc(METHOD_VI[r.method] || r.method || '')}</span><div class="small muted">${esc(r.name || '—')}</div>${r.note ? `<div class="small faint">“${esc(r.note)}”</div>` : ''}${r.message ? `<div class="small" style="margin-top:2px">💬 ${esc(r.message)}</div>` : ''}${rewardLine(r)}<div class="small faint">${esc(dateStr(r.createdAt))}${isC(r.id) ? ' · đang là Companion (gia hạn)' : ''}</div></div>
       <span class="row"><select class="select" id="cm-${esc(r.id)}" style="width:auto;padding:4px 8px">${[1, 3, 12].map(m => `<option value="${m}" ${m === (+r.months || 1) ? 'selected' : ''}>+${m} tháng</option>`).join('')}</select><button class="btn primary sm" ${r._rwErr ? 'disabled title="Chưa tải được ưu đãi của khách, bấm Thử lại ở đầu tab"' : ''} data-act="compApprove" data-ts="${tsMs(r.createdAt)}" data-rwm="${rewardMonthsFor(r) || ''}" data-id="${esc(r.id)}" data-name="${esc(r.name || '')}" data-email="${esc(r.email || '')}">Duyệt</button><button class="btn ghost sm" data-act="compReject" data-id="${esc(r.id)}">Từ chối</button></span></div>`).join(''), '') + ('Notification' in window && Notification.permission === 'default' ? '<p style="margin:-4px 0 10px"><button class="btn secondary sm" data-act="enableNotif">Bật thông báo trên trình duyệt khi có yêu cầu mới</button></p>' : '') + '<p class="hint" style="margin:-4px 0 14px">Kiểm tra khoản thanh toán trong Ko-fi / ngân hàng / PayPal rồi bấm <b>Duyệt</b>: tài khoản đó thành Companion, mở Planner ngay (không cần tải lại trang) và tên hiện ở mục cảm ơn. Nếu không thấy tiền, bấm <b>Từ chối</b> — họ sẽ thấy thông báo và có thể gửi lại.</p>' : ''}<div class="grid g2">${aCard(`Thành viên (${users.length}${MEM.done ? '' : '+'})`, users.length ? users.map(u => { const bd = rewardBadge(u.moon, (MEM.rw || {})[u.id]); return `<div class="ord-row"><div><b>${esc(u.displayName || '—')}</b> ${isC(u.id) ? `<span class="badge">${ic('heart', 'sm')} Đồng hành</span>` : ''}<div class="small muted">${esc(u.email || '')}</div><div class="small faint">${moonLine(u.moon)}</div>${bd ? `<div class="small" style="margin-top:2px">${bd}</div>` : ''}</div>
         <span class="stack" style="gap:6px;align-items:flex-end"><label class="row small" style="font-weight:700"><input type="checkbox" data-change="companion" data-id="${esc(u.id)}" data-name="${esc(u.displayName || u.email || '')}" data-email="${esc(u.email || '')}" ${isC(u.id) ? 'checked' : ''}> Người đồng hành</label>${isC(u.id) ? `<label class="small faint">Đến ngày <input class="input" type="date" style="width:150px;padding:4px 8px" data-change="compUntil" data-id="${esc(u.id)}" value="${esc((comps.find(c => c.id === u.id) || {}).until || '')}"></label>
-          <label class="row small" style="font-weight:700"><input type="checkbox" data-change="supShow" data-id="${esc(u.id)}" data-name="${esc(u.displayName || '')}" data-until="${esc((comps.find(c => c.id === u.id) || {}).until || '')}" ${supItem(u.id) ? 'checked' : ''}> Hiện tên ở mục cảm ơn</label>${supItem(u.id) ? `<label class="small faint">Tên hiện <input class="input" style="width:150px;padding:4px 8px" maxlength="40" data-change="supName" data-id="${esc(u.id)}" value="${esc(supItem(u.id).name || '')}"></label>` : ''}` : ''}</span></div>`; }).join('') + (MEM.done ? '' : '<p class="small faint" style="margin-top:8px">Mới hiện ' + users.length + ' người đầu tiên, bấm “Tải thêm” hoặc tìm theo email.</p>') : (loadingUsers ? '<p class="muted">Đang tải danh sách thành viên…</p>' : '<p class="muted">Chưa có.</p>'), `<div class="row" style="flex-wrap:wrap"><input class="input" id="mem-q" placeholder="Tìm theo email đầy đủ" style="width:210px;padding:6px 10px"><button class="btn secondary sm" data-act="memFind">Tìm</button>${MEM.done ? '' : '<button class="btn secondary sm" data-act="memMore">Tải thêm</button>'}<button class="btn ghost sm" data-act="memReload">Tải lại</button></div>`)}
+          <label class="row small" style="font-weight:700"><input type="checkbox" data-change="supShow" data-id="${esc(u.id)}" data-since="${esc(sinceISO((comps.find(c => c.id === u.id) || {}).since))}" data-name="${esc(u.displayName || '')}" data-until="${esc((comps.find(c => c.id === u.id) || {}).until || '')}" ${supItem(u.id) ? 'checked' : ''}> Hiện tên ở mục cảm ơn</label>${supItem(u.id) ? `<label class="small faint">Tên hiện <input class="input" style="width:150px;padding:4px 8px" maxlength="40" data-change="supName" data-id="${esc(u.id)}" value="${esc(supItem(u.id).name || '')}"></label>` : ''}` : ''}</span></div>`; }).join('') + (MEM.done ? '' : '<p class="small faint" style="margin-top:8px">Mới hiện ' + users.length + ' người đầu tiên, bấm “Tải thêm” hoặc tìm theo email.</p>') : (loadingUsers ? '<p class="muted">Đang tải danh sách thành viên…</p>' : '<p class="muted">Chưa có.</p>'), `<div class="row" style="flex-wrap:wrap"><input class="input" id="mem-q" placeholder="Tìm theo email đầy đủ" style="width:210px;padding:6px 10px"><button class="btn secondary sm" data-act="memFind">Tìm</button>${MEM.done ? '' : '<button class="btn secondary sm" data-act="memMore">Tải thêm</button>'}<button class="btn ghost sm" data-act="memReload">Tải lại</button></div>`)}
     ${aCard(`Đăng ký email nhắc lịch (${signups.length})`, signups.length ? signups.map(s => `<div class="ord-row"><div><b>${esc(s.codename || '')}</b><div class="small muted">${esc(s.email || '')}</div></div><span class="small faint">${esc(dateStr(s.timestamp))}</span></div>`).join('') : '<p class="muted">Chưa có.</p>', `<button class="btn secondary sm" data-act="copyEmails">Sao chép email</button>`)}</div>
     <p class="hint mt">"Người đồng hành" là những người ủng hộ hằng tháng của bạn. Khi bạn <b>tích</b> một người (bạn thấy họ đăng ký trên Ko-fi / PayPal / chuyển khoản), tên họ tự hiện ở <b>mục cảm ơn</b> trên trang chủ và trang Ủng hộ. Bỏ tích ô "Hiện tên ở mục cảm ơn" nếu họ muốn ẩn danh, và sửa ô "Tên hiện" nếu họ muốn dùng biệt danh. Đến ngày hết hạn thì tên tự ẩn. Chỉ tên hiện công khai, không hiện email.</p>`);
 }
 CHANGES.compUntil = async el => { try { if (DEMO) return toast('Chế độ xem thử'); await db.collection('companions').doc(el.dataset.id).update({ until:el.value || null }); if (supItem(el.dataset.id)) await supUpsert(el.dataset.id, { until:el.value || '' }); ok('Đã cập nhật ngày hết hạn'); } catch (e) { fail(e); } };
-CHANGES.supShow = async el => { try { if (el.checked) await supUpsert(el.dataset.id, { name:el.dataset.name || '', show:true, until:el.dataset.until || '' }); else await supRemove(el.dataset.id); ok(el.checked ? 'Đã hiện tên ở mục cảm ơn ✔' : 'Đã ẩn tên khỏi mục cảm ơn'); tabMembers(); } catch (e) { fail(e); el.checked = !el.checked; } };
+CHANGES.supShow = async el => { try { if (el.checked) await supUpsert(el.dataset.id, { name:el.dataset.name || '', show:true, until:el.dataset.until || '', ...(el.dataset.since ? { since:el.dataset.since } : {}) }); else await supRemove(el.dataset.id); ok(el.checked ? 'Đã hiện tên ở mục cảm ơn ✔' : 'Đã ẩn tên khỏi mục cảm ơn'); tabMembers(); } catch (e) { fail(e); el.checked = !el.checked; } };
 CHANGES.supName = async el => { try { await supUpsert(el.dataset.id, { name:el.value.trim().slice(0, 40) }); ok('Đã lưu tên hiện ✔'); } catch (e) { fail(e); } };
 CHANGES.companion = async el => {
   try {

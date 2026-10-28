@@ -1,0 +1,87 @@
+# Khôi phục Firestore từ một bản sao lưu (scripts/restore-firestore.mjs). Chỉ chạy tay. Xem SETUP.md, phần 19.
+# Mặc định chế độ "thu": chỉ báo sẽ thay đổi gì, không ghi. Không chế độ nào xoá tài liệu.
+# Trước khi ghi thật, workflow tự sao lưu dữ liệu hiện tại (artifact "truoc-khoi-phuc-…") để có thể quay lại.
+name: Khôi phục Firestore
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Số của lần chạy "Sao lưu Firestore" muốn dùng (số cuối trên địa chỉ trang lần chạy đó, ví dụ 18234567890)'
+        type: string
+        required: true
+      mode:
+        description: 'thu = chỉ xem trước, không ghi · them-thieu = chỉ tạo lại dữ liệu bị mất · ghi-de = tạo lại dữ liệu mất và đưa dữ liệu đang khác về như bản sao lưu'
+        type: choice
+        options: [thu, them-thieu, ghi-de]
+        default: thu
+      only:
+        description: 'Chỉ khôi phục một phần (tuỳ chọn): ví dụ users hoặc users/<uid>. Để trống = tất cả'
+        type: string
+        required: false
+      confirm:
+        description: 'Khi chọn them-thieu hoặc ghi-de: gõ đúng KHOI PHUC để xác nhận'
+        type: string
+        required: false
+
+concurrency:
+  group: backup-firestore         # không chạy cùng lúc với lần sao lưu tự động
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read                   # để tải artifact của lần sao lưu đã chọn
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Kiểm tra xác nhận
+        if: ${{ inputs.mode != 'thu' && inputs.confirm != 'KHOI PHUC' }}
+        run: |
+          echo "::error::Chế độ $MODE sẽ ghi vào Firestore. Chạy lại và gõ đúng KHOI PHUC vào ô xác nhận."
+          exit 1
+        env:
+          MODE: ${{ inputs.mode }}
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: scripts
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Tải bản sao lưu đã chọn
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+          pattern: firestore-backup-*
+          path: backup-in
+      - name: Sao lưu dữ liệu hiện tại trước khi ghi
+        if: ${{ inputs.mode != 'thu' }}
+        id: before
+        run: node scripts/backup-firestore.mjs
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          BACKUP_PASSWORD: ${{ secrets.BACKUP_PASSWORD }}
+          BACKUP_OUT: backup-before
+      - name: Cất bản sao lưu trước khi khôi phục
+        if: ${{ inputs.mode != 'thu' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: firestore-backup-truoc-khoi-phuc-${{ steps.before.outputs.stamp }}
+          path: backup-before/*.enc
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+      - name: Khôi phục
+        run: |
+          FILE=$(find backup-in -name '*.enc' | sort | tail -n 1)
+          if [ -z "$FILE" ]; then echo "::error::Lần chạy $RUN_ID không có bản sao lưu (hoặc đã quá 90 ngày)."; exit 1; fi
+          node scripts/restore-firestore.mjs "$FILE"
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          BACKUP_PASSWORD: ${{ secrets.BACKUP_PASSWORD }}
+          RESTORE_MODE: ${{ inputs.mode }}
+          RESTORE_ONLY: ${{ inputs.only }}
+          RUN_ID: ${{ inputs.run_id }}

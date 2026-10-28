@@ -1,0 +1,42 @@
+# Sao lưu toàn bộ Firestore mỗi đêm (scripts/backup-firestore.mjs). File đã khoá bằng mật khẩu, cất ở mục Artifacts của mỗi lần chạy, giữ 90 ngày.
+# Xem SETUP.md, phần 19. Chỉ ĐỌC dữ liệu, không sửa gì trên Firestore.
+name: Sao lưu Firestore
+
+on:
+  schedule:
+    - cron: '17 19 * * *'        # 02:17 sáng giờ Việt Nam, mỗi ngày (GitHub có thể chạy trễ một chút)
+  workflow_dispatch:              # chạy tay: GitHub → Actions → "Sao lưu Firestore" → Run workflow
+
+concurrency:
+  group: backup-firestore
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: scripts
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Sao lưu
+        id: backup
+        run: node scripts/backup-firestore.mjs
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          BACKUP_PASSWORD: ${{ secrets.BACKUP_PASSWORD }}
+          BACKUP_OUT: backup-out
+      - name: Cất bản sao lưu
+        uses: actions/upload-artifact@v4
+        with:
+          name: firestore-backup-${{ steps.backup.outputs.stamp }}
+          path: backup-out/*.enc
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0    # file đã nén và khoá sẵn
