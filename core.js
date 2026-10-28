@@ -496,7 +496,17 @@ function render(force){
   if (!force && (route.name === 'admin')) return;           // trang admin tự vẽ lại khi cần, tránh mất dữ liệu đang nhập
   if (!force && typingInPage()) { pendingRender = true; return; }
   if (rq) return;
-  rq = setTimeout(() => { rq = 0; pendingRender = false; doRender(); }, 0);
+  rq = setTimeout(() => { rq = 0; pendingRender = false; try { doRender(); } catch (e) { pageCrash(e); } }, 0);
+}
+/* Một trang bị lỗi khi vẽ (sau khi web đã chạy): hiện lời nhắn thân thiện ngay trong khung trang thay vì để trắng.
+   Thanh menu, giỏ hàng, bộ hẹn giờ… vẫn chạy; chữ lấy từ bảng 8 ngôn ngữ EP_TXT trong index.html. Không xoá dữ liệu gì. */
+function pageCrash(e){
+  console.error('[EP] render ' + location.hash, e);
+  const m = (window.EP_TXT && window.EP_TXT()) || [], home = route.name === 'home';
+  try { renderChrome(); } catch (er) {}
+  $('page').innerHTML = `<div class="empty"><div class="ico">${ic('moon')}</div><h3>${esc(m[4] || 'This page hit a snag')}</h3><p style="max-width:420px;margin:0 auto 16px">${esc(m[5] || 'Something went wrong while showing this page.')}</p>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button type="button" class="btn primary" onclick="location.reload()">${ic('reset')} ${esc(m[2] || 'Reload')}</button>${home ? '' : `<a class="btn secondary" href="#/">${ic('home')} ${esc(m[6] || 'Back to Overview')}</a>`}</div>
+    <p class="muted" style="max-width:420px;margin:16px auto 0;font-size:.8rem">${esc(m[3] || '')}</p></div>`;
 }
 function readRoute(){
   const p = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean).map(x => { try { return decodeURIComponent(x); } catch (e) { return x; } });   // địa chỉ có % lạ không làm lỗi trang
@@ -536,7 +546,7 @@ function doRender(){
   }
   if (route.name === 'planner' && typeof PAGES.planner !== 'function') {        // planner.js chỉ tải khi mở #/planner
     renderChrome(); $('page').innerHTML = '<div class="gate-load"><i></i></div>';
-    loadPlanner().then(() => render(true)).catch(() => { $('page').innerHTML = '<p class="muted" style="padding:24px">Could not load the planner. Check your connection and reload.</p>'; });
+    loadPlanner().then(() => render(true)).catch(pageCrash);   // không tải được planner.js (mạng chập chờn, bị chặn…)
     return;
   }
   const fn = state.locked ? PAGES.locked : (PAGES[route.name] || PAGES.home);
