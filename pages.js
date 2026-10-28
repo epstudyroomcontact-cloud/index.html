@@ -259,6 +259,7 @@ Object.assign(ACTIONS, {
   fl[k] = { m:o.m + min, s:o.s + 1 }; store.set('focus', fl);
   const cur = typeof curTodo === 'function' && curTodo(); if (cur) store.set('todos', todos().map(x => x.id === cur.id ? { ...x, p:(x.p || 0) + 1 } : x));      // phiên tập trung xong: cộng 1 🍅 cho việc đang chọn
   saveProfileSoon(); if (typeof renderTodos === 'function') renderTodos();
+  if (typeof plStudyCheck === 'function') plStudyCheck().catch(() => {});   // vừa đạt mục tiêu giờ học tuần (Planner) thì chúc mừng
 }
 /* Giới hạn thời gian tập trung mỗi ngày cho người xem miễn phí. Người đồng hành (Companions) và admin không bị giới hạn.
    Đếm bằng bộ nhớ trình duyệt nên đây là giới hạn "nhẹ nhàng" (có thể vượt bằng cách xoá dữ liệu trình duyệt). */

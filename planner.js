@@ -195,6 +195,26 @@ Object.assign(I18N.vi, {
   pl_ps_c_mid:"Bạn đã xong {r}% số việc đến hạn. Một nền vững để làm tiếp.",
   pl_ps_c_lo:"Bạn đã xong {r}% số việc đến hạn. Thử xếp ít việc hơn mỗi ngày cho nhẹ nhàng hơn nhé."
 });
+
+/* mục tiêu giờ học mỗi tuần (tính bằng giờ tập trung ở Phòng tập trung) */
+Object.assign(I18N.en, {
+  pl_sg:"Weekly study goal",
+  pl_sg_left:"{t} to go: about {m} a day for the {n} days left.",
+  pl_sg_last:"{t} to go, and today is the last day of this week.",
+  pl_sg_hit:"Goal reached",
+  pl_sg_done:"You reached your weekly study goal of {g}. Well done, take a moment to enjoy it!",
+  pl_sg_toast:"🎉 Weekly study goal reached: {g}!",
+  pl_sg_how:"Your study goal counts the focus time you finish in the Focus room, Monday to Sunday. Only you can see it."
+});
+Object.assign(I18N.vi, {
+  pl_sg:"Mục tiêu giờ học tuần",
+  pl_sg_left:"Còn {t}: khoảng {m} mỗi ngày trong {n} ngày còn lại.",
+  pl_sg_last:"Còn {t}, và hôm nay là ngày cuối của tuần.",
+  pl_sg_hit:"Đã đạt mục tiêu",
+  pl_sg_done:"Bạn đã đạt mục tiêu học {g} của tuần này. Giỏi lắm, dừng lại một chút để tận hưởng nhé!",
+  pl_sg_toast:"🎉 Đã đạt mục tiêu giờ học tuần: {g}!",
+  pl_sg_how:"Mục tiêu giờ học tính bằng thời gian tập trung bạn hoàn thành ở Phòng tập trung, từ thứ Hai đến Chủ nhật. Chỉ mình bạn thấy."
+});
 const PL_MAX = 300;                                              // số việc tối đa mỗi tuần (giữ tài liệu nhỏ, tránh lỗi quá cỡ)
 const PL_HOUR = 44;                                              // px cho mỗi giờ trong lưới
 const PL_COLORS = ['#f2b8c6', '#c9b8ec', '#f6c9a0', '#f4e08c', '#a9dcc6', '#a8cdee'];   // 6 nhóm: màu pastel, chữ tối cho mọi giao diện
@@ -459,13 +479,35 @@ function plPeriod(S){
     else { const d = F.m - P.m; cm.push(Math.abs(d) < Math.max(15, P.m * .1) ? t('pl_ps_c_same_' + k) : t((d > 0 ? 'pl_ps_c_up_' : 'pl_ps_c_down_') + k, { t:fmtMin(Math.abs(d)) })); }
     if (T.dn >= 3) cm.push(t(r >= 80 ? 'pl_ps_c_hi' : r >= 50 ? 'pl_ps_c_mid' : 'pl_ps_c_lo', { r }));
   }
+  const goal = wk && PL.prefs && PL.prefs.studyGoalMin || 0, hit = goal > 0 && F.m >= goal, dl = 8 - now.weekday;
+  if (hit && PL.off === 0) plStudyCel(goal);
+  const sg = !wk || !PL.prefs ? '' : `${goal ? `${plBar(F.m, goal, hit ? 'var(--sage)' : '')}<small>${esc(hit ? t('pl_sg_hit') + ' · ' + fmtMin(goal) : t('pl_goal_prog', { d:fmtMin(F.m), g:fmtMin(goal), p:Math.round(F.m / goal * 100) }))}</small>` : ''}<div class="pl-goal"><span>${esc(t('pl_sg'))}</span>${plGoalSel('plStudyGoal', t('pl_sg'), goal, [0, 3, 5, 7, 10, 14, 20, 30].map(h => h * 60))}</div>`;
+  const sgNote = !goal ? '' : hit ? `<div class="pl-cel${PL.celFresh === PL.key + ':' + goal ? ' fresh' : ''}" role="status"><span aria-hidden="true">🎉</span><p>${esc(t('pl_sg_done', { g:fmtMin(goal) }))}</p></div>`
+    : PL.off === 0 ? `<p class="small pl-sg-left">${esc(dl > 1 ? t('pl_sg_left', { t:fmtMin(goal - F.m), m:fmtMin(Math.ceil((goal - F.m) / dl / 5) * 5), n:dl }) : t('pl_sg_last', { t:fmtMin(goal - F.m) }))}</p>` : '';
   const bars = days.map((d, i) => { const v = F.v[i], iso = d.toISODate(); return `<div class="${iso === today ? 'cur' : ''}" title="${esc(loc(d).toFormat('ccc dd/MM') + ' · ' + fmtMin(v))}">${wk ? `<b>${v ? plHShort(v) : ''}</b>` : ''}<i class="${v ? '' : 'none'}" style="height:${v ? Math.max(4, v / mx * 78) : 2}%"></i><small>${wk ? esc(loc(d).toFormat('ccc')) : d.day === 1 || d.day % 5 === 0 ? d.day : ''}</small></div>`; }).join('');
   return `<section class="card pad wide pl-ps"><div class="pl-ps-h"><h3>${esc(t('pl_ps_title'))}</h3><div class="pl-ps-ctl"><div class="seg"><button type="button" class="${wk ? 'on' : ''}" data-act="plSv" data-v="w">${esc(t('pl_ps_w'))}</button><button type="button" class="${wk ? '' : 'on'}" data-act="plSv" data-v="m">${esc(t('pl_ps_m'))}</button></div>${head}</div></div>
     <div class="pl-ps-body"><div class="pl-ps-kpis">
-      <div class="pl-kpi"><span class="pl-kl">${esc(t('pl_ps_focus'))}</span><b>${esc(fmtMin(F.m))}</b><small>${esc(t('pl_ps_focus_sub', { s:F.s, d:F.act }))}</small></div>
+      <div class="pl-kpi${wk ? ' pl-kpi-sg' : ''}${hit ? ' pl-hit' : ''}"${wk ? ` title="${esc(t('pl_sg_how'))}"` : ''}><span class="pl-kl">${esc(t('pl_ps_focus'))}</span><b>${esc(fmtMin(F.m))}</b><small>${esc(t('pl_ps_focus_sub', { s:F.s, d:F.act }))}</small>${sg}</div>
       <div class="pl-kpi"><span class="pl-kl">${esc(t('pl_ps_rate'))}</span><b>${r === null ? '–' : r + '%'}</b>${plBar(T.dnd, T.dn)}<small>${esc(wait ? t('pl_ps_loading') : T.dn ? t('pl_ps_rate_sub', { n:T.dnd, m:T.dn }) : t('pl_ps_rate_none'))}</small></div></div>
       <div class="pl-ps-chart"><p class="small faint">${esc(t('pl_ps_chart'))}</p><div class="pl-fbars ${wk ? '' : 'm'}">${bars}</div></div></div>
-    <p class="pl-ps-c">${esc(cm.join(' '))}</p><p class="small faint">${esc(t('pl_ps_how'))}</p></section>`;
+    ${sgNote}<p class="pl-ps-c">${esc(cm.join(' '))}</p><p class="small faint">${esc(t('pl_ps_how'))}${wk ? ' ' + esc(t('pl_sg_how')) : ''}</p></section>`;
+}
+/* Mục tiêu giờ học tuần: prefs.studyGoalMin (phút). Chúc mừng một lần cho mỗi tuần + mức mục tiêu (prefs.studyCel = "<tuần>:<phút>"),
+   để đổi máy hay tải lại trang không chúc lại, còn nâng mục tiêu rồi đạt tiếp thì vẫn được chúc. */
+function plStudyCel(goal){
+  const tag = plKey(0) + ':' + goal;
+  if (PL.preview || !PL.prefs || PL.prefs.studyCel === tag) return;
+  plSavePrefs({ studyCel:tag }); PL.celFresh = tag; toast(t('pl_sg_toast', { g:fmtMin(goal) }), 4500);
+}
+async function plStudyCheck(){                                     // gọi sau mỗi phiên tập trung xong (addFocus ở pages.js), kể cả khi chưa mở Planner
+  if (DEMO || !state.user || !plAccess()) return;
+  const uid = state.user.uid; let p = PL.uid === uid && PL.prefs;
+  if (!p) { try { const d = await plRef('_prefs').get(); p = d.exists ? d.data() : {}; } catch (e) { return; } }
+  if (!state.user || state.user.uid !== uid) return;
+  const goal = p.studyGoalMin || 0, ws = plWeekStart(0), tag = plKey(0) + ':' + goal;
+  if (!goal || p.studyCel === tag || plFocusSum(Array.from({ length:7 }, (_, i) => ws.plus({ days:i }))).m < goal) return;
+  if (PL.uid === uid && PL.prefs) plSavePrefs({ studyCel:tag }); else plRef('_prefs').set({ studyCel:tag }, { merge:true }).catch(e => console.warn('planner prefs', e.code));
+  PL.celFresh = tag; setTimeout(() => toast(t('pl_sg_toast', { g:fmtMin(goal) }), 5000), 2400);   // để sau thông báo "phiên tập trung xong"
 }
 /* ---------- nhắc việc ----------
    Khi trang đang mở: plRemTick nhắc ngay trong trang (toast + chuông) và hiện thông báo của trình duyệt nếu đã cho phép.
@@ -558,7 +600,7 @@ function plPreview(){                                              // giao diệ
   const sample = [[0, '07:30', 45, 'vocab', 0], [0, '19:30', 60, 'listen', 0], [1, '09:00', 90, 'read', 0], [1, '18:00', 45, 'gym', 2], [2, '08:00', 120, 'essay', 1], [2, '20:00', 40, 'book', 3], [3, '07:30', 45, 'vocab', 0], [3, '14:00', 60, 'meet', 1], [4, '09:00', 60, 'speak', 0], [4, '19:00', 90, 'movie', 4], [5, '10:00', 60, 'clean', 5], [5, '15:00', 90, 'read', 0], [6, '09:00', 45, 'review', 0]];
   const di = DT.now().setZone(userTZ).weekday - 1, bak = { ...PL };
   try {
-    PL.off = 0; PL.key = plKey(0); PL.preview = true; PL.raw = {}; PL.moff = 0; PL.prefs = { goalMin:600, dayGoalMin:120 }; PL.prev = null; PL.hist = {};
+    PL.off = 0; PL.key = plKey(0); PL.preview = true; PL.raw = {}; PL.moff = 0; PL.prefs = { goalMin:600, dayGoalMin:120, studyGoalMin:600 }; PL.prev = null; PL.hist = {};
     PL.fdemo = {}; const ws = plWeekStart(0); [50, 75, 100, 25, 50, 0, 75, 100, 50, 125, 75, 25, 50, 0].forEach((m, i) => { if (i < 7 + di + 1) PL.fdemo[ws.minus({ days:7 }).plus({ days:i }).toISODate()] = { m, s:Math.round(m / 25) }; });   // giờ tập trung mẫu: tuần trước + tuần này tới hôm nay PL.gone = [plGoneClean({ id:'g0', t:t('pl_s_clean'), day:1, dur:30, c:5, s:'x' })];
     PL.tasks = sample.map(([day, start, dur, k, c], i) => ({ id:'s' + i, title:t('pl_s_' + k), day, start, dur, c, done:day < 4 && i !== 3 }));
     [8, 7, 9, 6, 7].forEach((r, i) => { PL.hist[plKey(-1 - i)] = plStats(Array.from({ length:10 }, (_, j) => ({ id:'h' + j, title:'x', day:j % 5, start:'09:00', dur:60, c:j % 4, done:j < r })), -1); });
@@ -710,11 +752,11 @@ function plTmForm(){
     <div class="mt-s">${mv.map(row).join('')}</div>
     <div class="row mt" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="closeModal">${esc(t('cancel'))}</button><button type="button" class="btn primary" data-act="plTmGo">${esc(t('pl_tm_go'))}</button></div>`, true);
 }
-/* tự đặt mục tiêu (ngày: dayGoalMin, tuần: goalMin) bằng giờ + phút */
+/* tự đặt mục tiêu (ngày: dayGoalMin, tuần: goalMin, giờ học tuần: studyGoalMin) bằng giờ + phút */
 function plGoalForm(k){
   const day = k === 'dayGoalMin', cur = PL.prefs && PL.prefs[k] || 0;
   render(true);                                                   // đưa ô chọn về mức đang dùng, phòng khi bấm Huỷ
-  openModal(`<h3 style="margin-bottom:6px">${esc(t(day ? 'pl_dgoal' : 'pl_goal'))}</h3><p class="small muted">${esc(t('pl_goal_custom_sub'))}</p>
+  openModal(`<h3 style="margin-bottom:6px">${esc(t(day ? 'pl_dgoal' : k === 'studyGoalMin' ? 'pl_sg' : 'pl_goal'))}</h3><p class="small muted">${esc(t('pl_goal_custom_sub'))}</p>
     <div class="row mt-s" style="flex-wrap:nowrap"><div class="field" style="flex:1"><label class="label" for="pl-gh">${esc(t('pl_goal_hh'))}</label><input class="input" type="number" id="pl-gh" min="0" max="${day ? 24 : 168}" step="1" inputmode="numeric" value="${Math.floor(cur / 60)}"></div><div class="field" style="flex:1"><label class="label" for="pl-gm">${esc(t('pl_goal_mm'))}</label><input class="input" type="number" id="pl-gm" min="0" max="59" step="5" inputmode="numeric" value="${cur % 60}"></div></div>
     <div class="row mt" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="closeModal">${esc(t('cancel'))}</button><button type="button" class="btn primary" data-act="plGoalSave" data-k="${k}">${esc(t('pl_save'))}</button></div>`, true);
   setTimeout(() => { const el = $('pl-gh'); if (el) el.focus(); }, 30);
@@ -767,7 +809,7 @@ Object.assign(ACTIONS, {
     closeModal(); plSave(); render(true); toast(t('pl_moved', { n:picks.length }));
   },
   plGoalSave: el => {
-    const k = el.dataset.k; if (k !== 'dayGoalMin' && k !== 'goalMin') return;
+    const k = el.dataset.k; if (k !== 'dayGoalMin' && k !== 'goalMin' && k !== 'studyGoalMin') return;
     const v = Math.max(0, Math.min(k === 'dayGoalMin' ? 1440 : 10080, Math.round((+$('pl-gh').value || 0) * 60 + (+$('pl-gm').value || 0))));
     plSavePrefs({ [k]:v }); closeModal(); render(true);
   },
@@ -802,3 +844,4 @@ Object.assign(ACTIONS, {
 });
 CHANGES.plDayGoal = el => { if (el.value === 'custom') return plGoalForm('dayGoalMin'); plSavePrefs({ dayGoalMin:+el.value || 0 }); render(true); };
 CHANGES.plGoal = el => { if (el.value === 'custom') return plGoalForm('goalMin'); plSavePrefs({ goalMin:+el.value || 0 }); render(true); };
+CHANGES.plStudyGoal = el => { if (el.value === 'custom') return plGoalForm('studyGoalMin'); plSavePrefs({ studyGoalMin:+el.value || 0 }); render(true); };

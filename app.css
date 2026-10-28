@@ -748,4 +748,13 @@ button.sb-item{width:100%;background:none;border:0;font:inherit;font-weight:600;
 .pl-fbars b{font-size:.66rem;min-height:1.1em;white-space:nowrap}.pl-fbars small{font-size:.64rem;color:var(--ink3);min-height:1.1em;white-space:nowrap}
 .pl-fbars.m{gap:2px}.pl-fbars.m i{border-radius:3px 3px 1px 1px}
 .pl-ps-c{margin:14px 0 6px;padding:10px 12px;border-radius:12px;background:var(--surface2);font-size:.9rem}
+.pl-kpi.pl-hit{border-color:var(--sage);box-shadow:inset 0 0 0 1px var(--sage)}
+.pl-sg-left{margin:14px 0 0;color:var(--ink2)}
+.pl-ps .pl-goal{flex-wrap:wrap}.pl-ps .pl-goal>span{flex:1 1 7em}
+@media(max-width:700px){.pl-ps-kpis .pl-kpi-sg{grid-column:1/-1}}
+.pl-cel{display:flex;align-items:center;gap:12px;margin:14px 0 0;padding:12px 14px;border-radius:14px;border:1px solid var(--sage);background:linear-gradient(120deg,color-mix(in srgb,var(--sage) 22%,var(--surface)),color-mix(in srgb,var(--peach) 18%,var(--surface)));color:var(--ink)}
+.pl-cel>span{font-size:1.6rem;line-height:1}.pl-cel p{margin:0;font-weight:600;font-size:.92rem}
+.pl-cel.fresh{animation:plCelPop .7s cubic-bezier(.2,1.4,.4,1)}.pl-cel.fresh>span{animation:plCelWave 1.2s ease-in-out 2}
+@keyframes plCelPop{from{transform:scale(.92);opacity:0}to{transform:none;opacity:1}}
+@keyframes plCelWave{0%,100%{transform:none}30%{transform:rotate(-14deg) scale(1.2)}60%{transform:rotate(10deg) scale(1.1)}}
 @media(max-width:700px){.pl-ps-body{grid-template-columns:minmax(0,1fr)}.pl-ps-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.pl-fbars{height:130px}.pl-fbars.m{gap:1px}}
