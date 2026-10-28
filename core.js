@@ -8,7 +8,7 @@ const loadScript = src => new Promise((res, rej) => { const s = document.createE
 let emailP = null;
 const loadEmailJS = () => emailP || (emailP = loadScript('https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js').then(() => { emailjs.init("JKo4tonk0gQMwrHFZ"); }).catch(e => { emailP = null; console.warn('EmailJS chưa tải được', e); throw e; }));
 let adminP = null;
-const ASSET_V = '90';                                                // đổi cùng số ?v= trong index.html mỗi lần cập nhật, để trình duyệt không trộn file cũ với file mới
+const ASSET_V = ((document.currentScript && /[?&]v=(\w+)/.exec(document.currentScript.src)) || [])[1] || '92';   // lấy đúng số ?v= của core.js trong index.html, để admin.js / planner.js tải cùng bản (không phải sửa tay ở đây nữa)
 const loadAdmin = () => typeof PAGES.admin === 'function' ? Promise.resolve() : (adminP || (adminP = loadScript('admin.js?v=' + ASSET_V).catch(e => { adminP = null; throw e; })));
 let plannerP = null;
 const loadPlanner = () => typeof PAGES.planner === 'function' ? Promise.resolve() : (plannerP || (plannerP = Promise.all([loadScript('planner-i18n.js?v=' + ASSET_V).catch(() => {}), loadScript('planner.js?v=' + ASSET_V)]).catch(e => { plannerP = null; throw e; })));   // planner-i18n.js = bản dịch hi/ja/ko/zh/fr/es; thiếu thì dùng tiếng Anh
@@ -64,10 +64,16 @@ let content = { texts:{}, images:{}, faq:null };
 let payments = {}, posts = [], products = [], reviews = [], library = [], profile = {};
 let music = { picks:[], recent:[] }, gear = { items:[] };
 let supporters = { items:[] };                                       // settings/supporters: tên người đồng hành hiện ở mục cảm ơn (admin quản lý)
+/* Người đồng hành lâu năm: mốc 3 / 6 / 12 tháng tính từ ngày bắt đầu đồng hành (since) → viền và trăng nhỏ cạnh tên. Chỉ đọc dữ liệu sẵn có, không ghi gì thêm */
+const COMP_TIERS = [[12, 3, '🌕'], [6, 2, '🌔'], [3, 1, '🌓']];
+const sinceISO = s => !s ? '' : typeof s === 'string' ? s.slice(0, 10) : (s.toMillis || typeof s === 'number') ? DT.fromMillis(tsMs(s)).toISODate() : '';
+const compAgeMonths = s => { const d = s ? DT.fromISO(sinceISO(s)) : null; return d && d.isValid ? Math.max(0, Math.floor(DT.now().diff(d, 'months').months)) : 0; };
+const compTier = s => { const m = compAgeMonths(s), x = COMP_TIERS.find(x => m >= x[0]); return x ? { m, tier:x[1], moon:x[2], len:m >= 12 ? t(m < 24 ? 'ct_y1' : 'ct_y', { n:Math.floor(m / 12) }) : t('ct_m', { n:m }) } : null; };
+const compBadge = (extra = '') => { const c = compTier(state.companionSince); return `<span class="badge${c ? ' ct' + c.tier : ''}"${c ? ` title="${esc(t('ct_for', { d:c.len }))}"` : ''}>${ic('heart', 'sm')} ${esc(t('comp_badge'))}${c ? ` · ${c.moon} ${esc(c.len)}` : ''}${extra}</span>`; };
 const thanksList = () => (supporters.items || []).filter(x => x && x.show !== false && x.name && (!x.until || x.until >= DT.now().toISODate())).sort((a, b) => String(a.since || '').localeCompare(String(b.since || '')));
 /* Tự thêm https:// cho các link thanh toán nếu người dùng quên */
-function fixPayUrls(p) { const o = { ...p }; ['stripe', 'paypal', 'kofi', 'companionUrl', 'momoQr'].forEach(k => { const v = (o[k] || '').trim(); o[k] = v && !/^(https?:)?\/\//i.test(v) && !/^data:/i.test(v) ? 'https://' + v : v; }); return o; }
-state.companion = false; state.companionUntil = ''; state.compReq = null; state.compCheckedAt = 0;
+function fixPayUrls(p) { const o = { ...p }; ['stripe', 'paypal', 'kofi', 'companionUrl'].forEach(k => { const v = (o[k] || '').trim(); o[k] = v && !/^(https?:)?\/\//i.test(v) && !/^data:/i.test(v) ? 'https://' + v : v; }); return o; }
+state.companion = false; state.companionUntil = ''; state.companionSince = ''; state.compReq = null; state.compCheckedAt = 0;
 state.trial = null;                                                  // mã dùng thử: { code, endsAt (ms) } hoặc null — xem loadTrial
 let weekDocs = {}, weekOffset = 0;
 const unsubs = {};
@@ -359,9 +365,9 @@ function listenLegacy(){
 function loadDemo(){
   branding = { ...branding, announcement:{ vi:'Chào mừng đến EP Study Room (chế độ xem thử)', en:'Welcome to EP Study Room (demo preview)' }, contacts:{ live:'https://youtube.com' }, socialLinks:{ YouTube:'https://youtube.com', Instagram:'https://instagram.com' }, ytLiveId:'jfKfPfyJRdk',
     videos:[{ url:'https://youtu.be/jfKfPfyJRdk', title:'lofi hip hop radio — beats to relax/study to' },{ url:'https://youtu.be/5qap5aO4i9A', title:'Study with me — 2 hours Pomodoro 50/10' },{ url:'https://youtu.be/lTRiuFIWV54', title:'Rainy night study session' }] };
-  payments = { bankBin:'970436', accountNo:'0123456789', accountName:'NGUYEN VAN A', momoPhone:'0900000000', stripe:'https://stripe.com' };
+  payments = { bankBin:'970436', accountNo:'0123456789', accountName:'NGUYEN VAN A', stripe:'https://stripe.com' };
   music = { picks:[{ title:{ en:'Rain & piano', vi:'Mưa và piano' }, note:{ en:'Soft, no lyrics', vi:'Nhẹ nhàng, không lời' }, url:'https://www.youtube.com/watch?v=jfKfPfyJRdk' }, { title:{ en:'Focus playlist', vi:'Danh sách tập trung' }, note:{}, url:'https://open.spotify.com/playlist/37i9dQZF1DWZeKCadgRdKQ' }], recent:[{ title:{ en:'Late-night study mix', vi:'Mix học khuya' }, note:{ en:'What I have on repeat this week', vi:'Tuần này mình nghe đi nghe lại' }, url:'https://open.spotify.com/playlist/37i9dQZF1DX8Uebhn9wzrS' }] };
-  supporters = { items:[{ id:'u1', name:'Linh', show:true, since:'2026-09-01' }, { id:'u2', name:'Daniel', show:true, since:'2026-09-20' }, { id:'u3', name:'Mai', show:true, since:'2026-10-05' }] };
+  supporters = { items:[{ id:'u1', name:'Linh', show:true, since:'2025-09-01' }, { id:'u2', name:'Daniel', show:true, since:'2026-03-20' }, { id:'u3', name:'Mai', show:true, since:'2026-07-05' }, { id:'u4', name:'An', show:true, since:'2026-10-05' }] };
   gear = { items:[{ id:'lamp', name:{ en:'Warm desk lamp', vi:'Đèn bàn ánh vàng' }, note:{ en:'Soft light for late sessions.', vi:'Ánh sáng dịu cho những buổi học khuya.' }, cat:{ en:'Desk', vi:'Bàn học' }, price:'', store:'Amazon', url:'https://example.com/lamp', img:'' }, { id:'headphones', name:{ en:'Noise-cancelling headphones', vi:'Tai nghe chống ồn' }, note:{ en:'Keeps the room quiet.', vi:'Giữ cho căn phòng yên tĩnh.' }, cat:{ en:'Audio', vi:'Âm thanh' }, price:'', store:'Shopee', url:'https://example.com/headphones', img:'' }, { id:'notebook', name:{ en:'Dotted notebook', vi:'Sổ chấm bi' }, note:{ en:'For plans and to-do lists.', vi:'Để ghi kế hoạch và việc cần làm.' }, cat:{ en:'Stationery', vi:'Văn phòng phẩm' }, price:'', store:'', url:'https://example.com/notebook', img:'' }] };
   const now = Date.now(), body = en => `<p>${en}</p><h2>Why Pomodoro?</h2><p>Short, focused sprints with <b>gentle breaks</b> make big tasks feel small.</p><blockquote>Slow progress is still progress.</blockquote><ul><li>25 minutes focus</li><li>5 minutes breathe</li><li>Repeat</li></ul>`;
   posts = [
@@ -455,7 +461,7 @@ auth.onAuthStateChanged(async u => {
   state.authReady = true;
   if (typeof stopAdminWatch === 'function') stopAdminWatch();
   try { Object.keys(localStorage).filter(k => k.startsWith('ep_plw_') && !(u && k.startsWith('ep_plw_' + u.uid + '_'))).forEach(k => localStorage.removeItem(k)); } catch (e) {}   // bản nhớ planner chỉ giữ cho tài khoản đang đăng nhập
-  state.user = u; state.isAdmin = false; state.companion = false; state.trial = null; state.compReq = null; state.compCheckedAt = 0; state.moonReward = undefined; state.profileReady = false; state.profileFailed = false; library = []; profile = {};
+  state.user = u; state.isAdmin = false; state.companion = false; state.companionUntil = ''; state.companionSince = ''; state.trial = null; state.compReq = null; state.compCheckedAt = 0; state.moonReward = undefined; state.profileReady = false; state.profileFailed = false; library = []; profile = {};
   if (unsubLib) { unsubLib(); unsubLib = null; }
   if (u) {
     const profileP = db.collection('users').doc(u.uid).get(); profileP.catch(() => {});      // tải hồ sơ song song với làm mới token, không chờ nhau
@@ -476,8 +482,8 @@ auth.onAuthStateChanged(async u => {
     state.isAdmin = isAdminUser(u);
     if (state.isAdmin) { goLegacy(); loadAdmin().then(() => { if (typeof ensureSitePublished === 'function') ensureSitePublished(); if (typeof adminWatchRequests === 'function') adminWatchRequests(); }).catch(() => {}); }
     const cc = store.get('comp_' + u.uid, null);                       // tiết kiệm lượt đọc: nhớ kết quả 30 phút
-    if (cc && Date.now() - cc.t < 30 * 60e3) state.companion = !!cc.v;
-    else { try { const cd = await db.collection('companions').doc(u.uid).get(); state.companion = cd.exists && !(cd.data().until && cd.data().until < DT.now().toISODate()); store.set('comp_' + u.uid, { t:Date.now(), v:state.companion }); } catch (e) {} }
+    if (cc && Date.now() - cc.t < 30 * 60e3) { state.companion = !!cc.v; state.companionUntil = cc.u || ''; state.companionSince = cc.s || ''; }
+    else { try { const cd = await db.collection('companions').doc(u.uid).get(); state.companion = cd.exists && !(cd.data().until && cd.data().until < DT.now().toISODate()); state.companionUntil = cd.exists && cd.data().until || ''; state.companionSince = cd.exists && sinceISO(cd.data().since) || ''; store.set('comp_' + u.uid, { t:Date.now(), v:state.companion, u:state.companionUntil, s:state.companionSince }); } catch (e) {} }
     await loadTrial(u);
     startLibrary();
     if (state.companion || state.isAdmin || trialActive()) loadPlanner().then(() => plPrefetch()).catch(() => {});     // tải sẵn planner.js lúc rảnh để mở Planner không phải chờ tải file
@@ -512,7 +518,17 @@ function render(force){
   if (!force && (route.name === 'admin')) return;           // trang admin tự vẽ lại khi cần, tránh mất dữ liệu đang nhập
   if (!force && typingInPage()) { pendingRender = true; return; }
   if (rq) return;
-  rq = setTimeout(() => { rq = 0; pendingRender = false; doRender(); }, 0);
+  rq = setTimeout(() => { rq = 0; pendingRender = false; try { doRender(); } catch (e) { pageCrash(e); } }, 0);
+}
+/* Một trang bị lỗi khi vẽ (sau khi web đã chạy): hiện lời nhắn thân thiện ngay trong khung trang thay vì để trắng.
+   Thanh menu, giỏ hàng, bộ hẹn giờ… vẫn chạy; chữ lấy từ bảng 8 ngôn ngữ EP_TXT trong index.html. Không xoá dữ liệu gì. */
+function pageCrash(e){
+  console.error('[EP] render ' + location.hash, e);
+  const m = (window.EP_TXT && window.EP_TXT()) || [], home = route.name === 'home';
+  try { renderChrome(); } catch (er) {}
+  $('page').innerHTML = `<div class="empty"><div class="ico">${ic('moon')}</div><h3>${esc(m[4] || 'This page hit a snag')}</h3><p style="max-width:420px;margin:0 auto 16px">${esc(m[5] || 'Something went wrong while showing this page.')}</p>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button type="button" class="btn primary" onclick="location.reload()">${ic('reset')} ${esc(m[2] || 'Reload')}</button>${home ? '' : `<a class="btn secondary" href="#/">${ic('home')} ${esc(m[6] || 'Back to Overview')}</a>`}</div>
+    <p class="muted" style="max-width:420px;margin:16px auto 0;font-size:.8rem">${esc(m[3] || '')}</p></div>`;
 }
 function readRoute(){
   const p = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean).map(x => { try { return decodeURIComponent(x); } catch (e) { return x; } });   // địa chỉ có % lạ không làm lỗi trang
@@ -529,13 +545,13 @@ const isLocked = name => loginRequired() && !state.user && lockedPages().include
 /* Hỏi lại Firestore xem người dùng đã là Companion chưa (bỏ qua bản nhớ 30 phút) — gọi khi mở Planner / trang Ủng hộ, để vừa được duyệt là mở khoá ngay */
 async function refreshCompanion(force){
   const u = state.user; if (!u || DEMO || (!force && Date.now() - state.compCheckedAt < 45000)) return false;
-  state.compCheckedAt = Date.now(); const sig = () => state.companion + '|' + state.companionUntil + '|' + (state.compReq && state.compReq.status) + '|' + JSON.stringify(state.trial), before = sig();
+  state.compCheckedAt = Date.now(); const sig = () => state.companion + '|' + state.companionUntil + '|' + state.companionSince + '|' + (state.compReq && state.compReq.status) + '|' + JSON.stringify(state.trial), before = sig();
   await loadTrial(u, true);
   try {
     const cd = await db.collection('companions').doc(u.uid).get(), d = cd.exists ? cd.data() : null;
-    state.companion = !!d && !(d.until && d.until < DT.now().toISODate()); state.companionUntil = d && d.until || '';
-    store.set('comp_' + u.uid, { t:Date.now(), v:state.companion });
-    if (!state.companion) { try { const r = await db.collection('companion_requests').doc(u.uid).get(); state.compReq = r.exists ? r.data() : null; } catch (e) {} } else state.compReq = null;
+    state.companion = !!d && !(d.until && d.until < DT.now().toISODate()); state.companionUntil = d && d.until || ''; state.companionSince = d && sinceISO(d.since) || '';
+    store.set('comp_' + u.uid, { t:Date.now(), v:state.companion, u:state.companionUntil, s:state.companionSince });
+    try { const r = await db.collection('companion_requests').doc(u.uid).get(); state.compReq = r.exists ? r.data() : null; } catch (e) {}     // cả Companion còn hạn: để biết đã gửi yêu cầu gia hạn chưa
   } catch (e) { console.warn('companion check', e.code); }
   return before !== sig();
 }
@@ -552,7 +568,7 @@ function doRender(){
   }
   if (route.name === 'planner' && typeof PAGES.planner !== 'function') {        // planner.js chỉ tải khi mở #/planner
     renderChrome(); $('page').innerHTML = '<div class="gate-load"><i></i></div>';
-    loadPlanner().then(() => render(true)).catch(() => { $('page').innerHTML = '<p class="muted" style="padding:24px">Could not load the planner. Check your connection and reload.</p>'; });
+    loadPlanner().then(() => render(true)).catch(pageCrash);   // không tải được planner.js (mạng chập chờn, bị chặn…)
     return;
   }
   const fn = state.locked ? PAGES.locked : (PAGES[route.name] || PAGES.home);
@@ -756,6 +772,7 @@ function renderLiveRem(){
     ${notifBroken() ? `<p class="lr-note warn">${esc(t('nh_blocked'))}</p>` : ''}
     ${pushHTML()}
     ${plRemHTML()}
+    ${typeof mjRemHTML === 'function' ? mjRemHTML() : ''}
     <div class="switch"><span>${esc(t('lr_on'))}</span><input type="checkbox" data-change="lrOn" ${LR.on ? 'checked' : ''}></div>
     <div class="${LR.on ? '' : 'lr-off'}">
       <label class="label">${esc(t('lr_before'))}</label>
@@ -813,7 +830,7 @@ async function pushOff(){
 }
 async function pushSet(on){
   PUSH.busy = true; PUSH.err = false; renderLiveRem();
-  try { if (on) await pushSync(true); else await pushOff(); PUSH.on = on; toast(t(on ? 'push_on_toast' : 'push_off_toast')); if (plCan() && (on || plRemIsOn())) plRemSet(true, true); else if (plCan() && plPinOn()) loadPlanner().then(() => plPushSync(true)).catch(() => {}); }   // bật thông báo đẩy = bật luôn nhắc việc; tắt thì token cũ bị xoá nên nhắc việc lấy token mới
+  try { if (on) await pushSync(true); else await pushOff(); PUSH.on = on; toast(t(on ? 'push_on_toast' : 'push_off_toast')); if (plCan() && (on || plRemIsOn())) plRemSet(true, true); else if (plCan() && plPinOn()) loadPlanner().then(() => plPushSync(true)).catch(() => {}); if (typeof mjRemOn === 'function' && mjRemOn()) mjPushSync(true).catch(() => {}); }   // bật thông báo đẩy = bật luôn nhắc việc; tắt thì token cũ bị xoá nên nhắc việc lấy token mới
   catch (e) { console.warn('push', e); PUSH.on = false; PUSH.err = NOTIF_OK && Notification.permission !== 'denied'; }
   store.set('push_on', PUSH.on); PUSH.busy = false; renderLiveRem();
 }
@@ -831,7 +848,7 @@ function pushHTML(){
 }
 /* Cảnh báo trong bảng chuông: những gì web tự biết được (quyền thông báo, iPhone chưa thêm ra Màn hình chính, chưa cài app)
    và hướng dẫn ngắn cho phần web không biết được (Không làm phiền, tắt tiếng, pin, kiểu thông báo Im lặng) */
-const notifBroken = () => NOTIF_OK && ((PUSH.on || store.get('pl_rem', false)) && Notification.permission !== 'granted' || LR.on && lrPop() && Notification.permission === 'denied');   // đã bật nhắc mà quyền thông báo bị chặn / bị thu hồi
+const notifBroken = () => NOTIF_OK && ((PUSH.on || store.get('pl_rem', false) || store.get('mj_rem', false)) && Notification.permission !== 'granted' || LR.on && lrPop() && Notification.permission === 'denied');   // đã bật nhắc mà quyền thông báo bị chặn / bị thu hồi
 const notifBadge = () => { const b = $('btn-notif'); if (b) b.classList.toggle('warn', notifBroken()); };
 function notifHelpHTML(){
   const app = !pwaStandalone() && !pwaIOS && pushSupported() ? `<p class="lr-note">${esc(t('nh_app'))}</p><button type="button" class="btn ghost sm" data-act="pwaInstall">${ic('download', 'sm')} ${esc(t('pwa_install'))}</button>` : '';
@@ -844,7 +861,7 @@ const plRemIsOn = () => !!store.get('pl_rem', false);
 function plRemHTML(){
   if (!plCan()) return '';
   const on = plRemIsOn(), bg = on && typeof plPushHere === 'function' && plPushHere();
-  return `<div class="switch"><span><b>${esc(t('plr_on'))}</b></span><input type="checkbox" data-change="plRemOn" ${on ? 'checked' : ''}></div><p class="lr-note ${on ? 'ok' : ''}">${esc(t(on ? (bg ? 'plr_ok' : 'plr_fg') : 'plr_note'))}</p><hr class="lr-hr">${plPinHTML()}`;
+  return `<div class="switch"><span><b>${esc(t('plr_on'))}</b></span><input type="checkbox" data-change="plRemOn" ${on ? 'checked' : ''}></div><p class="lr-note ${on ? 'ok' : ''}">${esc(t(on ? (bg ? 'plr_ok' : 'plr_fg') : 'plr_note'))}</p>${on && audioLocked() ? `<p class="lr-note warn">${esc(t('lr_tap'))}</p>` : ''}<hr class="lr-hr">${plPinHTML()}`;
 }
 /* Việc hôm nay ngoài màn hình: thông báo yên lặng khi thoát web (hiện bằng plPinShow trong planner.js). Mặc định tắt, khách tự bật trên từng máy */
 const plPinOn = () => !!store.get('pl_pin', false);
@@ -866,10 +883,11 @@ async function plPinSet(on){
   } catch (e) { console.warn('planner pin', e); }
 }
 async function plRemSet(on, quiet){
+  if (on && !quiet && typeof audio === 'function') audio();          // mở khoá chuông ngay trong lần bấm này (trình duyệt chỉ cho phát tiếng sau khi khách bấm)
   try { await loadPlanner(); if (typeof plRemToggle === 'function') await plRemToggle(on, quiet); } catch (e) { console.warn('planner rem', e); }
   renderLiveRem(); if (route.name === 'planner') render(true);
 }
-['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => { if (LR.on && lrSound() && typeof audio === 'function' && audioLocked()) { audio(); if ($('live-rem').classList.contains('open')) setTimeout(renderLiveRem, 50); } }, { passive:true }));
+['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => { if ((LR.on && lrSound() || plRemIsOn()) && typeof audio === 'function' && audioLocked()) { audio(); if ($('live-rem').classList.contains('open')) setTimeout(renderLiveRem, 50); } }, { passive:true }));
 function tickClock(){
   const n = DT.now().setZone(userTZ), txt = n.toFormat('hh:mm:ss a');
   document.querySelectorAll('[data-clock]').forEach(e => e.textContent = txt);

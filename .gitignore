@@ -1,0 +1,6 @@
+# Bản sao lưu Firestore tải về máy (xem SETUP.md, phần 19): không bao giờ đưa lên repo
+firestore-*.enc
+firestore-*.json
+backup-out/
+backup-in/
+backup-before/

@@ -11,7 +11,7 @@ Bạn sẽ dùng 4 nơi: **GitHub** (để đăng web), **Firebase** (lưu dữ 
 1. Vào https://github.com và đăng nhập. Mở repo (kho) chứa website của bạn.
 2. Bấm nút **Add file** (góc phải, màu xám) → chọn **Upload files**.
 3. Mở thư mục `D:\STUDY WITH EP\code web epstudyroom` trên máy. Chọn **tất cả** bên trong (bấm vào 1 file rồi nhấn `Ctrl + A`) và **kéo thả** vào khung trên GitHub.
-   Phải có đủ: `index.html`, thư mục `css`, thư mục `js`, `firestore.rules`, `storage.rules`, `SETUP.md`.
+   Phải có đủ: `index.html`, `core.js`, `pages.js`, `admin.js`, `app.css` và các file khác ở trang gốc, thư mục `js`, `vendor`, `icons`, `firestore.rules`, `storage.rules`, `SETUP.md` (xem thêm **Quy tắc cập nhật** ở cuối file).
    Nếu GitHub hỏi file trùng tên thì cứ để nó thay thế (bản mới đè bản cũ).
 4. Kéo xuống cuối trang, bấm nút xanh **Commit changes**.
 5. Bật trang web: bấm tab **Settings** (của repo) → cột trái chọn **Pages** → mục **Branch** chọn `main` và `/ (root)` → bấm **Save**.
@@ -76,7 +76,7 @@ Mặc định trang hiển thị **tiếng Anh**. Khách đổi ngôn ngữ ở 
 
 ## PHẦN 5 — Nhận ủng hộ (trang "Support")
 
-### 5.1. Chuyển khoản trong nước (VietQR, MoMo quét được)
+### 5.1. Chuyển khoản trong nước (VietQR)
 1. Vào Admin console → tab **Thanh toán & Ủng hộ**.
 2. **Mã ngân hàng / BIN**: điền mã của ngân hàng bạn:
 
@@ -168,7 +168,7 @@ Cách hoạt động: người xem miễn phí tập trung tối đa **2 tiếng
 4. Bấm **Lưu mã**. Mã cũ hết tác dụng ngay.
 5. Sang Ko-fi, sửa **Welcome message** (hoặc đăng bài mới cho thành viên) với mã mới.
 
-### 10.3. Người trả bằng chuyển khoản (VietQR/MoMo) hoặc PayPal
+### 10.3. Người trả bằng chuyển khoản (VietQR) hoặc PayPal
 Họ chuyển tiền, báo bạn (nhắn Instagram/email kèm nội dung chuyển khoản). Bạn **nhắn lại mã của tháng** cho họ. Số người ít thì rất nhẹ; nếu muốn đỡ việc, hãy hướng mọi người sang Ko-fi.
 
 ### Lưu ý
@@ -268,7 +268,7 @@ Kết quả ước tính: web chịu được khoảng **10.000 người xem kh�
 - Xem tình trạng ở **Admin → Tổng quan → "Dữ liệu cho người xem & bản sao dự phòng"**: có giờ xuất bản gần nhất và nút **Xuất bản ngay** (dùng khi bạn nghi bản gộp chưa mới).
 - Người xem thấy thay đổi của bạn trong vòng khoảng 10 phút (hoặc ngay khi họ tải lại sau đó). Riêng bạn (admin) luôn thấy thay đổi tức thì.
 
-**Bản sao dự phòng:** cũng ở thẻ trên có nút **"Tải bản sao dữ liệu (file .json)"**. Nên bấm khoảng mỗi tuần và cất file vào ổ đĩa của bạn (bài viết, sản phẩm, cài đặt nằm trong Firebase, đây là bản dự phòng nếu có sự cố).
+**Bản sao dự phòng:** cũng ở thẻ trên có nút **"Tải bản sao dữ liệu (file .json)"**. Nên bấm khoảng mỗi tuần và cất file vào ổ đĩa của bạn (bài viết, sản phẩm, cài đặt nằm trong Firebase, đây là bản dự phòng nếu có sự cố). Từ phần 19, toàn bộ Firestore (cả thành viên, Hành trình trăng, Planner) đã được **sao lưu tự động mỗi đêm**; nút này vẫn dùng được khi bạn muốn tự giữ một bản.
 
 **Tự kiểm tra mức dùng:** vào Firebase → **Firestore Database → tab Usage**. Mục "Reads" phải ở mức rất thấp. Nếu một ngày thấy gần 50.000, báo mình.
 
@@ -395,6 +395,13 @@ cron-job.org gửi email khi lịch lỗi, và tự tạm dừng lịch nếu l�
 - **422** (Request body sai): dán lại đúng dòng ở bước B7.
 - Mã cũ không dùng nữa thì xoá ở https://github.com/settings/personal-access-tokens
 
+### 17.4. Nhắc giữ chuỗi Hành trình trăng (cũng nhận cả khi đã đóng web)
+Dùng chung máy gửi ở trên (bước **Nhắc giữ chuỗi Hành trình trăng**, file `scripts/push-moon.mjs`), **không cần làm thêm gì** nếu 17.1 đã xong, không cần dán lại luật Firestore.
+- **Mặc định tắt.** Người dùng tự bật trên từng máy: công tắc ngay dưới nút **Điểm danh hôm nay** ở trang Hành trình trăng, hoặc trong bảng chuông 🔔. Máy đó lưu mã nhận thông báo vào `users/<uid>.mjPush` (chỉ họ và admin đọc được).
+- **21:00 theo giờ của người dùng**, nếu hôm nay chưa điểm danh thì nhắc **một lần**: "Điểm danh trước nửa đêm để giữ chuỗi n ngày". Còn trăng tròn tích trữ thì nói thêm là lỡ quên vẫn giữ được chuỗi bằng trăng. Chuỗi vừa đứt mà đủ trăng để vá thì nhắc vào dùng trăng rồi điểm danh. Đã điểm danh rồi thì không nhắc.
+- Đang mở web thì nhắc ngay trong trang (chuông nhẹ + thông báo); hai đường dùng chung một mã nên chỉ hiện 1 thông báo. GitHub chạy trễ thì có thể đến muộn vài phút.
+- Muốn đổi giờ nhắc: sửa `MJ_REM_AT` trong `pages.js` (giờ × 60 + phút) và thêm biến `MJ_REM_MIN` (cùng số phút) cho bước **Nhắc giữ chuỗi** trong `.github/workflows/push-live.yml`.
+
 ## PHẦN 18 — Bảng lịch live trên màn hình stream (OBS)
 Trang `overlay.html` hiện kế hoạch buổi live đang chạy (giống thẻ ở trang Lịch): đoạn đang chạy được tô sáng và đếm ngược, các đoạn đã qua mờ đi, danh sách tự cuộn. Trang này không cần đăng nhập, không có nút bấm, chỉ đọc lịch công khai. Sửa lịch ở Admin → Lịch live thì bảng tự cập nhật sau khoảng 3 phút.
 
@@ -436,8 +443,70 @@ Trang `overlay.html` hiện kế hoạch buổi live đang chạy (giống thẻ
 
 **Hoặc bắt đầu bằng nút trong Admin (dậy trễ / vào sớm / sửa giờ):** vào **Admin** (tab Tổng quan hoặc Lịch live), ô **Bắt đầu buổi live** → bấm **▶ Bắt đầu buổi live bây giờ** một lần. Trong khoảng 10 giây, bảng lịch và bộ đếm trên OBS tự dời cả buổi theo giờ bạn bấm. Bấm nhầm thì dùng **−5 / −1 / +1 / +5 phút**, **Bắt đầu lại từ bây giờ**, hoặc **Về giờ theo lịch**. Lịch gốc trong tuần không bị đổi; trang Lịch cho khách và thông báo đẩy vẫn theo giờ lịch.
 
+## PHẦN 19 — Sao lưu Firestore tự động mỗi đêm (và cách khôi phục)
+
+**Cách chạy:** mỗi đêm khoảng **2:17 sáng** (giờ Việt Nam), GitHub Actions chạy workflow **Sao lưu Firestore** (`.github/workflows/backup-firestore.yml`, file `scripts/backup-firestore.mjs`). Máy này **chỉ đọc**, không sửa gì: lấy toàn bộ dữ liệu trong Firestore (thành viên, tiến độ Hành trình trăng, Planner của từng người, đơn hàng, mã dùng thử, bài viết, cài đặt…), nén lại, **khoá bằng mật khẩu của bạn**, mở thử lại để chắc chắn file dùng được, rồi cất vào mục **Artifacts** của lần chạy đó. Mỗi bản được giữ **90 ngày**, nên lúc nào cũng có khoảng 90 bản của 90 đêm gần nhất.
+
+**Chi phí: 0 đồng.** Repo công khai nên GitHub Actions và chỗ cất Artifacts miễn phí. Mỗi đêm tốn số lượt đọc Firestore bằng số tài liệu đang có (ví dụ 3.000 tài liệu = khoảng 3.000 lượt đọc, hạn mức miễn phí là 50.000 / ngày). Dùng chung khoá tài khoản dịch vụ `FIREBASE_SERVICE_ACCOUNT` đã thêm ở **17.1**, không cần khoá mới.
+
+**Vì sao phải khoá file:** repo công khai, nên người có tài khoản GitHub có thể tải Artifacts. File đã khoá thì không có mật khẩu sẽ không mở được (chỉ thấy chữ lộn xộn). Nhật ký của lần chạy chỉ in tên bảng và số lượng (ví dụ `users: 812`), không in email hay nội dung. Nếu chưa có mật khẩu, máy sao lưu **dừng hẳn**, không bao giờ cất file chưa khoá.
+
+### 19.1. Việc bạn làm một lần (khoảng 5 phút)
+1. **Tạo mật khẩu khoá file:** dài **ít nhất 16 ký tự**, ví dụ 4–5 từ ngẫu nhiên nối bằng dấu gạch (`trang-mua-den-o-goc-pho-7`). Không dùng lại mật khẩu đăng nhập nào.
+2. **Cất mật khẩu thật kỹ** ở chỗ không phụ thuộc vào web: trình quản lý mật khẩu (Google Password Manager, Bitwarden…) hoặc viết ra giấy cất trong ngăn kéo. **Mất mật khẩu là mất luôn mọi bản sao lưu** (mình cũng không mở được).
+3. **Thêm secret trên GitHub:** repo `index.html` → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**. Name: `BACKUP_PASSWORD`. Secret: dán mật khẩu ở bước 1. Bấm **Add secret**.
+4. **Chạy thử:** tab **Actions** → cột trái chọn **Sao lưu Firestore** → **Run workflow** → **Run workflow**. Khoảng 1 phút sau bấm vào lần chạy:
+   - Bước **Sao lưu** có dòng **"Xong: đã sao lưu … tài liệu (… KB, đã khoá)"**.
+   - Kéo xuống cuối trang, mục **Artifacts** có một file tên `firestore-backup-…`. Vậy là xong.
+5. Nếu bị lỗi đỏ: dòng "Chưa có secret BACKUP_PASSWORD" hoặc "quá ngắn" thì làm lại bước 3. Dòng có `403` / `PERMISSION_DENIED` thì khoá tài khoản dịch vụ thiếu quyền: tạo khoá mới đúng như **17.1 bước 3–4** (ở tab **Service accounts** của Firebase) và thay secret `FIREBASE_SERVICE_ACCOUNT`.
+
+> GitHub tự gửi email cho bạn khi một lần sao lưu bị lỗi. Thỉnh thoảng (khoảng mỗi tháng) nên mở tab **Actions** → **Sao lưu Firestore** xem các lần gần đây đều có dấu ✅ xanh.
+
+### 19.2. Khôi phục khi có sự cố
+Dùng khi dữ liệu bị xoá nhầm, bị sửa sai, hay Firestore gặp sự cố. **Không chế độ nào xoá dữ liệu**: dữ liệu tạo sau ngày sao lưu (ví dụ thành viên mới đăng ký hôm nay) vẫn giữ nguyên.
+
+1. **Chọn bản sao lưu:** tab **Actions** → **Sao lưu Firestore** → bấm vào lần chạy của **đêm trước khi xảy ra sự cố** (có dấu ✅). Nhìn thanh địa chỉ trình duyệt: `…/actions/runs/`**`18234567890`**. Chép lại dãy số cuối đó (không lấy phần `/job/…` nếu có).
+2. **Xem trước (không ghi gì):** cột trái chọn **Khôi phục Firestore** → **Run workflow**:
+   - Ô **run_id**: dán dãy số ở bước 1.
+   - Ô **mode**: để `thu`.
+   - Ô **only**: để trống (khôi phục tất cả), hoặc gõ `users` (chỉ bảng thành viên), hoặc `users/<uid>` (một người, kể cả Planner và Hành trình trăng của họ; `<uid>` xem ở Admin → Thành viên hoặc Firebase → Authentication).
+   - Ô **confirm**: để trống. Bấm **Run workflow**.
+   Mở lần chạy, bước **Khôi phục** in ra: **"Đang bị mất: …"**, **"Đang khác bản sao lưu: …"**, **"Giống hệt: …"**. Đọc kỹ con số này trước khi làm bước 3.
+3. **Khôi phục thật:** chạy lại **Khôi phục Firestore** với cùng `run_id` (và `only` nếu có), chọn **mode**:
+   - `them-thieu` (**nên dùng trước**): chỉ tạo lại những gì **đang bị mất**. Dữ liệu đang có không bị đụng tới.
+   - `ghi-de`: tạo lại những gì bị mất **và** đưa những tài liệu đang khác về đúng như đêm sao lưu. Chỉ dùng khi dữ liệu bị **sửa sai** (ví dụ chuỗi điểm danh của mọi người về 0). Lưu ý: thay đổi thật của khách từ đêm đó tới giờ trong các tài liệu này cũng sẽ quay về như cũ, nên tốt nhất dùng kèm ô `only` cho đúng phần bị hỏng.
+   - Ô **confirm**: gõ đúng `KHOI PHUC` (viết hoa, có dấu cách). Thiếu ô này thì workflow dừng ngay, không ghi gì.
+4. Trước khi ghi, workflow **tự sao lưu dữ liệu hiện tại** (artifact `firestore-backup-truoc-khoi-phuc-…` trong chính lần chạy đó). Lỡ khôi phục nhầm thì làm lại bước 1–3 với **số của lần chạy khôi phục đó**, chế độ `ghi-de`, để quay về như trước khi khôi phục.
+5. Xong thì mở web kiểm tra, rồi vào **Admin → Tổng quan → Xuất bản ngay** để bản gộp cho người xem cập nhật theo.
+
+### 19.3. Lưu ý
+- **Không sao lưu:** tài khoản đăng nhập (email / mật khẩu nằm ở Firebase **Authentication**, không phải Firestore, và không mất khi Firestore gặp sự cố) và ảnh / file tải lên **Storage**.
+- Bản sao lưu chỉ giữ **90 ngày**. Muốn giữ lâu hơn (ví dụ bản đầu mỗi tháng): mở lần chạy → mục **Artifacts** → bấm tên file để tải về, cất vào Google Drive. File đã khoá nên cất ở đâu cũng an toàn.
+- **Muốn tự xem bên trong một bản sao lưu** (tuỳ chọn, cần cài Node từ https://nodejs.org): giải nén file `.zip` vừa tải, rồi trong thư mục chứa repo chạy `node scripts/decrypt-backup.mjs firestore-….enc`, gõ mật khẩu. Ra file `.json` **không được khoá** (có email, đơn hàng của khách): xem xong thì xoá, **không đưa lên GitHub**.
+- Đổi mật khẩu: sửa secret `BACKUP_PASSWORD`. Các bản cũ vẫn mở bằng **mật khẩu cũ**, nên giữ mật khẩu cũ thêm 90 ngày.
+- Như phần 17: GitHub tạm dừng lịch tự chạy nếu repo **60 ngày** không có thay đổi. Lâu không cập nhật web thì vào tab **Actions**, thấy nút **Enable workflow** thì bấm.
+- **Tầng bảo vệ thêm (chỉ khi đã lên gói Blaze):** Google Cloud có sẵn sao lưu theo lịch và "khôi phục về thời điểm bất kỳ trong 7 ngày" cho Firestore (Google Cloud Console → **Firestore** → **Disaster recovery**). Có tính phí theo dung lượng (rất nhỏ với web này). Không bắt buộc: bản sao lưu ở trên đã đủ dùng.
+## PHẦN 20 — Kiểm tra sức khoẻ website mỗi tuần (tự động)
+Sáng thứ Hai (khoảng 8 giờ, giờ Việt Nam) GitHub tự mở web bằng Chrome thật (cả kiểu máy tính và điện thoại) và kiểm tra. **Chỉ đọc, không sửa gì trên Firebase.**
+- **Web:** trang chủ và mọi file (js, css, ảnh, manifest…) mở được không; bản trên mạng có đúng bản mới nhất trong repo không; tải nhanh hay chậm, nặng bao nhiêu.
+- **Lỗi:** web có khởi động được không (hay hiện màn hình "Trang chưa tải được"), có lỗi JavaScript khi mở các trang Watch, Focus, Planner, Shop, Blog… không.
+- **Bảo mật Firestore:** thử đọc dữ liệu riêng tư (người dùng, đơn hàng, mã dùng thử, token thông báo…) khi chưa đăng nhập, phải bị chặn; dữ liệu công khai (cài đặt, lịch live) phải đọc được. Nhờ secret `FIREBASE_SERVICE_ACCOUNT` (đã có từ Phần 17), còn so luật đang chạy trên Firebase với file `firestore.rules` / `storage.rules` trong repo, và chạy thử 12 ca (khách không sửa được cài đặt, không tự cấp quyền Người đồng hành, email admin chưa xác minh không làm được admin…) ngay trên luật đang chạy.
+- **Sao lưu:** bản sao lưu Firestore mỗi đêm (Phần 19) có thành công trong 3 ngày gần nhất không.
+
+**Bạn nhận thông báo thế nào:** có vấn đề thì GitHub mở một **issue** tên "⚠️ Kiểm tra web: …" (nhãn `health-check`), giao cho bạn, nên bạn nhận email và thông báo trên app GitHub. Trong issue có danh sách việc cần xem, mỗi dòng kèm 👉 nên làm gì. Tuần sau vẫn còn vấn đề thì thêm bình luận vào cùng issue đó; hết vấn đề thì tự đóng issue. Mọi thứ ổn thì không làm phiền bạn.
+
+**Chạy thử ngay:** GitHub → **Actions** → **Kiểm tra sức khoẻ website** → **Run workflow**. Bấm vào lần chạy, kéo xuống phần **Summary** để xem báo cáo đầy đủ.
+
+**Nếu báo cáo ghi "bỏ qua … không có quyền xem luật":** tài khoản dịch vụ chưa được xem luật bảo mật. Vào https://console.cloud.google.com/iam-admin/iam (chọn project của web) → dòng có email `firebase-adminsdk-…` → bấm ✏️ → **Add another role** → chọn **Firebase Rules Viewer** → **Save**. Không làm cũng được, các phần kiểm tra khác vẫn chạy.
+
+**Dòng "bỏ qua Ca thử bảo mật … chưa có quyền chạy thử luật" là bình thường:** muốn chạy 12 ca thử thì tài khoản dịch vụ cần thêm vai trò **Firebase Rules Admin**, mà vai trò này cũng cho phép sửa luật, nên mình khuyên **không thêm**. Phần so luật đang chạy với file trong repo và phần thử đọc như khách lạ đã đủ để biết luật còn đúng.
+
+**Mục "ghi chú" (ℹ️) không mở issue:** đó là dịch vụ bên ngoài (font, danh sách video mới qua rss2json…) lỗi tạm thời, web vẫn chạy.
+
+**Địa chỉ web:** máy kiểm tra tự lấy từ GitHub Pages. Nếu sau này dùng tên miền riêng mà báo cáo vẫn mở địa chỉ cũ: **Settings → Secrets and variables → Actions → Variables → New repository variable**, Name `SITE_URL`, Value là địa chỉ web (ví dụ `https://tenmien.com/`).
+
 ## QUY TẮC CẬP NHẬT WEB LÊN GITHUB (đọc cái này khi cần cập nhật)
-Từ bản 8, các file hay thay đổi (`index.html`, `core.js`, `pages.js`, `admin.js`, `i18n-extra.js`, `app.css`) **đều nằm ở trang gốc của repo**, cùng chỗ với `index.html`. Chỉ còn 4 file ít khi đổi nằm trong thư mục `js`: `art.js`, `i18n.js`, `translate.js`, `firebase-config.js`.
+Từ bản 8, các file hay thay đổi (`index.html`, `core.js`, `pages.js`, `admin.js`, `i18n-extra.js`, `app.css`) **đều nằm ở trang gốc của repo**, cùng chỗ với `index.html`. Chỉ còn 4 file ít khi đổi nằm trong thư mục `js`: `art.js`, `i18n.js`, `translate.js`, `firebase-config.js`. Thư mục `css` và các bản cũ `js/core.js`, `js/pages.js`, `js/admin.js`, `js/i18n-extra.js` đã bỏ hẳn (web không dùng), nếu máy bạn còn thì không cần tải lên nữa.
 
 Mỗi lần mình đưa bản mới, mình sẽ tạo một thư mục chứa **đúng những file cần upload** (nằm phẳng, không có thư mục con). Bạn làm:
 1. Vào trang chính của repo trên GitHub (thấy danh sách file, **không vào thư mục nào**).

@@ -197,7 +197,7 @@ let pomo = { ...pomoDefault(), ...store.get('pomo', {}) }; pomo.cfg = { ...pomoD
 const pomoDur = m => (pomo.cfg[m] || 25) * 60e3;
 const pomoSave = () => store.set('pomo', pomo);
 let actx = null;
-function audio(){ if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (actx && actx.state === 'suspended') actx.resume(); return actx; }
+function audio(){ if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (actx && actx.state !== 'running' && actx.state !== 'closed') { const r = actx.resume(); if (r && r.catch) r.catch(() => {}); } return actx; }
 function beep(){
   const a = audio(); if (!a) return;
   [0, .25, .5].forEach((d, i) => { const o = a.createOscillator(), g = a.createGain(), at = a.currentTime + d; o.type = 'sine'; o.frequency.value = i === 2 ? 988 : 784; g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(.2, at + .02); g.gain.exponentialRampToValueAtTime(.001, at + .22); o.connect(g); g.connect(a.destination); o.start(at); o.stop(at + .25); });
@@ -410,7 +410,7 @@ PAGES.focus = function(){
       <div class="seg"><button type="button" data-seg="focus" data-act="pmode" data-m="focus">${esc(t('mode_focus'))}</button><button type="button" data-seg="short" data-act="pmode" data-m="short">${esc(t('mode_short'))}</button><button type="button" data-seg="long" data-act="pmode" data-m="long">${esc(t('mode_long'))}</button></div>
       <div class="ring" id="tm-ring"><svg viewBox="0 0 120 120"><circle class="bg" cx="60" cy="60" r="54" stroke-width="7"/><circle class="fg" id="tm-fg" cx="60" cy="60" r="54" stroke-width="7" stroke-dasharray="${RING_C.toFixed(2)}" stroke-dashoffset="0"/></svg><div class="center"><div class="tt" data-pomo-time>25:00</div><div class="md" data-pomo-mode></div></div></div>
       <div class="cycle" id="tm-cycle"></div><div class="small muted" id="tm-cur" style="text-align:center;min-height:1.2em"></div>
-      ${focusLimit() ? `<div class="limit-box"><div class="row between small"><b>${esc(t('focus_limit_used', { u:Math.min(focusUsed(), focusLimit()), l:focusLimit() }))}</b><span class="faint">${esc(t('focus_limit_note', { l:focusLimit() }))}</span></div><div class="progress mt-s"><i style="width:${Math.min(100, focusUsed() / focusLimit() * 100)}%"></i></div><div class="mt-s">${unlockBox()}</div></div>` : (state.companion ? `<div class="limit-box"><span class="badge">${ic('heart', 'sm')} ${esc(t('comp_badge'))} · ${esc(t('focus_nolimit'))}</span></div>` : '')}
+      ${focusLimit() ? `<div class="limit-box"><div class="row between small"><b>${esc(t('focus_limit_used', { u:Math.min(focusUsed(), focusLimit()), l:focusLimit() }))}</b><span class="faint">${esc(t('focus_limit_note', { l:focusLimit() }))}</span></div><div class="progress mt-s"><i style="width:${Math.min(100, focusUsed() / focusLimit() * 100)}%"></i></div><div class="mt-s">${unlockBox()}</div></div>` : (state.companion ? `<div class="limit-box">${compBadge(' · ' + esc(t('focus_nolimit')))}</div>` : '')}
       <div class="row"><button class="btn primary lg" id="tm-main" data-act="pstart"></button><button class="btn secondary icon" style="width:48px;height:48px" data-act="preset-reset" title="${esc(t('reset'))}">${ic('reset')}</button><button class="btn secondary icon" style="width:48px;height:48px" data-act="pskip" title="${esc(t('skip'))}">${ic('skip')}</button></div>
       <div class="divider" style="width:100%;margin:2px 0"></div>
       <div class="row" style="width:100%"><span class="small muted">${esc(t('presets'))}:</span>${Object.entries(PRESETS).map(([k, p]) => `<button type="button" class="chip" data-act="ppreset" data-p="${k}">${p.focus}/${p.short}/${p.long}</button>`).join('')}</div>
@@ -579,8 +579,7 @@ function paymentStep(o){
   if (o.currency === 'VND') {
     if (payments.bankBin && payments.accountNo) {
       const note = mailNote(state.user && state.user.email || o.buyer && o.buyer.email) || o.code, qr = `https://img.vietqr.io/image/${encodeURIComponent(payments.bankBin)}-${encodeURIComponent(payments.accountNo)}-compact2.png?amount=${o.total}&addInfo=${encodeURIComponent(note)}&accountName=${encodeURIComponent(payments.accountName || '')}`;
-      body = `<p class="muted">${esc(t('scan_qr'))}</p><img class="qr" alt="VietQR" src="${esc(qr)}"><div class="kv">${row(t('bank'), payments.bankBin)}${row(t('acc_no'), payments.accountNo, payments.accountNo)}${row(t('acc_name'), payments.accountName || '')}${row(t('amount'), money(o.total, 'VND'), String(o.total))}${row(t('content'), note, note)}</div><p class="small faint">${esc(t('pay_mail_hint'))}</p>
-        ${payments.momoPhone ? `<div class="kv">${row(t('momo'), payments.momoPhone, payments.momoPhone)}</div>${payments.momoQr ? `<img class="qr" style="max-width:200px" alt="MoMo" src="${esc(payments.momoQr)}">` : ''}` : ''}`;
+      body = `<p class="muted">${esc(t('scan_qr'))}</p><img class="qr" alt="VietQR" src="${esc(qr)}"><div class="kv">${row(t('bank'), payments.bankBin)}${row(t('acc_no'), payments.accountNo, payments.accountNo)}${row(t('acc_name'), payments.accountName || '')}${row(t('amount'), money(o.total, 'VND'), String(o.total))}${row(t('content'), note, note)}</div><p class="small faint">${esc(t('pay_mail_hint'))}</p>`;
     } else body = `<p>${esc(t('pay_none'))}</p>`;
   } else body = linkBtns ? `<div class="row mt">${linkBtns}</div>` : `<p>${esc(t('pay_none'))}</p>`;
   openModal(`<h2>${esc(t('order_code'))}: <span class="mono">${esc(o.code)}</span></h2><div class="price" style="font-size:1.4rem;margin:6px 0 10px">${esc(t('total'))}: ${money(o.total, o.currency)}</div>${body}${o.currency === 'VND' && linkBtns ? `<div class="mt-s">${linkBtns}</div>` : ''}
@@ -734,7 +733,7 @@ Object.assign(ACTIONS, {
   rate: el => { reviewRating = +el.dataset.n; document.querySelectorAll('#rev-stars button').forEach(b => b.classList.toggle('on', +b.dataset.n === reviewRating)); },
   authTab: el => { authTab = el.dataset.t; render(true); },
   forgot: async () => { const m = $('au-email').value.trim(); if (!m) return $('au-err').textContent = t('email') + '?'; try { await auth.sendPasswordResetEmail(m); toast(t('reset_sent')); } catch (e) { $('au-err').textContent = authErr(e); } },
-  signout: async () => { if (DEMO) return toast('Demo'); if (typeof plPushOff === 'function') await plPushOff(); await auth.signOut(); myOrders = null; location.hash = '#/account'; },
+  signout: async () => { if (DEMO) return toast('Demo'); if (typeof plPushOff === 'function') await plPushOff(); await mjPushOff(); await auth.signOut(); myOrders = null; location.hash = '#/account'; },
   resendVerify: () => state.user.sendEmailVerification().then(() => toast(t('verify_sent'))).catch(e => toast(e.message)),
   download: async el => {
     try {
@@ -748,12 +747,16 @@ Object.assign(ACTIONS, {
 renderCart();
 
 /* =========================================================
-   MOON JOURNEY — điểm danh: mỗi 30 ngày liên tiếp là một chặng, trăng khuyết dần đầy rồi tròn (+1 trăng tròn vào bộ sưu tập),
-   qua ngày 30 thì trăng đầy lại cho chặng kế tiếp; chuỗi càng dài càng mở huy hiệu / danh hiệu (chỉ để vui, không đổi quyền lợi gói).
-   Dữ liệu lưu trong users/<uid>.moon = { startedAt, days:['YYYY-MM-DD',…], rounds (cũ), moons, best }
+   MOON JOURNEY — điểm danh đi theo con đường 480 ngày (moon-story.js, MJ_STOPS): mỗi ngày là một bước, chặng = đoạn giữa hai trạm.
+   Mặt trăng đầy dần theo cả hành trình và chỉ tròn khi đi hết 480 ngày; thanh tiến độ nhỏ đếm ngày tới trạm kế tiếp. Cứ 14 ngày liên tiếp được +1 trăng tròn tích trữ,
+   Thẻ "Kho trăng" cho biết số trăng còn dùng được, chuỗi hiện tại, chuỗi dài nhất và số ngày tới trăng kế tiếp (chỉ để vui, không đổi quyền lợi gói). Dữ liệu không đổi, mọi thứ tính lại từ chuỗi ngày.
+   Dữ liệu lưu trong users/<uid>.moon = { startedAt, days:['YYYY-MM-DD',…], rounds (cũ), moons, best, saved:['YYYY-MM-DD',…] }
+   Trăng tích trữ: moons = số trăng tròn đã nhận (14 ngày liên tiếp được 1), saved = những ngày lỡ đã được "vá" bằng trăng.
+   Số trăng còn dùng được = moons − saved.length. Lỡ điểm danh mà còn đủ trăng thì được dùng trăng vá các ngày lỡ để giữ chuỗi
+   (phải dùng trước khi điểm danh hôm nay; ngày vá được thêm vào days nên chuỗi tính tiếp như bình thường).
    ========================================================= */
 const MOON_TOTAL = 30;
-const MOON_MILES = [[3, '🌱'], [7, '🌒'], [14, '🌓'], [21, '🌔'], [30, '🌕'], [60, '⭐'], [100, '🌠'], [200, '🌌'], [365, '👑']];   // mốc chuỗi → huy hiệu (tên: mj_<mốc>)
+const MOON_EARN = 14;                                              // cứ đủ 14 ngày liên tiếp được +1 trăng tròn tích trữ (trước đây là 30)
 const todayKey = () => DT.now().setZone(userTZ).toISODate();
 const dayShift = (k, n) => DT.fromISO(k, { zone:userTZ }).plus({ days:n }).toISODate();
 /* Chuỗi điểm danh kiểu Duolingo: chỉ tính các ngày liên tiếp kết thúc ở hôm nay hoặc hôm qua.
@@ -761,14 +764,18 @@ const dayShift = (k, n) => DT.fromISO(k, { zone:userTZ }).plus({ days:n }).toISO
    Qua 30 ngày chuỗi vẫn cộng tiếp (chặng 2, 3…). */
 const moonData = () => {
   const m = profile && profile.moon; if (!m) return null;
-  let days = [...new Set(Array.isArray(m.days) ? m.days : [])].filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort(), broken = false, lost = 0;
+  let days = [...new Set(Array.isArray(m.days) ? m.days : [])].filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort(), broken = false, lost = 0, gap = [];
   const raw = days.length;
   if (days.length) {
     let i = days.length - 1; while (i > 0 && dayShift(days[i - 1], 1) === days[i]) i--;
     const run = days.slice(i), last = run[run.length - 1], today = todayKey();
     if (last === today || last === dayShift(today, -1)) days = run; else { lost = run.length; days = []; broken = true; }
+    if (broken) for (let k = dayShift(last, 1); k < today && gap.length <= 31; k = dayShift(k, 1)) gap.push(k);   // các ngày đã lỡ, tính tới hôm qua
   }
-  return { startedAt:m.startedAt || Date.now(), days, rounds:m.rounds || 0, moons:Math.max(m.moons || 0, (m.rounds || 0) + (raw >= MOON_TOTAL ? 1 : 0)), best:Math.max(m.best || 0, days.length, lost), broken, lost };
+  // đổi từ 30 sang 14 ngày: chuỗi dài nhất đã có được tính lại theo 14 ngày, nên không ai bị bớt trăng
+  const best = Math.max(m.best || 0, days.length, lost), saved = Array.isArray(m.saved) ? m.saved : [], moons = Math.max(m.moons || 0, (m.rounds || 0) + (raw >= MOON_TOTAL ? 1 : 0), Math.floor(best / MOON_EARN)), balance = Math.max(0, moons - saved.length);
+  const rescue = broken && gap.length && gap.length <= balance ? gap : null;      // đủ trăng để vá hết các ngày lỡ thì mới đề nghị
+  return { startedAt:m.startedAt || Date.now(), days, rounds:m.rounds || 0, moons, best, saved, broken, lost, balance, rescue };
 };
 async function moonSave(m){
   const prev = profile.moon;
@@ -817,57 +824,159 @@ function moonRewardCard(m){
   else inner = `<p class="small">${esc(t('mr_have', { x:bonusText(moonRewardMonths(r)), d:fmtDay(tsMs(r.expires)) }))}</p><a class="btn primary" href="#/donate">${ic('heart', 'sm')} ${esc(t('mr_use'))}</a>`;
   return `<section class="card pad stack"><div class="card-h"><h3>🎁 ${esc(t('mr_title'))}</h3></div>${inner}<p class="small faint">${esc(t('mr_note'))}</p></section>`;
 }
-const moonPos = n => n ? ((n - 1) % MOON_TOTAL) + 1 : 0;            // vị trí trong chặng hiện tại (1–30), 0 = chưa có chuỗi
+const moonRoad = () => MJ_STOPS[MJ_STOPS.length - 1].day;           // độ dài con đường (480 ngày)
+/* Chặng đang đi: đoạn giữa hai trạm chứa ngày cần tới (hôm nay đã điểm danh thì là ngày n, chưa thì n + 1).
+   Đi hết đường thì cứ 30 ngày là một chặng thêm. a = ngày của trạm trước, b = ngày của trạm kế tiếp. */
+function moonLeg(n, doneToday){
+  const S = MJ_STOPS, end = moonRoad(), want = Math.max(1, doneToday ? n : n + 1);
+  if (want > end) { const k = Math.floor((want - end - 1) / MOON_TOTAL); return { i:S.length - 1 + k, a:end + k * MOON_TOTAL, b:end + (k + 1) * MOON_TOTAL }; }
+  const i = S.findIndex((s, j) => j < S.length - 1 && want <= S[j + 1].day);
+  return { i, a:S[i].day, b:S[i + 1].day };
+}
+const moonDayText = n => n <= moonRoad() ? t('club_day', { d:n, t:moonRoad() }) : t('mjs_day', { n });
 function clubPromo(){
-  const m = moonData(), d = m ? moonPos(m.days.length) : 0;
-  return `<section class="card pad club-promo" style="margin-top:34px"><div class="moon-sm">${moonSVG(state.user ? d : 8, MOON_TOTAL)}</div>
+  const m = moonData(), n = m ? m.days.length : 0;
+  return `<section class="card pad club-promo" style="margin-top:34px"><div class="moon-sm">${moonSVG(state.user && m ? Math.min(n, moonRoad()) : 8, state.user && m ? moonRoad() : MOON_TOTAL)}</div>
     <div><h2 style="font-size:1.4rem" ${cms('club_title')}>${esc(ctext('club_title'))}</h2><p class="muted mt-s" ${cms('club_sub')}>${esc(ctext('club_sub'))}</p>
-    <a class="btn primary mt" href="#/club">${state.user && m ? esc(t('club_day', { d, t:MOON_TOTAL })) : esc(t('club_start'))}</a></div></section>`;
+    <a class="btn primary mt" href="#/club">${state.user && m ? esc(moonDayText(n)) : esc(t('club_start'))}</a></div></section>`;
+}
+/* lịch cả hành trình: mỗi chấm một ngày, màu theo tuyến của chặng đó (giống bản đồ), trạm dừng là vòng tròn to hơn */
+/* kho trăng: số trăng còn dùng được, chuỗi hiện tại / dài nhất, còn mấy ngày tới trăng kế tiếp (đủ MOON_EARN ngày liên tiếp) */
+function moonBankCard(m, doneToday){
+  const n = m.days.length, k = MOON_EARN - (n % MOON_EARN) || MOON_EARN, row = (a, b) => `<div class="mj-bank-r"><span class="faint">${esc(a)}</span><b>${esc(b)}</b></div>`;
+  return `<section class="card pad mj-bank-c"><div class="card-h"><h3>${esc(t('mj_bank_t'))}</h3></div>
+    <div class="mj-bank-top"><span class="mj-bank-n">🌕 × ${m.balance}</span><span class="small faint">${esc(t('mj_bank_note'))}</span></div>
+    ${row(t('mj_cur'), t('mj_locked', { n }))}${row(t('mj_best_l'), t('mj_locked', { n:m.best }))}${row(t('mj_nextmoon'), t(k === 1 ? (doneToday ? 'mj_nextmoon_tmr' : 'mj_nextmoon_today') : 'mj_nextmoon_v', { n:k }))}${m.saved.length ? row(t('mj_used'), String(m.saved.length)) : ''}</section>`;
+}
+function moonGrid(m, doneToday){
+  const n = m.days.length, end = moonRoad(), total = Math.max(end, Math.ceil(n / 24) * 24), C = 24, G = 13.5, rows = Math.ceil(total / C), stopAt = {};
+  MJ_STOPS.forEach((s, i) => { if (s.day) stopAt[s.day] = i; });
+  let leg = 0, out = '';
+  for (let d = 1; d <= total; d++) {
+    while (leg < MJ_STOPS.length - 1 && d > MJ_STOPS[leg + 1].day) leg++;
+    const x = ((d - 1) % C) * G + G / 2, y = Math.floor((d - 1) / C) * G + G / 2, on = d <= n, col = d > end ? '#ffe44d' : MJ_LINE[mjZone(leg)], st = stopAt[d] !== undefined, next = d === n + 1 && !doneToday, sv = on && m.saved.includes(m.days[d - 1]);
+    out += `<circle cx="${x}" cy="${y}" r="${st ? 5.4 : 3.6}" style="--c:${col}" class="${on ? 'on' : ''}${st ? ' st' : ''}${next ? ' nx' : ''}${sv ? ' sv' : ''}">${on && m.days[d - 1] ? `<title>${esc(t('mjs_day', { n:d }))} · ${esc(m.days[d - 1])}${sv ? ' · 🌕' : ''}</title>` : ''}</circle>`;
+  }
+  return `<svg class="mj-grid" viewBox="0 0 ${C * G} ${rows * G}" role="img" aria-label="${esc(moonDayText(n))}">${out}</svg>`;
 }
 PAGES.club = function(){
-  const m = moonData(), n = m ? m.days.length : 0, d = moonPos(n), full = d === MOON_TOTAL, doneToday = m && m.days.includes(todayKey()),
-    stage = n ? Math.floor((n - 1) / MOON_TOTAL) + 1 : 1, base = (stage - 1) * MOON_TOTAL;
+  const m = moonData(), n = m ? m.days.length : 0, doneToday = !!(m && m.days.includes(todayKey())), L = moonLeg(n, doneToday), d = n - L.a, span = L.b - L.a,
+    arrived = doneToday && d >= span, full = n >= moonRoad();      // arrived: hôm nay vừa tới một trạm; full: trăng chỉ tròn khi đi hết con đường
   let main = '';
   if (!state.user) main = `<div class="card pad stack" style="align-items:center;text-align:center"><div class="moon-big">${moonSVG(6, MOON_TOTAL)}</div><p class="muted">${esc(t('club_login'))}</p><a class="btn primary" href="#/account">${esc(t('club_login_btn'))}</a></div>`;
   else if (!DEMO && !state.profileReady) {                       // chưa tải xong hồ sơ: hiện bản đã nhớ (chỉ xem), không cho bấm
-    const cm = store.get('moon_' + state.user.uid, null), cd = cm && Array.isArray(cm.days) ? moonPos(cm.days.length) : 0;
-    main = `<div class="card pad stack" style="align-items:center;text-align:center"><div class="moon-big">${moonSVG(cd, MOON_TOTAL)}</div>${state.profileFailed ? `<p class="muted">${esc(t('club_load_fail'))}</p><button class="btn primary" data-act="moonRetry">${esc(t('club_retry'))}</button>` : `<p class="muted">${cm ? esc(t('club_day', { d:cd, t:MOON_TOTAL })) + ' · ' : ''}${esc(t('loading'))}</p>`}</div>`;
+    const cm = store.get('moon_' + state.user.uid, null), cn = cm && Array.isArray(cm.days) ? cm.days.length : 0;
+    main = `<div class="card pad stack" style="align-items:center;text-align:center"><div class="moon-big">${moonSVG(Math.min(cn, moonRoad()), moonRoad())}</div>${state.profileFailed ? `<p class="muted">${esc(t('club_load_fail'))}</p><button class="btn primary" data-act="moonRetry">${esc(t('club_retry'))}</button>` : `<p class="muted">${cm ? esc(moonDayText(cn)) + ' · ' : ''}${esc(t('loading'))}</p>`}</div>`;
   }   // chưa tải xong hồ sơ: không hiện nút Bắt đầu (bấm nhầm sẽ xoá các ngày đã điểm danh)
   else if (!m) main = `<div class="card pad stack" style="align-items:center;text-align:center"><div class="moon-big">${moonSVG(0, MOON_TOTAL)}</div><button class="btn primary lg" data-act="moonStart">${esc(t('club_start'))}</button></div>`;
   else {
-    const got = MOON_MILES.filter(([k]) => m.best >= k), nxt = MOON_MILES.find(([k]) => m.best < k), title = got.length ? t('mj_' + got[got.length - 1][0]) : '';
-    main = `<div class="card pad stack" style="align-items:center;text-align:center"><div class="moon-big ${full ? 'full' : ''}">${moonSVG(d, MOON_TOTAL)}</div>
-      <h2 style="font-size:1.5rem">${esc(full && doneToday ? t('club_full') : t('club_day', { d, t:MOON_TOTAL }))}</h2>
-      ${stage > 1 ? `<span class="badge">${esc(t('mj_stage', { n:stage }))}</span>` : ''}
-      ${full ? `<p class="muted">${esc(t('club_full_sub'))}</p>` : `<div class="progress" style="width:100%;max-width:300px"><i style="width:${d / MOON_TOTAL * 100}%"></i></div>`}
-      <button class="btn primary lg" data-act="moonCheckin" ${doneToday ? 'disabled' : ''}>${ic('check', 'sm')} ${esc(doneToday ? t('club_done_today') : t('club_checkin'))}</button>
-      ${!doneToday ? `<p class="small" style="color:${m.broken ? 'var(--danger)' : 'var(--ink3)'}">${esc(m.broken ? t('club_broken', { n:m.lost }) : n ? t('club_keep') : '')}</p>` : ''}
-      ${title ? `<div class="small"><b>${esc(t('mj_title', { name:title }))}</b>${nxt ? ` · <span class="faint">${esc(t('mj_next', { n:nxt[0] - n, name:t('mj_' + nxt[0]) }))}</span>` : ''}</div>` : nxt ? `<div class="small faint">${esc(t('mj_next', { n:nxt[0] - n, name:t('mj_' + nxt[0]) }))}</div>` : ''}
-      ${m.best > 1 ? `<div class="small faint">${esc(t('club_best', { n:m.best }))}</div>` : ''}${m.moons ? `<div class="small faint">🌕 ${esc(t('club_rounds', { n:m.moons }))}</div>` : ''}${state.companion ? `<span class="badge">${ic('heart', 'sm')} ${esc(t('comp_badge'))}</span>` : ''}</div>`;
+    const left = span - d;                                            // số ngày còn lại tới trạm kế tiếp
+    main = `<div class="card pad stack" style="align-items:center;text-align:center"><div class="moon-big ${full ? 'full' : ''}">${moonSVG(Math.min(n, moonRoad()), moonRoad())}</div>
+      <h2 style="font-size:1.5rem">${esc(full ? t('club_full') : moonDayText(n))}</h2>
+      <span class="badge">${esc(t('mj_stage', { n:L.i + 1 }))}${full ? ' · ' + esc(moonDayText(n)) : ''}</span>
+      ${arrived ? `<p class="muted">${esc(n > moonRoad() ? t('mj_after') : t('club_full_sub'))}</p>` : `<div class="progress" style="width:100%;max-width:300px"><i style="width:${d / span * 100}%"></i></div><p class="small faint">${esc(L.a >= moonRoad() ? t('mj_after') : left > 1 ? t('mj_leg', { n:left }) : t(doneToday ? 'mj_leg_one' : 'mj_leg_today'))}</p>`}
+      ${!doneToday && m.rescue ? `<div class="mj-rescue stack"><p class="small"><b>🌕 ${esc(t('mj_rescue', { g:m.rescue.length, n:m.lost }))}</b></p><button class="btn primary" data-act="moonRescue">${esc(t('mj_rescue_btn', { g:m.rescue.length }))}</button><p class="small faint">${esc(t('mj_rescue_note'))}</p></div>` : ''}
+      <button class="btn ${m.rescue && !doneToday ? 'ghost' : 'primary'} lg" data-act="moonCheckin" ${doneToday ? 'disabled' : ''}>${ic('check', 'sm')} ${esc(doneToday ? t('club_done_today') : t('club_checkin'))}</button>
+      ${mjRemHTML(true)}
+      ${!doneToday && !m.rescue ? `<p class="small" style="color:${m.broken ? 'var(--danger)' : 'var(--ink3)'}">${esc(m.broken ? t('club_broken', { n:m.lost }) : n ? t('club_keep') : '')}</p>` : ''}
+      ${state.companion ? `${compBadge()}${state.companionUntil ? `<div class="small faint">${esc(compUntilText())}</div>` : ''}` : ''}</div>`;
   }
-  const cells = Array.from({ length:MOON_TOTAL }, (_, i) => { const on = m && i < d, next = m && i === d && d < MOON_TOTAL && !doneToday; return `<div class="day-cell ${on ? 'on' : ''} ${next ? 'next' : ''}" title="${on && m.days[base + i] ? esc(m.days[base + i]) : ''}">${on ? ic('check', 'sm') : i + 1}</div>`; }).join('');
-  /* bố cục: thẻ điểm danh + con đường tìm Moon (moon-story.js) + chương mới nhất, rồi lịch 30 ngày, huy hiệu, ưu đãi */
+  /* bố cục: thẻ điểm danh + con đường tìm Moon (moon-story.js) + chương mới nhất, rồi lịch cả hành trình, kho trăng, ưu đãi */
   page(`${head('club_title', 'club_sub', '', 'gaze', 9)}
     <div class="mj-layout"><div class="mj-a-status">${main}</div><div class="mj-a-map">${mjMapCard(m)}</div>
-      <div class="mj-a-side stack">${mjLatestCard(m)}<section class="card pad"><div class="card-h"><h3>${esc(m ? t('mj_cal', { n:stage, a:base + 1, b:base + MOON_TOTAL }) : t('club_calendar'))}</h3></div><div class="days30">${cells}</div></section>
-        ${m ? `<section class="card pad"><div class="card-h"><h3>${esc(t('mj_shelf'))}</h3></div><div class="mj-shelf">${MOON_MILES.map(([k, e]) => m.best >= k ? `<span class="mj-badge on">${e}<small>${esc(t('mj_' + k))}</small></span>` : `<span class="mj-badge" title="${esc(t('mj_locked', { n:k }))}">${e}<small>${esc(t('mj_locked', { n:k }))}</small></span>`).join('')}</div></section>${moonRewardCard(m)}` : ''}
-        <section class="card pad"><h3 style="margin-bottom:10px">${esc(t('club_how'))}</h3><ol class="steps"><li>${esc(t('club_how1'))}</li><li>${esc(t('club_how2'))}</li><li>${esc(t('club_how3'))}</li><li>${esc(t('mj_how4'))}</li></ol></section></div></div>
+      <div class="mj-a-side stack">${mjLatestCard(m)}${m ? `<section class="card pad"><div class="card-h"><h3>${esc(t('mj_grid', { t:moonRoad() }))}</h3><span class="small faint">${esc(t('mj_cal', { n:L.i + 1, a:L.a + 1, b:L.b }))}</span></div>${moonGrid(m, doneToday)}<p class="small faint mt-s">${esc(t('mj_grid_note'))}</p></section>` : ''}
+        ${m ? moonBankCard(m, doneToday) + moonRewardCard(m) : ''}
+        <section class="card pad"><h3 style="margin-bottom:10px">${esc(t('club_how'))}</h3><ol class="steps"><li>${esc(t('mj_h1'))}</li><li>${esc(t('mj_h2', { t:moonRoad() }))}</li><li>${esc(t('mj_h3', { e:MOON_EARN }))}</li></ol></section></div></div>
     <h2 style="font-size:1.2rem;margin:34px 0 14px">${esc(t('club_remind'))}</h2>${challengeCard()}`);
   mjMount();
 };
+/* ---------- nhắc giữ chuỗi (bật ở bảng chuông 🔔 hoặc ngay dưới nút điểm danh; mặc định tắt, mỗi máy bật riêng) ----------
+   Từ MJ_REM_AT (21:00 theo múi giờ của khách) mà hôm nay chưa điểm danh thì nhắc MỘT lần trong ngày:
+   - chuỗi còn (lần cuối điểm danh là hôm qua): điểm danh trước nửa đêm để giữ chuỗi; còn trăng tích trữ thì nói thêm là lỡ quên vẫn giữ được bằng trăng;
+   - chuỗi vừa đứt nhưng đủ trăng để vá (m.rescue): mở Hành trình trăng dùng trăng rồi điểm danh.
+   Đang mở web: mjRemTick nhắc trong trang (toast + chuông + thông báo trình duyệt). Đã đóng web: máy này lưu token vào users/<uid>.mjPush
+   ({ on, tokens, tz, lang }), GitHub Actions (scripts/push-moon.mjs) đọc users/<uid>.moon và gửi cùng câu chữ, cùng tag 'mj-<ngày>' nên chỉ hiện 1 thông báo. */
+const MJ_REM_AT = 21 * 60, mjRemH = () => `${String(MJ_REM_AT / 60 | 0).padStart(2, '0')}:${String(MJ_REM_AT % 60).padStart(2, '0')}`;
+const mjRemOn = () => !!store.get('mj_rem', false);
+function mjRemText(m){
+  if (!m || m.days.includes(todayKey())) return '';
+  if (m.days.length) return t('mjr_keep', { n:m.days.length }) + (m.balance ? ' ' + t('mjr_moon', { b:m.balance }) : '');
+  return m.rescue ? t('mjr_rescue', { n:m.lost, g:m.rescue.length }) : '';
+}
+async function mjNotify(body, tag){                                 // giống plNotify: điện thoại Android chỉ cho hiện thông báo qua service worker
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+  const opts = { body, tag, renotify:true, icon:'icons/icon-192.png', data:{ url:location.href.split('#')[0] + '#/club' } };
+  try { const reg = await swRegister(); if (reg && reg.showNotification) return await reg.showNotification(t('nav_club'), opts); } catch (e) {}
+  try { new Notification(t('nav_club'), opts); } catch (e) {}
+}
+const mjPushOk = () => typeof pushSupported === 'function' && pushSupported() && Notification.permission === 'granted';
+async function mjPushSync(force){                                   // lưu token của máy này cho máy gửi (ghi lại mỗi tuần, hoặc khi token / ngôn ngữ / múi giờ đổi)
+  const u = state.user; if (!u || DEMO || !mjRemOn() || !mjPushOk() || !await swRegister()) return false;
+  const reg = await navigator.serviceWorker.ready, m = await loadMessaging();
+  const token = await m.getToken({ vapidKey:PUSH_VAPID, serviceWorkerRegistration:reg }); if (!token) return false;
+  const old = store.get('mj_push', null), sig = u.uid + '|' + token + '|' + state.lang + '|' + userTZ;
+  if (!force && old && old.sig === sig && Date.now() - old.t < 7 * 864e5) return true;
+  const F = firebase.firestore.FieldValue, ref = db.collection('users').doc(u.uid);
+  if (old && old.uid === u.uid && old.token !== token) await ref.update({ 'mjPush.tokens':F.arrayRemove(old.token) }).catch(() => {});   // token cũ (trình duyệt đã đổi token)
+  await ref.set({ mjPush:{ on:true, tokens:F.arrayUnion(token), tz:String(userTZ).slice(0, 64), lang:state.lang, at:TS() } }, { merge:true });
+  store.set('mj_push', { uid:u.uid, token, sig, t:Date.now() });
+  return true;
+}
+async function mjPushOff(){                                         // tắt nhắc / đăng xuất: máy này thôi nhận nhắc khi đã đóng web
+  const old = store.get('mj_push', null); store.set('mj_push', null);
+  if (!old || DEMO || !state.user || state.user.uid !== old.uid) return;
+  await db.collection('users').doc(old.uid).update({ 'mjPush.tokens':firebase.firestore.FieldValue.arrayRemove(old.token) }).catch(() => {});
+}
+const mjPushHere = () => { const p = store.get('mj_push', null); return !!(p && state.user && p.uid === state.user.uid && mjPushOk()); };
+let mjPushKey = '';
+function mjRemTick(){
+  const u = state.user; if (!u || !mjRemOn() || (!DEMO && !state.profileReady)) return;
+  const pk = u.uid + '|' + state.lang + '|' + userTZ;                 // mở web / đổi tài khoản, ngôn ngữ, múi giờ: báo lại cho máy gửi
+  if (pk !== mjPushKey) { mjPushKey = pk; mjPushSync().catch(e => console.warn('moon push', e)); }
+  const now = DT.now().setZone(userTZ), day = now.toISODate(), k = u.uid + '|' + day;
+  if (now.hour * 60 + now.minute < MJ_REM_AT || store.get('mj_rem_sent', '') === k) return;
+  const body = mjRemText(moonData()); if (!body) return;
+  store.set('mj_rem_sent', k); liveChime('soft'); toast('🌙 ' + body, 9000); mjNotify(body, 'mj-' + day);
+}
+setInterval(mjRemTick, 30000);
+async function mjRemSet(on){
+  if (on && typeof audio === 'function') audio();                   // mở khoá chuông ngay trong lần bấm này
+  if (on && typeof Notification !== 'undefined' && Notification.permission === 'default') { try { await Notification.requestPermission(); } catch (e) {} }
+  store.set('mj_rem', on);
+  try { await (on ? mjPushSync(true) : mjPushOff()); } catch (e) { console.warn('moon push', e); }
+  mjPushKey = ''; toast(t(on ? 'mjr_on_toast' : 'mjr_off_toast')); renderLiveRem(); if (route.name === 'club') render(true);
+}
+CHANGES.mjRemOn = el => mjRemSet(el.checked);
+function mjRemHTML(club){                                           // club: dòng gọn dưới nút điểm danh; không thì dùng trong bảng chuông
+  if (!state.user) return '';
+  const on = mjRemOn(), h = mjRemH(), note = t(on ? (mjPushHere() ? 'mjr_ok' : 'mjr_fg') : 'mjr_note', { h });
+  const sw = `<div class="switch${club ? ' mj-rem' : ''}"><span>${club ? '🔔 ' + esc(t('mjr_on', { h })) : `<b>${esc(t('mjr_on', { h }))}</b>`}</span><input type="checkbox" data-change="mjRemOn" ${on ? 'checked' : ''} aria-label="${esc(t('mjr_on', { h }))}"></div>`;
+  return club ? sw : `${sw}<p class="lr-note ${on && mjPushHere() ? 'ok' : ''}">${esc(note)}</p><hr class="lr-hr">`;
+}
 
 /* =========================================================
    DONATE / COMPANIONS
    ========================================================= */
 /* Báo đã thanh toán Companions: ghi companion_requests/<uid>; admin thấy ở tab Thành viên và bấm duyệt (mở Planner cho tài khoản đó) */
+/* Gia hạn chỉ mở khi còn <= COMP_RENEW_DAYS ngày; admin duyệt thì cộng tiếp từ ngày hết hạn cũ (admin.js approveCompanion) nên khách không mất ngày nào */
+const COMP_RENEW_DAYS = 7;
+const compDaysLeft = () => state.companionUntil ? Math.round(DT.fromISO(state.companionUntil, { zone:userTZ }).diff(DT.now().setZone(userTZ).startOf('day'), 'days').days) : Infinity;     // 0 = hôm nay là ngày cuối
+const compUntilDay = () => DT.fromISO(state.companionUntil).toFormat('dd/MM/yyyy');
+const compRenewOpen = () => !!(state.companion && state.companionUntil && compDaysLeft() <= COMP_RENEW_DAYS);
+const compUntilText = () => { const n = compDaysLeft(); return t(n <= 0 ? 'cc_until_today' : 'cc_until', { d:compUntilDay(), n }); };
 function compClaimHTML(){
   const fmt = ts => DT.fromMillis(tsMs(ts)).setZone(userTZ).toFormat('dd/MM'), r = state.compReq;
   if (!state.user) return `<div class="limit-box stack"><b>${esc(t('cc_title'))}</b><p class="small muted">${esc(t('cc_login'))}</p><a class="btn secondary" href="#/account">${esc(t('nav_signin'))}</a></div>`;
-  const status = state.companion ? `<p class="small" style="color:var(--live)">${esc(state.companionUntil ? t('cc_active', { d:state.companionUntil }) : t('cc_active_open'))}</p>`
-    : r && r.status === 'pending' ? `<p class="small muted">${esc(t('cc_pending', { d:fmt(r.createdAt) }))}</p>`
-    : r && r.status === 'rejected' ? `<p class="small" style="color:var(--danger)">${esc(t('cc_rejected'))}</p>` : '';
-  const sent = !state.companion && r && r.status === 'pending';
-  return `<div class="limit-box stack"><b>${esc(t('cc_title'))}</b>${state.companion ? '' : `<p class="small muted">${esc(t('cc_sub'))}</p>`}${status}${sent ? '' : `<button class="btn secondary" data-act="compClaim">${ic('check', 'sm')} ${esc(state.companion ? t('cc_renew') : t('cc_btn'))}</button>`}</div>`;
+  const pending = r && r.status === 'pending' ? `<p class="small muted">${esc(t(state.companion ? 'cc_renew_pending' : 'cc_pending', { d:fmt(r.createdAt) }))}</p>` : '';
+  if (state.companion) {
+    if (!state.companionUntil) return `<div class="limit-box stack"><p class="small" style="color:var(--live)">${esc(t('cc_active_open'))}</p></div>`;
+    const open = compRenewOpen(), from = DT.fromISO(state.companionUntil).minus({ days:COMP_RENEW_DAYS }).toFormat('dd/MM/yyyy');
+    return `<div class="limit-box stack"><b>${esc(t('cc_plan_title'))}</b><p class="small" style="color:var(${open ? '--accent-strong' : '--live'})">${esc(compUntilText())}</p>${pending
+      || (open ? `<p class="small muted">${esc(t('cc_renew_hint', { d:compUntilDay() }))}</p><button class="btn secondary" data-act="compClaim">${ic('check', 'sm')} ${esc(t('cc_renew'))}</button>`
+      : `<p class="small faint">${esc(t('cc_renew_from', { d:from, n:COMP_RENEW_DAYS }))}</p>`)}</div>`;
+  }
+  const status = pending || (r && r.status === 'rejected' ? `<p class="small" style="color:var(--danger)">${esc(t('cc_rejected'))}</p>` : '');
+  return `<div class="limit-box stack"><b>${esc(t('cc_title'))}</b><p class="small muted">${esc(t('cc_sub'))}</p>${status}${pending ? '' : `<button class="btn secondary" data-act="compClaim">${ic('check', 'sm')} ${esc(t('cc_btn'))}</button>`}</div>`;
 }
 let compPay = null, compMonths = 1;
 /* Gói VND: 1 tháng = giá gốc; 3 tháng giảm 10%, 12 tháng giảm 25% (làm tròn nghìn) để người dùng trả dài hạn có lợi hơn, còn mình có tiền ổn định */
@@ -909,14 +1018,14 @@ function compPayHTML(){
     <p class="small faint">${esc(t(um === 1 ? 'comp_usd_note1' : 'comp_usd_note'))}</p>`; }
   else if (!state.user) body = `<p class="small muted">${esc(t('comp_vnd_login'))}</p><a class="btn secondary" href="#/account">${esc(t('signin'))}</a>`;
   else body = `${promoBanner()}${rewardBanner(moonRewardActive())}<div class="row">${[1, 3, 12].map(m => { const pr = compPrice(m); return `<button type="button" class="chip ${m === compMonths ? 'on' : ''}" data-act="compMonths" data-m="${m}">${esc(t('comp_plan_' + m))} · ${money(pr, 'VND')}${m > 1 ? ` <small>${esc(t('comp_save', { p:Math.round((1 - pr / (compBase() * m)) * 100) }))}</small>` : ''}${bonusChip(m)}</button>`; }).join('')}</div><img class="qr" alt="VietQR" src="https://img.vietqr.io/image/${encodeURIComponent(payments.bankBin)}-${encodeURIComponent(payments.accountNo)}-compact2.png?amount=${amt}&addInfo=${encodeURIComponent(code)}&accountName=${encodeURIComponent(payments.accountName || '')}"><p class="small muted" style="text-align:center">${esc(t('donate_scan'))}</p>
-    <div class="kv"><div class="kvr"><span>${esc(t('acc_no'))}</span><b>${esc(payments.accountNo)}</b>${cp(payments.accountNo)}</div><div class="kvr"><span>${esc(t('comp_vnd_sum'))}</span><b>${esc(String(amt))}</b>${cp(String(amt))}</div><div class="kvr"><span>${esc(t('donate_note'))}</span><b>${esc(code)}</b>${cp(code)}</div></div>${payments.momoPhone ? `<div class="small muted">MoMo: <b>${esc(payments.momoPhone)}</b></div>` : ''}<p class="small faint">${esc(t(state.user.email ? 'comp_vnd_mail' : 'comp_vnd_hint'))}</p>`;
+    <div class="kv"><div class="kvr"><span>${esc(t('acc_no'))}</span><b>${esc(payments.accountNo)}</b>${cp(payments.accountNo)}</div><div class="kvr"><span>${esc(t('comp_vnd_sum'))}</span><b>${esc(String(amt))}</b>${cp(String(amt))}</div><div class="kvr"><span>${esc(t('donate_note'))}</span><b>${esc(code)}</b>${cp(code)}</div></div><p class="small faint">${esc(t(state.user.email ? 'comp_vnd_mail' : 'comp_vnd_hint'))}</p>`;
   return `<div class="stack">${seg}${body}</div>`;
 }
 let donAmt = null, donCur = null, donMail = '';
 const donNote = () => state.user && state.user.email ? mailNote(state.user.email) : (/^\S+@\S+\.\S+$/.test(donMail.trim()) ? mailNote(donMail) : 'EP DONATE');
 const parseAmts = (s, d) => { const a = String(s || '').split(/[,\s]+/).map(Number).filter(n => n > 0); return a.length ? a : d; };
 /* mục cảm ơn những người đồng hành (tên do admin chọn hiện, xem tab Thành viên) */
-const thanksCard = () => { const l = thanksList(); return l.length ? `<section class="card pad thanks mt"><div class="card-h"><h2 ${cms('thanks_title')}>${ic('heart', 'sm')} ${esc(ctext('thanks_title'))}</h2></div><p class="muted small" ${cms('thanks_text')}>${esc(ctext('thanks_text'))}</p><div class="thanks-list">${l.map(x => `<span class="thanks-chip">${ic('heart', 'sm')} ${esc(x.name)}</span>`).join('')}</div></section>` : ''; };
+const thanksCard = () => { const l = thanksList(); return l.length ? `<section class="card pad thanks mt"><div class="card-h"><h2 ${cms('thanks_title')}>${ic('heart', 'sm')} ${esc(ctext('thanks_title'))}</h2></div><p class="muted small" ${cms('thanks_text')}>${esc(ctext('thanks_text'))}</p><div class="thanks-list">${l.map(x => { const c = compTier(x.since); return c ? `<span class="thanks-chip ct${c.tier}" title="${esc(t('ct_for', { d:c.len }))}"><i class="ct-moon" aria-hidden="true">${c.moon}</i> ${esc(x.name)} <small>${esc(c.len)}</small></span>` : `<span class="thanks-chip">${ic('heart', 'sm')} ${esc(x.name)}</span>`; }).join('')}</div></section>` : ''; };
 const donateHTML = function(){
   if (state.user) { refreshCompanion().then(ch => ch && render(true)); loadMoonReward(); }
   const cur = donCur || effCurrency(), amts = cur === 'VND' ? parseAmts(payments.donateVND, [20000, 50000, 100000, 200000]) : parseAmts(payments.donateUSD, [3, 5, 10, 25]);
@@ -924,7 +1033,7 @@ const donateHTML = function(){
   let pay = '';
   if (cur === 'VND') {
     pay = hasBank ? `${state.user && state.user.email ? '' : `<div class="field"><label class="label">${esc(t('don_mail_label'))}</label><input class="input" type="email" id="don-mail" data-change="donMail" maxlength="120" autocomplete="email" value="${esc(donMail)}"></div>`}<img class="qr" alt="VietQR" src="https://img.vietqr.io/image/${encodeURIComponent(payments.bankBin)}-${encodeURIComponent(payments.accountNo)}-compact2.png?amount=${amt}&addInfo=${encodeURIComponent(note)}&accountName=${encodeURIComponent(payments.accountName || '')}"><p class="small muted" style="text-align:center">${esc(t('donate_scan'))}</p>
-      <div class="kv"><div class="kvr"><span>${esc(t('acc_no'))}</span><b>${esc(payments.accountNo)}</b><button type="button" class="btn secondary sm" data-act="copy" data-v="${esc(payments.accountNo)}">${esc(t('copy'))}</button></div><div class="kvr"><span>${esc(t('donate_note'))}</span><b>${esc(note)}</b><button type="button" class="btn secondary sm" data-act="copy" data-v="${esc(note)}">${esc(t('copy'))}</button></div></div>${payments.momoPhone ? `<div class="small muted">MoMo: <b>${esc(payments.momoPhone)}</b></div>` : ''}<p class="small faint">${esc(t('pay_mail_hint'))}</p>` : '';
+      <div class="kv"><div class="kvr"><span>${esc(t('acc_no'))}</span><b>${esc(payments.accountNo)}</b><button type="button" class="btn secondary sm" data-act="copy" data-v="${esc(payments.accountNo)}">${esc(t('copy'))}</button></div><div class="kvr"><span>${esc(t('donate_note'))}</span><b>${esc(note)}</b><button type="button" class="btn secondary sm" data-act="copy" data-v="${esc(note)}">${esc(t('copy'))}</button></div></div><p class="small faint">${esc(t('pay_mail_hint'))}</p>` : '';
   } else {
     const pp = payments.paypal ? (/paypal\.me\//i.test(payments.paypal) ? payments.paypal.replace(/\/+$/, '') + '/' + amt + 'USD' : payments.paypal) : '';
     pay = [pp && `<a class="btn primary lg" target="_blank" rel="noopener" href="${esc(pp)}">PayPal · $${amt}</a>`, payments.kofi && `<a class="btn secondary lg" target="_blank" rel="noopener" href="${esc(payments.kofi)}">Ko-fi</a>`, payments.stripe && `<a class="btn secondary lg" target="_blank" rel="noopener" href="${esc(payments.stripe)}">${ic('credit', 'sm')} Card</a>`].filter(Boolean).join(' ');
@@ -936,9 +1045,9 @@ const donateHTML = function(){
         <p class="small" style="color:var(--accent-strong)">${esc(t('don_bonus', { p:cur === 'VND' ? money(compBase(), 'VND') : money(+payments.companionUSD || 3, 'USD') }))}</p>
         <div class="field"><label class="label">${esc(t('donate_custom'))}</label><input class="input" type="number" min="1" id="don-custom" data-change="donCustom" placeholder="${cur === 'VND' ? '30000' : '7'}"></div>
         ${pay || `<p class="muted">${esc(t('donate_none'))}</p>`}<p class="small faint">${esc(t('donate_thanks'))}</p></section>
-      <section class="card pad stack"><div class="row between"><h2 style="font-size:1.2rem" ${cms('comp_title')}>${esc(ctext('comp_title'))}</h2>${state.companion ? `<span class="badge">${ic('heart', 'sm')} ${esc(t('comp_badge'))}</span>` : ''}</div>
+      <section class="card pad stack"><div class="row between"><h2 style="font-size:1.2rem" ${cms('comp_title')}>${esc(ctext('comp_title'))}</h2>${state.companion ? compBadge() : ''}</div>
         <p class="muted" ${cms('comp_text')}>${esc(ctext('comp_text'))}</p><div><div class="label">${esc(t('comp_perks'))}</div><ul class="perks"><li ${cms('comp_perk4')}>${esc(ctext('comp_perk4'))}</li><li ${cms('comp_perk1')}>${esc(ctext('comp_perk1'))}</li><li ${cms('comp_perk2')}>${esc(ctext('comp_perk2'))}</li><li ${cms('comp_perk3')}>${esc(ctext('comp_perk3'))}</li></ul></div>
-        ${branding.focusCodeHash ? `<div><div class="label">${esc(t('comp_steps_title'))}</div><ol class="steps"><li>${esc(t('comp_step1'))}</li><li>${esc(t('comp_step2'))}</li><li>${esc(t('comp_step3'))}</li></ol></div>${unlockBox()}` : ''}${state.companion || unlockValid() ? `<p class="small" style="color:var(--live)">${esc(t('comp_active'))}</p>` : ''}${compPayHTML()}${compClaimHTML()}${state.companion ? '' : trialBox()}</section></div>`;
+        ${branding.focusCodeHash ? `<div><div class="label">${esc(t('comp_steps_title'))}</div><ol class="steps"><li>${esc(t('comp_step1'))}</li><li>${esc(t('comp_step2'))}</li><li>${esc(t('comp_step3'))}</li></ol></div>${unlockBox()}` : ''}${!state.companion && unlockValid() ? `<p class="small" style="color:var(--live)">${esc(t('comp_active'))}</p>` : ''}${state.companion && !compRenewOpen() ? '' : compPayHTML()}${compClaimHTML()}${state.companion ? '' : trialBox()}</section></div>`;
   return body;
 };
 PAGES.donate = function(){ page(`${head('donate_title', 'donate_sub', '', 'lantern', 3)}${donateHTML()}${thanksCard()}`); };
@@ -950,9 +1059,10 @@ Object.assign(ACTIONS, {
   donCur: el => { donCur = el.dataset.c; donAmt = null; render(true); },
   donAmt: el => { donAmt = { cur:donCur || effCurrency(), v:+el.dataset.v }; render(true); },
   compClaim: () => {
-    if (!state.user) return;
-    openModal(`<h3 style="margin-bottom:12px">${esc(t('cc_title'))}</h3><p class="small muted" style="margin-bottom:12px">${esc(t('cc_sub'))}</p>
-      <div class="field"><label class="label">${esc(t('cc_method'))}</label><select class="select" id="cc-method">${['kofi', 'bank', 'paypal', 'momo', 'other'].map(k => `<option value="${k}" ${k === (compPayMode() === 'vnd' ? 'bank' : compMonths > 1 && payments.paypal ? 'paypal' : 'kofi') ? 'selected' : ''}>${esc(t('cc_m_' + k))}</option>`).join('')}</select></div>
+    if (!state.user || state.companion && !compRenewOpen()) return;                 // còn hạn dài thì chưa cho gia hạn
+    const renew = state.companion;
+    openModal(`<h3 style="margin-bottom:12px">${esc(t(renew ? 'cc_renew' : 'cc_title'))}</h3><p class="small muted" style="margin-bottom:12px">${esc(renew ? t('cc_renew_hint', { d:compUntilDay() }) : t('cc_sub'))}</p>
+      <div class="field"><label class="label">${esc(t('cc_method'))}</label><select class="select" id="cc-method">${['kofi', 'bank', 'paypal', 'other'].map(k => `<option value="${k}" ${k === (compPayMode() === 'vnd' ? 'bank' : compMonths > 1 && payments.paypal ? 'paypal' : 'kofi') ? 'selected' : ''}>${esc(t('cc_m_' + k))}</option>`).join('')}</select></div>
       <div class="field mt-s"><label class="label">${esc(t('cc_months'))}</label><select class="select" id="cc-months">${[1, 3, 12].map(m => `<option value="${m}" ${m === compMonths ? 'selected' : ''}>${esc(t('comp_plan_' + m))}</option>`).join('')}</select></div>
       <div class="field mt-s"><label class="label">${esc(t('cc_note_label'))} *</label><input class="input" id="cc-note" maxlength="200" value="${compPayMode() === 'vnd' && state.user ? esc(compCode()) : ''}" placeholder="${esc(t('cc_note_ph'))}"><p class="small" id="cc-err" style="color:var(--danger);margin-top:4px"></p></div>
       <div class="field mt-s"><label class="label">${esc(t('cc_msg_label'))}</label><textarea class="textarea" id="cc-msg" maxlength="300" style="min-height:56px" placeholder="${esc(t('cc_msg_ph'))}"></textarea></div>
@@ -974,11 +1084,18 @@ Object.assign(ACTIONS, {
   moonReward: async el => { el.disabled = true; if (await claimMoonReward()) { toast(t('mr_got', { x:bonusText(moonRewardMonths(state.moonReward)) })); render(true); } else { el.disabled = false; toast(t('err_generic')); } },
   moonRetry: () => location.reload(),
   moonStart: () => { if (!DEMO && !state.profileReady) return; if (moonData()) return render(true); moonSave({ startedAt:Date.now(), days:[], rounds:0, moons:0 }); },
+  // dùng trăng tích trữ vá các ngày lỡ: thêm các ngày đó vào chuỗi cũ (vẫn còn trong dữ liệu vì chưa điểm danh lại) và ghi vào saved
+  moonRescue: el => {
+    const m = moonData(); if (!m || !m.rescue || m.days.includes(todayKey())) return; el.disabled = true;
+    const old = profile.moon, days = [...new Set([...(old.days || []), ...m.rescue])].sort(), n = m.lost + m.rescue.length;
+    const keep = { ...old, days, saved:[...m.saved, ...m.rescue], moons:m.moons + Math.floor(n / MOON_EARN) - Math.floor(m.lost / MOON_EARN), best:Math.max(m.best, n) };
+    moonSave(keep).then(ok => { if (!ok) { el.disabled = false; return; } toast(t('mj_rescued', { g:m.rescue.length, n })); mjAfterCheckin(keep.best); });
+  },
   moonCheckin: () => {
     const m = moonData(); if (!m) return; const k = todayKey(); if (m.days.includes(k)) return toast(t('club_done_today'));
-    const { broken, lost, ...keep } = m;                              // chuỗi đã đứt thì moonData() trả days rỗng nên bắt đầu lại từ ngày 1
+    const { broken, lost, balance, rescue, ...keep } = m;                              // chuỗi đã đứt thì moonData() trả days rỗng nên bắt đầu lại từ ngày 1
     keep.days = [...m.days, k]; keep.best = Math.max(keep.best || 0, keep.days.length);     // mảng mới, để lưu lỗi thì dữ liệu cũ vẫn nguyên
-    const n = keep.days.length; if (n % MOON_TOTAL === 0) keep.moons = (m.moons || 0) + 1; else keep.moons = m.moons || 0;   // mỗi 30 ngày liên tiếp = +1 trăng tròn
-    moonSave(keep).then(async ok => { if (ok && n === MOON_REWARD_AT && !state.moonReward && moonRewardCfg().on && await claimMoonReward()) { toast(t('mr_got', { x:bonusText(moonRewardMonths(state.moonReward)) })); render(true); } else if (ok) { if (n % MOON_TOTAL === 0) toast(t('mj_full_plus')); else if (MOON_MILES.some(([x]) => x === n)) toast(t('mj_unlocked', { name:t('mj_' + n) })); } if (ok) mjAfterCheckin(keep.best); });
+    const n = keep.days.length; if (n % MOON_EARN === 0) keep.moons = (m.moons || 0) + 1; else keep.moons = m.moons || 0;   // mỗi 14 ngày liên tiếp = +1 trăng tròn tích trữ
+    moonSave(keep).then(async ok => { if (ok && n === MOON_REWARD_AT && !state.moonReward && moonRewardCfg().on && await claimMoonReward()) { toast(t('mr_got', { x:bonusText(moonRewardMonths(state.moonReward)) })); render(true); } else if (ok && n % MOON_EARN === 0) toast(t('mj_full_plus')); if (ok) mjAfterCheckin(keep.best); });
   }
 });
