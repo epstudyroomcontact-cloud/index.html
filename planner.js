@@ -700,12 +700,12 @@ function plSide(){
 }
 function plAnalysis(S){
   const mx = Math.max(60, ...S.day.map(x => x.plan));
-  return `<h2 class="pl-h2">${esc(t('pl_ana'))}</h2><div class="pl-ana">
-    ${plPeriod(S)}
-    <section class="card pad"><h3>${esc(t('pl_trend'))}</h3>${plTrend()}</section>
-    <section class="card pad"><h3>${esc(t('pl_by_day'))}</h3>${S.day.map((d, i) => `<div class="pl-row"><span>${esc(t('pl_d' + i))}</span><div class="pl-bar tall"><i class="lt" style="width:${Math.min(100, d.plan / mx * 100)}%"></i><i style="width:${Math.min(100, d.done / mx * 100)}%"></i></div><small class="faint">${esc(fmtMin(d.done))} / ${esc(fmtMin(d.plan))}${d.mv || d.x ? ' · ' + esc([d.mv && t('pl_k_mv', { n:d.mv }), d.x && t('pl_k_x2', { n:d.x })].filter(Boolean).join(' · ')) : ''}</small></div>`).join('')}</section>
-    <section class="card pad"><h3>${esc(t('pl_by_cat'))}</h3>${S.n ? S.cat.map((c, i) => c.n ? `<div class="pl-row"><span><i class="dot" style="background:${PL_COLORS[i]}"></i> ${esc(t('pl_c' + i))}</span>${plBar(c.nd, c.n, PL_COLORS[i])}<small class="faint">${c.nd}/${c.n}</small></div>` : '').join('') : `<p class="muted small">${esc(t('pl_i_none'))}</p>`}</section>
-    <section class="card pad wide"><h3>${esc(t('pl_insights'))}</h3><ul class="pl-ins">${plInsights(S).map(s => `<li>${esc(s)}</li>`).join('')}</ul><p class="small faint" style="margin-top:10px">${esc(t('pl_how'))}</p></section></div>`;
+  return `<h2 class="pl-h2">${esc(t('pl_ana'))}</h2>${tabsHTML('pl', [      // các bảng thống kê gom thành tab: mỗi lần xem 1 bảng, không phải cuộn qua hết
+    ['ps', t('pl_ps_title'), plPeriod(S)],
+    ['trend', t('pl_trend'), `<section class="card pad"><h3>${esc(t('pl_trend'))}</h3>${plTrend()}</section>`],
+    ['day', t('pl_by_day'), `<section class="card pad"><h3>${esc(t('pl_by_day'))}</h3>${S.day.map((d, i) => `<div class="pl-row"><span>${esc(t('pl_d' + i))}</span><div class="pl-bar tall"><i class="lt" style="width:${Math.min(100, d.plan / mx * 100)}%"></i><i style="width:${Math.min(100, d.done / mx * 100)}%"></i></div><small class="faint">${esc(fmtMin(d.done))} / ${esc(fmtMin(d.plan))}${d.mv || d.x ? ' · ' + esc([d.mv && t('pl_k_mv', { n:d.mv }), d.x && t('pl_k_x2', { n:d.x })].filter(Boolean).join(' · ')) : ''}</small></div>`).join('')}</section>`],
+    ['cat', t('pl_by_cat'), `<section class="card pad"><h3>${esc(t('pl_by_cat'))}</h3>${S.n ? S.cat.map((c, i) => c.n ? `<div class="pl-row"><span><i class="dot" style="background:${PL_COLORS[i]}"></i> ${esc(t('pl_c' + i))}</span>${plBar(c.nd, c.n, PL_COLORS[i])}<small class="faint">${c.nd}/${c.n}</small></div>` : '').join('') : `<p class="muted small">${esc(t('pl_i_none'))}</p>`}</section>`],
+    ['ins', t('pl_insights'), `<section class="card pad"><h3>${esc(t('pl_insights'))}</h3><ul class="pl-ins">${plInsights(S).map(s => `<li>${esc(s)}</li>`).join('')}</ul><p class="small faint" style="margin-top:10px">${esc(t('pl_how'))}</p></section>`]], 'pl-tabs')}`;
 }
 PAGES.planner = function(){
   if (!state.user && !state.authReady && !DEMO) return page('<div class="gate-load"><i></i></div>');
@@ -714,7 +714,7 @@ PAGES.planner = function(){
   if (PL.uid !== state.user.uid) { clearTimeout(PL.timer); PL.seq++; Object.assign(PL, { uid:state.user.uid, off:0, key:'', tasks:null, gone:[], state:'idle', save:'', prev:null, sel:null, slow:false, hist:{}, raw:{}, moff:0, prefs:null }); }   // đổi tài khoản trên cùng trình duyệt: không để lộ planner của người trước
   if (!state.companionUntil && !state.isAdmin && !DEMO && !trialActive()) refreshCompanion().then(ch => ch && render(true));       // lấy ngày hết hạn để hiện nhắc gia hạn
   plLoad(); plRemStart();
-  const ws = plWeekStart(PL.off), nav = `<div class="row between" style="margin-bottom:16px;flex-wrap:wrap;gap:10px"><div class="week-nav"><button class="btn secondary icon" data-act="plWeek" data-d="-1">${ic('chev-l')}</button><span class="lbl">${ws.toFormat('dd/MM')} – ${ws.plus({ days:6 }).toFormat('dd/MM/yyyy')}</span><button class="btn secondary icon" data-act="plWeek" data-d="1">${ic('chev-r')}</button>${PL.off ? `<button class="btn ghost sm" data-act="plWeek" data-d="0">${esc(t('pl_this'))}</button>` : ''}</div>
+  const ws = plWeekStart(PL.off), nav = `<div class="row between pl-nav" style="margin-bottom:16px;flex-wrap:wrap;gap:10px"><div class="week-nav"><button class="btn secondary icon" data-act="plWeek" data-d="-1">${ic('chev-l')}</button><span class="lbl">${ws.toFormat('dd/MM')} – ${ws.plus({ days:6 }).toFormat('dd/MM/yyyy')}</span><button class="btn secondary icon" data-act="plWeek" data-d="1">${ic('chev-r')}</button>${PL.off ? `<button class="btn ghost sm" data-act="plWeek" data-d="0">${esc(t('pl_this'))}</button>` : ''}</div>
     <div class="row"><span class="small faint" id="pl-status">${PL.save === 'saved' ? '✓ ' + esc(t('pl_saved')) : PL.save === 'saving' ? esc(t('pl_saving')) : ''}</span><button class="btn primary" data-act="plNew">${ic('plus', 'sm')} ${esc(t('pl_add'))}</button></div></div>`;
   let body;
   if (PL.state === 'error') body = `<p class="muted">${esc(t('pl_load_err'))}</p><button class="btn primary" data-act="plRetry">${esc(t('club_retry'))}</button>${PL.err ? `<p class="small faint">${esc(PL.err)}</p>` : ''}`;
