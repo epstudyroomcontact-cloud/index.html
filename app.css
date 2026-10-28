@@ -727,3 +727,17 @@ button.sb-item{width:100%;background:none;border:0;font:inherit;font-weight:600;
 /* Hành trình trăng: trăng tích trữ và hộp dùng trăng giữ chuỗi */
 .mj-rescue{width:100%;max-width:360px;padding:12px 14px;border-radius:14px;border:1.5px solid #ffd23f;background:rgba(255,228,77,.1);align-items:center}
 .mj-grid circle.sv{fill:#fff2c4;stroke:#ffd23f;stroke-width:1.6}
+/* Planner: thống kê tuần / tháng (giờ tập trung + tỉ lệ việc xong + lời nhận xét) */
+.pl-ps-h{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}.pl-ps-h h3{margin:0}
+.pl-ps-ctl{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.pl-ps-ctl .week-nav .lbl{min-width:120px;font-family:inherit;font-size:.86rem}
+.pl-ps-body{display:grid;grid-template-columns:minmax(0,250px) minmax(0,1fr);gap:16px;align-items:stretch}
+.pl-ps-kpis{display:grid;gap:10px;align-content:start}.pl-ps-kpis .pl-kpi b{font-size:1.45rem}
+.pl-ps-chart{display:flex;flex-direction:column;min-width:0}.pl-ps-chart>p{margin:0 0 6px}
+.pl-fbars{display:flex;gap:6px;align-items:flex-end;height:150px;flex:1;min-height:130px}
+.pl-fbars>div{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;height:100%}
+.pl-fbars i{display:block;width:100%;max-width:38px;border-radius:7px 7px 3px 3px;background:var(--accent);opacity:.55}
+.pl-fbars .cur i{opacity:1}.pl-fbars i.none{background:var(--line2);opacity:1}
+.pl-fbars b{font-size:.66rem;min-height:1.1em;white-space:nowrap}.pl-fbars small{font-size:.64rem;color:var(--ink3);min-height:1.1em;white-space:nowrap}
+.pl-fbars.m{gap:2px}.pl-fbars.m i{border-radius:3px 3px 1px 1px}
+.pl-ps-c{margin:14px 0 6px;padding:10px 12px;border-radius:12px;background:var(--surface2);font-size:.9rem}
+@media(max-width:700px){.pl-ps-body{grid-template-columns:minmax(0,1fr)}.pl-ps-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.pl-fbars{height:130px}.pl-fbars.m{gap:1px}}
