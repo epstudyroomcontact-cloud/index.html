@@ -758,3 +758,23 @@ button.sb-item{width:100%;background:none;border:0;font:inherit;font-weight:600;
 @keyframes plCelPop{from{transform:scale(.92);opacity:0}to{transform:none;opacity:1}}
 @keyframes plCelWave{0%,100%{transform:none}30%{transform:rotate(-14deg) scale(1.2)}60%{transform:rotate(10deg) scale(1.1)}}
 @media(max-width:700px){.pl-ps-body{grid-template-columns:minmax(0,1fr)}.pl-ps-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.pl-fbars{height:130px}.pl-fbars.m{gap:1px}}
+
+/* ---------- Overview + Hành trình trăng: gọn mắt hơn ----------
+   - thẻ "Trạm mới nhất": chữ và nút có lề trong, không dính sát mép thẻ
+   - chân bản đồ trống (chưa đăng nhập) thì ẩn, không để lại một dải trống
+   - Overview: bài viết / cửa hàng luôn 3 cột trên máy tính; điện thoại vuốt ngang thay vì xếp chồng 3 thẻ cao
+   - điện thoại: giờ trong "Buổi live hôm nay" nằm riêng một dòng; 3 thẻ giới thiệu xếp icon bên trái cho thấp hơn */
+.mj-latest>.pad{padding:14px 20px 20px}
+.mj-road-f:empty{display:none}
+.home-peek{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(max-width:760px){
+  .home-peek{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:14px;margin:0 -16px;padding:0 16px 6px;scroll-padding:0 16px;scrollbar-width:none}
+  .home-peek::-webkit-scrollbar{display:none}
+  .home-peek>.pcard{flex:0 0 min(78%,300px);scroll-snap-align:start}.home-peek>.pcard:hover{transform:none}
+}
+@media(max-width:640px){
+  .about-feats{gap:10px}
+  .about-feats .feat{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:14px;align-items:start;padding:16px}
+  .about-feats .feat .tile{grid-row:span 2}.about-feats .feat h3{margin:0 0 2px!important}
+}
+@media(max-width:520px){.today-item{flex-wrap:wrap;gap:4px 12px}.today-item .tm{flex-basis:100%;min-width:0}}
