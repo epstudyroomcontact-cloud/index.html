@@ -691,3 +691,9 @@
 };
   Object.keys(TIPS).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], TIPS[l]); });
 })();
+
+/* dòng nhắc bấm vào chuông khi mới vào web */
+(function () {
+  const H = {"en": {"bell_hint": "Tap the bell 🔔 to get live reminders with a chime.", "snd_close": "Close"}, "vi": {"bell_hint": "Bấm vào chuông 🔔 để nhận nhắc giờ live kèm tiếng chuông.", "snd_close": "Đóng"}, "hi": {"bell_hint": "लाइव रिमाइंडर और घंटी की आवाज़ के लिए घंटी 🔔 दबाएँ।", "snd_close": "बंद करें"}, "ja": {"bell_hint": "ベル 🔔 をタップすると、チャイム付きでライブのお知らせが届きます。", "snd_close": "閉じる"}, "ko": {"bell_hint": "종 🔔 을 눌러 알림음과 함께 라이브 알림을 받아 보세요.", "snd_close": "닫기"}, "zh": {"bell_hint": "点一下铃铛 🔔，即可收到带铃声的直播提醒。", "snd_close": "关闭"}, "fr": {"bell_hint": "Touchez la cloche 🔔 pour être prévenu des lives avec un carillon.", "snd_close": "Fermer"}, "es": {"bell_hint": "Toca la campana 🔔 para recibir avisos del directo con sonido.", "snd_close": "Cerrar"}};
+  Object.keys(H).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], H[l]); });
+})();

@@ -741,6 +741,17 @@ function sndHTML(){
     <div class="${SND.on ? '' : 'lr-off'}"><label class="label">${esc(t('lr_vol'))}</label><input type="range" class="snd-vol" min="10" max="100" step="5" value="${Math.round(SND.vol * 100)}" data-change="sndVol" aria-label="${esc(t('lr_vol'))}">
     <div class="snd-list">${rows}</div></div></details>`;
 }
+/* ---------- Dòng nhắc một lần dưới nút chuông ----------
+   Khách mới vào web (chưa mở bảng chuông, chưa bật nhắc) thấy một dòng ngắn trỏ vào nút 🔔; bấm chuông hoặc bấm × là không hiện lại. */
+function bellHintHide(mark){ const h = $('bell-hint'); if (h) h.remove(); if (mark) store.set('bell_hint', 1); }
+function bellHintShow(){
+  const b = $('btn-notif'); if (!b || !b.offsetParent || $('bell-hint') || store.get('bell_hint', 0) || LR.on || $('live-rem').classList.contains('open')) return;
+  const r = b.getBoundingClientRect(), h = document.createElement('div');
+  h.id = 'bell-hint'; h.setAttribute('role', 'status');
+  h.style.cssText = `top:${Math.round(r.bottom + 10)}px;right:${Math.max(8, Math.round(innerWidth - r.right))}px;--ax:${Math.round(r.width / 2)}px`;
+  h.innerHTML = `<span>${esc(t('bell_hint'))}</span><button type="button" data-act="bellHintX" aria-label="${esc(t('snd_close'))}">×</button>`;
+  document.body.appendChild(h);
+}
 function swRegister(){
   if (swReg || !('serviceWorker' in navigator) || !window.isSecureContext) return Promise.resolve(swReg);
   return navigator.serviceWorker.register('sw.js', { updateViaCache:'none' }).then(r => (swReg = r)).catch(() => null);   // updateViaCache 'none': luôn kiểm tra sw.js mới, không dùng bản trong bộ nhớ đệm
@@ -1040,7 +1051,8 @@ const ACTIONS = {
   theme: el => { state.theme = el.dataset.th; store.set('theme', state.theme); applyLook(); renderPrefs(); render(true); },
   editMode: toggleEditMode,
   dismissLive: () => { const { live } = liveState(); dismissedLive = live ? live.key : null; updateNext(); },
-  notif: () => { const p = $('live-rem'), open = !p.classList.contains('open'); $('prefs').classList.remove('open'); if (open) renderLiveRem(); p.classList.toggle('open', open); },
+  bellHintX: () => bellHintHide(true),
+  notif: () => { bellHintHide(true); const p = $('live-rem'), open = !p.classList.contains('open'); $('prefs').classList.remove('open'); if (open) renderLiveRem(); p.classList.toggle('open', open); },
   lrPerm: () => { if (NOTIF_OK) Notification.requestPermission().then(p => { if (p === 'granted') { swRegister(); toast('🔔 OK'); } renderLiveRem(); }).catch(() => {}); },
   lrLeadTog: el => { const n = +el.dataset.n; lrSetLeads(LR.leads.includes(n) ? LR.leads.filter(x => x !== n) : [...LR.leads, n]); },
   lrOpen: el => { LR.open = !LR.open; el.parentElement.open = LR.open; },
@@ -1089,7 +1101,7 @@ $('chk-calm').addEventListener('change', e => { state.calm = e.target.checked; s
 window.addEventListener('hashchange', () => { document.body.classList.remove('nav-open'); $('cart-drawer').classList.remove('open'); render(true); window.scrollTo({ top:0 }); });
 
 function boot(){
-  state.booted = true;
+  state.booted = true; setTimeout(bellHintShow, 3000);
   // Từng bước bắt lỗi riêng: một phần lỗi (giao diện, ngôn ngữ, dữ liệu…) không làm cả trang trắng. Chỉ khi không vẽ nổi trang thì báo cho lưới an toàn trong index.html (tự sửa + tải lại).
   const step = (nm, fn) => { try { const r = fn(); if (r && r.catch) r.catch(e => console.error('[EP] ' + nm, e)); } catch (e) { console.error('[EP] ' + nm, e); } };
   step('look', applyLook); step('prefs', renderPrefs); step('data', listenAll);
