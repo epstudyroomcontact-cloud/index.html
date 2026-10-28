@@ -59,7 +59,7 @@ async function checkSite(){
     live === repo ? '' : 'GitHub chưa đưa bản mới lên. Vào tab Actions xem "pages build and deployment" có bị đỏ không, bấm Re-run nếu có.');
 
   // Mọi file trang chủ gọi tới + các file phụ quan trọng phải mở được
-  const refs = new Set(['manifest.webmanifest', 'sw.js', 'offline.html', 'overlay.html', 'site-fallback.json']);
+  const refs = new Set(['manifest.webmanifest', 'sw.js', 'offline.html', 'overlay.html', 'overlay.js', 'site-fallback.json']);
   for (const m of html.matchAll(/\s(?:src|href)="([^"]+)"/g)) { const u = m[1]; if (!/^(https?:|data:|mailto:|#|\/\/)/.test(u)) refs.add(u); }
   try { for (const ic of JSON.parse(read('manifest.webmanifest')).icons || []) refs.add(ic.src); } catch (e) {}
   const bad = [];
@@ -93,9 +93,9 @@ async function checkBrowser(){
     for (const d of devices) {
       const ctx = await browser.newContext({ ...d.ctx, locale:'vi-VN', serviceWorkers:'block' });
       const page = await ctx.newPage();
-      const jsErr = new Set(), conErr = new Set(), ownBad = new Set(), extBad = new Set();
+      const jsErr = new Set(), conErr = new Set(), ownBad = new Set(), extBad = new Set(), cspBad = new Set();
       page.on('pageerror', e => jsErr.add(String(e.message).split('\n')[0].slice(0, 200)));
-      page.on('console', m => { if (m.type() === 'error' && !/^Failed to load resource/.test(m.text())) conErr.add(m.text().split('\n')[0].slice(0, 200)); });
+      page.on('console', m => { if (m.type() !== 'error' || /^Failed to load resource/.test(m.text())) return; const t = m.text().split('\n')[0].slice(0, 200); (/Content Security Policy/i.test(t) ? cspBad : conErr).add(t); });
       const note = (u, why) => { try { (new URL(u).host === host ? ownBad : extBad).add(`${new URL(u).pathname.split('/').pop() || u} (${why})`); } catch (e) {} };
       page.on('response', r => { if (r.status() >= 400) note(r.url(), r.status()); });
       page.on('requestfailed', r => { const f = r.failure()?.errorText || 'lỗi'; if (!/ABORTED/i.test(f)) note(r.url(), f); });
@@ -113,6 +113,7 @@ async function checkBrowser(){
       if (weight) add(A, `Tổng dung lượng tải trên ${d.name}`, weight > LIMIT.weightWarn ? 'warn' : 'ok', kb(weight) + ' (cả font, Firebase…)');
       add(A, `Lỗi JavaScript trên ${d.name}${d.name === 'máy tính' ? ' (đã mở thử ' + routes.length + ' trang)' : ''}`, jsErr.size ? 'fail' : 'ok', [...jsErr].slice(0, 5).join(' · '), jsErr.size ? 'Có chức năng có thể không chạy. Báo mình kèm đường dẫn issue này.' : '');
       add(A, `File của web bị lỗi khi tải (${d.name})`, ownBad.size ? 'fail' : 'ok', [...ownBad].slice(0, 8).join(', '));
+      add(A, `Lớp chặn mã lạ (CSP) không chặn nhầm tính năng (${d.name})`, cspBad.size ? 'fail' : 'ok', [...cspBad].slice(0, 4).join(' · '), cspBad.size ? 'Trình duyệt chặn một nguồn mà web đang dùng, tính năng đó có thể hỏng. Báo mình ngay: cần thêm nguồn đó vào dòng Content-Security-Policy ở đầu index.html.' : '');
       if (conErr.size) add(A, `Thông báo lỗi trong console (${d.name})`, 'info', [...conErr].slice(0, 5).join(' · '), 'Thường không ảnh hưởng khách.');
       if (extBad.size) add(A, `Dịch vụ bên ngoài không tải được (${d.name})`, 'info', [...extBad].slice(0, 6).join(', '), 'Font, YouTube, rss2json (danh sách video mới)… đôi khi lỗi tạm thời, web vẫn chạy.');
       await ctx.close();

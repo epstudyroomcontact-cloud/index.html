@@ -537,7 +537,7 @@ function pageCrash(e){
   const m = (window.EP_TXT && window.EP_TXT()) || [], home = route.name === 'home';
   try { renderChrome(); } catch (er) {}
   $('page').innerHTML = `<div class="empty"><div class="ico">${ic('moon')}</div><h3>${esc(m[4] || 'This page hit a snag')}</h3><p style="max-width:420px;margin:0 auto 16px">${esc(m[5] || 'Something went wrong while showing this page.')}</p>
-    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button type="button" class="btn primary" onclick="location.reload()">${ic('reset')} ${esc(m[2] || 'Reload')}</button>${home ? '' : `<a class="btn secondary" href="#/">${ic('home')} ${esc(m[6] || 'Back to Overview')}</a>`}</div>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button type="button" class="btn primary" data-act="pageReload">${ic('reset')} ${esc(m[2] || 'Reload')}</button>${home ? '' : `<a class="btn secondary" href="#/">${ic('home')} ${esc(m[6] || 'Back to Overview')}</a>`}</div>
     <p class="muted" style="max-width:420px;margin:16px auto 0;font-size:.8rem">${esc(m[3] || '')}</p></div>`;
 }
 function readRoute(){
@@ -985,6 +985,7 @@ CHANGES.plRemOn = el => plRemSet(el.checked);
 CHANGES.plPinOn = el => plPinSet(el.checked);
 CHANGES.lrPick = el => { const k = el.dataset.st; if (el.checked) LR.picked[k] = 1; else delete LR.picked[k]; const now = Date.now(); Object.keys(LR.picked).forEach(x => { if (+x < now - 864e5) delete LR.picked[x]; }); lrSave(); renderLiveRem(); };
 const ACTIONS = {
+  pageReload: () => location.reload(),
   openNav: () => document.body.classList.add('nav-open'),
   closeNav: () => document.body.classList.remove('nav-open'),
   prefs: () => { $('live-rem').classList.remove('open'); $('prefs').classList.toggle('open'); },
