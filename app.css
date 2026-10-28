@@ -604,6 +604,12 @@ html[data-font="serif"] h1,html[data-font="serif"] h2,html[data-font="serif"] h3
 .thanks-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .thanks-chip{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:99px;background:rgba(var(--accent-rgb),.12);border:1px solid rgba(var(--accent-rgb),.35);font-weight:700;font-size:.9rem}
 .thanks-chip .ic{width:14px;height:14px;color:var(--accent)}
+/* người đồng hành lâu năm: 3 tháng viền bạc, 6 tháng viền vàng, 1 năm vàng đậm có quầng sáng */
+.thanks-chip small{font-size:.72rem;font-weight:600;opacity:.7}
+.ct-moon{font-style:normal;font-size:.95rem;line-height:1}
+.thanks-chip.ct1,.badge.ct1{border:1px solid #a9b6c9;box-shadow:0 0 0 2px rgba(169,182,201,.25)}
+.thanks-chip.ct2,.badge.ct2{border:1px solid #e0b04f;box-shadow:0 0 0 2px rgba(224,176,79,.25)}
+.thanks-chip.ct3,.badge.ct3{border:1.5px solid #f2c14e;box-shadow:0 0 0 2px rgba(242,193,78,.3),0 0 12px rgba(242,193,78,.35)}
 .fs-sel{width:100%;font-size:.86rem;padding:8px 10px}
 /* ---- Planner (Companions) ---- */
 .pl-grid{display:grid;grid-template-columns:44px repeat(7,minmax(84px,1fr));min-width:690px;column-gap:6px}

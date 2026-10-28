@@ -455,7 +455,7 @@ function plPreview(){                                              // giao diệ
 }
 function plUpsell(){
   const login = !state.user;
-  return `${head('pl_title', '', '', 'moonwalk', 4)}<section class="card pad stack" style="max-width:640px"><div class="row"><span class="badge">${ic('heart', 'sm')} ${esc(t('comp_badge'))}</span></div>
+  return `${head('pl_title', '', '', 'moonwalk', 4)}<section class="card pad stack" style="max-width:640px"><div class="row">${compBadge()}</div>
     <h2 style="font-size:1.3rem">${esc(t('pl_up_title'))}</h2><p class="muted">${esc(login ? t('pl_up_login') : state.companionUntil ? t('pl_up_expired', { d:DT.fromISO(state.companionUntil).toFormat('dd/MM/yyyy') }) : t('pl_up_text'))}</p>
     ${login ? `<a class="btn primary" href="#/account">${esc(t('club_login_btn'))}</a>` : `${trialBox()}${compClaimHTML()}<a class="btn secondary" href="#/donate">${esc(t('pl_up_cta'))}</a>`}</section>
     <div class="pl-previewhead"><span class="badge">${ic('lock', 'sm')} ${esc(t('pl_preview'))}</span><small class="faint">${esc(t('pl_preview_note'))}</small></div>
