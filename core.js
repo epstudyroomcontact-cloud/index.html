@@ -682,7 +682,7 @@ const LR = (() => {
   const leads = store.get('lr_leads', oldLead ? [oldLead] : []);
   return { on:store.get('lr_on', NOTIF_OK && Notification.permission === 'granted'), leads:Array.isArray(leads) ? leads.filter(n => n > 0 && n <= 720).slice(0, 6) : [10],
     atStart:true, style:'both',      // bảng chuông đã bỏ tuỳ chọn kiểu nhắc / tắt nhắc lúc bắt đầu, nên luôn dùng mặc định
-    mode:store.get('lr_mode', 'all') === 'pick' ? 'pick' : 'all', picked:store.get('lr_picked', {}) || {} };
+    open:false, mode:store.get('lr_mode', 'all') === 'pick' ? 'pick' : 'all', picked:store.get('lr_picked', {}) || {} };
 })();
 let lrSent = store.get('lr_sent', {}), swReg = null, lrTitleBak = '';
 const lrSave = () => { store.set('lr_on', LR.on); store.set('lr_leads', LR.leads); store.set('lr_mode', LR.mode); store.set('lr_picked', LR.picked); };
@@ -739,7 +739,18 @@ function sndHTML(){
   return `<details class="lr-help snd" ${SND.open ? 'open' : ''}><summary data-act="sndOpen">${esc(t('snd_title'))}</summary>
     <div class="switch"><span>${esc(t('snd_master'))}</span><input type="checkbox" data-change="sndMaster" ${SND.on ? 'checked' : ''}></div>
     <div class="${SND.on ? '' : 'lr-off'}"><label class="label">${esc(t('lr_vol'))}</label><input type="range" class="snd-vol" min="10" max="100" step="5" value="${Math.round(SND.vol * 100)}" data-change="sndVol" aria-label="${esc(t('lr_vol'))}">
-    <div class="snd-list">${rows}</div></div><p class="lr-note">${esc(t('snd_note'))}</p></details>`;
+    <div class="snd-list">${rows}</div></div></details>`;
+}
+/* ---------- Dòng nhắc một lần dưới nút chuông ----------
+   Khách mới vào web (chưa mở bảng chuông, chưa bật nhắc) thấy một dòng ngắn trỏ vào nút 🔔; bấm chuông hoặc bấm × là không hiện lại. */
+function bellHintHide(mark){ const h = $('bell-hint'); if (h) h.remove(); if (mark) store.set('bell_hint', 1); }
+function bellHintShow(){
+  const b = $('btn-notif'); if (!b || !b.offsetParent || $('bell-hint') || store.get('bell_hint', 0) || LR.on || $('live-rem').classList.contains('open')) return;
+  const r = b.getBoundingClientRect(), h = document.createElement('div');
+  h.id = 'bell-hint'; h.setAttribute('role', 'status');
+  h.style.cssText = `top:${Math.round(r.bottom + 10)}px;right:${Math.max(8, Math.round(innerWidth - r.right))}px;--ax:${Math.round(r.width / 2)}px`;
+  h.innerHTML = `<span>${esc(t('bell_hint'))}</span><button type="button" data-act="bellHintX" aria-label="${esc(t('snd_close'))}">×</button>`;
+  document.body.appendChild(h);
 }
 function swRegister(){
   if (swReg || !('serviceWorker' in navigator) || !window.isSecureContext) return Promise.resolve(swReg);
@@ -831,11 +842,13 @@ function renderLiveRem(){
     ${typeof mjRemHTML === 'function' ? mjRemHTML() : ''}
     <div class="switch"><span>${esc(t('lr_on'))}</span><input type="checkbox" data-change="lrOn" ${LR.on ? 'checked' : ''}></div>
     <div class="${LR.on ? '' : 'lr-off'}">
-      <label class="label">${esc(t('lr_before'))}</label>
-      <div class="lr-chips">${leadsHTML}</div>
-      <label class="label">${esc(t('lr_which'))}</label>
-      <div class="lr-seg">${chip(LR.mode === 'all', 'lrMode', 'data-v="all"', esc(t('lr_all')))}${chip(LR.mode === 'pick', 'lrMode', 'data-v="pick"', esc(t('lr_pick')))}</div>
-      ${sessHTML}
+      <details class="lr-help" ${LR.open ? 'open' : ''}><summary data-act="lrOpen">${esc(t('lr_more'))}</summary>
+        <label class="label">${esc(t('lr_before'))}</label>
+        <div class="lr-chips">${leadsHTML}</div>
+        <label class="label">${esc(t('lr_which'))}</label>
+        <div class="lr-seg">${chip(LR.mode === 'all', 'lrMode', 'data-v="all"', esc(t('lr_all')))}${chip(LR.mode === 'pick', 'lrMode', 'data-v="pick"', esc(t('lr_pick')))}</div>
+        ${sessHTML}
+      </details>
       ${LR.on && audioLocked() ? `<p class="lr-note warn">${esc(t('lr_tap'))}</p>` : ''}
       ${permHTML}
     </div>
@@ -899,35 +912,34 @@ function pushHTML(){
     : !sup ? `<p class="lr-note">${esc(t('push_unsup'))}</p>`
     : perm === 'denied' ? `<p class="lr-note">${esc(t('push_denied'))}</p>`
     : PUSH.busy ? `<p class="lr-note">${esc(t('push_busy'))}</p>`
-    : PUSH.err ? `<p class="lr-note warn">${esc(t('push_err'))}</p>`
-    : `<p class="lr-note ${on ? 'ok' : ''}">${esc(t(on ? 'push_ok' : 'push_note'))}</p>`;
+    : PUSH.err ? `<p class="lr-note warn">${esc(t('push_err'))}</p>` : '';   // lời giải thích thường ngày bỏ đi cho bảng gọn; chỉ hiện khi có vấn đề cần xử lý
   return `<div class="switch"><span><b>${esc(t('push_on'))}</b></span><input type="checkbox" data-change="pushOn" ${on ? 'checked' : ''} ${sup && perm !== 'denied' && !PUSH.busy ? '' : 'disabled'}></div>${note}<hr class="lr-hr">`;
 }
 /* Cảnh báo trong bảng chuông: những gì web tự biết được (quyền thông báo, iPhone chưa thêm ra Màn hình chính, chưa cài app)
    và hướng dẫn ngắn cho phần web không biết được (Không làm phiền, tắt tiếng, pin, kiểu thông báo Im lặng) */
 const notifBroken = () => NOTIF_OK && ((PUSH.on || store.get('pl_rem', false) || store.get('mj_rem', false)) && Notification.permission !== 'granted' || LR.on && lrPop() && Notification.permission === 'denied');   // đã bật nhắc mà quyền thông báo bị chặn / bị thu hồi
 const notifBadge = () => { const b = $('btn-notif'); if (b) b.classList.toggle('warn', notifBroken()); };
-function notifHelpHTML(){
+function notifHelpHTML(){                                           // một mục thu gọn: lưu ý khi dùng chuông + cách bật lại âm / thông báo + cài ứng dụng
   const app = !pwaStandalone() && !pwaIOS && pushSupported() ? `<p class="lr-note">${esc(t('nh_app'))}</p><button type="button" class="btn ghost sm" data-act="pwaInstall">${ic('download', 'sm')} ${esc(t('pwa_install'))}</button>` : '';
   const steps = k => `<ol class="lr-steps">${[1, 2, 3].map(i => `<li>${esc(t(k + i))}</li>`).join('')}</ol>`;
-  return `${app}<details class="lr-help"><summary>${esc(t('nh_q'))}</summary><p class="lr-note">${esc(t('nh_intro'))}</p>${pwaIOS ? steps('nh_ios') : steps('nh_and')}</details>`;
+  return `<details class="lr-help"><summary>${esc(t('snd_tips_t'))}</summary><ul class="lr-steps">${[1, 2, 3, 4].map(i => `<li>${esc(t('snd_tip' + i))}</li>`).join('')}</ul>
+    <p class="lr-note">${esc(t('nh_intro'))}</p>${pwaIOS ? steps('nh_ios') : steps('nh_and')}${app}</details>`;
 }
 /* Nhắc việc Planner trong bảng chuông (chỉ người dùng được Planner): bật/tắt bằng plRemToggle trong planner.js */
 const plCan = () => !DEMO && !!state.user && (state.companion || state.isAdmin || (typeof trialActive === 'function' && trialActive()));
 const plRemIsOn = () => !!store.get('pl_rem', false);
 function plRemHTML(){
   if (!plCan()) return '';
-  const on = plRemIsOn(), bg = on && typeof plPushHere === 'function' && plPushHere();
-  return `<div class="switch"><span><b>${esc(t('plr_on'))}</b></span><input type="checkbox" data-change="plRemOn" ${on ? 'checked' : ''}></div><p class="lr-note ${on ? 'ok' : ''}">${esc(t(on ? (bg ? 'plr_ok' : 'plr_fg') : 'plr_note'))}</p>${on && audioLocked() ? `<p class="lr-note warn">${esc(t('lr_tap'))}</p>` : ''}<hr class="lr-hr">${plPinHTML()}`;
+  const on = plRemIsOn();
+  return `<div class="switch"><span><b>${esc(t('plr_on'))}</b></span><input type="checkbox" data-change="plRemOn" ${on ? 'checked' : ''}></div>${on && audioLocked() ? `<p class="lr-note warn">${esc(t('lr_tap'))}</p>` : ''}<hr class="lr-hr">${plPinHTML()}`;
 }
 /* Việc hôm nay ngoài màn hình: thông báo yên lặng khi thoát web (hiện bằng plPinShow trong planner.js). Mặc định tắt, khách tự bật trên từng máy */
 const plPinOn = () => !!store.get('pl_pin', false);
 async function plPinHide(){ try { const reg = await swRegister(); if (reg && reg.getNotifications) (await reg.getNotifications({ tag:'pl-today' })).forEach(n => n.close()); } catch (e) {} }
 function plPinHTML(){
   const perm = NOTIF_OK ? Notification.permission : 'denied', on = plPinOn() && perm === 'granted';
-  const mob = pwaIOS || /android|mobile/i.test(navigator.userAgent);   // giống plPinKeep trong planner.js
-  const note = pwaIOS && !pwaStandalone() ? 'plp_ios' : !NOTIF_OK ? 'push_unsup' : perm === 'denied' ? 'push_denied' : on ? (mob ? 'plp_ok' : 'plp_ok_pc') : 'plp_note';
-  return `<div class="switch"><span><b>${esc(t('plp_on'))}</b></span><input type="checkbox" data-change="plPinOn" ${on ? 'checked' : ''} ${NOTIF_OK && perm !== 'denied' ? '' : 'disabled'}></div><p class="lr-note ${on ? 'ok' : ''}">${esc(t(note))}</p><hr class="lr-hr">`;
+  const note = pwaIOS && !pwaStandalone() ? 'plp_ios' : !NOTIF_OK ? 'push_unsup' : '';   // quyền bị chặn đã có cảnh báo ở mục thông báo đẩy và đầu bảng
+  return `<div class="switch"><span><b>${esc(t('plp_on'))}</b></span><input type="checkbox" data-change="plPinOn" ${on ? 'checked' : ''} ${NOTIF_OK && perm !== 'denied' ? '' : 'disabled'}></div>${note ? `<p class="lr-note">${esc(t(note))}</p>` : ''}<hr class="lr-hr">`;
 }
 async function plPinSet(on){
   if (on && NOTIF_OK && Notification.permission === 'default') { try { await Notification.requestPermission(); } catch (e) {} }
@@ -1039,9 +1051,11 @@ const ACTIONS = {
   theme: el => { state.theme = el.dataset.th; store.set('theme', state.theme); applyLook(); renderPrefs(); render(true); },
   editMode: toggleEditMode,
   dismissLive: () => { const { live } = liveState(); dismissedLive = live ? live.key : null; updateNext(); },
-  notif: () => { const p = $('live-rem'), open = !p.classList.contains('open'); $('prefs').classList.remove('open'); if (open) renderLiveRem(); p.classList.toggle('open', open); },
+  bellHintX: () => bellHintHide(true),
+  notif: () => { bellHintHide(true); const p = $('live-rem'), open = !p.classList.contains('open'); $('prefs').classList.remove('open'); if (open) renderLiveRem(); p.classList.toggle('open', open); },
   lrPerm: () => { if (NOTIF_OK) Notification.requestPermission().then(p => { if (p === 'granted') { swRegister(); toast('🔔 OK'); } renderLiveRem(); }).catch(() => {}); },
   lrLeadTog: el => { const n = +el.dataset.n; lrSetLeads(LR.leads.includes(n) ? LR.leads.filter(x => x !== n) : [...LR.leads, n]); },
+  lrOpen: el => { LR.open = !LR.open; el.parentElement.open = LR.open; },
   sndOpen: el => { SND.open = !SND.open; el.parentElement.open = SND.open; },   // dispatcher chặn hành vi mặc định nên tự mở / đóng
   sndTest: el => { soundPlay(el.dataset.c, { force:true }); },
   lrMode: el => { LR.mode = el.dataset.v; lrSave(); renderLiveRem(); },
@@ -1087,7 +1101,7 @@ $('chk-calm').addEventListener('change', e => { state.calm = e.target.checked; s
 window.addEventListener('hashchange', () => { document.body.classList.remove('nav-open'); $('cart-drawer').classList.remove('open'); render(true); window.scrollTo({ top:0 }); });
 
 function boot(){
-  state.booted = true;
+  state.booted = true; setTimeout(bellHintShow, 3000);
   // Từng bước bắt lỗi riêng: một phần lỗi (giao diện, ngôn ngữ, dữ liệu…) không làm cả trang trắng. Chỉ khi không vẽ nổi trang thì báo cho lưới an toàn trong index.html (tự sửa + tải lại).
   const step = (nm, fn) => { try { const r = fn(); if (r && r.catch) r.catch(e => console.error('[EP] ' + nm, e)); } catch (e) { console.error('[EP] ' + nm, e); } };
   step('look', applyLook); step('prefs', renderPrefs); step('data', listenAll);
