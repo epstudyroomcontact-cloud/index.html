@@ -59,9 +59,10 @@ async function checkSite(){
     live === repo ? '' : 'GitHub chưa đưa bản mới lên. Vào tab Actions xem "pages build and deployment" có bị đỏ không, bấm Re-run nếu có.');
 
   // Mọi file trang chủ gọi tới + các file phụ quan trọng phải mở được
-  const refs = new Set(['manifest.webmanifest', 'sw.js', 'offline.html', 'overlay.html', 'overlay.js', 'site-fallback.json']);
+  const refs = new Set(['manifest.webmanifest', 'sw.js', 'offline.html', 'overlay.html', 'site-fallback.json']);
   for (const m of html.matchAll(/\s(?:src|href)="([^"]+)"/g)) { const u = m[1]; if (!/^(https?:|data:|mailto:|#|\/\/)/.test(u)) refs.add(u); }
   try { for (const ic of JSON.parse(read('manifest.webmanifest')).icons || []) refs.add(ic.src); } catch (e) {}
+  try { const ov = (await timed(new URL('overlay.html', SITE).href)).body.toString(); for (const m of ov.matchAll(/\s(?:src|href)="([^"]+)"/g)) { const u = m[1]; if (!/^(https?:|data:|mailto:|#|\/\/)/.test(u)) refs.add(u); } } catch (e) {}   // file phụ mà overlay.html gọi (overlay.js…), theo đúng bản đang chạy
   const bad = [];
   let total = Buffer.byteLength(html);
   await Promise.all([...refs].map(async u => {
