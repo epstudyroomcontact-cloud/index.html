@@ -746,9 +746,12 @@ renderCart();
 
 /* =========================================================
    MOON JOURNEY — điểm danh đi theo con đường 480 ngày (moon-story.js, MJ_STOPS): mỗi ngày là một bước, chặng = đoạn giữa hai trạm.
-   Mặt trăng đầy dần khi tới gần trạm kế tiếp và tròn đúng ngày tới trạm. Cứ 30 ngày liên tiếp vẫn được +1 trăng tròn vào bộ sưu tập (như trước),
+   Mặt trăng đầy dần theo cả hành trình và chỉ tròn khi đi hết 480 ngày; thanh tiến độ nhỏ đếm ngày tới trạm kế tiếp. Cứ 30 ngày liên tiếp vẫn được +1 trăng tròn vào bộ sưu tập (như trước),
    chuỗi càng dài càng mở huy hiệu / danh hiệu (chỉ để vui, không đổi quyền lợi gói). Dữ liệu không đổi, mọi thứ tính lại từ chuỗi ngày.
-   Dữ liệu lưu trong users/<uid>.moon = { startedAt, days:['YYYY-MM-DD',…], rounds (cũ), moons, best }
+   Dữ liệu lưu trong users/<uid>.moon = { startedAt, days:['YYYY-MM-DD',…], rounds (cũ), moons, best, saved:['YYYY-MM-DD',…] }
+   Trăng tích trữ: moons = số trăng tròn đã nhận (30 ngày liên tiếp được 1), saved = những ngày lỡ đã được "vá" bằng trăng.
+   Số trăng còn dùng được = moons − saved.length. Lỡ điểm danh mà còn đủ trăng thì được dùng trăng vá các ngày lỡ để giữ chuỗi
+   (phải dùng trước khi điểm danh hôm nay; ngày vá được thêm vào days nên chuỗi tính tiếp như bình thường).
    ========================================================= */
 const MOON_TOTAL = 30;
 const MOON_MILES = [[3, '🌱'], [7, '🌒'], [14, '🌓'], [21, '🌔'], [30, '🌕'], [60, '⭐'], [100, '🌠'], [200, '🌌'], [365, '👑'], [450, '✨'], [480, '🐾']];   // mốc chuỗi → huy hiệu (tên: mj_<mốc>)
@@ -759,14 +762,17 @@ const dayShift = (k, n) => DT.fromISO(k, { zone:userTZ }).plus({ days:n }).toISO
    Qua 30 ngày chuỗi vẫn cộng tiếp (chặng 2, 3…). */
 const moonData = () => {
   const m = profile && profile.moon; if (!m) return null;
-  let days = [...new Set(Array.isArray(m.days) ? m.days : [])].filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort(), broken = false, lost = 0;
+  let days = [...new Set(Array.isArray(m.days) ? m.days : [])].filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort(), broken = false, lost = 0, gap = [];
   const raw = days.length;
   if (days.length) {
     let i = days.length - 1; while (i > 0 && dayShift(days[i - 1], 1) === days[i]) i--;
     const run = days.slice(i), last = run[run.length - 1], today = todayKey();
     if (last === today || last === dayShift(today, -1)) days = run; else { lost = run.length; days = []; broken = true; }
+    if (broken) for (let k = dayShift(last, 1); k < today && gap.length <= 31; k = dayShift(k, 1)) gap.push(k);   // các ngày đã lỡ, tính tới hôm qua
   }
-  return { startedAt:m.startedAt || Date.now(), days, rounds:m.rounds || 0, moons:Math.max(m.moons || 0, (m.rounds || 0) + (raw >= MOON_TOTAL ? 1 : 0)), best:Math.max(m.best || 0, days.length, lost), broken, lost };
+  const saved = Array.isArray(m.saved) ? m.saved : [], moons = Math.max(m.moons || 0, (m.rounds || 0) + (raw >= MOON_TOTAL ? 1 : 0)), balance = Math.max(0, moons - saved.length);
+  const rescue = broken && gap.length && gap.length <= balance ? gap : null;      // đủ trăng để vá hết các ngày lỡ thì mới đề nghị
+  return { startedAt:m.startedAt || Date.now(), days, rounds:m.rounds || 0, moons, best:Math.max(m.best || 0, days.length, lost), saved, broken, lost, balance, rescue };
 };
 async function moonSave(m){
   const prev = profile.moon;
@@ -826,8 +832,8 @@ function moonLeg(n, doneToday){
 }
 const moonDayText = n => n <= moonRoad() ? t('club_day', { d:n, t:moonRoad() }) : t('mjs_day', { n });
 function clubPromo(){
-  const m = moonData(), n = m ? m.days.length : 0, L = moonLeg(n, m && m.days.includes(todayKey()));
-  return `<section class="card pad club-promo" style="margin-top:34px"><div class="moon-sm">${moonSVG(state.user && m ? n - L.a : 8, state.user && m ? L.b - L.a : MOON_TOTAL)}</div>
+  const m = moonData(), n = m ? m.days.length : 0;
+  return `<section class="card pad club-promo" style="margin-top:34px"><div class="moon-sm">${moonSVG(state.user && m ? Math.min(n, moonRoad()) : 8, state.user && m ? moonRoad() : MOON_TOTAL)}</div>
     <div><h2 style="font-size:1.4rem" ${cms('club_title')}>${esc(ctext('club_title'))}</h2><p class="muted mt-s" ${cms('club_sub')}>${esc(ctext('club_sub'))}</p>
     <a class="btn primary mt" href="#/club">${state.user && m ? esc(moonDayText(n)) : esc(t('club_start'))}</a></div></section>`;
 }
@@ -838,31 +844,33 @@ function moonGrid(m, doneToday){
   let leg = 0, out = '';
   for (let d = 1; d <= total; d++) {
     while (leg < MJ_STOPS.length - 1 && d > MJ_STOPS[leg + 1].day) leg++;
-    const x = ((d - 1) % C) * G + G / 2, y = Math.floor((d - 1) / C) * G + G / 2, on = d <= n, col = d > end ? '#ffe44d' : MJ_LINE[mjZone(leg)], st = stopAt[d] !== undefined, next = d === n + 1 && !doneToday;
-    out += `<circle cx="${x}" cy="${y}" r="${st ? 5.4 : 3.6}" style="--c:${col}" class="${on ? 'on' : ''}${st ? ' st' : ''}${next ? ' nx' : ''}">${on && m.days[d - 1] ? `<title>${esc(t('mjs_day', { n:d }))} · ${esc(m.days[d - 1])}</title>` : ''}</circle>`;
+    const x = ((d - 1) % C) * G + G / 2, y = Math.floor((d - 1) / C) * G + G / 2, on = d <= n, col = d > end ? '#ffe44d' : MJ_LINE[mjZone(leg)], st = stopAt[d] !== undefined, next = d === n + 1 && !doneToday, sv = on && m.saved.includes(m.days[d - 1]);
+    out += `<circle cx="${x}" cy="${y}" r="${st ? 5.4 : 3.6}" style="--c:${col}" class="${on ? 'on' : ''}${st ? ' st' : ''}${next ? ' nx' : ''}${sv ? ' sv' : ''}">${on && m.days[d - 1] ? `<title>${esc(t('mjs_day', { n:d }))} · ${esc(m.days[d - 1])}${sv ? ' · 🌕' : ''}</title>` : ''}</circle>`;
   }
   return `<svg class="mj-grid" viewBox="0 0 ${C * G} ${rows * G}" role="img" aria-label="${esc(moonDayText(n))}">${out}</svg>`;
 }
 PAGES.club = function(){
-  const m = moonData(), n = m ? m.days.length : 0, doneToday = !!(m && m.days.includes(todayKey())), L = moonLeg(n, doneToday), d = n - L.a, span = L.b - L.a, full = d >= span;
+  const m = moonData(), n = m ? m.days.length : 0, doneToday = !!(m && m.days.includes(todayKey())), L = moonLeg(n, doneToday), d = n - L.a, span = L.b - L.a,
+    arrived = doneToday && d >= span, full = n >= moonRoad();      // arrived: hôm nay vừa tới một trạm; full: trăng chỉ tròn khi đi hết con đường
   let main = '';
   if (!state.user) main = `<div class="card pad stack" style="align-items:center;text-align:center"><div class="moon-big">${moonSVG(6, MOON_TOTAL)}</div><p class="muted">${esc(t('club_login'))}</p><a class="btn primary" href="#/account">${esc(t('club_login_btn'))}</a></div>`;
   else if (!DEMO && !state.profileReady) {                       // chưa tải xong hồ sơ: hiện bản đã nhớ (chỉ xem), không cho bấm
-    const cm = store.get('moon_' + state.user.uid, null), cn = cm && Array.isArray(cm.days) ? cm.days.length : 0, cl = moonLeg(cn, true);
-    main = `<div class="card pad stack" style="align-items:center;text-align:center"><div class="moon-big">${moonSVG(cn - cl.a, cl.b - cl.a)}</div>${state.profileFailed ? `<p class="muted">${esc(t('club_load_fail'))}</p><button class="btn primary" data-act="moonRetry">${esc(t('club_retry'))}</button>` : `<p class="muted">${cm ? esc(moonDayText(cn)) + ' · ' : ''}${esc(t('loading'))}</p>`}</div>`;
+    const cm = store.get('moon_' + state.user.uid, null), cn = cm && Array.isArray(cm.days) ? cm.days.length : 0;
+    main = `<div class="card pad stack" style="align-items:center;text-align:center"><div class="moon-big">${moonSVG(Math.min(cn, moonRoad()), moonRoad())}</div>${state.profileFailed ? `<p class="muted">${esc(t('club_load_fail'))}</p><button class="btn primary" data-act="moonRetry">${esc(t('club_retry'))}</button>` : `<p class="muted">${cm ? esc(moonDayText(cn)) + ' · ' : ''}${esc(t('loading'))}</p>`}</div>`;
   }   // chưa tải xong hồ sơ: không hiện nút Bắt đầu (bấm nhầm sẽ xoá các ngày đã điểm danh)
   else if (!m) main = `<div class="card pad stack" style="align-items:center;text-align:center"><div class="moon-big">${moonSVG(0, MOON_TOTAL)}</div><button class="btn primary lg" data-act="moonStart">${esc(t('club_start'))}</button></div>`;
   else {
     const got = MOON_MILES.filter(([k]) => m.best >= k), nxt = MOON_MILES.find(([k]) => m.best < k), title = got.length ? t('mj_' + got[got.length - 1][0]) : '';
     const left = span - d;                                            // số ngày còn lại tới trạm kế tiếp
-    main = `<div class="card pad stack" style="align-items:center;text-align:center"><div class="moon-big ${full ? 'full' : ''}">${moonSVG(d, span)}</div>
-      <h2 style="font-size:1.5rem">${esc(full && doneToday ? t('club_full') : moonDayText(n))}</h2>
-      <span class="badge">${esc(t('mj_stage', { n:L.i + 1 }))}${full && doneToday ? ' · ' + esc(moonDayText(n)) : ''}</span>
-      ${full && doneToday ? `<p class="muted">${esc(n > moonRoad() ? t('mj_after') : t('club_full_sub'))}</p>` : `<div class="progress" style="width:100%;max-width:300px"><i style="width:${d / span * 100}%"></i></div><p class="small faint">${esc(L.a >= moonRoad() ? t('mj_after') : left > 1 ? t('mj_leg', { n:left }) : t(doneToday ? 'mj_leg_one' : 'mj_leg_today'))}</p>`}
-      <button class="btn primary lg" data-act="moonCheckin" ${doneToday ? 'disabled' : ''}>${ic('check', 'sm')} ${esc(doneToday ? t('club_done_today') : t('club_checkin'))}</button>
-      ${!doneToday ? `<p class="small" style="color:${m.broken ? 'var(--danger)' : 'var(--ink3)'}">${esc(m.broken ? t('club_broken', { n:m.lost }) : n ? t('club_keep') : '')}</p>` : ''}
+    main = `<div class="card pad stack" style="align-items:center;text-align:center"><div class="moon-big ${full ? 'full' : ''}">${moonSVG(Math.min(n, moonRoad()), moonRoad())}</div>
+      <h2 style="font-size:1.5rem">${esc(full ? t('club_full') : moonDayText(n))}</h2>
+      <span class="badge">${esc(t('mj_stage', { n:L.i + 1 }))}${full ? ' · ' + esc(moonDayText(n)) : ''}</span>
+      ${arrived ? `<p class="muted">${esc(n > moonRoad() ? t('mj_after') : t('club_full_sub'))}</p>` : `<div class="progress" style="width:100%;max-width:300px"><i style="width:${d / span * 100}%"></i></div><p class="small faint">${esc(L.a >= moonRoad() ? t('mj_after') : left > 1 ? t('mj_leg', { n:left }) : t(doneToday ? 'mj_leg_one' : 'mj_leg_today'))}</p>`}
+      ${!doneToday && m.rescue ? `<div class="mj-rescue stack"><p class="small"><b>🌕 ${esc(t('mj_rescue', { g:m.rescue.length, n:m.lost }))}</b></p><button class="btn primary" data-act="moonRescue">${esc(t('mj_rescue_btn', { g:m.rescue.length }))}</button><p class="small faint">${esc(t('mj_rescue_note'))}</p></div>` : ''}
+      <button class="btn ${m.rescue && !doneToday ? 'ghost' : 'primary'} lg" data-act="moonCheckin" ${doneToday ? 'disabled' : ''}>${ic('check', 'sm')} ${esc(doneToday ? t('club_done_today') : t('club_checkin'))}</button>
+      ${!doneToday && !m.rescue ? `<p class="small" style="color:${m.broken ? 'var(--danger)' : 'var(--ink3)'}">${esc(m.broken ? t('club_broken', { n:m.lost }) : n ? t('club_keep') : '')}</p>` : ''}
       ${title ? `<div class="small"><b>${esc(t('mj_title', { name:title }))}</b>${nxt ? ` · <span class="faint">${esc(t('mj_next', { n:nxt[0] - n, name:t('mj_' + nxt[0]) }))}</span>` : ''}</div>` : nxt ? `<div class="small faint">${esc(t('mj_next', { n:nxt[0] - n, name:t('mj_' + nxt[0]) }))}</div>` : ''}
-      ${m.best > 1 ? `<div class="small faint">${esc(t('club_best', { n:m.best }))}</div>` : ''}${m.moons ? `<div class="small faint">🌕 ${esc(t('club_rounds', { n:m.moons }))}</div>` : ''}${state.companion ? `<span class="badge">${ic('heart', 'sm')} ${esc(t('comp_badge'))}</span>${state.companionUntil ? `<div class="small faint">${esc(compUntilText())}</div>` : ''}` : ''}</div>`;
+      ${m.best > 1 ? `<div class="small faint">${esc(t('club_best', { n:m.best }))}</div>` : ''}${m.moons ? `<div class="small"><span class="mj-bank">🌕 × ${m.balance}</span> <span class="faint">${esc(t('mj_bank'))}</span></div>` : ''}${state.companion ? `<span class="badge">${ic('heart', 'sm')} ${esc(t('comp_badge'))}</span>${state.companionUntil ? `<div class="small faint">${esc(compUntilText())}</div>` : ''}` : ''}</div>`;
   }
   /* bố cục: thẻ điểm danh + con đường tìm Moon (moon-story.js) + chương mới nhất, rồi lịch cả hành trình, huy hiệu, ưu đãi */
   page(`${head('club_title', 'club_sub', '', 'gaze', 9)}
@@ -1004,9 +1012,16 @@ Object.assign(ACTIONS, {
   moonReward: async el => { el.disabled = true; if (await claimMoonReward()) { toast(t('mr_got', { x:bonusText(moonRewardMonths(state.moonReward)) })); render(true); } else { el.disabled = false; toast(t('err_generic')); } },
   moonRetry: () => location.reload(),
   moonStart: () => { if (!DEMO && !state.profileReady) return; if (moonData()) return render(true); moonSave({ startedAt:Date.now(), days:[], rounds:0, moons:0 }); },
+  // dùng trăng tích trữ vá các ngày lỡ: thêm các ngày đó vào chuỗi cũ (vẫn còn trong dữ liệu vì chưa điểm danh lại) và ghi vào saved
+  moonRescue: el => {
+    const m = moonData(); if (!m || !m.rescue || m.days.includes(todayKey())) return; el.disabled = true;
+    const old = profile.moon, days = [...new Set([...(old.days || []), ...m.rescue])].sort(), n = m.lost + m.rescue.length;
+    const keep = { ...old, days, saved:[...m.saved, ...m.rescue], moons:m.moons + Math.floor(n / MOON_TOTAL) - Math.floor(m.lost / MOON_TOTAL), best:Math.max(m.best, n) };
+    moonSave(keep).then(ok => { if (!ok) { el.disabled = false; return; } toast(t('mj_rescued', { g:m.rescue.length, n })); mjAfterCheckin(keep.best); });
+  },
   moonCheckin: () => {
     const m = moonData(); if (!m) return; const k = todayKey(); if (m.days.includes(k)) return toast(t('club_done_today'));
-    const { broken, lost, ...keep } = m;                              // chuỗi đã đứt thì moonData() trả days rỗng nên bắt đầu lại từ ngày 1
+    const { broken, lost, balance, rescue, ...keep } = m;                              // chuỗi đã đứt thì moonData() trả days rỗng nên bắt đầu lại từ ngày 1
     keep.days = [...m.days, k]; keep.best = Math.max(keep.best || 0, keep.days.length);     // mảng mới, để lưu lỗi thì dữ liệu cũ vẫn nguyên
     const n = keep.days.length; if (n % MOON_TOTAL === 0) keep.moons = (m.moons || 0) + 1; else keep.moons = m.moons || 0;   // mỗi 30 ngày liên tiếp = +1 trăng tròn
     moonSave(keep).then(async ok => { if (ok && n === MOON_REWARD_AT && !state.moonReward && moonRewardCfg().on && await claimMoonReward()) { toast(t('mr_got', { x:bonusText(moonRewardMonths(state.moonReward)) })); render(true); } else if (ok) { if (n % MOON_TOTAL === 0) toast(t('mj_full_plus')); else if (MOON_MILES.some(([x]) => x === n)) toast(t('mj_unlocked', { name:t('mj_' + n) })); } if (ok) mjAfterCheckin(keep.best); });
