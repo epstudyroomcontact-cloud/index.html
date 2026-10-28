@@ -101,7 +101,7 @@ function blogCard(p){
 }
 function reviewCard(r){ return `<div class="card review"><div class="row between">${stars(+r.rating || 5)}<span class="small faint">${esc(fmtDate(r.createdAt))}</span></div><p>${esc(r.text)}</p><div class="row between"><b class="small">${esc(r.name || '—')}</b>${state.isAdmin ? `<button type="button" class="btn danger sm" data-act="reviewDelPublic" data-id="${esc(r.id)}">${ic('trash', 'sm')} Xoá</button>` : ''}</div></div>`; }
 function challengeCard(){
-  return `<section class="card pad" style="margin-top:34px"><div class="grid g2" style="align-items:center"><div><span class="badge">${ic('check', 'sm')} 30 days</span><h2 style="font-size:1.5rem;margin:10px 0 6px" ${cms('ch_title')}>${esc(ctext('ch_title'))}</h2><p class="muted" ${cms('ch_desc')}>${esc(ctext('ch_desc'))}</p></div>
+  return `<section class="card pad" style="margin-top:34px"><div class="grid g2" style="align-items:center"><div><span class="badge">${ic('check', 'sm')} 30 days</span><h2 style="font-size:1.5rem;margin:10px 0 6px" ${cms('ch_title')}>${esc(ctext('vch_title'))}</h2><p class="muted" ${cms('ch_desc')}>${esc(ctext('ch_desc'))}</p></div>
     <form class="stack" data-form="challenge"><input class="input" id="ch-name" placeholder="${esc(t('ch_name'))}" required maxlength="60" value="${esc(state.user ? displayName() : '')}"><input class="input" id="ch-email" type="email" placeholder="${esc(t('ch_email'))}" required maxlength="160" value="${esc(state.user ? state.user.email : '')}"><button class="btn primary" type="submit" id="ch-btn">${esc(t('ch_btn'))}</button></form></div></section>`;
 }
 const HOME_KEYS = ['about', 'hero', 'stats', 'today', 'blog', 'shop', 'thanks', 'challenge', 'faq'];
@@ -176,16 +176,74 @@ function pickPlayable(){
 const liveEmbedSrc = () => branding.ytLiveId ? `https://www.youtube.com/embed/${youTubeId(branding.ytLiveId)}?rel=0` : (branding.ytChannelId ? `https://www.youtube.com/embed/live_stream?channel=${encodeURIComponent(branding.ytChannelId)}` : '');
 PAGES.watch = function(){
   const liveSrc = liveEmbedSrc(), { live, next } = liveState(), url = watchUrl(), replay = !playingId && !live && !watchLive, pv = replay ? pickPlayable() : null;
-  const src = playingId ? `https://www.youtube-nocookie.com/embed/${playingId}?autoplay=1&rel=0` : (live || watchLive) ? liveSrc : pv ? `https://www.youtube-nocookie.com/embed/${pv}?rel=0` : '';
+  const vid = playingId || (!(live || watchLive) && pv) || '', src = playingId ? ytVodSrc(playingId, true) : (live || watchLive) ? liveSrc : pv ? ytVodSrc(pv, false) : '';
+  ytp = { id:vid, t:vidPos[vid] || 0, d:0, ready:false, tries:0 };
   page(`${head('watch_title', 'watch_sub', url ? `<a class="btn secondary" target="_blank" rel="noopener" href="${esc(url)}">${ic('link', 'sm')} ${esc(t('open_youtube'))}</a>` : '', 'gaze', 5)}
-    <div class="grid g-main"><div><div class="player">${src ? `<iframe src="${esc(src)}" title="YouTube" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe>` : `<div class="ph">${paint('gaze', { crop:'banner', seed:4 })}<div class="glass" style="position:relative"><h3 style="margin-bottom:4px">${esc(t('offline'))}</h3><p class="muted small">${esc(t('offline_sub'))}</p></div></div>`}</div>${replay && pv ? `<p class="small muted mt-s">${esc(t('stream_replay'))}</p>` : ''}</div>
+    <div class="grid g-main"><div><div class="player">${src ? `<iframe id="yt-frame" src="${esc(src)}" title="YouTube" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe>` : `<div class="ph">${paint('gaze', { crop:'banner', seed:4 })}<div class="glass" style="position:relative"><h3 style="margin-bottom:4px">${esc(t('offline'))}</h3><p class="muted small">${esc(t('offline_sub'))}</p></div></div>`}</div>${replay && pv ? `<p class="small muted mt-s">${esc(t('stream_replay'))}</p>` : ''}${vid ? `<section class="card pad chapters mt-s" id="ch-box">${chaptersHTML()}</section>` : ''}</div>
       <aside class="card pad stack"><div class="row between"><b>${esc(live ? t('live_now') : t('nav_schedule'))}</b>${live ? `<span class="badge live">LIVE</span>` : ''}</div>
         <div class="card pad" style="background:var(--surface2)"><div class="small muted">${esc(live ? t('live_now') : next ? t('next_live') : t('no_next'))}</div><div class="mono" id="next-card-w" style="font-size:1.5rem;font-weight:700;color:var(--accent-strong)">${live ? `${live.start.setZone(userTZ).toFormat('HH:mm')} – ${live.end.setZone(userTZ).toFormat('HH:mm')}` : next ? `${next.start.setZone(userTZ).toFormat('ccc HH:mm')}` : '—'}</div></div>
         ${playingId ? `<button class="btn secondary" data-act="playLive">${ic('play', 'sm')} ${esc(t('nav_watch'))}</button>` : replay ? `<button class="btn secondary" data-act="watchCheckLive">${ic('play', 'sm')} ${esc(t('watch_check_live'))}</button>` : ''}
         <a class="btn primary" href="#/schedule">${ic('calendar', 'sm')} ${esc(t('btn_see_schedule'))}</a><a class="btn secondary" href="#/focus">${ic('timer', 'sm')} ${esc(t('btn_start_focus'))}</a></aside></div>
     <h2 style="font-size:1.2rem;margin:30px 0 14px">${esc(t('latest_videos'))}</h2>
-    ${videos.length ? `<div class="vgrid">${videos.map(v => `<button type="button" class="vcard" data-act="playVideo" data-id="${esc(v.id)}"><div class="th"><img loading="lazy" alt="" src="https://i.ytimg.com/vi/${esc(v.id)}/hqdefault.jpg"></div><h4>${esc(v.title || 'YouTube')}</h4></button>`).join('')}</div>` : emptyBox('video', t('no_videos'), '')}`);
+    ${videos.length ? `<div class="vgrid">${videos.map(v => `<button type="button" class="vcard" data-act="playVideo" data-id="${esc(v.id)}"><div class="th"><img loading="lazy" alt="" src="https://i.ytimg.com/vi/${esc(v.id)}/hqdefault.jpg"></div>${v.chapters && v.chapters.length ? `<span class="ch-n">${ic('menu', 'sm')} ${esc(t('vch_count', { n:v.chapters.length }))}</span>` : ''}<h4>${esc(v.title || 'YouTube')}</h4></button>`).join('')}</div>` : emptyBox('video', t('no_videos'), '')}`);
+  const f = $('yt-frame'); if (f && vid) f.addEventListener('load', ytHello);
 };
+/* ---- Mục lục (chương) cho video đã live: lấy mốc giờ trong mô tả YouTube hoặc admin tự nhập; không có thì tự chia đều theo độ dài video.
+   Tua bằng postMessage tới khung YouTube (enablejsapi), không tải thêm thư viện. ---- */
+let ytp = { id:'', t:0, d:0, ready:false, tries:0 };
+const vidPos = {};                                         // chỗ đang xem của từng video (trong phiên), để trang vẽ lại không bắt xem lại từ đầu
+const ytOrigin = () => /^https?:/.test(location.origin) ? '&origin=' + encodeURIComponent(location.origin) : '';
+const ytVodSrc = (id, auto) => `https://www.youtube-nocookie.com/embed/${id}?rel=0&enablejsapi=1${auto ? '&autoplay=1' : ''}${vidPos[id] > 5 ? '&start=' + Math.floor(vidPos[id]) : ''}${ytOrigin()}`;
+const fmtClock = s => { s = Math.max(0, Math.floor(s)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = String(s % 60).padStart(2, '0'); return h ? `${h}:${String(m).padStart(2, '0')}:${x}` : `${m}:${x}`; };
+function chapterList(){
+  const v = videos.find(x => x.id === ytp.id), list = v && v.chapters || [];
+  if (list.length) return { list, auto:false };
+  const d = ytp.d; if (!d || d < 20 * 60) return { list:[], auto:true };
+  const step = d <= 3 * 3600 ? 1800 : 3600, out = [];         // dưới 3 tiếng: mỗi phần 30 phút, dài hơn: mỗi phần 1 tiếng
+  for (let s = 0, n = 1; s < d - step / 3; s += step, n++) out.push({ s, title:t('vch_part', { n }) });
+  return { list:out, auto:true, step };
+}
+const chapterAt = (list, sec) => { let i = -1; list.forEach((c, k) => { if (sec + .5 >= c.s) i = k; }); return i; };
+function chaptersHTML(){
+  const { list, auto, step } = chapterList();
+  if (!list.length) return `<div class="row between"><b>${ic('menu', 'sm')} ${esc(t('vch_title'))}</b></div><p class="small muted">${esc(t(ytp.d ? 'vch_none' : 'vch_wait'))}</p>`;
+  const end = ytp.d || list[list.length - 1].s * 1.15 + 60, cur = chapterAt(list, ytp.t);
+  return `<div class="row between"><b>${ic('menu', 'sm')} ${esc(t('vch_title'))} <span class="muted small">· ${list.length}</span></b>
+      <span class="row" style="gap:6px"><button type="button" class="btn ghost icon sm" data-act="chStep" data-d="-1" aria-label="${esc(t('vch_prev'))}" title="${esc(t('vch_prev'))}">${ic('chev-l', 'sm')}</button><button type="button" class="btn ghost icon sm" data-act="chStep" data-d="1" aria-label="${esc(t('vch_next'))}" title="${esc(t('vch_next'))}">${ic('chev-r', 'sm')}</button></span></div>
+    <div class="ch-bar" role="group" aria-label="${esc(t('vch_title'))}">${list.map((c, i) => { const nx = i + 1 < list.length ? list[i + 1].s : end, w = Math.max(.5, (Math.min(nx, end) - c.s) / end * 100); return `<button type="button" class="ch-seg ${i === cur ? 'on' : ''}" style="flex:${w.toFixed(2)} 1 0" data-act="chGo" data-s="${c.s}" title="${esc(fmtClock(c.s) + ' · ' + c.title)}" aria-label="${esc(fmtClock(c.s) + ' ' + c.title)}"></button>`; }).join('')}</div>
+    <ol class="ch-list">${list.map((c, i) => `<li><button type="button" class="ch-row ${i === cur ? 'on' : ''}" data-act="chGo" data-s="${c.s}"${i === cur ? ' aria-current="true"' : ''}><span class="mono">${esc(fmtClock(c.s))}</span><span class="ch-t">${esc(c.title)}</span></button></li>`).join('')}</ol>
+    ${auto ? `<p class="small muted">${esc(t('vch_auto', { m:Math.round(step / 60) }))}</p>` : ''}`;
+}
+function drawChapters(){ const b = $('ch-box'); if (b) b.innerHTML = chaptersHTML(); }
+function markChapter(){
+  const b = $('ch-box'); if (!b) return;
+  const { list } = chapterList(), cur = chapterAt(list, ytp.t);
+  if (b.dataset.cur === String(cur)) return; b.dataset.cur = cur;
+  b.querySelectorAll('.ch-seg').forEach((x, i) => x.classList.toggle('on', i === cur));
+  b.querySelectorAll('.ch-row').forEach((x, i) => { x.classList.toggle('on', i === cur); if (i === cur) x.setAttribute('aria-current', 'true'); else x.removeAttribute('aria-current'); });
+}
+function ytPost(msg){ const f = $('yt-frame'); if (!f || !f.contentWindow) return false; try { f.contentWindow.postMessage(JSON.stringify({ ...msg, id:1, channel:'widget' }), new URL(f.src).origin); return true; } catch (e) { return false; } }
+/* Bắt tay với khung YouTube: gửi "listening" đến khi khung trả lời (YouTube mới gửi giờ đang phát + độ dài video) */
+function ytHello(){
+  ytp.tries = 0; clearInterval(ytHello.iv);
+  ytHello.iv = setInterval(() => { if (ytp.ready || ++ytp.tries > 40 || !$('yt-frame')) return clearInterval(ytHello.iv); ytPost({ event:'listening' }); }, 400);
+}
+window.addEventListener('message', e => {
+  if (!/^https:\/\/www\.youtube(-nocookie)?\.com$/.test(e.origin)) return;
+  const f = $('yt-frame'); if (!f || e.source !== f.contentWindow) return;
+  let d; try { d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; } catch (x) { return; }
+  if (!d || typeof d !== 'object') return;
+  ytp.ready = true; const info = d.info; if (!info || typeof info !== 'object') return;
+  if (typeof info.currentTime === 'number' && isFinite(info.currentTime)) { ytp.t = info.currentTime; if (ytp.id) vidPos[ytp.id] = info.currentTime; }
+  if (info.duration > 0 && Math.abs(info.duration - ytp.d) > 1) { ytp.d = info.duration; drawChapters(); return; }
+  markChapter();
+});
+function chSeek(sec){
+  sec = Math.max(0, +sec || 0); ytp.t = sec; if (ytp.id) vidPos[ytp.id] = sec;
+  if (ytp.ready) { ytPost({ event:'command', func:'seekTo', args:[sec, true] }); ytPost({ event:'command', func:'playVideo', args:[] }); }
+  else { const f = $('yt-frame'); if (f && ytp.id) f.src = ytVodSrc(ytp.id, true); }       // khung chưa trả lời (bị chặn / chưa tải xong): mở lại đúng chỗ
+  markChapter();
+}
 
 /* =========================================================
    FOCUS ROOM — Pomodoro + to-do (cho người xem)
@@ -712,6 +770,8 @@ Object.assign(ACTIONS, {
   cartDel: el => { cart = cart.filter(x => x.id !== el.dataset.id); saveCart(); },
   checkout: startCheckout,
   copy: el => { try { navigator.clipboard.writeText(el.dataset.v); } catch (e) {} toast(t('copied')); },
+  chGo: el => chSeek(el.dataset.s),
+  chStep: el => { const { list } = chapterList(), i = chapterAt(list, ytp.t), d = +el.dataset.d, j = d < 0 && i >= 0 && ytp.t - list[i].s > 3 ? i : i + d; if (list[j]) chSeek(list[j].s); },
   playVideo: el => { playingId = el.dataset.id; if (route.name === 'watch') { render(true); window.scrollTo({ top:0, behavior:'smooth' }); } },
   playLive: () => { playingId = null; watchLive = true; render(true); },
   watchCheckLive: () => { playingId = null; watchLive = true; render(true); },

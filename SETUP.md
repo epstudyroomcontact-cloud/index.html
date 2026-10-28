@@ -117,6 +117,10 @@ Không cần cài đặt thêm. Thành viên đã đăng nhập vào mục **Moo
 2. Copy dòng **Channel ID** (bắt đầu bằng `UC…`).
 3. Vào Admin console → **Giao diện & Menu** → cuộn xuống mục **YouTube** → dán vào ô **Channel ID** → **Lưu YouTube**.
 4. Trang **Watch live** sẽ nhúng buổi live đang phát và hiện các video mới. Bạn cũng có thể thêm video thủ công ở ngay mục đó.
+5. **Mục lục (chương) cho video đã live:** khi xem lại một video, dưới khung phát có thanh chương và danh sách mốc giờ, bấm vào là tua tới đó. Web lấy mục lục theo thứ tự:
+   - Mục lục bạn nhập ở ô **Mục lục (chương) cho video này** (bấm mở dưới mỗi video thêm thủ công). Mỗi dòng một mốc, ví dụ `0:00 Chào nhau`, `5:00 Pomodoro 1`, `1:05:00 Nghỉ giải lao`. Cần ít nhất 2 mốc. Muốn thêm mục lục cho video đã có trên kênh thì dán link video đó vào đây, web gộp làm một, không hiện trùng.
+   - Nếu không nhập: các mốc giờ bạn ghi trong **mô tả video trên YouTube** (đúng kiểu YouTube dùng để tạo chương).
+   - Nếu cả hai đều không có: video dài hơn 20 phút được tự chia đều, mỗi phần 30 phút (video dài hơn 3 tiếng thì mỗi phần 1 tiếng).
 
 ---
 

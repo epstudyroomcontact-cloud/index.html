@@ -727,3 +727,20 @@ button.sb-item{width:100%;background:none;border:0;font:inherit;font-weight:600;
 /* Hành trình trăng: trăng tích trữ và hộp dùng trăng giữ chuỗi */
 .mj-rescue{width:100%;max-width:360px;padding:12px 14px;border-radius:14px;border:1.5px solid #ffd23f;background:rgba(255,228,77,.1);align-items:center}
 .mj-grid circle.sv{fill:#fff2c4;stroke:#ffd23f;stroke-width:1.6}
+
+/* Mục lục (chương) cho video đã live — trang Xem live */
+.chapters{display:flex;flex-direction:column;gap:12px}
+.chapters b .ic,.ch-n .ic{vertical-align:-2px}
+.ch-bar{display:flex;gap:3px;height:12px}
+.ch-seg{min-width:6px;border-radius:4px;background:var(--line2);border:0;padding:0;cursor:pointer;transition:background .15s,transform .15s}
+.ch-seg:hover{background:var(--ink3);transform:scaleY(1.25)}
+.ch-seg.on{background:var(--accent)}
+.ch-seg:focus-visible,.ch-row:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ch-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:4px;max-height:280px;overflow-y:auto;overscroll-behavior:contain}
+.ch-row{width:100%;display:flex;align-items:baseline;gap:10px;text-align:left;padding:9px 10px;border-radius:10px;border:1px solid transparent;background:none;color:var(--ink);cursor:pointer;min-height:40px}
+.ch-row:hover{background:var(--accent-soft)}
+.ch-row.on{background:var(--accent-soft);border-color:rgba(var(--accent-rgb),.45)}
+.ch-row .mono{color:var(--accent-strong);font-weight:700;font-size:.85rem;flex:none;min-width:4.4em}
+.ch-row .ch-t{font-size:.9rem;line-height:1.35;overflow-wrap:anywhere}
+.vcard .ch-n{align-self:flex-start;display:inline-flex;align-items:center;gap:5px;font-size:.75rem;font-weight:700;color:var(--accent-strong);background:var(--accent-soft);border-radius:999px;padding:2px 9px;margin-bottom:-3px}
+@media (max-width:640px){.ch-list{grid-template-columns:1fr;max-height:240px}.ch-bar{height:14px}}

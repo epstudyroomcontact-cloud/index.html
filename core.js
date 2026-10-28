@@ -312,7 +312,7 @@ async function refreshSite(force){
 }
 function goLegacy(){ if (LEGACY.on || DEMO) return; LEGACY.on = true; SITE.on = false; if (liveUnsub) { liveUnsub(); liveUnsub = null; } listenLegacy(); }       // admin: xem thay đổi ngay
 async function listenAll(){
-  if (DEMO) { loadDemo(); listenWeeks(); return; }
+  if (DEMO) { loadDemo(); listenWeeks(); loadVideos(); return; }
   const c = store.get('site', null);
   if (c && c.d && c.d.v >= SITE_V) { SITE.on = true; applySite(c.d); listenWeeks(); }                          // hiện ngay bản đã lưu
   const got = await refreshSite(false);
@@ -336,7 +336,7 @@ function listenLegacy(){
 }
 function loadDemo(){
   branding = { ...branding, announcement:{ vi:'Chào mừng đến EP Study Room (chế độ xem thử)', en:'Welcome to EP Study Room (demo preview)' }, contacts:{ live:'https://youtube.com' }, socialLinks:{ YouTube:'https://youtube.com', Instagram:'https://instagram.com' }, ytLiveId:'jfKfPfyJRdk',
-    videos:[{ url:'https://youtu.be/jfKfPfyJRdk', title:'lofi hip hop radio — beats to relax/study to' },{ url:'https://youtu.be/5qap5aO4i9A', title:'Study with me — 2 hours Pomodoro 50/10' },{ url:'https://youtu.be/lTRiuFIWV54', title:'Rainy night study session' }] };
+    videos:[{ url:'https://youtu.be/jfKfPfyJRdk', title:'lofi hip hop radio — beats to relax/study to' },{ url:'https://youtu.be/5qap5aO4i9A', title:'Study with me — 2 hours Pomodoro 50/10', chapters:'0:00 Chào nhau và đặt mục tiêu\n5:00 Pomodoro 1\n55:00 Nghỉ giải lao\n1:05:00 Pomodoro 2\n1:55:00 Tổng kết buổi học' },{ url:'https://youtu.be/lTRiuFIWV54', title:'Rainy night study session' }] };
   payments = { bankBin:'970436', accountNo:'0123456789', accountName:'NGUYEN VAN A', stripe:'https://stripe.com' };
   music = { picks:[{ title:{ en:'Rain & piano', vi:'Mưa và piano' }, note:{ en:'Soft, no lyrics', vi:'Nhẹ nhàng, không lời' }, url:'https://www.youtube.com/watch?v=jfKfPfyJRdk' }, { title:{ en:'Focus playlist', vi:'Danh sách tập trung' }, note:{}, url:'https://open.spotify.com/playlist/37i9dQZF1DWZeKCadgRdKQ' }], recent:[{ title:{ en:'Late-night study mix', vi:'Mix học khuya' }, note:{ en:'What I have on repeat this week', vi:'Tuần này mình nghe đi nghe lại' }, url:'https://open.spotify.com/playlist/37i9dQZF1DX8Uebhn9wzrS' }] };
   supporters = { items:[{ id:'u1', name:'Linh', show:true, since:'2026-09-01' }, { id:'u2', name:'Daniel', show:true, since:'2026-09-20' }, { id:'u3', name:'Mai', show:true, since:'2026-10-05' }] };
@@ -363,17 +363,34 @@ function loadDemo(){
 
 /* ---- video mới nhất từ kênh YouTube (RSS qua rss2json) + danh sách thủ công ---- */
 let videos = [];
+/* Mục lục video: mỗi dòng có mốc giờ là một chương, như "0:00 Mở đầu", "1:05:30 - Pomodoro 3" hoặc "Nghỉ giải lao 50:00" (giống cách YouTube đọc mô tả). Cần ít nhất 2 mốc. */
+function parseChapters(txt){
+  const out = [], seen = {};
+  String(txt || '').replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|li)>/gi, '\n').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').split(/\r?\n/).forEach(line => {
+    line = line.trim(); if (!line) return;
+    const TSR = '[\\[(]?(?:(\\d{1,2}):)?(\\d{1,2}):(\\d{2})[\\])]?';
+    let m = line.match(new RegExp('^' + TSR + '\\s*[-–—:|.)]*\\s*(.*)$')), title;
+    if (m) title = m[4]; else if ((m = line.match(new RegExp('^(.*?)\\s*[-–—:|]?\\s*' + TSR + '$')))) { title = m[1]; m = [m[0], m[2], m[3], m[4]]; } else return;
+    const h = +(m[1] || 0), mi = +m[2], se = +m[3]; if (se > 59 || (m[1] && mi > 59)) return;
+    const sec = h * 3600 + mi * 60 + se; if (seen[sec]) return; seen[sec] = 1;
+    out.push({ s:sec, title:String(title || '').replace(/^[-–—:|.\s]+|[-–—:|\s]+$/g, '').slice(0, 90) });
+  });
+  out.sort((a, b) => a.s - b.s);
+  return out.length >= 2 ? out.map((c, i) => ({ s:c.s, title:c.title || t('vch_part', { n:i + 1 }) })) : [];
+}
 async function loadVideos(){
-  const manual = (branding.videos || []).map(v => ({ id:youTubeId(v.url), title:v.title || '' })).filter(v => v.id);
+  const manual = (branding.videos || []).map(v => ({ id:youTubeId(v.url), title:v.title || '', chapters:parseChapters(v.chapters) })).filter(v => v.id);
+  /* video thêm tay trùng với video lấy từ kênh: gộp làm một (tiêu đề / mục lục admin nhập được ưu tiên) */
+  const merge = list => { const byId = {}; manual.forEach(m => { byId[m.id] = m; }); const out = list.map(v => { const m = byId[v.id]; if (!m) return v; delete byId[v.id]; return { id:v.id, title:m.title || v.title, chapters:m.chapters.length ? m.chapters : v.chapters || [] }; }); return [...out, ...manual.filter(m => byId[m.id])]; };
   videos = manual;
   if (branding.ytChannelId && !DEMO) {
-    const ck = 'yt_' + branding.ytChannelId; let cached = null;
+    const ck = 'yt2_' + branding.ytChannelId; let cached = null;
     try { cached = JSON.parse(sessionStorage.getItem(ck) || 'null'); } catch (e) {}
-    if (cached && Date.now() - cached.t < 15 * 60e3) videos = [...cached.v, ...manual];
+    if (cached && Date.now() - cached.t < 15 * 60e3) videos = merge(cached.v);
     else try {
       const r = await fetch('https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://www.youtube.com/feeds/videos.xml?channel_id=' + branding.ytChannelId));
       const j = await r.json();
-      if (j.status === 'ok') { const v = j.items.slice(0, 12).map(i => ({ id:youTubeId(i.link), title:i.title })).filter(i => i.id); try { sessionStorage.setItem(ck, JSON.stringify({ t:Date.now(), v })); } catch (e) {} videos = [...v, ...manual]; }
+      if (j.status === 'ok') { const v = j.items.slice(0, 12).map(i => ({ id:youTubeId(i.link), title:i.title, chapters:parseChapters(i.description || i.content) })).filter(i => i.id); try { sessionStorage.setItem(ck, JSON.stringify({ t:Date.now(), v })); } catch (e) {} videos = merge(v); }
     } catch (e) { console.warn('rss', e); }
   }
   if (['home', 'watch', 'focus'].includes(route.name)) render();

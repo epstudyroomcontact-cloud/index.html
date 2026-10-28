@@ -353,3 +353,16 @@
   };
   Object.keys(MJ2).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], MJ2[l]); });
 })();
+
+/* Mục lục (chương) cho video đã live ở trang Xem live (hi, ja, ko, zh, fr, es). en, vi nằm trong js/i18n.js */
+(function () {
+  const CH = {
+    hi:{"vch_title": "अध्याय", "vch_count": "{n} अध्याय", "vch_part": "भाग {n}", "vch_prev": "पिछला अध्याय", "vch_next": "अगला अध्याय", "vch_auto": "इस वीडियो में अध्याय सूची नहीं है, इसलिए इसे {m} मिनट के भागों में बाँटा गया है।", "vch_none": "यह वीडियो छोटा है, इसलिए इसमें अध्याय नहीं हैं।", "vch_wait": "अध्याय लोड हो रहे हैं…"},
+    ja:{"vch_title": "チャプター", "vch_count": "{n}チャプター", "vch_part": "パート{n}", "vch_prev": "前のチャプター", "vch_next": "次のチャプター", "vch_auto": "この動画にはチャプターがないので、{m}分ごとに区切っています。", "vch_none": "短い動画なのでチャプターはありません。", "vch_wait": "チャプターを読み込み中…"},
+    ko:{"vch_title": "챕터", "vch_count": "챕터 {n}개", "vch_part": "{n}부", "vch_prev": "이전 챕터", "vch_next": "다음 챕터", "vch_auto": "이 영상에는 챕터 목록이 없어서 {m}분 단위로 나눴어요.", "vch_none": "짧은 영상이라 챕터가 없어요.", "vch_wait": "챕터를 불러오는 중…"},
+    zh:{"vch_title": "章节", "vch_count": "{n} 个章节", "vch_part": "第 {n} 部分", "vch_prev": "上一章节", "vch_next": "下一章节", "vch_auto": "此视频没有章节列表，因此按每 {m} 分钟分段。", "vch_none": "此视频较短，没有章节。", "vch_wait": "正在加载章节…"},
+    fr:{"vch_title": "Chapitres", "vch_count": "{n} chapitres", "vch_part": "Partie {n}", "vch_prev": "Chapitre précédent", "vch_next": "Chapitre suivant", "vch_auto": "Cette vidéo n'a pas de chapitres, elle est donc découpée en parties de {m} minutes.", "vch_none": "Cette vidéo est courte, elle n'a pas de chapitres.", "vch_wait": "Chargement des chapitres…"},
+    es:{"vch_title": "Capítulos", "vch_count": "{n} capítulos", "vch_part": "Parte {n}", "vch_prev": "Capítulo anterior", "vch_next": "Capítulo siguiente", "vch_auto": "Este vídeo no tiene capítulos, así que se divide en partes de {m} minutos.", "vch_none": "Este vídeo es corto, así que no tiene capítulos.", "vch_wait": "Cargando capítulos…"}
+  };
+  Object.keys(CH).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], CH[l]); });
+})();
