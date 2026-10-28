@@ -497,7 +497,7 @@ function plPeriod(S){
 function plStudyCel(goal){
   const tag = plKey(0) + ':' + goal;
   if (PL.preview || !PL.prefs || PL.prefs.studyCel === tag) return;
-  plSavePrefs({ studyCel:tag }); PL.celFresh = tag; toast(t('pl_sg_toast', { g:fmtMin(goal) }), 4500);
+  plSavePrefs({ studyCel:tag }); PL.celFresh = tag; soundPlay('goal'); toast(t('pl_sg_toast', { g:fmtMin(goal) }), 4500);
 }
 async function plStudyCheck(){                                     // gọi sau mỗi phiên tập trung xong (addFocus ở pages.js), kể cả khi chưa mở Planner
   if (DEMO || !state.user || !plAccess()) return;
@@ -507,7 +507,7 @@ async function plStudyCheck(){                                     // gọi sau 
   const goal = p.studyGoalMin || 0, ws = plWeekStart(0), tag = plKey(0) + ':' + goal;
   if (!goal || p.studyCel === tag || plFocusSum(Array.from({ length:7 }, (_, i) => ws.plus({ days:i }))).m < goal) return;
   if (PL.uid === uid && PL.prefs) plSavePrefs({ studyCel:tag }); else plRef('_prefs').set({ studyCel:tag }, { merge:true }).catch(e => console.warn('planner prefs', e.code));
-  PL.celFresh = tag; setTimeout(() => toast(t('pl_sg_toast', { g:fmtMin(goal) }), 5000), 2400);   // để sau thông báo "phiên tập trung xong"
+  PL.celFresh = tag; setTimeout(() => { soundPlay('goal'); toast(t('pl_sg_toast', { g:fmtMin(goal) }), 5000); }, 2400);   // để sau thông báo "phiên tập trung xong"
 }
 /* ---------- nhắc việc ----------
    Khi trang đang mở: plRemTick nhắc ngay trong trang (toast + chuông) và hiện thông báo của trình duyệt nếu đã cho phép.
@@ -541,13 +541,7 @@ async function plPushOff(){                                         // tắt nh�
   await db.collection('users').doc(old.uid).update({ 'plPush.tokens':F.arrayRemove(old.token), 'plPush.pinTokens':F.arrayRemove(old.token) }).catch(() => {});
 }
 const plPushHere = () => { const p = store.get('pl_push', null); return !!(p && state.user && p.uid === state.user.uid && plPushOk()); };
-const plChimeOn = () => store.get('pl_chime', true) !== false;
-function plChime(){                                                 // chuông 2 tiếng tự tạo bằng Web Audio (không cần file âm thanh); trả về true nếu chuông kêu được
-  if (!plChimeOn() || typeof audio !== 'function') return false;
-  const a = audio(); if (!a || a.state !== 'running') return false;   // trình duyệt còn khoá tiếng (khách chưa chạm vào trang): không xếp chuông, để thông báo của máy kêu thay
-  [0, .55].forEach(d => [[880, .22], [1318, .09], [1760, .04]].forEach(([f, v]) => { const o = a.createOscillator(), g = a.createGain(), at = a.currentTime + d; o.type = 'sine'; o.frequency.value = f; g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(v, at + .01); g.gain.exponentialRampToValueAtTime(.0008, at + 1.1); o.connect(g); g.connect(a.destination); o.start(at); o.stop(at + 1.2); }));
-  return true;
-}
+const plChime = () => soundPlay('planner');                  // chuông Planner: cài đặt trong bảng chuông 🔔 (core.js SND); trả về true nếu chuông kêu được
 const plWeekNow = u => PL.key === plKey(0) && PL.tasks && PL.uid === u.uid ? PL.tasks : (PL.remTasks && PL.remTasks.uid === u.uid ? PL.remTasks.tasks : null);   // việc tuần này đang có trong máy (không cần tải)
 function plRemTick(){
   const u = state.user; if (!u || !plAccess() || !plRemOn()) return;

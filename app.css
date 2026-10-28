@@ -843,3 +843,11 @@ button.sb-item{width:100%;background:none;border:0;font:inherit;font-weight:600;
 .fn-card .don-ic{background:var(--accent);color:var(--on-accent)}
 .fn-x{position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:var(--ink3)}.fn-x:hover{background:var(--surface2);color:var(--ink)}
 @media (min-width:901px){.g-main>.stack>*{order:2}.g-main>.stack>:first-child{order:0}.g-main>.stack>.fn-card{order:1}}
+.snd .switch{margin-top:10px}
+.snd-vol{width:100%;margin:4px 0 6px;accent-color:var(--accent)}
+.snd-row{display:flex;align-items:center;gap:6px;margin-top:8px}
+.snd-row.off .snd-sel{opacity:.5}
+.snd-on{display:flex;align-items:center;gap:6px;flex:1 1 0;min-width:0;font-size:.8rem;font-weight:600;color:var(--ink2);cursor:pointer}
+.snd-on span{overflow-wrap:anywhere}
+.snd-sel{flex:0 0 108px;width:108px;padding:5px 6px;font-size:.78rem}
+.snd .lr-chip{flex:none}

@@ -676,13 +676,12 @@ function updateNext(){
      Luôn nhắc cả lúc live bắt đầu, luôn kêu chuông kèm thông báo (âm chuông/âm lượng dùng mặc định hoặc cài đặt cũ đã lưu).
    ========================================================= */
 const NOTIF_OK = typeof Notification !== 'undefined';
-const LR_PRESETS = [5, 10, 15, 30, 60], LR_TONES = ['bell', 'soft', 'alarm'];
+const LR_PRESETS = [5, 10, 15, 30, 60];
 const LR = (() => {
   const oldLead = +store.get('lr_lead', 10) || 0;      // đọc cài đặt của bản trước
   const leads = store.get('lr_leads', oldLead ? [oldLead] : []);
   return { on:store.get('lr_on', NOTIF_OK && Notification.permission === 'granted'), leads:Array.isArray(leads) ? leads.filter(n => n > 0 && n <= 720).slice(0, 6) : [10],
     atStart:true, style:'both',      // bảng chuông đã bỏ tuỳ chọn kiểu nhắc / tắt nhắc lúc bắt đầu, nên luôn dùng mặc định
-    tone:LR_TONES.includes(store.get('lr_tone')) ? store.get('lr_tone') : 'bell', vol:Math.min(1, Math.max(.1, +store.get('lr_vol', .8) || .8)),
     mode:store.get('lr_mode', 'all') === 'pick' ? 'pick' : 'all', picked:store.get('lr_picked', {}) || {} };
 })();
 let lrSent = store.get('lr_sent', {}), swReg = null, lrTitleBak = '';
@@ -691,14 +690,56 @@ const lrSound = () => LR.style !== 'notif', lrPop = () => LR.style !== 'sound';
 const lrWanted = x => LR.mode === 'all' || !!LR.picked[x.sched.toMillis()];      // đánh dấu theo giờ lịch: dời giờ bắt đầu vẫn giữ lựa chọn
 const lrSoon = now => upcomingPool().filter(x => x.end.toMillis() > now).sort((a, b) => a.start - b.start);
 const audioLocked = () => typeof actx === 'undefined' || !actx || actx.state !== 'running';
-function liveChime(tone){                                          // âm chuông tự tạo bằng Web Audio (không cần file âm thanh)
-  if (typeof audio !== 'function') return; const a = audio(); if (!a) return;
-  const v = LR.vol, note = (f, at, peak, len, type) => { const o = a.createOscillator(), g = a.createGain(); o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(peak * v, at + .01); g.gain.exponentialRampToValueAtTime(.0008, at + len); o.connect(g); g.connect(a.destination); o.start(at); o.stop(at + len + .05); }, t0 = a.currentTime;
-  switch (tone || LR.tone) {
-    case 'soft': [0, .55].forEach(d => [[880, .22], [1318, .09], [1760, .04]].forEach(([f, p]) => note(f, t0 + d, p, 1.1))); break;
-    case 'alarm': for (let r = 0; r < 3; r++) [0, .16, .32].forEach(d => note(988, t0 + r * .8 + d, .16, .12, 'triangle')); break;
-    default: [0, .5, 1].forEach((d, i) => [[i === 2 ? 1046 : 784, .28], [i === 2 ? 2092 : 1568, .08], [i === 2 ? 3138 : 2352, .03]].forEach(([f, p]) => note(f, t0 + d, p, 1.4)));
+/* ---------- ÂM THÔNG BÁO: mỗi loại thông báo một tiếng riêng ----------
+   Tất cả tự tạo bằng Web Audio (không tải file âm thanh). Khách bật / tắt, chọn tiếng, nghe thử và chỉnh âm lượng trong bảng chuông 🔔.
+   Chỉ kêu khi web đang mở và trình duyệt đã cho phát tiếng; thông báo hiện khi đã đóng web dùng âm của máy (web không đổi được). */
+const SND_CATS = [['live_soon', 'bell'], ['live_now', 'fanfare'], ['planner', 'soft'], ['goal', 'twinkle'], ['moon', 'harp'], ['focus', 'marimba'], ['break', 'pop'], ['admin', 'gong']];
+const SND_TONES = ['bell', 'soft', 'alarm', 'drop', 'harp', 'marimba', 'pop', 'fanfare', 'gong', 'twinkle'];
+const SND = (() => {
+  const s = store.get('snd', null) || {}, cats = s.cats || {};
+  const vol = +s.vol || +store.get('lr_vol', .8) || .8;                // đọc cài đặt cũ (âm lượng chuông live, chuông Planner)
+  const o = { on:s.on !== false, vol:Math.min(1, Math.max(.1, vol)), cats:{}, open:false };
+  SND_CATS.forEach(([id, d]) => {
+    const c = cats[id] || {}, old = id === 'live_soon' ? store.get('lr_tone') : '';
+    o.cats[id] = { on:c.on !== undefined ? c.on !== false : !(id === 'planner' && store.get('pl_chime', true) === false), tone:SND_TONES.includes(c.tone) ? c.tone : (SND_TONES.includes(old) ? old : d) };
+  });
+  return o;
+})();
+const sndSave = () => store.set('snd', { on:SND.on, vol:SND.vol, cats:SND.cats });
+function sndNotes(a, tone){
+  const v = SND.vol, t0 = a.currentTime + .02;
+  const n = (f, d, peak, len, type, f2) => { const o = a.createOscillator(), g = a.createGain(), at = t0 + d; o.type = type || 'sine'; o.frequency.setValueAtTime(f, at); if (f2) o.frequency.exponentialRampToValueAtTime(f2, at + len); g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(peak * v, at + .01); g.gain.exponentialRampToValueAtTime(.0008, at + len); o.connect(g); g.connect(a.destination); o.start(at); o.stop(at + len + .05); };
+  const rich = (f, d, p, len, k) => [[f, p], [f * 1.5, p * .4], [f * 2, p * .3]].forEach(([x, y]) => n(x, d, y, len, k));
+  switch (tone) {
+    case 'soft': [0, .55].forEach(d => [[880, .22], [1318, .09], [1760, .04]].forEach(([f, p]) => n(f, d, p, 1.1))); break;
+    case 'alarm': for (let r = 0; r < 3; r++) [0, .16, .32].forEach(d => n(988, r * .8 + d, .16, .12, 'triangle')); break;
+    case 'drop': n(1300, 0, .3, .28, 'sine', 420); n(1700, .32, .22, .32, 'sine', 560); break;
+    case 'harp': [523, 659, 784, 1047].forEach((f, i) => rich(f, i * .14, .18, .9)); break;
+    case 'marimba': [659, 784, 988].forEach((f, i) => { n(f, i * .2, .3, .5, 'triangle'); n(f * 4, i * .2, .05, .12); }); break;
+    case 'pop': n(500, 0, .32, .13, 'sine', 1000); n(750, .17, .26, .16, 'sine', 1300); break;
+    case 'fanfare': [523, 659, 784].forEach((f, i) => n(f, i * .13, .2, .3, 'triangle')); rich(1047, .39, .2, 1.2, 'triangle'); break;
+    case 'gong': n(196, 0, .38, 2.2); n(294, 0, .16, 1.8); n(392, 0, .09, 1.4); break;
+    case 'twinkle': [1318, 1568, 2093, 1568, 2093, 2637].forEach((f, i) => n(f, i * .1, .1, .5)); break;
+    default: [0, .5, 1].forEach((d, i) => [[i === 2 ? 1046 : 784, .28], [i === 2 ? 2092 : 1568, .08], [i === 2 ? 3138 : 2352, .03]].forEach(([f, p]) => n(f, d, p, 1.4)));   // bell
   }
+}
+function soundPlay(cat, o){                                          // trả về true nếu tiếng kêu được ngay (trình duyệt đã cho phát tiếng); force = nghe thử do khách bấm
+  o = o || {}; const c = SND.cats[cat]; if (!c || (!o.force && !(SND.on && c.on)) || typeof audio !== 'function') return false;
+  const a = audio(); if (!a) return false; const tone = o.tone || c.tone;
+  if (a.state === 'running') { sndNotes(a, tone); return true; }
+  if (o.force && a.resume) { a.resume().then(() => sndNotes(a, tone)).catch(() => {}); return true; }
+  return false;                                                      // còn khoá tiếng (khách chưa chạm vào trang): không xếp chuông, để thông báo của máy kêu thay
+}
+function sndHTML(){
+  const show = id => id === 'planner' || id === 'goal' ? plCan() : id === 'moon' ? !!state.user : id === 'admin' ? !!state.isAdmin : true;
+  const rows = SND_CATS.filter(([id]) => show(id)).map(([id]) => { const c = SND.cats[id];
+    return `<div class="snd-row ${c.on ? '' : 'off'}"><label class="snd-on"><input type="checkbox" data-change="sndCat" data-c="${id}" ${c.on ? 'checked' : ''}><span>${esc(t('snd_c_' + id))}</span></label>
+      <select class="input snd-sel" data-change="sndTone" data-c="${id}" aria-label="${esc(t('snd_c_' + id))}">${SND_TONES.map(k => `<option value="${k}" ${c.tone === k ? 'selected' : ''}>${esc(t('snd_t_' + k))}</option>`).join('')}</select>
+      <button type="button" class="lr-chip" data-act="sndTest" data-c="${id}" aria-label="${esc(t('snd_play'))}">▶</button></div>`; }).join('');
+  return `<details class="lr-help snd" ${SND.open ? 'open' : ''}><summary data-act="sndOpen">${esc(t('snd_title'))}</summary>
+    <div class="switch"><span>${esc(t('snd_master'))}</span><input type="checkbox" data-change="sndMaster" ${SND.on ? 'checked' : ''}></div>
+    <div class="${SND.on ? '' : 'lr-off'}"><label class="label">${esc(t('lr_vol'))}</label><input type="range" class="snd-vol" min="10" max="100" step="5" value="${Math.round(SND.vol * 100)}" data-change="sndVol" aria-label="${esc(t('lr_vol'))}">
+    <div class="snd-list">${rows}</div></div><p class="lr-note">${esc(t('snd_note'))}</p></details>`;
 }
 function swRegister(){
   if (swReg || !('serviceWorker' in navigator) || !window.isSecureContext) return Promise.resolve(swReg);
@@ -741,7 +782,7 @@ async function lrNotify(title, body, tag, sticky){
   try { const n = new Notification(title, opts); n.onclick = () => { window.focus(); location.hash = '#/watch'; n.close(); }; } catch (e) {}   // điện thoại Android chỉ cho hiện qua service worker
 }
 function lrFire(title, body, tag, sticky){
-  if (lrSound()) liveChime();
+  if (lrSound()) soundPlay(sticky ? 'live_now' : 'live_soon');
   toast('🔔 ' + body, 9000);
   if (lrPop()) lrNotify(title, body, tag, sticky);
   if (document.hidden) { lrTitleBak = lrTitleBak || document.title; document.title = '🔔 ' + title; }
@@ -798,6 +839,7 @@ function renderLiveRem(){
       ${LR.on && audioLocked() ? `<p class="lr-note warn">${esc(t('lr_tap'))}</p>` : ''}
       ${permHTML}
     </div>
+    ${sndHTML()}
     ${notifHelpHTML()}`;
   $('btn-notif').classList.toggle('on', LR.on); notifBadge();
 }
@@ -807,7 +849,7 @@ function lrSetOn(on){
     if (typeof audio === 'function') audio();                     // bật chuông ngay trong lần bấm này (trình duyệt chỉ cho phát tiếng sau khi khách bấm)
     swRegister();
     if (lrPop() && NOTIF_OK && Notification.permission === 'default') Notification.requestPermission().then(() => renderLiveRem()).catch(() => {});
-    if (lrSound()) liveChime();
+    if (lrSound()) soundPlay('live_soon', { force:true });
   }
   toast(t(on ? 'lr_on_toast' : 'lr_off_toast')); renderLiveRem();
 }
@@ -980,6 +1022,10 @@ function openImagePicker(title, onPick, folder = 'cms'){
 }
 const FORMS = {}, CHANGES = {};
 CHANGES.lrOn = el => lrSetOn(el.checked);
+CHANGES.sndMaster = el => { SND.on = el.checked; sndSave(); renderLiveRem(); if (SND.on) soundPlay('live_soon', { force:true }); };
+CHANGES.sndVol = el => { SND.vol = Math.min(1, Math.max(.1, (+el.value || 80) / 100)); sndSave(); soundPlay('live_soon', { force:true }); };
+CHANGES.sndCat = el => { const c = SND.cats[el.dataset.c]; if (!c) return; c.on = el.checked; sndSave(); el.closest('.snd-row').classList.toggle('off', !c.on); if (c.on) soundPlay(el.dataset.c, { force:true }); };
+CHANGES.sndTone = el => { const c = SND.cats[el.dataset.c]; if (!c || !SND_TONES.includes(el.value)) return; c.tone = el.value; sndSave(); soundPlay(el.dataset.c, { force:true }); };
 CHANGES.pushOn = el => pushSet(el.checked);
 CHANGES.plRemOn = el => plRemSet(el.checked);
 CHANGES.plPinOn = el => plPinSet(el.checked);
@@ -996,6 +1042,8 @@ const ACTIONS = {
   notif: () => { const p = $('live-rem'), open = !p.classList.contains('open'); $('prefs').classList.remove('open'); if (open) renderLiveRem(); p.classList.toggle('open', open); },
   lrPerm: () => { if (NOTIF_OK) Notification.requestPermission().then(p => { if (p === 'granted') { swRegister(); toast('🔔 OK'); } renderLiveRem(); }).catch(() => {}); },
   lrLeadTog: el => { const n = +el.dataset.n; lrSetLeads(LR.leads.includes(n) ? LR.leads.filter(x => x !== n) : [...LR.leads, n]); },
+  sndOpen: el => { SND.open = !SND.open; el.parentElement.open = SND.open; },   // dispatcher chặn hành vi mặc định nên tự mở / đóng
+  sndTest: el => { soundPlay(el.dataset.c, { force:true }); },
   lrMode: el => { LR.mode = el.dataset.v; lrSave(); renderLiveRem(); },
   pwaInstall: () => { document.body.classList.remove('nav-open'); $('prefs').classList.remove('open'); $('live-rem').classList.remove('open'); pwaInstall(); },
   pickOk: async () => {

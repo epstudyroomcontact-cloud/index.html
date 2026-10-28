@@ -206,10 +206,6 @@ const pomoDur = m => (pomo.cfg[m] || 25) * 60e3;
 const pomoSave = () => store.set('pomo', pomo);
 let actx = null;
 function audio(){ if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (actx && actx.state !== 'running' && actx.state !== 'closed') { const r = actx.resume(); if (r && r.catch) r.catch(() => {}); } return actx; }
-function beep(){
-  const a = audio(); if (!a) return;
-  [0, .25, .5].forEach((d, i) => { const o = a.createOscillator(), g = a.createGain(), at = a.currentTime + d; o.type = 'sine'; o.frequency.value = i === 2 ? 988 : 784; g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(.2, at + .02); g.gain.exponentialRampToValueAtTime(.001, at + .22); o.connect(g); g.connect(a.destination); o.start(at); o.stop(at + .25); });
-}
 /* ---- Âm thanh nền tự tạo (không cần mạng, không bản quyền): mưa / ồn nâu / ồn trắng ---- */
 const AMB = ['off', 'rain', 'brown', 'white'];
 let ambType = 'off', ambVol = store.get('ambvol', .5), ambNode = null;
@@ -356,7 +352,7 @@ function pomoComplete(natural, silent){
   if (wasFocus && natural) { try { addFocus(doneMin); } catch (e) { console.warn('addFocus', e); } }
   pomo.running = !!(pomo.cfg.auto && natural) && !(pomo.mode === 'focus' && focusLimit() && focusUsed() >= focusLimit()); if (pomo.running) { pomo.endAt = Date.now() + pomo.remaining; pomoSave(); }
   if (natural && !silent) {
-    beep(); toast(t(wasFocus ? 'notify_done_focus' : 'notify_done_break'));
+    soundPlay(wasFocus ? 'focus' : 'break'); toast(t(wasFocus ? 'notify_done_focus' : 'notify_done_break'));
     if ('Notification' in window && Notification.permission === 'granted') new Notification(branding.name, { body:t(wasFocus ? 'notify_done_focus' : 'notify_done_break') });
   }
   if (route.name === 'focus' || route.name === 'home') render(true); else updateTimerUI();
@@ -979,7 +975,7 @@ function mjRemTick(){
   const now = DT.now().setZone(userTZ), day = now.toISODate(), k = u.uid + '|' + day;
   if (now.hour * 60 + now.minute < MJ_REM_AT || store.get('mj_rem_sent', '') === k) return;
   const body = mjRemText(moonData()); if (!body) return;
-  store.set('mj_rem_sent', k); liveChime('soft'); toast('🌙 ' + body, 9000); mjNotify(body, 'mj-' + day);
+  store.set('mj_rem_sent', k); soundPlay('moon'); toast('🌙 ' + body, 9000); mjNotify(body, 'mj-' + day);
 }
 setInterval(mjRemTick, 30000);
 async function mjRemSet(on){
