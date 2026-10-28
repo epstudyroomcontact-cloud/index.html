@@ -343,13 +343,6 @@ Dùng chung máy gửi ở trên (bước **Nhắc việc Planner** trong cùng 
 - iPhone / iPad: giống 17.1, phải **thêm web ra Màn hình chính**, mở từ biểu tượng đó rồi bật nhắc việc.
 - Đăng xuất hoặc tắt nhắc việc trên máy nào thì máy đó thôi nhận.
 
-### 17.3. Nhắc giữ chuỗi Hành trình trăng (cũng nhận cả khi đã đóng web)
-Dùng chung máy gửi ở trên (bước **Nhắc giữ chuỗi Hành trình trăng**, file `scripts/push-moon.mjs`), **không cần làm thêm gì** nếu 17.1 đã xong, không cần dán lại luật Firestore.
-- **Mặc định tắt.** Người dùng tự bật trên từng máy: công tắc ngay dưới nút **Điểm danh hôm nay** ở trang Hành trình trăng, hoặc trong bảng chuông 🔔. Máy đó lưu mã nhận thông báo vào `users/<uid>.mjPush` (chỉ họ và admin đọc được).
-- **21:00 theo giờ của người dùng**, nếu hôm nay chưa điểm danh thì nhắc **một lần**: "Điểm danh trước nửa đêm để giữ chuỗi n ngày". Còn trăng tròn tích trữ thì nói thêm là lỡ quên vẫn giữ được chuỗi bằng trăng. Chuỗi vừa đứt mà đủ trăng để vá thì nhắc vào dùng trăng rồi điểm danh. Đã điểm danh rồi thì không nhắc.
-- Đang mở web thì nhắc ngay trong trang (chuông nhẹ + thông báo); hai đường dùng chung một mã nên chỉ hiện 1 thông báo. GitHub chạy trễ thì có thể đến muộn vài phút.
-- Muốn đổi giờ nhắc: sửa `MJ_REM_AT` trong `pages.js` (giờ × 60 + phút) và thêm biến `MJ_REM_MIN` (cùng số phút) cho bước **Nhắc giữ chuỗi** trong `.github/workflows/push-live.yml`.
-
 ### 17.3. Cho máy gửi chạy đều 5 phút một lần (cron-job.org)
 **Vì sao cần:** lịch tự chạy của GitHub hay bị bỏ lượt (có tối chỉ chạy 1 lần trong 1,5 tiếng), nên thông báo live và nhắc việc Planner có thể đến rất trễ hoặc không đến. Trang miễn phí **cron-job.org** cứ 5 phút "bấm nút chạy" workflow **Thông báo đẩy khi live** một lần. Máy gửi tự chống gửi trùng, nên GitHub có tự chạy thêm cũng không sao.
 
@@ -401,6 +394,13 @@ cron-job.org gửi email khi lịch lỗi, và tự tạm dừng lịch nếu l�
 - **404** (URL sai, hoặc mã không được cấp repo này): dán lại đúng URL ở bước B4, và kiểm tra bước A4.
 - **422** (Request body sai): dán lại đúng dòng ở bước B7.
 - Mã cũ không dùng nữa thì xoá ở https://github.com/settings/personal-access-tokens
+
+### 17.4. Nhắc giữ chuỗi Hành trình trăng (cũng nhận cả khi đã đóng web)
+Dùng chung máy gửi ở trên (bước **Nhắc giữ chuỗi Hành trình trăng**, file `scripts/push-moon.mjs`), **không cần làm thêm gì** nếu 17.1 đã xong, không cần dán lại luật Firestore.
+- **Mặc định tắt.** Người dùng tự bật trên từng máy: công tắc ngay dưới nút **Điểm danh hôm nay** ở trang Hành trình trăng, hoặc trong bảng chuông 🔔. Máy đó lưu mã nhận thông báo vào `users/<uid>.mjPush` (chỉ họ và admin đọc được).
+- **21:00 theo giờ của người dùng**, nếu hôm nay chưa điểm danh thì nhắc **một lần**: "Điểm danh trước nửa đêm để giữ chuỗi n ngày". Còn trăng tròn tích trữ thì nói thêm là lỡ quên vẫn giữ được chuỗi bằng trăng. Chuỗi vừa đứt mà đủ trăng để vá thì nhắc vào dùng trăng rồi điểm danh. Đã điểm danh rồi thì không nhắc.
+- Đang mở web thì nhắc ngay trong trang (chuông nhẹ + thông báo); hai đường dùng chung một mã nên chỉ hiện 1 thông báo. GitHub chạy trễ thì có thể đến muộn vài phút.
+- Muốn đổi giờ nhắc: sửa `MJ_REM_AT` trong `pages.js` (giờ × 60 + phút) và thêm biến `MJ_REM_MIN` (cùng số phút) cho bước **Nhắc giữ chuỗi** trong `.github/workflows/push-live.yml`.
 
 ## PHẦN 18 — Bảng lịch live trên màn hình stream (OBS)
 Trang `overlay.html` hiện kế hoạch buổi live đang chạy (giống thẻ ở trang Lịch): đoạn đang chạy được tô sáng và đếm ngược, các đoạn đã qua mờ đi, danh sách tự cuộn. Trang này không cần đăng nhập, không có nút bấm, chỉ đọc lịch công khai. Sửa lịch ở Admin → Lịch live thì bảng tự cập nhật sau khoảng 3 phút.
