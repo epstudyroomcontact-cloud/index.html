@@ -988,9 +988,9 @@ async function mjRemSet(on){
 CHANGES.mjRemOn = el => mjRemSet(el.checked);
 function mjRemHTML(club){                                           // club: dòng gọn dưới nút điểm danh; không thì dùng trong bảng chuông
   if (!state.user) return '';
-  const on = mjRemOn(), h = mjRemH(), note = t(on ? (mjPushHere() ? 'mjr_ok' : 'mjr_fg') : 'mjr_note', { h });
+  const on = mjRemOn(), h = mjRemH();
   const sw = `<div class="switch${club ? ' mj-rem' : ''}"><span>${club ? '🔔 ' + esc(t('mjr_on', { h })) : `<b>${esc(t('mjr_on', { h }))}</b>`}</span><input type="checkbox" data-change="mjRemOn" ${on ? 'checked' : ''} aria-label="${esc(t('mjr_on', { h }))}"></div>`;
-  return club ? sw : `${sw}<p class="lr-note ${on && mjPushHere() ? 'ok' : ''}">${esc(note)}</p><hr class="lr-hr">`;
+  return club ? sw : `${sw}<hr class="lr-hr">`;
 }
 
 /* =========================================================

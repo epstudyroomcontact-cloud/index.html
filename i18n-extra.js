@@ -622,3 +622,9 @@
 };
   Object.keys(SNDT).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], SNDT[l]); });
 })();
+
+/* nút mở rộng phần chỉnh nhắc live trong bảng chuông */
+(function () {
+  const M = {"en": "Fine-tune live reminders", "vi": "Chỉnh nhắc giờ live", "hi": "लाइव रिमाइंडर बदलें", "ja": "ライブのお知らせを調整", "ko": "라이브 알림 세부 설정", "zh": "调整直播提醒", "fr": "Régler les rappels de live", "es": "Ajustar recordatorios del directo"};
+  Object.keys(M).forEach(l => { I18N[l] = I18N[l] || {}; I18N[l].lr_more = M[l]; });
+})();
