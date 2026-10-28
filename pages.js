@@ -981,9 +981,9 @@ const compDaysLeft = () => state.companionUntil ? Math.round(DT.fromISO(state.co
 const compUntilDay = () => DT.fromISO(state.companionUntil).toFormat('dd/MM/yyyy');
 const compRenewOpen = () => !!(state.companion && state.companionUntil && compDaysLeft() <= COMP_RENEW_DAYS);
 const compUntilText = () => { const n = compDaysLeft(); return t(n <= 0 ? 'cc_until_today' : 'cc_until', { d:compUntilDay(), n }); };
-function compClaimHTML(){
-  const fmt = ts => DT.fromMillis(tsMs(ts)).setZone(userTZ).toFormat('dd/MM'), r = state.compReq;
-  if (!state.user) return `<div class="limit-box stack"><b>${esc(t('cc_title'))}</b><p class="small muted">${esc(t('cc_login'))}</p><a class="btn secondary" href="#/account">${esc(t('nav_signin'))}</a></div>`;
+function compClaimHTML(bare){                                     // bare: bỏ tiêu đề "Đã thanh toán rồi?" (trang Support đã có tiêu đề bước 3)
+  const fmt = ts => DT.fromMillis(tsMs(ts)).setZone(userTZ).toFormat('dd/MM'), r = state.compReq, ttl = bare ? '' : `<b>${esc(t('cc_title'))}</b>`;
+  if (!state.user) return `<div class="limit-box stack">${ttl}<p class="small muted">${esc(t('cc_login'))}</p><a class="btn secondary" href="#/account">${esc(t('nav_signin'))}</a></div>`;
   const pending = r && r.status === 'pending' ? `<p class="small muted">${esc(t(state.companion ? 'cc_renew_pending' : 'cc_pending', { d:fmt(r.createdAt) }))}</p>` : '';
   if (state.companion) {
     if (!state.companionUntil) return `<div class="limit-box stack"><p class="small" style="color:var(--live)">${esc(t('cc_active_open'))}</p></div>`;
@@ -993,7 +993,7 @@ function compClaimHTML(){
       : `<p class="small faint">${esc(t('cc_renew_from', { d:from, n:COMP_RENEW_DAYS }))}</p>`)}</div>`;
   }
   const status = pending || (r && r.status === 'rejected' ? `<p class="small" style="color:var(--danger)">${esc(t('cc_rejected'))}</p>` : '');
-  return `<div class="limit-box stack"><b>${esc(t('cc_title'))}</b><p class="small muted">${esc(t('cc_sub'))}</p>${status}${pending ? '' : `<button class="btn secondary" data-act="compClaim">${ic('check', 'sm')} ${esc(t('cc_btn'))}</button>`}</div>`;
+  return `<div class="limit-box stack">${ttl}<p class="small muted">${esc(t('cc_sub'))}</p>${status}${pending ? '' : `<button class="btn secondary" data-act="compClaim">${ic('check', 'sm')} ${esc(t('cc_btn'))}</button>`}</div>`;
 }
 let compPay = null, compMonths = 1;
 /* Gói VND: 1 tháng = giá gốc; 3 tháng giảm 10%, 12 tháng giảm 25% (làm tròn nghìn) để người dùng trả dài hạn có lợi hơn, còn mình có tiền ổn định */
@@ -1025,24 +1025,42 @@ const compUsdUrl = m => {                                          // 1 tháng: 
 const mailNote = e => String(e || '').trim().toLowerCase().slice(0, 50);                 // nội dung chuyển khoản = email (ngân hàng thường giới hạn 25-50 ký tự)
 const compCode = () => state.user && state.user.email ? mailNote(state.user.email) : 'EPCP' + (state.user ? state.user.uid.slice(0, 6).toUpperCase() : '');     // nội dung chuyển khoản = email đăng ký tài khoản (mỗi người một khác, admin đối chiếu theo email); tài khoản không có email thì dùng mã EPCP + 6 ký tự uid
 const compPayMode = () => { const bank = payments.bankBin && payments.accountNo, kofi = payments.companionUrl || payments.paypal; return compPay === 'vnd' && bank || compPay === 'kofi' && kofi ? compPay : (bank && (effCurrency() === 'VND' || !kofi) ? 'vnd' : kofi ? 'kofi' : ''); };
+/* Thẻ Người đồng hành chia 2 phần: plan = cách trả + chọn số tháng (bước 1), pay = mã QR / nút Ko-fi (bước 2) */
 function compPayHTML(){
-  const bank = payments.bankBin && payments.accountNo, kofi = payments.companionUrl || payments.paypal, mode = compPayMode(); if (!mode) return '';
+  const bank = payments.bankBin && payments.accountNo, kofi = payments.companionUrl || payments.paypal, mode = compPayMode(); if (!mode) return null;
   const amt = compPrice(compMonths), code = compCode(), cp = v => `<button type="button" class="btn secondary sm" data-act="copy" data-v="${esc(v)}">${esc(t('copy'))}</button>`;
   const seg = bank && kofi ? `<div class="seg"><button type="button" class="${mode === 'vnd' ? 'on' : ''}" data-act="compPay" data-m="vnd">${esc(t('comp_pay_vn'))}</button><button type="button" class="${mode === 'kofi' ? 'on' : ''}" data-act="compPay" data-m="kofi">${esc(t('comp_pay_kofi'))}</button></div>` : '';
-  let body;
-  if (mode === 'kofi') { const um = payments.paypal ? compMonths : 1; body = `${promoBanner()}${rewardBanner(moonRewardActive())}<div class="row">${(payments.paypal ? [1, 3, 12] : [1]).map(m => `<button type="button" class="chip ${m === um ? 'on' : ''}" data-act="compMonths" data-m="${m}">${esc(t('comp_plan_' + m))} · ${money(compPriceUSD(m), 'USD')}${m > 1 ? ` <small>${esc(t('comp_save', { p:Math.round((1 - compPriceUSD(m) / (compBaseUSD() * m)) * 100) }))}</small>` : ''}${bonusChip(m)}</button>`).join('')}</div>
-    <a class="btn primary lg" target="_blank" rel="noopener" href="${esc(safeUrl(compUsdUrl(um)))}">${ic('heart', 'sm')} ${esc(t(um === 1 ? 'comp_cta' : 'comp_pay_prepaid', { a:money(compPriceUSD(um), 'USD') }))}</a>
-    <p class="small faint">${esc(t(um === 1 ? 'comp_usd_note1' : 'comp_usd_note'))}</p>`; }
-  else if (!state.user) body = `<p class="small muted">${esc(t('comp_vnd_login'))}</p><a class="btn secondary" href="#/account">${esc(t('signin'))}</a>`;
-  else body = `${promoBanner()}${rewardBanner(moonRewardActive())}<div class="row">${[1, 3, 12].map(m => { const pr = compPrice(m); return `<button type="button" class="chip ${m === compMonths ? 'on' : ''}" data-act="compMonths" data-m="${m}">${esc(t('comp_plan_' + m))} · ${money(pr, 'VND')}${m > 1 ? ` <small>${esc(t('comp_save', { p:Math.round((1 - pr / (compBase() * m)) * 100) }))}</small>` : ''}${bonusChip(m)}</button>`; }).join('')}</div><img class="qr" alt="VietQR" src="https://img.vietqr.io/image/${encodeURIComponent(payments.bankBin)}-${encodeURIComponent(payments.accountNo)}-compact2.png?amount=${amt}&addInfo=${encodeURIComponent(code)}&accountName=${encodeURIComponent(payments.accountName || '')}"><p class="small muted" style="text-align:center">${esc(t('donate_scan'))}</p>
-    <div class="kv"><div class="kvr"><span>${esc(t('acc_no'))}</span><b>${esc(payments.accountNo)}</b>${cp(payments.accountNo)}</div><div class="kvr"><span>${esc(t('comp_vnd_sum'))}</span><b>${esc(String(amt))}</b>${cp(String(amt))}</div><div class="kvr"><span>${esc(t('donate_note'))}</span><b>${esc(code)}</b>${cp(code)}</div></div><p class="small faint">${esc(t(state.user.email ? 'comp_vnd_mail' : 'comp_vnd_hint'))}</p>`;
-  return `<div class="stack">${seg}${body}</div>`;
+  const banners = `${promoBanner()}${rewardBanner(moonRewardActive())}`;
+  if (mode === 'kofi') {
+    const um = payments.paypal ? compMonths : 1;
+    return { plan:`${seg}${banners}<div class="row">${(payments.paypal ? [1, 3, 12] : [1]).map(m => `<button type="button" class="chip ${m === um ? 'on' : ''}" data-act="compMonths" data-m="${m}">${esc(t('comp_plan_' + m))} · ${money(compPriceUSD(m), 'USD')}${m > 1 ? ` <small>${esc(t('comp_save', { p:Math.round((1 - compPriceUSD(m) / (compBaseUSD() * m)) * 100) }))}</small>` : ''}${bonusChip(m)}</button>`).join('')}</div>`,
+      pay:`<a class="btn primary lg" target="_blank" rel="noopener" href="${esc(safeUrl(compUsdUrl(um)))}">${ic('heart', 'sm')} ${esc(t(um === 1 ? 'comp_cta' : 'comp_pay_prepaid', { a:money(compPriceUSD(um), 'USD') }))}</a>
+    <p class="small faint">${esc(t(um === 1 ? 'comp_usd_note1' : 'comp_usd_note'))}</p>` };
+  }
+  const plan = `${seg}${banners}<div class="row">${[1, 3, 12].map(m => { const pr = compPrice(m); return `<button type="button" class="chip ${m === compMonths ? 'on' : ''}" data-act="compMonths" data-m="${m}">${esc(t('comp_plan_' + m))} · ${money(pr, 'VND')}${m > 1 ? ` <small>${esc(t('comp_save', { p:Math.round((1 - pr / (compBase() * m)) * 100) }))}</small>` : ''}${bonusChip(m)}</button>`; }).join('')}</div>`;
+  if (!state.user) return { plan, pay:`<div class="limit-box stack"><p class="small muted">${esc(t('comp_vnd_login'))}</p><a class="btn secondary" href="#/account">${esc(t('signin'))}</a></div>`, login:true };
+  return { plan, pay:`<img class="qr" alt="VietQR" src="https://img.vietqr.io/image/${encodeURIComponent(payments.bankBin)}-${encodeURIComponent(payments.accountNo)}-compact2.png?amount=${amt}&addInfo=${encodeURIComponent(code)}&accountName=${encodeURIComponent(payments.accountName || '')}"><p class="small muted" style="text-align:center">${esc(t('donate_scan'))}</p>
+    <div class="kv"><div class="kvr"><span>${esc(t('acc_no'))}</span><b>${esc(payments.accountNo)}</b>${cp(payments.accountNo)}</div><div class="kvr"><span>${esc(t('comp_vnd_sum'))}</span><b>${esc(String(amt))}</b>${cp(String(amt))}</div><div class="kvr"><span>${esc(t('donate_note'))}</span><b>${esc(code)}</b>${cp(code)}</div></div><p class="small faint">${esc(t(state.user.email ? 'comp_vnd_mail' : 'comp_vnd_hint'))}</p>` };
 }
 let donAmt = null, donCur = null, donMail = '';
 const donNote = () => state.user && state.user.email ? mailNote(state.user.email) : (/^\S+@\S+\.\S+$/.test(donMail.trim()) ? mailNote(donMail) : 'EP DONATE');
 const parseAmts = (s, d) => { const a = String(s || '').split(/[,\s]+/).map(Number).filter(n => n > 0); return a.length ? a : d; };
 /* mục cảm ơn những người đồng hành (tên do admin chọn hiện, xem tab Thành viên) */
 const thanksCard = () => { const l = thanksList(); return l.length ? `<section class="card pad thanks mt"><div class="card-h"><h2 ${cms('thanks_title')}>${ic('heart', 'sm')} ${esc(ctext('thanks_title'))}</h2></div><p class="muted small" ${cms('thanks_text')}>${esc(ctext('thanks_text'))}</p><div class="thanks-list">${l.map(x => { const c = compTier(x.since); return c ? `<span class="thanks-chip ct${c.tier}" title="${esc(t('ct_for', { d:c.len }))}"><i class="ct-moon" aria-hidden="true">${c.moon}</i> ${esc(x.name)} <small>${esc(c.len)}</small></span>` : `<span class="thanks-chip">${ic('heart', 'sm')} ${esc(x.name)}</span>`; }).join('')}</div></section>` : ''; };
+/* chữ của trang Support sau khi sắp xếp lại (2 lựa chọn + các bước đánh số) */
+(function(){
+  const G = {
+    en:{ don_pick_comp:'Monthly · your own Planner and perks', don_pick_once:'One time · any amount', don_plan:'Choose a plan', don_amt:'Choose an amount', don_pay:'Pay', don_see_comp:'See the Companion plan' },
+    vi:{ don_pick_comp:'Mỗi tháng · có Planner riêng và quà cảm ơn', don_pick_once:'Một lần · bao nhiêu cũng được', don_plan:'Chọn gói', don_amt:'Chọn số tiền', don_pay:'Thanh toán', don_see_comp:'Xem gói Người đồng hành' },
+    hi:{ don_pick_comp:'हर महीने · अपना Planner और खास सुविधाएँ', don_pick_once:'एक बार · जितना चाहें', don_plan:'प्लान चुनें', don_amt:'राशि चुनें', don_pay:'भुगतान करें', don_see_comp:'साथी प्लान देखें' },
+    ja:{ don_pick_comp:'毎月 · 自分だけのプランナーと特典', don_pick_once:'1回だけ · 金額は自由', don_plan:'プランを選ぶ', don_amt:'金額を選ぶ', don_pay:'支払う', don_see_comp:'仲間たちのプランを見る' },
+    ko:{ don_pick_comp:'매달 · 나만의 플래너와 혜택', don_pick_once:'한 번 · 원하는 만큼', don_plan:'플랜 선택', don_amt:'금액 선택', don_pay:'결제하기', don_see_comp:'동반자 플랜 보기' },
+    zh:{ don_pick_comp:'每月 · 专属计划表和福利', don_pick_once:'一次性 · 金额随意', don_plan:'选择方案', don_amt:'选择金额', don_pay:'付款', don_see_comp:'查看同伴方案' },
+    fr:{ don_pick_comp:'Chaque mois · ton propre Planner et des avantages', don_pick_once:'Une fois · le montant de ton choix', don_plan:'Choisis une formule', don_amt:'Choisis un montant', don_pay:'Payer', don_see_comp:'Voir la formule Compagnons' },
+    es:{ don_pick_comp:'Cada mes · tu propio Planner y ventajas', don_pick_once:'Una vez · la cantidad que quieras', don_plan:'Elige un plan', don_amt:'Elige una cantidad', don_pay:'Pagar', don_see_comp:'Ver el plan Acompañantes' }
+  };
+  Object.keys(G).forEach(l => { I18N[l] = I18N[l] || {}; Object.keys(G[l]).forEach(k => { if (I18N[l][k] === undefined) I18N[l][k] = G[l][k]; }); });
+})();
 const donateHTML = function(){
   if (state.user) { refreshCompanion().then(ch => ch && render(true)); loadMoonReward(); }
   const cur = donCur || effCurrency(), amts = cur === 'VND' ? parseAmts(payments.donateVND, [20000, 50000, 100000, 200000]) : parseAmts(payments.donateUSD, [3, 5, 10, 25]);
@@ -1056,21 +1074,31 @@ const donateHTML = function(){
     pay = [pp && `<a class="btn primary lg" target="_blank" rel="noopener" href="${esc(safeUrl(pp))}">PayPal · $${amt}</a>`, payments.kofi && `<a class="btn secondary lg" target="_blank" rel="noopener" href="${esc(safeUrl(payments.kofi))}">Ko-fi</a>`, payments.stripe && `<a class="btn secondary lg" target="_blank" rel="noopener" href="${esc(safeUrl(payments.stripe))}">${ic('credit', 'sm')} Card</a>`].filter(Boolean).join(' ');
     pay = pay ? `<div class="row">${pay}</div>` : '';
   }
-  const body = `<div class="grid g2" style="align-items:start">
-      <section class="card pad stack"><div class="row between"><h2 style="font-size:1.2rem">${esc(t('donate_once'))}</h2><div class="seg"><button type="button" class="${cur === 'VND' ? 'on' : ''}" data-act="donCur" data-c="VND">VND</button><button type="button" class="${cur === 'USD' ? 'on' : ''}" data-act="donCur" data-c="USD">USD</button></div></div>
+  const step = (n, title, html) => html ? `<div class="don-step"><h3><i>${n}</i>${esc(title)}</h3>${html}</div>` : '';
+  /* Ủng hộ một lần: bước 1 chọn số tiền, bước 2 thanh toán */
+  const once = `<div class="don-cols"><div class="stack">
+      ${step(1, t('don_amt'), `<div class="seg"><button type="button" class="${cur === 'VND' ? 'on' : ''}" data-act="donCur" data-c="VND">VND</button><button type="button" class="${cur === 'USD' ? 'on' : ''}" data-act="donCur" data-c="USD">USD</button></div>
         <div class="row">${amts.map(a => `<button type="button" class="chip ${a === amt ? 'on' : ''}" data-act="donAmt" data-v="${a}">${money(a, cur)}</button>`).join('')}</div>
-        <p class="small" style="color:var(--accent-strong)">${esc(t('don_bonus', { p:cur === 'VND' ? money(compBase(), 'VND') : money(+payments.companionUSD || 3, 'USD') }))}</p>
-        <div class="field"><label class="label">${esc(t('donate_custom'))}</label><input class="input" type="number" min="1" id="don-custom" data-change="donCustom" placeholder="${cur === 'VND' ? '30000' : '7'}"></div>
-        ${pay || `<p class="muted">${esc(t('donate_none'))}</p>`}<p class="small faint">${esc(t('donate_thanks'))}</p></section>
-      <section class="card pad stack"><div class="row between"><h2 style="font-size:1.2rem" ${cms('comp_title')}>${esc(ctext('comp_title'))}</h2>${state.companion ? compBadge() : ''}</div>
-        <p class="muted" ${cms('comp_text')}>${esc(ctext('comp_text'))}</p><div><div class="label">${esc(t('comp_perks'))}</div><ul class="perks"><li ${cms('comp_perk4')}>${esc(ctext('comp_perk4'))}</li><li ${cms('comp_perk1')}>${esc(ctext('comp_perk1'))}</li><li ${cms('comp_perk2')}>${esc(ctext('comp_perk2'))}</li><li ${cms('comp_perk3')}>${esc(ctext('comp_perk3'))}</li></ul></div>
-        ${branding.focusCodeHash ? `<div><div class="label">${esc(t('comp_steps_title'))}</div><ol class="steps"><li>${esc(t('comp_step1'))}</li><li>${esc(t('comp_step2'))}</li><li>${esc(t('comp_step3'))}</li></ol></div>${unlockBox()}` : ''}${!state.companion && unlockValid() ? `<p class="small" style="color:var(--live)">${esc(t('comp_active'))}</p>` : ''}${state.companion && !compRenewOpen() ? '' : compPayHTML()}${compClaimHTML()}${state.companion ? '' : trialBox()}</section></div>`;
-  return body;
+        <div class="field"><label class="label">${esc(t('donate_custom'))}</label><input class="input" type="number" min="1" id="don-custom" data-change="donCustom" placeholder="${cur === 'VND' ? '30000' : '7'}"></div>`)}
+      <div class="limit-box stack don-tip"><p class="small">🎁 ${esc(t('don_bonus', { p:cur === 'VND' ? money(compBase(), 'VND') : money(+payments.companionUSD || 3, 'USD') }))}</p><button type="button" class="btn ghost sm" data-act="donSeeComp">${ic('moon', 'sm')} ${esc(t('don_see_comp'))}</button></div></div>
+    <div class="stack">${step(2, t('don_pay'), `${pay || `<p class="muted">${esc(t('donate_none'))}</p>`}<p class="small faint">${esc(t('donate_thanks'))}</p>`)}</div></div>`;
+  /* Người đồng hành: bên trái là quyền lợi, bên phải là 3 bước (chọn gói, thanh toán, báo đã trả) */
+  const cp = state.companion && !compRenewOpen() ? null : compPayHTML(), claim = compClaimHTML(!!cp);
+  const info = `<div class="stack"><p class="muted" ${cms('comp_text')}>${esc(ctext('comp_text'))}</p><div><div class="label">${esc(t('comp_perks'))}</div><ul class="perks"><li ${cms('comp_perk4')}>${esc(ctext('comp_perk4'))}</li><li ${cms('comp_perk1')}>${esc(ctext('comp_perk1'))}</li><li ${cms('comp_perk2')}>${esc(ctext('comp_perk2'))}</li><li ${cms('comp_perk3')}>${esc(ctext('comp_perk3'))}</li></ul></div>
+      ${branding.focusCodeHash ? `<div><div class="label">${esc(t('comp_steps_title'))}</div><ol class="steps"><li>${esc(t('comp_step1'))}</li><li>${esc(t('comp_step2'))}</li><li>${esc(t('comp_step3'))}</li></ol></div>${unlockBox()}` : ''}${!state.companion && unlockValid() ? `<p class="small" style="color:var(--live)">${esc(t('comp_active'))}</p>` : ''}${state.companion || !state.user ? '' : trialBox()}</div>`;
+  const steps = cp ? `${step(1, t('don_plan'), cp.plan)}${step(2, t('don_pay'), cp.pay)}${cp.login ? '' : step(3, t('cc_title'), claim)}` : claim;
+  const comp = `<div class="don-cols">${info}<div class="stack">${steps}</div></div>`;
+  const opt = (k, icon, name, sub, attr = '') => [k, `<span class="don-ic">${ic(icon)}</span><span><b ${attr}>${esc(name)}</b><small>${esc(sub)}</small></span>`, k === 'comp' ? comp : once];
+  const list = [opt('comp', 'moon', ctext('comp_title'), t('don_pick_comp'), cms('comp_title')), opt('once', 'heart', t('donate_once'), t('don_pick_once'))];
+  const cur2 = list.some(x => x[0] === TABS.don) ? TABS.don : 'comp';
+  return `<section class="card pad don-card"><div class="tabset" data-tabs="don"><div class="tab-bar don-pick" role="tablist">${list.map(([k, l]) => `<button type="button" role="tab" class="don-opt ${k === cur2 ? 'on' : ''}" aria-selected="${k === cur2}" data-act="tabPick" data-g="don" data-k="${k}">${l}${k === 'comp' && state.companion ? compBadge() : ''}</button>`).join('')}</div>
+    ${list.map(([k, , h]) => `<div class="tab-pane" role="tabpanel" data-k="${k}"${k === cur2 ? '' : ' hidden'}>${h}</div>`).join('')}</div></section>`;
 };
 PAGES.donate = function(){ page(`${head('donate_title', 'donate_sub', '', 'lantern', 3)}${donateHTML()}${thanksCard()}`); };
 CHANGES.donMail = el => { donMail = el.value; render(true); };
 CHANGES.donCustom = el => { const v = Math.round(+el.value); if (v > 0) { donAmt = { cur:donCur || effCurrency(), v }; render(true); } };
 Object.assign(ACTIONS, {
+  donSeeComp: el => { const b = el.closest('[data-tabs]').querySelector(':scope > .tab-bar > [data-k="comp"]'); ACTIONS.tabPick(b); b.scrollIntoView({ block:'nearest', behavior:'smooth' }); },
   compPay: el => { compPay = el.dataset.m; render(true); },
   compMonths: el => { compMonths = +el.dataset.m; render(true); },
   donCur: el => { donCur = el.dataset.c; donAmt = null; render(true); },
