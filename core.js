@@ -212,16 +212,36 @@ const localWeekStart = off => DT.now().setZone(userTZ).plus({ weeks: off }).star
 const vnOffOf = dt => Math.round(dt.setZone(VN).startOf('week').diff(weekStart(0), 'weeks').weeks);
 // các tuần VN cần đọc để vẽ tuần `off` của người xem (lùi thêm 1 ngày để thấy buổi dài kéo sang từ tối Chủ nhật)
 const weeksFor = off => { const ls = localWeekStart(off), a = vnOffOf(ls.minus({ days:1 })), b = vnOffOf(ls.plus({ days:7 }).minus({ milliseconds:1 })); const out = []; for (let o = a; o <= b; o++) out.push(o); return out; };
+/* Giờ bắt đầu THẬT: admin bấm "Bắt đầu buổi live bây giờ" → settings/onair = { start, sched, at } (admin.js, overlay.html dùng chung).
+   Lịch chỉ là giờ dự kiến: buổi có giờ theo lịch = sched được dời sang start (cả buổi dời theo, giống bảng lịch OBS),
+   và web CHỈ báo "Đang live" cho buổi đã bấm bắt đầu. Quá giờ lịch mà chưa bấm thì hiện "Sắp bắt đầu", không báo live.
+   Mốc lệch lịch quá 12 tiếng (gắn nhầm buổi hôm qua) thì bỏ qua. Người xem nghe tài liệu nhỏ này: 1 lượt đọc mỗi lần admin bấm. */
+const ONAIR = { v:store.get('onair', null), unsub:null };
+const onairOk = o => !!(o && o.start && o.sched && Math.abs(o.start - o.sched) < 12 * 3600e3);
 function getItems(off, days){
-  const ws = weekStart(off), out = [];
+  const ws = weekStart(off), out = [], o = onairOk(ONAIR.v) ? ONAIR.v : null;
   (days || []).forEach((raw, i) => {
     const day = normDay(raw), dayVN = ws.plus({ days:i });
     day.slots.forEach((slot, si) => {
-      const start = parseTime(slot.time, dayVN); if (!start) return; const mins = slotMins(slot);
-      out.push({ off, di:i, si, day, slot, start, end:start.plus({ minutes:mins }), mins, cancelled: day.cancelled || slot.cancelled, key:`${off}-${i}-${si}` });
+      const sched = parseTime(slot.time, dayVN); if (!sched) return; const mins = slotMins(slot);
+      const started = !!o && o.sched === sched.toMillis(), start = started ? DT.fromMillis(o.start, { zone:VN }) : sched;
+      out.push({ off, di:i, si, day, slot, sched, start, end:start.plus({ minutes:mins }), mins, started, cancelled: day.cancelled || slot.cancelled, key:`${off}-${i}-${si}` });
     });
   });
   return out;
+}
+// đang live = đã bấm bắt đầu và đang trong buổi; chờ = tới giờ theo lịch rồi mà chưa bấm bắt đầu (tính tới hết giờ dự kiến của buổi)
+const isLive = (x, now) => !x.cancelled && x.started && now >= x.start.toMillis() && now < x.end.toMillis();
+const isWaiting = (x, now) => !x.cancelled && !x.started && now >= x.sched.toMillis() && now < x.end.toMillis();
+function listenOnair(){
+  if (ONAIR.unsub || DEMO) return;
+  try {
+    ONAIR.unsub = db.collection('settings').doc('onair').onSnapshot(d => {
+      const f = d.exists ? d.data() : {}, nx = { start:+f.start || 0, sched:+f.sched || 0, at:+f.at || 0 }, cur = ONAIR.v || {};
+      if (nx.start === cur.start && nx.sched === cur.sched) return;
+      ONAIR.v = nx; store.set('onair', nx); lastSig = ''; render();
+    }, e => console.warn('onair', e.code || e));
+  } catch (e) {}
 }
 const poolAll = () => [-1, 0, 1].flatMap(o => weekDocs[o] ? getItems(o, weekDocs[o]) : []);
 const upcomingPool = () => poolAll().filter(x => !x.cancelled);
@@ -238,7 +258,8 @@ function demoWeek(off){
   days[5] = { cancelled:true, cancelNote:{ vi:'Đi chơi với bạn bè', en:'Out with friends' }, slots:[ mk('14:00','deep') ] };
   days[6].slots = [ mk('09:00','marathon',{ title:'Sunday deep work' }) ];
   days[3].slots[0] = { time:'07:00', icon:'', title:'Short morning', cancelled:false, cancelNote:{}, pomo:null, plan:[{ t:'f', m:25 }, { t:'s', m:5 }, { t:'f', m:25 }, { t:'l', m:15 }, { t:'f', m:40 }] };
-  if (off === 0) days[todayIdx].slots[1] = mk(nowVN.minus({ minutes:20 }).toFormat('HH:mm'), 'classic', { title:'Live right now' });
+  if (off === 0) { const tm = nowVN.minus({ minutes:20 }).toFormat('HH:mm'); days[todayIdx].slots[1] = mk(tm, 'classic', { title:'Live right now' });
+    ONAIR.v = { start:Date.now() - 12 * 60e3, sched:parseTime(tm, nowVN).toMillis(), at:Date.now() }; }   // bản xem thử: buổi này bắt đầu trễ 8 phút
   return days;
 }
 function listenWeek(off){
@@ -319,6 +340,7 @@ async function refreshSite(force){
 function goLegacy(){ if (LEGACY.on || DEMO) return; LEGACY.on = true; SITE.on = false; if (liveUnsub) { liveUnsub(); liveUnsub = null; } listenLegacy(); }       // admin: xem thay đổi ngay
 async function listenAll(){
   if (DEMO) { loadDemo(); listenWeeks(); return; }
+  listenOnair();
   const c = store.get('site', null);
   if (c && c.d && c.d.v >= SITE_V) { SITE.on = true; applySite(c.d); listenWeeks(); }                          // hiện ngay bản đã lưu
   const got = await refreshSite(false);
@@ -612,24 +634,24 @@ function fmtDur(ms){
 }
 function liveState(){
   const now = Date.now(), pool = upcomingPool();
-  return { now, live: pool.find(x => now >= x.start.toMillis() && now < x.end.toMillis()), next: pool.filter(x => x.start.toMillis() > now).sort((a, b) => a.start - b.start)[0] };
+  return { now, live: pool.find(x => isLive(x, now)), waiting: pool.find(x => isWaiting(x, now)), next: pool.filter(x => x.start.toMillis() > now).sort((a, b) => a.start - b.start)[0] };
 }
 let dismissedLive = null, lastMin = '', lastSig = '';
 function updateNext(){
-  const { live, next, now } = liveState(), url = watchUrl();
+  const { live, waiting, next, now } = liveState(), url = watchUrl();
   const pill = $('live-pill'); pill.classList.toggle('hidden', !live); if (live) $('live-pill-t').textContent = t('live_now');
   const nc = $('next-card');
   if (nc) {
     nc.dataset.live = live ? '1' : '';
-    nc.querySelector('small').textContent = live ? t('live_now') : (next ? t('next_live') : t('no_next'));
-    nc.querySelector('b').textContent = live ? `${live.start.setZone(userTZ).toFormat('HH:mm')} – ${live.end.setZone(userTZ).toFormat('HH:mm')}` : (next ? fmtDur(next.start.toMillis() - now) : '—');
+    nc.querySelector('small').textContent = live ? t('live_now') : waiting ? t('live_waiting') : (next ? t('next_live') : t('no_next'));
+    nc.querySelector('b').textContent = live ? `${live.start.setZone(userTZ).toFormat('HH:mm')} – ${live.end.setZone(userTZ).toFormat('HH:mm')}` : waiting ? t('live_waiting_b', { t:waiting.sched.setZone(userTZ).toFormat('HH:mm') }) : (next ? fmtDur(next.start.toMillis() - now) : '—');
   }
   const toastEl = $('live-toast');
   if (live && url && dismissedLive !== live.key && !(route.name === 'watch')) {
     toastEl.classList.add('show'); $('live-toast-text').textContent = live.slot.title || t('live_now'); $('live-toast-link').href = url;
   } else toastEl.classList.remove('show');
   lrTick(live, next, now);
-  const lrN = $('lr-next'); if (lrN) lrN.textContent = lrNextText(live, next, now);
+  const lrN = $('lr-next'); if (lrN) lrN.textContent = lrNextText(live, next, now, waiting);
 }
 
 /* =========================================================
@@ -651,7 +673,7 @@ const LR = (() => {
 let lrSent = store.get('lr_sent', {}), swReg = null, lrTitleBak = '';
 const lrSave = () => { store.set('lr_on', LR.on); store.set('lr_leads', LR.leads); store.set('lr_mode', LR.mode); store.set('lr_picked', LR.picked); };
 const lrSound = () => LR.style !== 'notif', lrPop = () => LR.style !== 'sound';
-const lrWanted = x => LR.mode === 'all' || !!LR.picked[x.start.toMillis()];
+const lrWanted = x => LR.mode === 'all' || !!LR.picked[x.sched.toMillis()];      // đánh dấu theo giờ lịch: dời giờ bắt đầu vẫn giữ lựa chọn
 const lrSoon = now => upcomingPool().filter(x => x.end.toMillis() > now).sort((a, b) => a.start - b.start);
 const audioLocked = () => typeof actx === 'undefined' || !actx || actx.state !== 'running';
 function liveChime(tone){                                          // âm chuông tự tạo bằng Web Audio (không cần file âm thanh)
@@ -715,16 +737,18 @@ function lrTick(live, next, now){
   let dirty = false;
   const mark = k => { lrSent[k] = now; dirty = true; };
   lrSoon(now).filter(lrWanted).forEach(x => {
-    const st = x.start.toMillis(), ms = st - now, title = x.slot.title || t('lr_cal_title');
+    const st = x.sched.toMillis(), ms = x.start.toMillis() - now, title = x.slot.title || t('lr_cal_title');   // st: khoá "đã nhắc" theo giờ lịch nên bấm bắt đầu lại không nhắc lặp
     if (ms > 0) {                                                  // nhắc trước: nhiều mốc tới cùng lúc (vd vừa bật nhắc) thì chỉ kêu một lần
       const due = LR.leads.filter(m => ms <= m * 60e3 && !lrSent['s' + m + '-' + st]);
       if (due.length) { due.forEach(m => mark('s' + m + '-' + st)); const n = Math.max(1, Math.round(ms / 60e3)); lrFire(t('lr_soon_t', { n }), t('lr_soon_b', { t:title, s:x.start.setZone(userTZ).toFormat('HH:mm') }), 'live-soon', false); }
-    } else if (LR.atStart && now - st < 15 * 60e3 && !lrSent['l' + st]) { mark('l' + st); lrFire(t('notif_title'), x.slot.title ? `${x.slot.title} · ${t('notif_body')}` : t('notif_body'), 'live-now', true); }
+    } else if (LR.atStart && x.started && -ms < 15 * 60e3 && !lrSent['l' + st]) {      // "đang live" chỉ khi admin đã bấm bắt đầu
+      mark('l' + st); lrFire(t('notif_title'), x.slot.title ? `${x.slot.title} · ${t('notif_body')}` : t('notif_body'), 'live-now', true); }
   });
   if (dirty) { Object.keys(lrSent).forEach(k => { if (now - lrSent[k] > 2 * 864e5) delete lrSent[k]; }); store.set('lr_sent', lrSent); }
 }
-function lrNextText(live, next, now){
+function lrNextText(live, next, now, waiting){
   if (live) return `${t('live_now')} · ${live.start.setZone(userTZ).toFormat('HH:mm')} – ${live.end.setZone(userTZ).toFormat('HH:mm')}`;
+  if (waiting) return `${t('live_waiting')} · ${t('live_waiting_b', { t:waiting.sched.setZone(userTZ).toFormat('HH:mm') })}`;
   if (!next) return t('lr_none');
   const s = next.start.setZone(userTZ).setLocale(state.lang);
   return t('lr_next', { d:`${s.toFormat('ccc dd/MM HH:mm')} (${fmtDur(next.start.toMillis() - now)})` });
@@ -732,19 +756,19 @@ function lrNextText(live, next, now){
 const lrSessLabel = x => `${x.start.setZone(userTZ).setLocale(state.lang).toFormat('ccc dd/MM · HH:mm')}${x.slot.title ? ' · ' + x.slot.title : ''}`;
 function renderLiveRem(){
   const pop = $('live-rem'); if (!pop) return;
-  const { live, next, now } = liveState(), perm = NOTIF_OK ? Notification.permission : 'none', soon = lrSoon(now);
+  const { live, waiting, next, now } = liveState(), perm = NOTIF_OK ? Notification.permission : 'none', soon = lrSoon(now);
   const chip = (on, act, attrs, label, extra) => `<button type="button" class="lr-chip ${on ? 'on' : ''}" data-act="${act}" ${attrs}>${label}${extra || ''}</button>`;
   const custom = LR.leads.filter(n => !LR_PRESETS.includes(n)).sort((a, b) => a - b);
   const leadsHTML = LR_PRESETS.map(n => chip(LR.leads.includes(n), 'lrLeadTog', `data-n="${n}"`, esc(t('lr_min', { n })))).join('')
     + custom.map(n => chip(true, 'lrLeadTog', `data-n="${n}" aria-label="${esc(t('lr_min', { n }))} ×"`, esc(t('lr_min', { n })), ' ×')).join('');
   const sessHTML = LR.mode !== 'pick' ? '' : soon.length
-    ? `<div class="lr-sess">${soon.map(x => `<label class="lr-sess-row"><input type="checkbox" data-change="lrPick" data-st="${x.start.toMillis()}" ${LR.picked[x.start.toMillis()] ? 'checked' : ''}><span>${esc(lrSessLabel(x))}</span></label>`).join('')}</div>${soon.some(lrWanted) ? '' : `<p class="lr-note warn">${esc(t('lr_pick_none'))}</p>`}`
+    ? `<div class="lr-sess">${soon.map(x => `<label class="lr-sess-row"><input type="checkbox" data-change="lrPick" data-st="${x.sched.toMillis()}" ${LR.picked[x.sched.toMillis()] ? 'checked' : ''}><span>${esc(lrSessLabel(x))}</span></label>`).join('')}</div>${soon.some(lrWanted) ? '' : `<p class="lr-note warn">${esc(t('lr_pick_none'))}</p>`}`
     : `<p class="lr-note">${esc(t('lr_none'))}</p>`;
   // Quyền thông báo: mục thông báo đẩy ở trên đã tự hỏi quyền và giải thích khi bị chặn; chỉ khi web chưa bật thông báo đẩy mới cần nút riêng ở đây
   const permHTML = pushHTML() || perm === 'granted' ? '' : perm === 'default' ? `<p class="lr-note">${esc(t('lr_perm_ask_note'))}</p><button type="button" class="btn secondary sm" data-act="lrPerm">${ic('bell', 'sm')} ${esc(t('lr_perm_ask'))}</button>`
     : `<p class="lr-note">${esc(t(perm === 'denied' ? 'lr_perm_denied' : 'lr_perm_none'))}</p>`;
   pop.innerHTML = `<div class="lr-h">${ic('bell', 'sm')} <b>${esc(t('lr_title'))}</b></div>
-    <p class="lr-next" id="lr-next">${esc(lrNextText(live, next, now))}</p>
+    <p class="lr-next" id="lr-next">${esc(lrNextText(live, next, now, waiting))}</p>
     ${notifBroken() ? `<p class="lr-note warn">${esc(t('nh_blocked'))}</p>` : ''}
     ${pushHTML()}
     ${plRemHTML()}
@@ -869,7 +893,7 @@ function tickClock(){
   document.querySelectorAll('[data-clock]').forEach(e => e.textContent = txt);
   // chỉ vẽ lại trang khi trạng thái buổi live thật sự đổi (để hiệu ứng mưa không bị khởi động lại mỗi phút)
   const mk = n.toFormat('HH:mm');
-  if (mk !== lastMin) { lastMin = mk; const ms = Date.now(), sig = n.toISODate() + poolAll().map(x => x.key + (ms >= x.start.toMillis() && ms < x.end.toMillis() ? 'L' : ms >= x.end.toMillis() ? 'P' : '')).join(','); if (sig !== lastSig) { lastSig = sig; if (['home', 'schedule'].includes(route.name)) render(); } }
+  if (mk !== lastMin) { lastMin = mk; const ms = Date.now(), sig = n.toISODate() + poolAll().map(x => x.key + (isLive(x, ms) ? 'L' : isWaiting(x, ms) ? 'W' : ms >= x.end.toMillis() ? 'P' : '')).join(','); if (sig !== lastSig) { lastSig = sig; if (['home', 'schedule'].includes(route.name)) render(); } }
 }
 setInterval(() => { tickClock(); updateNext(); }, 1000);
 

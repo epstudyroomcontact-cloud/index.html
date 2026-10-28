@@ -413,3 +413,18 @@
   };
   Object.keys(MJR).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], MJR[l]); });
 })();
+
+/* Lịch live theo giờ bắt đầu thật: tới giờ lịch mà chưa lên sóng thì báo "Sắp bắt đầu"; đã bắt đầu trễ/sớm thì ghi giờ dự kiến */
+(function () {
+  const G = {
+    en:{ live_waiting:"Starting soon", live_waiting_b:"Planned {t}", live_moved:"planned {t}" },
+    vi:{ live_waiting:"Sắp bắt đầu", live_waiting_b:"Dự kiến {t}", live_moved:"dự kiến {t}" },
+    hi:{ live_waiting:"जल्द शुरू होगा", live_waiting_b:"योजना {t}", live_moved:"योजना {t}" },
+    ja:{ live_waiting:"まもなく開始", live_waiting_b:"予定 {t}", live_moved:"予定 {t}" },
+    ko:{ live_waiting:"곧 시작해요", live_waiting_b:"예정 {t}", live_moved:"예정 {t}" },
+    zh:{ live_waiting:"即将开始", live_waiting_b:"预计 {t}", live_moved:"预计 {t}" },
+    fr:{ live_waiting:"Bientôt en direct", live_waiting_b:"Prévu {t}", live_moved:"prévu {t}" },
+    es:{ live_waiting:"Empieza pronto", live_waiting_b:"Previsto {t}", live_moved:"previsto {t}" }
+  };
+  Object.keys(G).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], G[l]); });
+})();
