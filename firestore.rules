@@ -203,6 +203,44 @@ service cloud.firestore {
     // Nút "Gửi thông báo live ngay" (admin ghi push_admin/now) và trạng thái lần gửi gần nhất (máy gửi ghi push_admin/status, push_admin/state).
     match /push_admin/{id} { allow read, write: if isAdmin(); }
 
+    // Cùng học (Phòng tập trung): chỉ lưu số tổng, không lưu ai là ai.
+    // study_now/<sha256('ep-study:' + uid)>: { until, at }. Id là mã băm nên không suy ra được tài khoản; chỉ chính chủ ghi được tài liệu của mình.
+    //   until = lúc phiên tập trung đang chạy kết thúc (tối đa 3 giờ tới); at = lần cuối được cộng phút, chỉ đặt được bằng giờ máy chủ.
+    // study_day/<số ngày theo giờ Việt Nam>: { min } = tổng phút cả nhóm trong ngày. Mỗi lần chỉ tăng 1–180 phút, và không nhiều hơn
+    //   thời gian thật đã trôi qua từ lần cộng trước của chính tài khoản đó (cùng lần ghi phải dời at về bây giờ), nên không ai bơm số được.
+    // Đọc: ai đã đăng nhập cũng đếm được (chỉ thấy mã băm và giờ, không có tên/email). Không ai xoá được tổng của ngày.
+    function studyHash() { return hashing.sha256('ep-study:' + request.auth.uid).toHexString().lower(); }
+    function studyToday() { return int(math.floor((request.time.toMillis() + 25200000) / 86400000)); }
+    function studyAdded() { return request.resource.data.min - (resource == null ? 0 : resource.data.get('min', 0)); }
+    function studyCreditOk(k) {
+      let p = /databases/$(database)/documents/study_now/$(studyHash());
+      return exists(p)
+        && getAfter(p).data.at == request.time
+        && get(p).data.at + duration.value(k * 60 - 20, 's') <= request.time;
+    }
+    match /study_now/{id} {
+      allow list: if signedIn() && request.query.limit <= 500;
+      allow get: if false;
+      allow create, update: if signedIn() && id == studyHash()
+        && request.resource.data.keys().hasOnly(['until', 'at'])
+        && request.resource.data.until is timestamp
+        && request.resource.data.until <= request.time + duration.value(181, 'm')
+        && request.resource.data.at is timestamp
+        && (request.resource.data.at == request.time || (resource != null && request.resource.data.at == resource.data.at));
+      allow delete: if signedIn() && id == studyHash();
+    }
+    match /study_day/{day} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create, update: if signedIn()
+        && (day == string(studyToday()) || day == string(studyToday() - 1))
+        && request.resource.data.keys().hasOnly(['min'])
+        && request.resource.data.min is int
+        && studyAdded() >= 1 && studyAdded() <= 180
+        && studyCreditOk(studyAdded());
+      allow delete: if isAdmin();
+    }
+
     // Email nhắc lịch (trước đây là Challenge 30 ngày): id = email → tạo lần 2 bị từ chối (chống trùng)
     match /challenge_signups/{id} {
       allow create: if request.resource.data.email is string && request.resource.data.email.size() < 200

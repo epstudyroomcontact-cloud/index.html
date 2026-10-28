@@ -436,6 +436,15 @@ Trang `overlay.html` hiện kế hoạch buổi live đang chạy (giống thẻ
 
 **Hoặc bắt đầu bằng nút trong Admin (dậy trễ / vào sớm / sửa giờ):** vào **Admin** (tab Tổng quan hoặc Lịch live), ô **Bắt đầu buổi live** → bấm **▶ Bắt đầu buổi live bây giờ** một lần. Trong khoảng 10 giây, bảng lịch và bộ đếm trên OBS tự dời cả buổi theo giờ bạn bấm. Bấm nhầm thì dùng **−5 / −1 / +1 / +5 phút**, **Bắt đầu lại từ bây giờ**, hoặc **Về giờ theo lịch**. Lịch gốc trong tuần không bị đổi; trang Lịch cho khách và thông báo đẩy vẫn theo giờ lịch.
 
+## PHẦN 19 — Bảng "Cùng học" ở Phòng tập trung
+Người đồng hành (và người đang dùng thử, admin) thấy ô **Cùng học** trong Phòng tập trung: **bao nhiêu người đang tập trung ngay lúc này** và **tổng giờ học của cả nhóm hôm nay** (ngày tính theo giờ Việt Nam). Ai đã đăng nhập và bấm chạy timer đều được đếm; người chưa là Người đồng hành chỉ thấy lời giới thiệu và nút Trở thành Người đồng hành.
+
+- **Không lộ thông tin cá nhân:** web chỉ lưu số tổng. Mỗi tài khoản có đúng 1 tài liệu `study_now/<mã băm>` (mã băm của tài khoản, không có tên, email) với giờ kết thúc phiên đang chạy; tổng phút trong ngày nằm ở `study_day/<số ngày>`.
+- **Không ai bơm số được:** luật chỉ cho cộng 1–180 phút mỗi lần, và không nhiều hơn thời gian thật đã trôi qua từ lần cộng trước của chính tài khoản đó.
+- **Tốn ít lượt đọc:** bảng chỉ tải lại mỗi 60 giây khi đang mở Phòng tập trung.
+
+**Việc phải làm 1 lần:** dán lại luật `firestore.rules` mới (làm đúng 4 bước ở mục 2.3). Chưa dán thì ô Cùng học báo "Chưa tải được", còn timer vẫn chạy bình thường.
+
 ## QUY TẮC CẬP NHẬT WEB LÊN GITHUB (đọc cái này khi cần cập nhật)
 Từ bản 8, các file hay thay đổi (`index.html`, `core.js`, `pages.js`, `admin.js`, `i18n-extra.js`, `app.css`) **đều nằm ở trang gốc của repo**, cùng chỗ với `index.html`. Chỉ còn 4 file ít khi đổi nằm trong thư mục `js`: `art.js`, `i18n.js`, `translate.js`, `firebase-config.js`. Thư mục `css` và các bản cũ `js/core.js`, `js/pages.js`, `js/admin.js`, `js/i18n-extra.js` đã bỏ hẳn (web không dùng), nếu máy bạn còn thì không cần tải lên nữa.
 

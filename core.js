@@ -460,6 +460,7 @@ auth.onAuthStateChanged(async u => {
     startLibrary();
     if (state.companion || state.isAdmin || trialActive()) loadPlanner().then(() => plPrefetch()).catch(() => {});     // tải sẵn planner.js lúc rảnh để mở Planner không phải chờ tải file
   }
+  if (typeof studyAuth === 'function') studyAuth();                   // bảng Cùng học (pages.js): đăng nhập / đăng xuất thì ghi lại trạng thái timer cho đúng tài khoản
   render(true);
 });
 const saveProfileNow = () => {

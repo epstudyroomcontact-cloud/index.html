@@ -193,7 +193,7 @@ PAGES.watch = function(){
 const pomoDefault = () => ({ cfg:{ focus:25, short:5, long:15, every:4, auto:false, noise:false }, mode:'focus', running:false, endAt:0, remaining:25 * 60e3, cycle:0 });
 let pomo = { ...pomoDefault(), ...store.get('pomo', {}) }; pomo.cfg = { ...pomoDefault().cfg, ...(pomo.cfg || {}) };
 const pomoDur = m => (pomo.cfg[m] || 25) * 60e3;
-const pomoSave = () => store.set('pomo', pomo);
+const pomoSave = () => { store.set('pomo', pomo); if (typeof studyPresence === 'function') studyPresence(); };      // timer đổi trạng thái → báo bảng Cùng học (chỉ ghi khi thật sự đổi)
 let actx = null;
 function audio(){ if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (actx && actx.state !== 'running' && actx.state !== 'closed') { const r = actx.resume(); if (r && r.catch) r.catch(() => {}); } return actx; }
 function beep(){
@@ -255,6 +255,7 @@ Object.assign(ACTIONS, {
 });function addFocus(min){
   const k = DT.now().setZone(userTZ).toISODate(), fl = localFocus(), o = fl[k] || { m:0, s:0 };
   fl[k] = { m:o.m + min, s:o.s + 1 }; store.set('focus', fl);
+  studyCredit(min);
   const cur = typeof curTodo === 'function' && curTodo(); if (cur) store.set('todos', todos().map(x => x.id === cur.id ? { ...x, p:(x.p || 0) + 1 } : x));      // phiên tập trung xong: cộng 1 🍅 cho việc đang chọn
   saveProfileSoon(); if (typeof renderTodos === 'function') renderTodos();
 }
@@ -415,7 +416,7 @@ PAGES.focus = function(){
       <div class="cfg-grid">${num('focus', t('cfg_focus'))}${num('short', t('cfg_short'))}${num('long', t('cfg_long'))}${num('every', t('cfg_every'))}</div>
       <div class="row between" style="width:100%"><label class="row small" style="font-weight:600"><input type="checkbox" data-change="cfgAuto" ${c.auto ? 'checked' : ''}> ${esc(t('auto_start'))}</label></div>
     </section>
-    <div class="stack">${streamCard()}<section class="card pad"><div class="card-h"><h2>${esc(t('todo_title'))}</h2></div>
+    <div class="stack">${streamCard()}${studyCard()}<section class="card pad"><div class="card-h"><h2>${esc(t('todo_title'))}</h2></div>
         <form class="row" style="flex-wrap:nowrap" data-form="todo"><input class="input" id="todo-in" placeholder="${esc(t('todo_ph'))}" maxlength="140" autocomplete="off"><button class="btn primary icon" type="submit" aria-label="add">${ic('plus')}</button></form>
         <div id="todo-list" class="mt-s"></div><div id="todo-pl"></div>${!state.user ? `<p class="hint mt-s">${esc(t('sync_note'))} <a class="link" href="#/account">${esc(t('signin'))}</a></p>` : ''}</section>
       <div class="grid g2 keep2"><div class="card tile"><span class="t-l">${esc(t('sessions_today'))}</span><span class="t-v">${td.s}</span></div><div class="card tile"><span class="t-l">${esc(t('minutes_today'))}</span><span class="t-v">${td.m}</span></div></div>
@@ -432,6 +433,90 @@ CHANGES.focusPlToggle = async el => {
   renderFocusPl();
 };
 FORMS.todo = () => { const i = $('todo-in'), v = i.value.trim(); if (!v) return; saveTodos([{ id:Date.now().toString(36), text:v, done:false }, ...todos()]); i.value = ''; renderTodos(); i.focus(); };
+/* =========================================================
+   CÙNG HỌC — bảng "đang học cùng bạn" trong Phòng tập trung, để không ai thấy mình học một mình.
+   Chỉ lưu số tổng, không lưu ai là ai (xem firestore.rules, mục study_now / study_day):
+   - study_now/<sha256('ep-study:' + uid)>: { until, at }. until = lúc phiên tập trung đang chạy kết thúc (dừng / nghỉ thì = lúc đó).
+     "Đang học" = số tài liệu có until > bây giờ. at = lần cuối được cộng phút: rules không cho cộng nhiều phút hơn thời gian thật đã trôi qua.
+   - study_day/<số ngày, tính theo giờ Việt Nam>: { min } = tổng phút tập trung của cả nhóm trong ngày, chỉ tăng bằng increment.
+   Ai đã đăng nhập và chạy timer đều được đếm; chỉ Người đồng hành, người đang dùng thử và admin thấy bảng.
+   ========================================================= */
+(function(){
+  const G = {
+    en:{ st_title:'Study together', st_now:'Studying now', st_today:'Group total today', st_alone:'Nobody is focusing right now. Start a session and light the first lamp for others.', st_first:'You lit the first lamp. Anyone who starts now will see you here.', st_together:'{n} other people are focusing at the same time as you. You are not studying alone.', st_join:'{n} people are focusing right now. Press start and study with them.', st_contrib:'You added {m} min today.', st_private:'Only the number of people and the total time are counted. No names or accounts are shown.', st_vn:'The day follows Vietnam time.', st_lock:'Companions see the Study together board: how many people are studying with you right now and the whole group\'s study time today.', st_lock_cta:'Become a Companion', st_signin:'Sign in so your focus time counts on the Study together board.', st_hours:'{h} h', st_mins:'{m} min', st_err:'The Study together board could not load right now.' },
+    vi:{ st_title:'Cùng học', st_now:'Đang học', st_today:'Cả nhóm hôm nay', st_alone:'Lúc này chưa ai đang tập trung. Bắt đầu một phiên để thắp ngọn đèn đầu tiên cho mọi người nhé.', st_first:'Bạn vừa thắp ngọn đèn đầu tiên. Ai vào học lúc này cũng sẽ thấy có bạn ở đây.', st_together:'{n} người khác đang tập trung cùng lúc với bạn. Bạn không học một mình đâu.', st_join:'{n} người đang tập trung ngay lúc này. Bấm bắt đầu để học cùng nhé.', st_contrib:'Hôm nay bạn góp {m} phút.', st_private:'Chỉ đếm số người và tổng thời gian, không hiện tên hay tài khoản của ai.', st_vn:'Ngày tính theo giờ Việt Nam.', st_lock:'Người đồng hành thấy bảng Cùng học: bao nhiêu người đang học cùng bạn lúc này và tổng giờ học của cả nhóm hôm nay.', st_lock_cta:'Trở thành Người đồng hành', st_signin:'Đăng nhập để thời gian tập trung của bạn được tính vào bảng Cùng học.', st_hours:'{h} giờ', st_mins:'{m} phút', st_err:'Chưa tải được bảng Cùng học.' },
+    hi:{ st_title:'साथ पढ़ाई', st_now:'अभी पढ़ रहे हैं', st_today:'आज समूह का कुल समय', st_alone:'अभी कोई फोकस नहीं कर रहा। एक सत्र शुरू करें और सबके लिए पहला दीया जलाएँ।', st_first:'आपने पहला दीया जलाया। जो भी अभी शुरू करेगा, वह आपको यहाँ देखेगा।', st_together:'{n} और लोग आपके साथ इसी समय फोकस कर रहे हैं। आप अकेले नहीं पढ़ रहे।', st_join:'{n} लोग अभी फोकस कर रहे हैं। शुरू दबाएँ और उनके साथ पढ़ें।', st_contrib:'आज आपने {m} मिनट जोड़े।', st_private:'केवल लोगों की संख्या और कुल समय गिना जाता है। किसी का नाम या खाता नहीं दिखाया जाता।', st_vn:'दिन वियतनाम समय के अनुसार गिना जाता है।', st_lock:'साथी "साथ पढ़ाई" बोर्ड देखते हैं: अभी कितने लोग आपके साथ पढ़ रहे हैं और आज पूरे समूह का पढ़ाई समय।', st_lock_cta:'साथी बनें', st_signin:'साइन इन करें ताकि आपका फोकस समय "साथ पढ़ाई" बोर्ड में गिना जाए।', st_hours:'{h} घंटे', st_mins:'{m} मिनट', st_err:'"साथ पढ़ाई" बोर्ड अभी लोड नहीं हो सका।' },
+    ja:{ st_title:'いっしょに勉強', st_now:'いま勉強中', st_today:'今日のみんなの合計', st_alone:'いま集中している人はいません。セッションを始めて、最初の明かりを灯しましょう。', st_first:'最初の明かりを灯しました。今始める人には、あなたがここにいることが伝わります。', st_together:'ほかに{n}人があなたと同じ時間に集中しています。ひとりじゃないよ。', st_join:'いま{n}人が集中しています。スタートを押していっしょに勉強しよう。', st_contrib:'今日あなたは{m}分加えました。', st_private:'数えるのは人数と合計時間だけです。名前やアカウントは表示されません。', st_vn:'日付はベトナム時間で数えます。', st_lock:'コンパニオンは「いっしょに勉強」ボードを見られます：いま一緒に勉強している人数と、今日のグループ全体の勉強時間。', st_lock_cta:'コンパニオンになる', st_signin:'ログインすると、あなたの集中時間が「いっしょに勉強」ボードに数えられます。', st_hours:'{h}時間', st_mins:'{m}分', st_err:'「いっしょに勉強」ボードを読み込めませんでした。' },
+    ko:{ st_title:'함께 공부', st_now:'지금 공부 중', st_today:'오늘 모두의 합계', st_alone:'지금 집중하는 사람이 없어요. 세션을 시작해 첫 번째 등불을 켜 주세요.', st_first:'첫 번째 등불을 켰어요. 지금 시작하는 사람은 당신이 여기 있다는 걸 보게 돼요.', st_together:'다른 {n}명이 지금 당신과 함께 집중하고 있어요. 혼자 공부하는 게 아니에요.', st_join:'지금 {n}명이 집중하고 있어요. 시작을 눌러 함께 공부해요.', st_contrib:'오늘 {m}분을 보탰어요.', st_private:'사람 수와 총 시간만 셉니다. 이름이나 계정은 보이지 않아요.', st_vn:'날짜는 베트남 시간 기준이에요.', st_lock:'컴패니언은 "함께 공부" 보드를 볼 수 있어요: 지금 함께 공부하는 사람 수와 오늘 그룹 전체의 공부 시간.', st_lock_cta:'컴패니언 되기', st_signin:'로그인하면 집중 시간이 "함께 공부" 보드에 반영돼요.', st_hours:'{h}시간', st_mins:'{m}분', st_err:'"함께 공부" 보드를 불러오지 못했어요.' },
+    zh:{ st_title:'一起学习', st_now:'正在学习', st_today:'今天大家合计', st_alone:'现在还没有人在专注。开始一次专注，为大家点亮第一盏灯吧。', st_first:'你点亮了第一盏灯。现在开始的人都会看到你在这里。', st_together:'还有 {n} 人正和你同时专注。你不是一个人在学习。', st_join:'现在有 {n} 人正在专注。点击开始，和他们一起学习吧。', st_contrib:'今天你贡献了 {m} 分钟。', st_private:'只统计人数和总时间，不显示任何人的名字或账号。', st_vn:'日期按越南时间计算。', st_lock:'同行者可以看到“一起学习”面板：现在有多少人和你一起学习，以及今天全组的学习时间。', st_lock_cta:'成为同行者', st_signin:'登录后，你的专注时间会计入“一起学习”面板。', st_hours:'{h} 小时', st_mins:'{m} 分钟', st_err:'暂时无法加载“一起学习”面板。' },
+    fr:{ st_title:'Étudier ensemble', st_now:'En train d’étudier', st_today:'Total du groupe aujourd’hui', st_alone:'Personne ne se concentre pour l’instant. Lancez une session et allumez la première lampe pour les autres.', st_first:'Vous avez allumé la première lampe. Ceux qui commencent maintenant vous verront ici.', st_together:'{n} autres personnes se concentrent en même temps que vous. Vous n’étudiez pas seul·e.', st_join:'{n} personnes se concentrent en ce moment. Appuyez sur démarrer et étudiez avec elles.', st_contrib:'Vous avez ajouté {m} min aujourd’hui.', st_private:'Seuls le nombre de personnes et le temps total sont comptés. Aucun nom ni compte n’est affiché.', st_vn:'La journée suit l’heure du Vietnam.', st_lock:'Les Compagnons voient le tableau Étudier ensemble : combien de personnes étudient avec vous en ce moment et le temps d’étude du groupe aujourd’hui.', st_lock_cta:'Devenir Compagnon', st_signin:'Connectez-vous pour que votre temps de concentration compte dans le tableau Étudier ensemble.', st_hours:'{h} h', st_mins:'{m} min', st_err:'Le tableau Étudier ensemble n’a pas pu se charger.' },
+    es:{ st_title:'Estudiar juntos', st_now:'Estudiando ahora', st_today:'Total del grupo hoy', st_alone:'Nadie se está concentrando ahora. Empieza una sesión y enciende la primera lámpara para los demás.', st_first:'Encendiste la primera lámpara. Quien empiece ahora te verá aquí.', st_together:'Otras {n} personas se están concentrando al mismo tiempo que tú. No estudias solo.', st_join:'{n} personas se están concentrando ahora mismo. Pulsa empezar y estudia con ellas.', st_contrib:'Hoy sumaste {m} min.', st_private:'Solo se cuentan el número de personas y el tiempo total. No se muestran nombres ni cuentas.', st_vn:'El día sigue la hora de Vietnam.', st_lock:'Los Compañeros ven el tablero Estudiar juntos: cuántas personas estudian contigo ahora y el tiempo de estudio del grupo hoy.', st_lock_cta:'Hazte Compañero', st_signin:'Inicia sesión para que tu tiempo de concentración cuente en el tablero Estudiar juntos.', st_hours:'{h} h', st_mins:'{m} min', st_err:'No se pudo cargar el tablero Estudiar juntos.' }
+  };
+  Object.keys(G).forEach(l => { I18N[l] = I18N[l] || {}; Object.keys(G[l]).forEach(k => { if (I18N[l][k] === undefined) I18N[l][k] = G[l][k]; }); });
+})();
+const STUDY_DAY_MS = 86400e3, STUDY_TZ_MS = 7 * 3600e3;                     // "hôm nay" của cả nhóm theo giờ Việt Nam (GMT+7, không đổi giờ), giống rules
+const studyDay = () => String(Math.floor((Date.now() + STUDY_TZ_MS) / STUDY_DAY_MS));
+const studyCan = () => !!(state.companion || state.isAdmin || trialActive());
+let study = { at:0, now:0, min:0, err:false, busy:false }, studyKey = null, studySent = null, studyPend = 0;
+const studyId = () => { const uid = state.user.uid; if (!studyKey || studyKey.uid !== uid) studyKey = { uid, p:sha256Hex('ep-study:' + uid) }; return studyKey.p; };
+const studyRef = id => db.collection('study_now').doc(id);
+/* đang chạy phiên tập trung → until = giờ phiên kết thúc; tạm dừng / nghỉ / đặt lại → until = bây giờ. Chỉ ghi khi giá trị đổi. */
+function studyPresence(){
+  if (!state.user) return;
+  const until = pomo.running && pomo.mode === 'focus' ? Math.min(pomo.endAt, Date.now() + 180 * 60e3) : 0, key = until ? Math.round(until / 1000) : 0;
+  if (key === studySent) return;
+  if (studySent === null && !key) { studySent = 0; return; }                // vừa mở web mà không học: không cần ghi gì
+  studySent = key;
+  if (DEMO) { if (studyCan()) studyLoad(true); return; }
+  const F = firebase.firestore.FieldValue, u = until ? firebase.firestore.Timestamp.fromMillis(until) : F.serverTimestamp();
+  studyId().then(id => studyRef(id).update({ until:u }).catch(() => studyRef(id).set({ until:u, at:F.serverTimestamp() })))      // lần đầu chưa có tài liệu thì tạo
+    .then(() => { if (studyCan()) setTimeout(() => studyLoad(true), 1500); }).catch(() => { studySent = null; });
+}
+/* xong một phiên tập trung: cộng số phút vào tổng của cả nhóm (cùng lúc dời mốc at, để rules so với thời gian thật đã trôi qua) */
+function studyCredit(min){
+  if (DEMO) return;
+  studyPend = Math.min(180, studyPend + Math.max(0, Math.round(+min || 0)));
+  if (!studyPend || !state.user) return;                                    // phiên xong lúc chưa kịp đăng nhập: gửi khi đăng nhập xong (studyAuth)
+  const k = studyPend; studyPend = 0;
+  const F = firebase.firestore.FieldValue, b = db.batch();
+  studyId().then(id => {
+    b.update(studyRef(id), { at:F.serverTimestamp() });
+    b.set(db.collection('study_day').doc(studyDay()), { min:F.increment(k) }, { merge:true });
+    return b.commit();
+  }).then(() => { if (studyCan()) studyLoad(true); }).catch(() => {});
+}
+function studyAuth(){ studySent = null; studyPresence(); studyCredit(0); }
+async function studyLoad(force){
+  if (study.busy || (!force && Date.now() - study.at < 60e3)) return;
+  study.busy = true;
+  try {
+    if (DEMO) { const h = new Date().getHours(); study = { ...study, now:3 + (h * 7) % 9 + (pomo.running && pomo.mode === 'focus' ? 1 : 0), min:420 + h * 95 }; }
+    else {
+      const [q, d] = await Promise.all([db.collection('study_now').where('until', '>', firebase.firestore.Timestamp.now()).limit(500).get(), db.collection('study_day').doc(studyDay()).get()]);
+      study.now = q.size; study.min = d.exists ? +d.data().min || 0 : 0;
+    }
+    study.err = false;
+  } catch (e) { study.err = true; }
+  study.at = Date.now(); study.busy = false;
+  const b = $('st-board'); if (b) b.innerHTML = studyBody();
+}
+const studyNum = (n, d) => new Intl.NumberFormat(state.lang, { maximumFractionDigits:d || 0 }).format(n);
+function studyBody(){
+  if (!study.at) return `<div class="small faint">…</div>`;
+  if (study.err) return `<div class="small muted">${esc(t('st_err'))}</div>`;
+  const me = pomo.running && pomo.mode === 'focus', n = Math.max(study.now, me ? 1 : 0), others = n - (me ? 1 : 0), mine = focusToday();
+  const tot = study.min >= 60 ? t('st_hours', { h:studyNum(study.min / 60, study.min < 600 ? 1 : 0) }) : t('st_mins', { m:studyNum(study.min) });
+  const msg = !n ? t('st_alone') : me ? (others ? t('st_together', { n:studyNum(others) }) : t('st_first')) : t('st_join', { n:studyNum(n) });
+  return `<div class="grid g2 keep2 st-tiles"><div class="tile st-tile"><span class="t-l"><i class="st-dot ${n ? 'on' : ''}"></i>${esc(t('st_now'))}</span><span class="t-v">${studyNum(n)}</span></div><div class="tile st-tile"><span class="t-l">${esc(t('st_today'))}</span><span class="t-v">${esc(tot)}</span></div></div>
+    <p class="small mt-s" style="margin-bottom:0">${esc(msg)}${mine ? ` <span class="muted">${esc(t('st_contrib', { m:studyNum(mine) }))}</span>` : ''}</p>`;
+}
+function studyCard(){
+  if (!studyCan()) return `<div class="limit-box stack st-lock"><b>${ic('users', 'sm')} ${esc(t('st_title'))}</b><p class="small muted" style="margin:0">${esc(t('st_lock'))}</p><div class="row">${state.user ? '' : `<a class="link small" href="#/account">${esc(t('st_signin'))}</a>`}<a class="btn secondary sm" href="#/donate">${ic('heart', 'sm')} ${esc(t('st_lock_cta'))}</a></div></div>`;
+  studyLoad();
+  return `<section class="card pad st-card"><div class="card-h"><h2>${ic('users', 'sm')} ${esc(t('st_title'))}</h2></div><div id="st-board">${studyBody()}</div>
+    <p class="small faint mt-s" style="margin-bottom:0">${esc(t('st_private'))}${/Ho_Chi_Minh|Saigon/.test(userTZ) ? '' : ' ' + esc(t('st_vn'))}</p></section>`;
+}
+setInterval(() => { if (route.name === 'focus' && !document.hidden && studyCan() && $('st-board')) studyLoad(); }, 15e3);     // studyLoad tự bỏ qua nếu mới tải chưa tới 60 giây
 
 /* =========================================================
    BLOG
