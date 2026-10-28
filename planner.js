@@ -700,12 +700,12 @@ function plSide(){
 }
 function plAnalysis(S){
   const mx = Math.max(60, ...S.day.map(x => x.plan));
-  return `<h2 class="pl-h2">${esc(t('pl_ana'))}</h2><div class="pl-ana">
-    ${plPeriod(S)}
-    <section class="card pad"><h3>${esc(t('pl_trend'))}</h3>${plTrend()}</section>
-    <section class="card pad"><h3>${esc(t('pl_by_day'))}</h3>${S.day.map((d, i) => `<div class="pl-row"><span>${esc(t('pl_d' + i))}</span><div class="pl-bar tall"><i class="lt" style="width:${Math.min(100, d.plan / mx * 100)}%"></i><i style="width:${Math.min(100, d.done / mx * 100)}%"></i></div><small class="faint">${esc(fmtMin(d.done))} / ${esc(fmtMin(d.plan))}${d.mv || d.x ? ' · ' + esc([d.mv && t('pl_k_mv', { n:d.mv }), d.x && t('pl_k_x2', { n:d.x })].filter(Boolean).join(' · ')) : ''}</small></div>`).join('')}</section>
-    <section class="card pad"><h3>${esc(t('pl_by_cat'))}</h3>${S.n ? S.cat.map((c, i) => c.n ? `<div class="pl-row"><span><i class="dot" style="background:${PL_COLORS[i]}"></i> ${esc(t('pl_c' + i))}</span>${plBar(c.nd, c.n, PL_COLORS[i])}<small class="faint">${c.nd}/${c.n}</small></div>` : '').join('') : `<p class="muted small">${esc(t('pl_i_none'))}</p>`}</section>
-    <section class="card pad wide"><h3>${esc(t('pl_insights'))}</h3><ul class="pl-ins">${plInsights(S).map(s => `<li>${esc(s)}</li>`).join('')}</ul><p class="small faint" style="margin-top:10px">${esc(t('pl_how'))}</p></section></div>`;
+  return `<h2 class="pl-h2">${esc(t('pl_ana'))}</h2>${tabsHTML('pl', [      // các bảng thống kê gom thành tab: mỗi lần xem 1 bảng, không phải cuộn qua hết
+    ['ps', t('pl_ps_title'), plPeriod(S)],
+    ['trend', t('pl_trend'), `<section class="card pad"><h3>${esc(t('pl_trend'))}</h3>${plTrend()}</section>`],
+    ['day', t('pl_by_day'), `<section class="card pad"><h3>${esc(t('pl_by_day'))}</h3>${S.day.map((d, i) => `<div class="pl-row"><span>${esc(t('pl_d' + i))}</span><div class="pl-bar tall"><i class="lt" style="width:${Math.min(100, d.plan / mx * 100)}%"></i><i style="width:${Math.min(100, d.done / mx * 100)}%"></i></div><small class="faint">${esc(fmtMin(d.done))} / ${esc(fmtMin(d.plan))}${d.mv || d.x ? ' · ' + esc([d.mv && t('pl_k_mv', { n:d.mv }), d.x && t('pl_k_x2', { n:d.x })].filter(Boolean).join(' · ')) : ''}</small></div>`).join('')}</section>`],
+    ['cat', t('pl_by_cat'), `<section class="card pad"><h3>${esc(t('pl_by_cat'))}</h3>${S.n ? S.cat.map((c, i) => c.n ? `<div class="pl-row"><span><i class="dot" style="background:${PL_COLORS[i]}"></i> ${esc(t('pl_c' + i))}</span>${plBar(c.nd, c.n, PL_COLORS[i])}<small class="faint">${c.nd}/${c.n}</small></div>` : '').join('') : `<p class="muted small">${esc(t('pl_i_none'))}</p>`}</section>`],
+    ['ins', t('pl_insights'), `<section class="card pad"><h3>${esc(t('pl_insights'))}</h3><ul class="pl-ins">${plInsights(S).map(s => `<li>${esc(s)}</li>`).join('')}</ul><p class="small faint" style="margin-top:10px">${esc(t('pl_how'))}</p></section>`]], 'pl-tabs')}`;
 }
 PAGES.planner = function(){
   if (!state.user && !state.authReady && !DEMO) return page('<div class="gate-load"><i></i></div>');

@@ -6,7 +6,15 @@ const isPhone = () => window.matchMedia && window.matchMedia('(max-width:760px)'
 const phoneNote = () => isPhone() && !store.get('phone_note_off', false) ? `<aside class="phone-note" role="note"><div><b>${esc(t('phone_note_title'))}</b><p>${esc(t('phone_note_text'))}</p></div><button type="button" class="btn secondary sm" data-act="phoneNoteOff">${esc(t('phone_note_ok'))}</button></aside>` : '';   // giải thích vì sao web ưu tiên máy tính, chỉ hiện trên điện thoại và bấm "Đã hiểu" là không hiện nữa
 /* ghi chú "có gì mới" đóng được (nhớ trong máy): key = new_focus / new_tease / new_pl; có href thì thêm nút dẫn tới trang đó */
 const hintNote = (key, href) => store.get('hint_' + key, false) ? '' : `<aside class="phone-note hint-note" role="note"><div><b>${esc(t(key + '_title'))}</b><p>${esc(t(key + '_text'))}</p></div><span class="row" style="flex:none;gap:6px">${href ? `<a class="btn primary sm" href="${esc(safeUrl(href))}" data-act="hintOff" data-key="${key}">${esc(t(key + '_link'))}</a>` : ''}<button type="button" class="btn secondary sm" data-act="hintOff" data-key="${key}">${esc(t('phone_note_ok'))}</button></span></aside>`;
-const page = html => { $('page').innerHTML = phoneNote() + html; };
+const page = html => { const el = $('page'); el.dataset.route = route.name; el.innerHTML = phoneNote() + html; };   // data-route: CSS chỉnh riêng từng trang (vd. ảnh đầu trang thấp hơn)
+/* gom vài thẻ thành tab, mỗi lần chỉ hiện 1 thẻ cho đỡ phải cuộn. TABS nhớ tab đang mở của từng nhóm nên trang vẽ lại vẫn giữ đúng tab.
+   list: [[khoá, nhãn, html], ...]; cls: lớp thêm cho khung ngoài */
+const TABS = {};
+function tabsHTML(id, list, cls = ''){
+  const cur = list.some(x => x[0] === TABS[id]) ? TABS[id] : list[0][0];
+  return `<div class="tabset ${cls}" data-tabs="${id}"><div class="tab-bar" role="tablist">${list.map(([k, l]) => `<button type="button" role="tab" class="chip ${k === cur ? 'on' : ''}" aria-selected="${k === cur}" data-act="tabPick" data-g="${id}" data-k="${k}">${esc(l)}</button>`).join('')}</div>
+    ${list.map(([k, , h]) => `<div class="tab-pane" role="tabpanel" data-k="${k}"${k === cur ? '' : ' hidden'}>${h}</div>`).join('')}</div>`;
+}
 const fmtDate = ts => DT.fromMillis(tsMs(ts)).setLocale(state.lang).toLocaleString(DT.DATE_MED);
 const stars = n => `<span class="stars" aria-label="${n}/5">${[1,2,3,4,5].map(i => `<svg class="ic ${i <= n ? '' : 'off'}"><use href="#i-star"/></svg>`).join('')}</span>`;
 const emptyBox = (icon, title, sub) => `<div class="empty"><div class="ico">${ic(icon, 'lg')}</div><h3>${esc(title)}</h3><p>${esc(sub || '')}</p></div>`;
@@ -248,6 +256,11 @@ function musicCard(){
     <div class="label mt">${esc(t('music_more'))}</div><div class="row">${MOODS.map(([k, q]) => `<a class="chip" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent(q)}">${esc(t('mood_' + k))}</a>`).join('')}</div></section>`;
 }
 Object.assign(ACTIONS, {
+  tabPick: el => {                                     // đổi tab tại chỗ, không vẽ lại trang (giữ nguyên vị trí cuộn)
+    const box = el.closest('[data-tabs]'), k = el.dataset.k; TABS[el.dataset.g] = k;
+    box.querySelectorAll(':scope > .tab-bar > [data-k]').forEach(b => { b.classList.toggle('on', b.dataset.k === k); b.setAttribute('aria-selected', b.dataset.k === k); });
+    box.querySelectorAll(':scope > .tab-pane').forEach(x => { x.hidden = x.dataset.k !== k; });
+  },
   passToggle: el => { const i = el.closest('.pass-wrap').querySelector('input'), show = i.type === 'password'; i.type = show ? 'text' : 'password'; el.setAttribute('aria-pressed', show); el.setAttribute('aria-label', t(show ? 'pass_hide' : 'pass_show')); el.title = t(show ? 'pass_hide' : 'pass_show'); el.innerHTML = ic(show ? 'eye-off' : 'eye'); i.focus(); },
   hintOff: el => { store.set('hint_' + el.dataset.key, true); const n = el.closest('.hint-note'); if (n && !el.href) n.remove(); },
   phoneNoteOff: el => { store.set('phone_note_off', true); const n = el.closest('.phone-note'); if (n) n.remove(); },
@@ -860,6 +873,7 @@ function moonGrid(m, doneToday){
   }
   return `<svg class="mj-grid" viewBox="0 0 ${C * G} ${rows * G}" role="img" aria-label="${esc(moonDayText(n))}">${out}</svg>`;
 }
+const mjHowCard = () => `<section class="card pad"><h3 style="margin-bottom:10px">${esc(t('club_how'))}</h3><ol class="steps"><li>${esc(t('mj_h1'))}</li><li>${esc(t('mj_h2', { t:moonRoad() }))}</li><li>${esc(t('mj_h3', { e:MOON_EARN }))}</li></ol></section>`;
 PAGES.club = function(){
   const m = moonData(), n = m ? m.days.length : 0, doneToday = !!(m && m.days.includes(todayKey())), L = moonLeg(n, doneToday), d = n - L.a, span = L.b - L.a,
     arrived = doneToday && d >= span, full = n >= moonRoad();      // arrived: hôm nay vừa tới một trạm; full: trăng chỉ tròn khi đi hết con đường
@@ -885,9 +899,10 @@ PAGES.club = function(){
   /* bố cục: thẻ điểm danh + con đường tìm Moon (moon-story.js) + chương mới nhất, rồi lịch cả hành trình, kho trăng, ưu đãi */
   page(`${head('club_title', 'club_sub', '', 'gaze', 9)}
     <div class="mj-layout"><div class="mj-a-status">${main}</div><div class="mj-a-map">${mjMapCard(m)}</div>
-      <div class="mj-a-side stack">${mjLatestCard(m)}${m ? `<section class="card pad"><div class="card-h"><h3>${esc(t('mj_grid', { t:moonRoad() }))}</h3><span class="small faint">${esc(t('mj_cal', { n:L.i + 1, a:L.a + 1, b:L.b }))}</span></div>${moonGrid(m, doneToday)}<p class="small faint mt-s">${esc(t('mj_grid_note'))}</p></section>` : ''}
-        ${m ? moonBankCard(m, doneToday) + moonRewardCard(m) : ''}
-        <section class="card pad"><h3 style="margin-bottom:10px">${esc(t('club_how'))}</h3><ol class="steps"><li>${esc(t('mj_h1'))}</li><li>${esc(t('mj_h2', { t:moonRoad() }))}</li><li>${esc(t('mj_h3', { e:MOON_EARN }))}</li></ol></section></div></div>
+      <div class="mj-a-side stack">${mjLatestCard(m)}${m ? tabsHTML('mj', [   // lịch 480 ngày · kho trăng · cách chơi: gom thành tab, đỡ một đoạn cuộn dài
+          ['grid', t('mj_grid', { t:moonRoad() }), `<section class="card pad"><div class="card-h"><h3>${esc(t('mj_grid', { t:moonRoad() }))}</h3><span class="small faint">${esc(t('mj_cal', { n:L.i + 1, a:L.a + 1, b:L.b }))}</span></div>${moonGrid(m, doneToday)}<p class="small faint mt-s">${esc(t('mj_grid_note'))}</p></section>`],
+          ['bank', t('mj_bank_t'), `<div class="stack">${moonBankCard(m, doneToday)}${moonRewardCard(m)}</div>`],
+          ['how', t('club_how'), mjHowCard()]]) : mjHowCard()}</div></div>
     ${challengeCard()}`);   // thẻ đã có tiêu đề riêng (ch_title), không thêm tiêu đề trùng phía trên
   mjMount();
 };

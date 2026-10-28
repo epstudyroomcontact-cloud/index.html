@@ -779,3 +779,19 @@ button.sb-item{width:100%;background:none;border:0;font:inherit;font-weight:600;
 }
 @media(max-width:520px){.today-item{flex-wrap:wrap;gap:4px 12px}.today-item .tm{flex-basis:100%;min-width:0}}
 .home-about{margin:34px 0}.home-about:first-child{margin-top:0}   /* khối giới thiệu: đứng đầu trang thì không cách trên */
+
+/* ---------- tab gom thẻ (tabsHTML) + Hành trình trăng / Planner ít phải cuộn hơn ---------- */
+.tab-pane[hidden]{display:none}
+.tab-bar{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0 10px;-webkit-overflow-scrolling:touch}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab-bar .chip{flex:none;white-space:nowrap;min-height:34px}
+.pl-tabs h3{font-size:1rem;margin-bottom:10px}
+#page[data-route=club] .art-head,#page[data-route=planner] .art-head{height:170px}   /* ảnh đầu trang thấp hơn: nội dung chính lên màn hình đầu */
+@media(max-width:640px){
+  #page[data-route=club] .art-head,#page[data-route=planner] .art-head{height:110px;margin-bottom:14px}
+  #page[data-route=club] .glass,#page[data-route=planner] .glass{left:12px;bottom:12px;padding:10px 14px}
+  .mj-a-status .moon-big{width:min(120px,34vw)}
+  .mj-a-status>.card{gap:10px}
+  .mj-scroll{height:min(50vh,440px)}
+  .pl-kpis4{gap:8px}.pl-kpi{padding:10px 12px;border-radius:14px}.pl-kpi b{font-size:1.25rem}
+}
