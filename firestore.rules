@@ -203,6 +203,71 @@ service cloud.firestore {
     // Nút "Gửi thông báo live ngay" (admin ghi push_admin/now) và trạng thái lần gửi gần nhất (máy gửi ghi push_admin/status, push_admin/state).
     match /push_admin/{id} { allow read, write: if isAdmin(); }
 
+    // Góp ý & bình chọn tính năng (trang #/ideas). Khách đã đăng nhập gửi góp ý; chỉ chính họ và admin đọc được góp ý đó.
+    // Chống spam: mỗi lần gửi phải ghi kèm feedback_rate/<uid> trong cùng một lần ghi (batch): cách lần trước ít nhất 60 giây, tối đa 5 góp ý mỗi ngày (giờ UTC).
+    // lastId của feedback_rate phải trùng id góp ý vừa tạo, nên một lần ghi chỉ tạo được đúng 1 góp ý.
+    function fbRate(uid) { return /databases/$(database)/documents/feedback_rate/$(uid); }
+    match /feedback/{id} {
+      allow get, list: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow create: if signedIn()
+        && id.matches('^[A-Za-z0-9]{10,40}$')
+        && request.resource.data.keys().hasOnly(['uid', 'name', 'email', 'kind', 'text', 'lang', 'status', 'createdAt'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == request.auth.token.get('email', '')
+        && request.resource.data.name is string && request.resource.data.name.size() <= 60
+        && request.resource.data.kind in ['idea', 'bug', 'other']
+        && request.resource.data.text is string && request.resource.data.text.size() >= 3 && request.resource.data.text.size() <= 1000
+        && request.resource.data.lang is string && request.resource.data.lang.size() <= 8
+        && request.resource.data.status == 'new'
+        && request.resource.data.createdAt == request.time
+        && getAfter(fbRate(request.auth.uid)).data.last == request.time
+        && getAfter(fbRate(request.auth.uid)).data.lastId == id;
+      allow update: if isAdmin();                                              // admin đánh dấu đã xem / sẽ làm / đã xong và trả lời
+      allow delete: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+    }
+    match /feedback_rate/{uid} {
+      allow get: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow list: if isAdmin();
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['last', 'lastId', 'n'])
+        && request.resource.data.last == request.time
+        && request.resource.data.n == 1
+        && request.resource.data.lastId is string
+        && existsAfter(/databases/$(database)/documents/feedback/$(request.resource.data.lastId));
+      allow update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['last', 'lastId', 'n'])
+        && request.resource.data.last == request.time
+        && resource.data.last + duration.value(60, 's') <= request.time
+        && request.resource.data.n == (resource.data.last.date() == request.time.date() ? resource.data.n + 1 : 1)
+        && request.resource.data.n <= 5
+        && request.resource.data.lastId is string && request.resource.data.lastId != resource.data.lastId
+        && existsAfter(/databases/$(database)/documents/feedback/$(request.resource.data.lastId));
+      allow delete: if isAdmin();
+    }
+    // Ý tưởng để bình chọn: admin tạo/sửa/xoá; khách đã đăng nhập chỉ đọc, và chỉ được đổi `votes` thêm/bớt đúng 1
+    // trong cùng lần ghi tạo/xoá phiếu ideas/<id>/votes/<uid> của chính họ (mỗi người 1 phiếu, không bầu hộ người khác). Ý tưởng "đã xong" thì khoá phiếu.
+    function ideaPath(id) { return /databases/$(database)/documents/ideas/$(id); }
+    function votePath(id) { return /databases/$(database)/documents/ideas/$(id)/votes/$(request.auth.uid); }
+    match /ideas/{id} {
+      allow read: if signedIn();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['votes'])
+        && resource.data.get('status', 'open') != 'done'
+        && ((request.resource.data.votes == resource.data.get('votes', 0) + 1 && !exists(votePath(id)) && existsAfter(votePath(id)))
+            || (request.resource.data.votes == resource.data.get('votes', 0) - 1 && exists(votePath(id)) && !existsAfter(votePath(id)))));
+      match /votes/{uid} {
+        allow get: if signedIn() && (request.auth.uid == uid || isAdmin());
+        allow list: if isAdmin();
+        allow create: if signedIn() && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['at'])
+          && request.resource.data.at == request.time
+          && getAfter(ideaPath(id)).data.get('votes', 0) == get(ideaPath(id)).data.get('votes', 0) + 1;
+        allow delete: if signedIn() && request.auth.uid == uid
+          && getAfter(ideaPath(id)).data.get('votes', 0) == get(ideaPath(id)).data.get('votes', 0) - 1;
+      }
+    }
+
     // Email nhắc lịch (trước đây là Challenge 30 ngày): id = email → tạo lần 2 bị từ chối (chống trùng)
     match /challenge_signups/{id} {
       allow create: if request.resource.data.email is string && request.resource.data.email.size() < 200

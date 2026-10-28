@@ -6,7 +6,7 @@
 const A_TABS = [
   ['overview', 'chart', 'Tổng quan'], ['site', 'sliders', 'Giao diện & Menu'], ['schedule', 'calendar', 'Lịch live'], ['blog', 'pen', 'Bài viết'], ['music', 'volume', 'Nhạc'],
   ['products', 'bag', 'Sản phẩm'], ['gear', 'tag', 'Đồ mình dùng'], ['orders', 'box', 'Đơn hàng'], ['coupons', 'tag', 'Mã giảm giá'], ['trials', 'timer', 'Mã dùng thử'], ['content', 'info', 'Nội dung & FAQ'],
-  ['reviews', 'star', 'Đánh giá'], ['payments', 'credit', 'Thanh toán & Ủng hộ'], ['members', 'users', 'Thành viên']
+  ['reviews', 'star', 'Đánh giá'], ['feedback', 'msg', 'Góp ý & Bình chọn'], ['payments', 'credit', 'Thanh toán & Ủng hộ'], ['members', 'users', 'Thành viên']
 ];
 const A = html => { const b = $('admin-body'); if (b) b.innerHTML = html; };
 const fail = e => alert('Lỗi: ' + (e && e.message || e));
@@ -47,11 +47,11 @@ PAGES.admin = function(){
          <div class="row"><button class="btn primary" data-act="recheckAdmin">${ic('check', 'sm')} Tôi đã xác minh rồi</button><button class="btn secondary" data-act="resendVerify">${ic('mail', 'sm')} Gửi lại email xác minh</button></div>`
       : `<p class="muted small">Chỉ tài khoản <b>${esc(ADMIN_EMAIL)}</b> mới có quyền quản trị. Bạn đang đăng nhập bằng <b>${esc(state.user.email)}</b>.</p><button class="btn secondary" data-act="signout">${ic('logout', 'sm')} Đăng xuất</button>`}</div></div>`);  const tab = A_TABS.some(x => x[0] === route.args[0]) ? route.args[0] : 'overview';
   page(`<div class="page-head"><div><h1>Trang quản trị</h1><p>Tuỳ chỉnh giao diện, nội dung, sản phẩm và đơn hàng của bạn.</p><p class="faint small">Phiên bản web: ${esc(BUILD)} · mã ${esc(ASSET_V)}</p><div id="ver-note"></div></div><button class="btn primary" data-act="startEdit">${ic('pen', 'sm')} Sửa chữ & ảnh trực tiếp trên trang</button></div>
-    <nav class="a-tabs">${A_TABS.map(([k, icn, l]) => `<a href="#/admin/${k}" class="${tab === k ? 'on' : ''}">${ic(icn, 'sm')} ${esc(l)}${k === 'members' && state.compPending ? ` <span class="count">${state.compPending}</span>` : ''}</a>`).join('')}</nav><div id="admin-body"></div>`);
+    <nav class="a-tabs">${A_TABS.map(([k, icn, l]) => `<a href="#/admin/${k}" class="${tab === k ? 'on' : ''}">${ic(icn, 'sm')} ${esc(l)}${k === 'members' && state.compPending ? ` <span class="count">${state.compPending}</span>` : ''}${k === 'feedback' && state.fbNew ? ` <span class="count">${state.fbNew}</span>` : ''}</a>`).join('')}</nav><div id="admin-body"></div>`);
   checkNewVersion();
-  ({ overview:tabOverview, site:tabSite, schedule:tabSchedule, blog:tabBlog, music:tabMusic, products:tabProducts, gear:tabGear, orders:tabOrders, coupons:tabCoupons, trials:tabTrials, content:tabContent, reviews:tabReviews, payments:tabPayments, members:tabMembers })[tab]();
+  ({ overview:tabOverview, site:tabSite, schedule:tabSchedule, blog:tabBlog, music:tabMusic, products:tabProducts, gear:tabGear, orders:tabOrders, coupons:tabCoupons, trials:tabTrials, content:tabContent, reviews:tabReviews, feedback:tabFeedback, payments:tabPayments, members:tabMembers })[tab]();
 };
-const reloadTab = () => { const f = ({ overview:tabOverview, site:tabSite, schedule:tabSchedule, blog:tabBlog, music:tabMusic, products:tabProducts, gear:tabGear, orders:tabOrders, coupons:tabCoupons, trials:tabTrials, content:tabContent, reviews:tabReviews, payments:tabPayments, members:tabMembers })[route.args[0] || 'overview']; if (f) f(); };
+const reloadTab = () => { const f = ({ overview:tabOverview, site:tabSite, schedule:tabSchedule, blog:tabBlog, music:tabMusic, products:tabProducts, gear:tabGear, orders:tabOrders, coupons:tabCoupons, trials:tabTrials, content:tabContent, reviews:tabReviews, feedback:tabFeedback, payments:tabPayments, members:tabMembers })[route.args[0] || 'overview']; if (f) f(); };
 /* chỉ cần SỐ lượng thì đừng đọc cả tài liệu (hồ sơ người dùng khá nặng): dùng count() nếu bản Firebase có, không thì đọc tối đa 50 và ghi "50+" */
 const countDocs = async col => {
   if (DEMO) return { length:0, more:false };
@@ -147,7 +147,8 @@ async function tabOverview(){
   if (DEMO) { orders = [{ code:'EP-DEMO1', total:79000, currency:'VND', status:'paid', buyer:{ name:'Linh', email:'linh@mail.com' }, items:[{ name:'30-Day Study Planner (PDF)', qty:1 }], createdAt:Date.now() }, { code:'EP-DEMO2', total:2.5, currency:'USD', status:'pending', buyer:{ name:'Daniel', email:'d@mail.com' }, items:[{ name:'Mascot sticker pack', qty:1 }], createdAt:Date.now() - 3600000 }]; users = [{}, {}, {}]; signups = [{}, {}]; revs = [{ approved:false }]; }
   const paid = orders.filter(o => ['paid', 'shipped'].includes(o.status)), rev = cur => paid.filter(o => o.currency === cur).reduce((a, o) => a + (+o.total || 0), 0);
   const kpi = (icn, l, v, s = '') => `<div class="card tile"><span class="t-ic">${ic(icn)}</span><span class="t-l">${l}</span><span class="t-v">${v}</span><span class="t-s">${s}</span></div>`;
-  A(`${state.compPending ? `<div class="card pad row between" style="margin-bottom:14px;border-color:var(--accent)"><b>${ic('heart', 'sm')} ${state.compPending} yêu cầu Companions đang chờ bạn duyệt</b><a class="btn primary sm" href="#/admin/members">Xem và duyệt</a></div>` : ''}<div class="grid g4 keep2">${kpi('credit', 'Doanh thu (đã thanh toán)', money(rev('VND'), 'VND'), rev('USD') ? money(rev('USD'), 'USD') : '')}${kpi('box', 'Đơn chờ xác nhận', orders.filter(o => o.status === 'pending').length, orders.length + ' đơn gần đây')}${kpi('users', 'Thành viên', users.length + (users.more ? '+' : ''), signups.length + (signups.more ? '+' : '') + ' đăng ký Challenge')}${kpi('star', 'Đánh giá chờ duyệt', revs.filter(r => !r.approved).length, revs.length + ' tổng')}</div>
+  await fbCountNew();
+  A(`${state.compPending ? `<div class="card pad row between" style="margin-bottom:14px;border-color:var(--accent)"><b>${ic('heart', 'sm')} ${state.compPending} yêu cầu Companions đang chờ bạn duyệt</b><a class="btn primary sm" href="#/admin/members">Xem và duyệt</a></div>` : ''}${state.fbNew ? `<div class="card pad row between" style="margin-bottom:14px"><b>${ic('msg', 'sm')} ${state.fbNew}${state.fbNew >= 50 ? '+' : ''} góp ý mới chưa xem</b><a class="btn primary sm" href="#/admin/feedback">Xem góp ý</a></div>` : ''}<div class="grid g4 keep2">${kpi('credit', 'Doanh thu (đã thanh toán)', money(rev('VND'), 'VND'), rev('USD') ? money(rev('USD'), 'USD') : '')}${kpi('box', 'Đơn chờ xác nhận', orders.filter(o => o.status === 'pending').length, orders.length + ' đơn gần đây')}${kpi('users', 'Thành viên', users.length + (users.more ? '+' : ''), signups.length + (signups.more ? '+' : '') + ' đăng ký Challenge')}${kpi('star', 'Đánh giá chờ duyệt', revs.filter(r => !r.approved).length, revs.length + ' tổng')}</div>
     <div class="grid g2 mt">${aCard('Đơn hàng mới nhất', orders.length ? `<div class="tbl-wrap"><table class="table"><tr><th>Mã</th><th>Khách</th><th>Tổng</th><th>Trạng thái</th></tr>${orders.slice(0, 8).map(o => `<tr><td class="mono">${esc(o.code)}</td><td>${esc(o.buyer && o.buyer.name || '')}<div class="small"><b>${esc(o.buyer && o.buyer.email || '')}</b></div></td><td>${money(o.total, o.currency)}</td><td><span class="badge ${['paid', 'shipped'].includes(o.status) ? 'live' : o.status === 'cancelled' ? 'danger' : 'warn'}">${esc(o.status)}</span></td></tr>`).join('')}</table></div>` : '<p class="muted">Chưa có đơn hàng.</p>', '<a class="link" href="#/admin/orders">Xem tất cả</a>')}
     ${aCard('Bắt đầu nhanh', `<div class="stack"><a class="btn secondary" href="#/admin/schedule">${ic('calendar', 'sm')} Thêm lịch live tuần này</a><a class="btn secondary" href="#/admin/blog">${ic('pen', 'sm')} Viết bài mới</a><a class="btn secondary" href="#/admin/products">${ic('bag', 'sm')} Tải lên sản phẩm (planner, PDF…)</a><a class="btn secondary" href="#/admin/site">${ic('sliders', 'sm')} Đổi màu, font, logo, menu</a></div>`)}</div>
     ${aCard('Dữ liệu cho người xem & bản sao dự phòng', `<p class="hint" style="margin-bottom:10px">Để web chạy nhanh và <b>không vượt hạn mức miễn phí của Firebase</b>, dữ liệu công khai (giao diện, chữ, bài viết, sản phẩm, lịch live, nhạc…) được gộp thành một bản cho người xem. Bản này <b>tự cập nhật vài giây sau mỗi lần bạn bấm Lưu</b>. Người xem thấy thay đổi trong vòng khoảng 10 phút (hoặc ngay khi họ tải lại sau đó). Bạn không cần làm gì thêm.</p>
@@ -625,6 +626,75 @@ async function tabReviews(){
   A('<p class="muted">Đang tải…</p>'); let list = []; try { list = DEMO ? reviews.map(r => ({ ...r, approved:true })) : await getAll('reviews', 'createdAt'); } catch (e) { return fail(e); }
   A(aCard('Đánh giá của khách', list.length ? list.map(r => `<div class="ord-row"><div style="max-width:560px"><div class="row">${stars(+r.rating || 5)}<b>${esc(r.name || '')}</b>${r.approved ? '<span class="badge live">đang hiện</span>' : '<span class="badge warn">chờ duyệt</span>'}</div><p class="small muted">${esc(r.text)}</p></div><span class="row">${r.approved ? `<button class="btn secondary sm" data-act="reviewSet" data-id="${esc(r.id)}" data-v="0">Ẩn</button>` : `<button class="btn primary sm" data-act="reviewSet" data-id="${esc(r.id)}" data-v="1">Duyệt</button>`}<button class="btn danger sm" data-act="reviewDel" data-id="${esc(r.id)}">Xoá</button></span></div>`).join('') : '<p class="muted">Chưa có đánh giá.</p>'));
 }
+
+/* ---------------- Góp ý & Bình chọn ----------------
+   feedback/<id>: góp ý riêng của khách (chỉ khách đó và admin đọc). ideas/<id>: ý tưởng công khai để khách đã đăng nhập bình chọn
+   (votes do rules giữ đúng: mỗi tài khoản 1 phiếu ở ideas/<id>/votes/<uid>). Tên/mô tả ý tưởng tự dịch sang mọi ngôn ngữ khi lưu. */
+const FB_ST = [['new', 'Mới'], ['seen', 'Đã xem'], ['planned', 'Sẽ làm'], ['done', 'Đã xong']], FB_KIND = { idea:'Ý tưởng', bug:'Báo lỗi', other:'Khác' };
+const IDEA_ST = [['open', 'Đang lấy ý kiến'], ['planned', 'Sẽ làm'], ['doing', 'Đang làm'], ['done', 'Đã xong (khoá bình chọn)']];
+let fbFilter = 'new';
+async function fbCountNew(){
+  if (DEMO) return;
+  try { const q = db.collection('feedback').where('status', '==', 'new'); state.fbNew = typeof q.count === 'function' ? (await withTimeout(q.count().get(), 8000)).data().count : (await withTimeout(q.limit(50).get(), 8000)).size; } catch (e) { console.warn('fb count', e.code); }
+}
+async function tabFeedback(){
+  A('<p class="muted">Đang tải…</p>');
+  let fb = [], ideas = [];
+  try {
+    if (DEMO) { fb = [{ id:'f1', name:'Linh', email:'linh@mail.com', kind:'idea', text:'Cho mình thêm tiếng mưa trong phòng tập trung nhé!', status:'new', lang:'vi', createdAt:Date.now() - 3600000 }]; ideas = DEMO_IDEAS; }
+    else [fb, ideas] = await withTimeout(Promise.all([getAll('feedback', 'createdAt', 150), getAll('ideas')]));
+  } catch (e) { return A(loadError(e, 'fbReload')); }
+  state.fbNew = fb.filter(f => (f.status || 'new') === 'new').length;
+  const tabA = document.querySelector('.a-tabs a[href="#/admin/feedback"]');      // số góp ý mới trên tab, cập nhật không cần vẽ lại cả trang
+  if (tabA) { let c = tabA.querySelector('.count'); if (state.fbNew && !c) { c = document.createElement('span'); c.className = 'count'; tabA.append(' ', c); } if (c) { if (state.fbNew) c.textContent = state.fbNew; else c.remove(); } }
+  ideas.sort((a, b) => (a.status === 'done') - (b.status === 'done') || (+b.votes || 0) - (+a.votes || 0));
+  const shown = fb.filter(f => fbFilter === 'all' || (f.status || 'new') === fbFilter);
+  const fbRow = f => `<div class="ord-row" style="align-items:flex-start"><div style="max-width:640px;min-width:0"><div class="row" style="gap:6px"><span class="badge">${esc(FB_KIND[f.kind] || 'Khác')}</span><b>${esc(f.name || '—')}</b><span class="small muted">${esc(f.email || '')}</span><span class="small faint">${esc(dateStr(f.createdAt))} · ${esc((f.lang || '').toUpperCase())}</span></div>
+      <p class="small" style="white-space:pre-wrap;overflow-wrap:anywhere;margin-top:6px">${esc(f.text)}</p>${f.reply ? `<p class="small muted" style="white-space:pre-wrap;margin-top:6px;border-left:3px solid var(--accent);padding-left:8px"><b>Bạn đã trả lời:</b> ${esc(f.reply)}</p>` : ''}</div>
+    <span class="row" style="gap:6px;justify-content:flex-end"><select class="select" style="width:auto" data-change="fbStatus" data-id="${esc(f.id)}">${FB_ST.map(([k, l]) => `<option value="${k}" ${(f.status || 'new') === k ? 'selected' : ''}>${l}</option>`).join('')}</select><button class="btn secondary sm" data-act="fbReply" data-id="${esc(f.id)}">Trả lời</button>${f.kind === 'idea' ? `<button class="btn secondary sm" data-act="fbToIdea" data-id="${esc(f.id)}">Đưa lên bình chọn</button>` : ''}<button class="btn danger sm" data-act="fbDelA" data-id="${esc(f.id)}">Xoá</button></span></div>`;
+  const ideaRow = x => `<div class="ord-row"><div style="min-width:0"><b>${esc(L(x.title))}</b>${L(x.desc) ? `<div class="small muted">${esc(L(x.desc))}</div>` : ''}<div class="small faint">${+x.votes || 0} phiếu</div></div><span class="row" style="gap:6px"><select class="select" style="width:auto" data-change="ideaStatus" data-id="${esc(x.id)}">${IDEA_ST.map(([k, l]) => `<option value="${k}" ${(x.status || 'open') === k ? 'selected' : ''}>${l}</option>`).join('')}</select><button class="btn danger sm" data-act="ideaDel" data-id="${esc(x.id)}">Xoá</button></span></div>`;
+  A(`${aCard('Ý tưởng để khách bình chọn', `<p class="hint" style="margin-bottom:10px">Khách đã đăng nhập thấy các ý tưởng này ở trang <a class="link" href="#/ideas">Góp ý & bình chọn</a> và mỗi người bình chọn được 1 phiếu cho mỗi ý tưởng. Bạn viết tiếng Việt (hoặc tiếng Anh), web tự dịch sang mọi ngôn ngữ khi lưu.</p>
+      <div class="f2">${fld('Tên ý tưởng (VI)', 'id-tv', '', 'maxlength="120"')}${fld('Title (EN, không bắt buộc)', 'id-te', '', 'maxlength="120"')}</div>
+      <div class="f2">${area('Mô tả ngắn (VI, không bắt buộc)', 'id-dv', '', 2)}${area('Description (EN, không bắt buộc)', 'id-de', '', 2)}</div>
+      <button class="btn primary" data-act="ideaAdd">${ic('plus', 'sm')} Thêm ý tưởng</button>
+      <div class="mt">${ideas.length ? ideas.map(ideaRow).join('') : '<p class="muted">Chưa có ý tưởng nào.</p>'}</div>`)}
+    ${aCard('Góp ý của khách', `<p class="hint" style="margin-bottom:10px">Chỉ bạn và người gửi đọc được góp ý. Mỗi tài khoản gửi tối đa 5 góp ý mỗi ngày, cách nhau ít nhất 1 phút. Bạn trả lời thì người gửi thấy câu trả lời ở trang Góp ý của họ.</p>
+      <div class="seg" style="margin-bottom:10px;flex-wrap:wrap">${[...FB_ST, ['all', 'Tất cả']].map(([k, l]) => `<button type="button" class="${fbFilter === k ? 'on' : ''}" data-act="fbFilter" data-f="${k}">${l} <small>${k === 'all' ? fb.length : fb.filter(f => (f.status || 'new') === k).length}</small></button>`).join('')}</div>
+      ${shown.length ? shown.map(fbRow).join('') : '<p class="muted">Không có góp ý nào ở mục này.</p>'}`)}`);
+  tabFeedback.cache = fb;
+}
+async function ideaCreate(title, desc, from){
+  const t0 = await TR.fill({}, title), d0 = desc.vi || desc.en ? await TR.fill({}, desc) : {};
+  const data = { title:t0, desc:d0, status:'open', votes:0, createdAt:TS(), ...(from ? { fromFeedback:from } : {}) };
+  if (DEMO) { toast('Chế độ xem thử: chưa lưu thật'); return; }
+  await db.collection('ideas').add(data);
+}
+Object.assign(ACTIONS, {
+  fbReload: () => tabFeedback(),
+  fbFilter: el => { fbFilter = el.dataset.f; tabFeedback(); },
+  fbDelA: el => confirm('Xoá góp ý này? Người gửi cũng sẽ không thấy nữa.') && (DEMO ? toast('Chế độ xem thử') : db.collection('feedback').doc(el.dataset.id).delete().then(tabFeedback).catch(fail)),
+  fbReply: el => {
+    const f = (tabFeedback.cache || []).find(x => x.id === el.dataset.id); if (!f) return;
+    openModal(`<h3 style="margin-bottom:8px">Trả lời ${esc(f.name || '')}</h3><p class="small muted" style="white-space:pre-wrap;margin-bottom:10px">${esc(f.text)}</p><textarea class="textarea" id="fb-rep" maxlength="1000" style="min-height:110px" placeholder="Câu trả lời hiện cho người gửi ở trang Góp ý của họ">${esc(f.reply || '')}</textarea><div class="row mt" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="closeModal">Huỷ</button><button type="button" class="btn primary" data-act="fbReplySave" data-id="${esc(f.id)}">Lưu câu trả lời</button></div>`, true);
+  },
+  fbReplySave: el => { const reply = val('fb-rep').slice(0, 1000), f = (tabFeedback.cache || []).find(x => x.id === el.dataset.id); dbSet('feedback', el.dataset.id, { reply, repliedAt:TS(), ...(f && (f.status || 'new') === 'new' ? { status:'seen' } : {}) }).then(() => { closeModal(); ok('Đã gửi câu trả lời ✔'); tabFeedback(); }).catch(fail); },
+  fbToIdea: el => {
+    const f = (tabFeedback.cache || []).find(x => x.id === el.dataset.id); if (!f) return;
+    openModal(`<h3 style="margin-bottom:8px">Đưa lên bình chọn</h3><p class="small muted" style="margin-bottom:10px">Sửa lại cho gọn (không ghi tên người gửi). Web tự dịch khi lưu.</p>${fld('Tên ý tưởng', 'fi-t', f.text.slice(0, 120), 'maxlength="120"')}${area('Mô tả ngắn (không bắt buộc)', 'fi-d', '', 2)}<div class="row mt" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="closeModal">Huỷ</button><button type="button" class="btn primary" data-act="fbToIdeaSave" data-id="${esc(f.id)}" data-lang="${esc(f.lang === 'vi' ? 'vi' : 'en')}">Đưa lên</button></div>`, true);
+  },
+  fbToIdeaSave: el => {
+    const title = val('fi-t'), desc = val('fi-d'), lg = el.dataset.lang; if (!title) return alert('Hãy nhập tên ý tưởng.');
+    withTranslate(el, () => ideaCreate({ [lg]:title }, desc ? { [lg]:desc } : {}, el.dataset.id).then(() => DEMO || dbSet('feedback', el.dataset.id, { status:'planned' }))).then(() => { closeModal(); ok(trMsg('Đã đưa lên bình chọn.')); tabFeedback(); }).catch(fail);
+  },
+  ideaAdd: el => {
+    const title = { vi:val('id-tv'), en:val('id-te') }, desc = { vi:val('id-dv'), en:val('id-de') };
+    if (!title.vi && !title.en) return alert('Hãy nhập tên ý tưởng.');
+    withTranslate(el, () => ideaCreate(title, desc)).then(() => { ok(trMsg('Đã thêm ý tưởng.')); tabFeedback(); }).catch(fail);
+  },
+  ideaDel: el => confirm('Xoá ý tưởng này? Số phiếu cũng mất theo.') && (DEMO ? toast('Chế độ xem thử') : db.collection('ideas').doc(el.dataset.id).delete().then(tabFeedback).catch(fail))
+});
+CHANGES.fbStatus = el => dbSet('feedback', el.dataset.id, { status:el.value }).then(() => { ok('Đã cập nhật'); tabFeedback(); }).catch(fail);
+CHANGES.ideaStatus = el => dbSet('ideas', el.dataset.id, { status:el.value }).then(() => ok('Đã cập nhật trạng thái')).catch(fail);
 
 /* ---------------- Thanh toán ---------------- */
 const PAY_FIELDS = { 'py-bin':'bankBin', 'py-acc':'accountNo', 'py-name':'accountName', 'py-stripe':'stripe', 'py-paypal':'paypal', 'py-kofi':'kofi', 'py-tpl':'orderTemplate', 'py-claimtpl':'claimTemplate', 'py-dvnd':'donateVND', 'py-dusd':'donateUSD', 'py-comp':'companionUrl', 'py-cvnd':'companionVND', 'py-cusd':'companionUSD' };

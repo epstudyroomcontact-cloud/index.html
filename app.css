@@ -727,3 +727,18 @@ button.sb-item{width:100%;background:none;border:0;font:inherit;font-weight:600;
 /* Hành trình trăng: trăng tích trữ và hộp dùng trăng giữ chuỗi */
 .mj-rescue{width:100%;max-width:360px;padding:12px 14px;border-radius:14px;border:1.5px solid #ffd23f;background:rgba(255,228,77,.1);align-items:center}
 .mj-grid circle.sv{fill:#fff2c4;stroke:#ffd23f;stroke-width:1.6}
+/* Góp ý & bình chọn tính năng (#/ideas) */
+.ideas-grid{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}
+.idea-list{display:flex;flex-direction:column;gap:10px}
+.idea-row{display:flex;gap:12px;align-items:flex-start;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--surface2)}
+.idea-row.is-done{opacity:.75}
+.idea-vote{flex:none;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:58px;min-height:58px;padding:6px 4px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink2);font:inherit;cursor:pointer;transition:border-color .15s,background .15s}
+.idea-vote b{font-size:1.05rem;color:var(--ink)}.idea-vote span{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.02em}
+.idea-vote:hover:not(:disabled){border-color:var(--accent)}
+.idea-vote.on{border-color:var(--accent);background:var(--accent);color:#fff}.idea-vote.on b{color:#fff}
+.idea-vote:disabled{cursor:default}
+.idea-bd{min-width:0;flex:1}.idea-bd h3{font-size:1rem;margin:0;overflow-wrap:anywhere}.idea-bd p{margin-top:4px;overflow-wrap:anywhere}
+.fb-item{padding:10px 0;border-top:1px solid var(--line)}.fb-item:first-of-type{border-top:0;padding-top:0}
+.fb-text{margin-top:6px;white-space:pre-wrap;overflow-wrap:anywhere}
+.fb-reply{margin-top:8px;padding:8px 12px;border-left:3px solid var(--accent);background:var(--surface2);border-radius:0 10px 10px 0}.fb-reply p{white-space:pre-wrap;overflow-wrap:anywhere}
+@media(max-width:1100px){.ideas-grid{grid-template-columns:1fr}}

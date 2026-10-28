@@ -436,6 +436,15 @@ Trang `overlay.html` hiện kế hoạch buổi live đang chạy (giống thẻ
 
 **Hoặc bắt đầu bằng nút trong Admin (dậy trễ / vào sớm / sửa giờ):** vào **Admin** (tab Tổng quan hoặc Lịch live), ô **Bắt đầu buổi live** → bấm **▶ Bắt đầu buổi live bây giờ** một lần. Trong khoảng 10 giây, bảng lịch và bộ đếm trên OBS tự dời cả buổi theo giờ bạn bấm. Bấm nhầm thì dùng **−5 / −1 / +1 / +5 phút**, **Bắt đầu lại từ bây giờ**, hoặc **Về giờ theo lịch**. Lịch gốc trong tuần không bị đổi; trang Lịch cho khách và thông báo đẩy vẫn theo giờ lịch.
 
+## PHẦN 19 — Góp ý & bình chọn tính năng
+Khách đã đăng nhập có mục **Góp ý & bình chọn** (menu trái, dưới phần Tài khoản; hoặc trang Tài khoản). Ở đó họ:
+- **Bình chọn** các ý tưởng bạn đưa lên: mỗi tài khoản 1 phiếu cho mỗi ý tưởng, bấm lần nữa để rút phiếu. Ý tưởng "Đã xong" thì khoá bình chọn.
+- **Gửi góp ý riêng** (Ý tưởng / Báo lỗi / Khác): chỉ bạn và người gửi đọc được. Mỗi tài khoản tối đa 5 góp ý mỗi ngày, cách nhau ít nhất 1 phút.
+
+Bạn quản lý ở **Admin → Góp ý & Bình chọn**: thêm ý tưởng (viết tiếng Việt, web tự dịch), đổi trạng thái, xem góp ý, **Trả lời** (người gửi thấy câu trả lời), **Đưa lên bình chọn** một góp ý hay. Tab Tổng quan báo khi có góp ý mới.
+
+**Cần làm một lần:** dán lại `firestore.rules` vào Firebase (PHẦN 2.3). Chưa dán thì khách gửi góp ý hoặc bình chọn sẽ báo lỗi.
+
 ## QUY TẮC CẬP NHẬT WEB LÊN GITHUB (đọc cái này khi cần cập nhật)
 Từ bản 8, các file hay thay đổi (`index.html`, `core.js`, `pages.js`, `admin.js`, `i18n-extra.js`, `app.css`) **đều nằm ở trang gốc của repo**, cùng chỗ với `index.html`. Chỉ còn 4 file ít khi đổi nằm trong thư mục `js`: `art.js`, `i18n.js`, `translate.js`, `firebase-config.js`. Thư mục `css` và các bản cũ `js/core.js`, `js/pages.js`, `js/admin.js`, `js/i18n-extra.js` đã bỏ hẳn (web không dùng), nếu máy bạn còn thì không cần tải lên nữa.
 

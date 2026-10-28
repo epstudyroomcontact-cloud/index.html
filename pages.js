@@ -665,7 +665,7 @@ PAGES.account = function(){
   if (tab === 'library') body = `<section class="card pad"><h3 style="margin-bottom:6px">${esc(t('my_library'))}</h3>${library.length ? library.map(l => `<div class="dl-row"><div><b>${esc(l.name)}</b><div class="small muted mono">${esc(l.orderCode || '')}</div></div><button class="btn primary sm" data-act="download" data-id="${esc(l.id)}">${ic('download', 'sm')} ${esc(t('download'))}</button></div>`).join('') : `<p class="muted">${esc(t('no_library'))}</p>`}</section>`;
   page(`${!u.emailVerified ? `<div class="banner">${ic('mail', 'sm')} <span style="flex:1">${esc(t('verify_banner'))}</span><button class="btn secondary sm" data-act="resendVerify">${esc(t('resend'))}</button></div>` : ''}
     <div class="acct-grid"><aside class="card pad stack" style="align-items:center;text-align:center"><span class="avatar" style="width:64px;height:64px;font-size:1.5rem">${esc((displayName() || '?').slice(0, 1).toUpperCase())}</span><div><h2 style="font-size:1.15rem">${esc(displayName())}</h2><div class="small muted">${esc(u.email)}</div>${state.isAdmin ? `<span class="badge mt-s">Admin</span>` : ''}</div>
-      <div class="stack" style="width:100%">${tabs.map(([k, icn, l]) => `<a class="btn ${tab === k ? 'primary' : 'secondary'}" href="#/account/${k}">${ic(icn, 'sm')} ${esc(l)}</a>`).join('')}${state.isAdmin ? `<a class="btn secondary" href="#/admin">${ic('shield', 'sm')} ${esc(t('nav_admin'))}</a>` : ''}<button class="btn ghost" data-act="signout">${ic('logout', 'sm')} ${esc(t('signout'))}</button></div></aside><div>${body}</div></div>`);
+      <div class="stack" style="width:100%">${tabs.map(([k, icn, l]) => `<a class="btn ${tab === k ? 'primary' : 'secondary'}" href="#/account/${k}">${ic(icn, 'sm')} ${esc(l)}</a>`).join('')}<a class="btn secondary" href="#/ideas">${ic('msg', 'sm')} ${esc(t('nav_ideas'))}</a>${state.isAdmin ? `<a class="btn secondary" href="#/admin">${ic('shield', 'sm')} ${esc(t('nav_admin'))}</a>` : ''}<button class="btn ghost" data-act="signout">${ic('logout', 'sm')} ${esc(t('signout'))}</button></div></aside><div>${body}</div></div>`);
 };
 async function loadMyOrders(){
   if (DEMO) { myOrders = [{ code:'EP-DEMO1', items:[{ name:'30-Day Study Planner (PDF)', qty:1 }], total:79000, currency:'VND', status:'paid' }]; return render(true); }
@@ -1033,3 +1033,126 @@ Object.assign(ACTIONS, {
     moonSave(keep).then(async ok => { if (ok && n === MOON_REWARD_AT && !state.moonReward && moonRewardCfg().on && await claimMoonReward()) { toast(t('mr_got', { x:bonusText(moonRewardMonths(state.moonReward)) })); render(true); } else if (ok && n % MOON_EARN === 0) toast(t('mj_full_plus')); if (ok) mjAfterCheckin(keep.best); });
   }
 });
+/* =========================================================
+   GÓP Ý & BÌNH CHỌN TÍNH NĂNG — #/ideas
+   Khách đã đăng nhập: bình chọn ý tưởng admin đưa lên (ideas/<id>, phiếu ở ideas/<id>/votes/<uid>) và gửi góp ý riêng (feedback/<id>, chỉ họ và admin đọc).
+   Chống spam nằm trong firestore.rules (feedback_rate/<uid>: cách nhau 60 giây, tối đa 5 góp ý mỗi ngày). Admin xem và trả lời ở tab "Góp ý & Bình chọn".
+   ========================================================= */
+const FB_KINDS = ['idea', 'bug', 'other'], FB_MAX = 1000, FB_GAP = 60000, FB_DAY = 5;
+const IDEA_ORDER = { doing:0, planned:1, open:2, done:3 };
+let ideasData = null, ideasVotes = {}, ideasUid = '', ideasP = null, myFeedback = null, fbKind = 'idea', fbBusy = false, fbDraft = '';
+const voteBusy = new Set();
+const DEMO_IDEAS = [
+  { id:'d1', title:{ en:'Rain and café sounds in the Focus room', vi:'Tiếng mưa và tiếng quán cà phê ở Phòng tập trung' }, desc:{ en:'Mix ambient sounds while you study.', vi:'Trộn âm thanh nền khi học.' }, status:'planned', votes:24 },
+  { id:'d2', title:{ en:'Weekly study report by email', vi:'Báo cáo học tập hằng tuần qua email' }, status:'open', votes:11 },
+  { id:'d3', title:{ en:'Dark mode for the Planner', vi:'Chế độ tối cho Planner' }, status:'done', votes:31 }
+];
+function loadIdeas(force){
+  const u = state.user; if (!u) return;
+  if (ideasUid !== u.uid) { ideasData = null; ideasVotes = {}; myFeedback = null; ideasP = null; }      // đổi tài khoản: không hiện phiếu / góp ý của người trước
+  if (!force && (ideasData || ideasP)) return ideasP;
+  ideasUid = u.uid;
+  return (ideasP = fetchIdeas(u).finally(() => { ideasP = null; }));
+}
+async function fetchIdeas(u){
+  if (DEMO) { ideasData = DEMO_IDEAS.map(x => ({ ...x })); ideasVotes = { d1:true }; myFeedback = []; return render(); }
+  try {
+    const s = await db.collection('ideas').get();
+    ideasData = s.docs.map(d => ({ id:d.id, ...d.data() }));
+    const votes = await Promise.all(ideasData.filter(x => x.status !== 'done').map(x => db.collection('ideas').doc(x.id).collection('votes').doc(u.uid).get().then(v => [x.id, v.exists]).catch(() => [x.id, false])));
+    ideasVotes = Object.fromEntries(votes);
+  } catch (e) { console.warn('ideas', e.code); ideasData = ideasData || []; }
+  try {
+    const f = await db.collection('feedback').where('uid', '==', u.uid).limit(30).get();     // không orderBy để khỏi cần index; sắp xếp ở máy
+    myFeedback = f.docs.map(d => ({ id:d.id, ...d.data() })).sort((a, b) => tsMs(b.createdAt) - tsMs(a.createdAt));
+  } catch (e) { console.warn('feedback', e.code); myFeedback = myFeedback || []; }
+  if (route.name === 'ideas' && state.user && state.user.uid === u.uid) render();
+}
+function ideaCard(x){
+  const done = x.status === 'done', on = !!ideasVotes[x.id], n = Math.max(0, +x.votes || 0);
+  return `<div class="idea-row${done ? ' is-done' : ''}">
+    <button type="button" class="idea-vote${on ? ' on' : ''}" ${done ? 'disabled' : `data-act="ideaVote" data-id="${esc(x.id)}"`} aria-pressed="${on}" aria-label="${esc(t(on ? 'id_voted' : 'id_vote'))}">${ic(done ? 'check' : 'up', 'sm')}<b>${n}</b><span>${esc(t(on ? 'id_voted' : 'id_vote'))}</span></button>
+    <div class="idea-bd"><div class="row" style="gap:8px"><h3>${esc(L(x.title))}</h3><span class="badge ${done ? 'live' : x.status === 'open' ? '' : 'warn'}">${esc(t('id_st_' + (IDEA_ORDER[x.status] == null ? 'open' : x.status)))}</span></div>${L(x.desc) ? `<p class="small muted">${esc(L(x.desc))}</p>` : ''}</div></div>`;
+}
+function fbItem(f){
+  const st = ['new', 'seen', 'planned', 'done'].includes(f.status) ? f.status : 'new';
+  return `<div class="fb-item"><div class="row between small"><span class="row" style="gap:6px"><span class="badge">${esc(t('id_k_' + (FB_KINDS.includes(f.kind) ? f.kind : 'other')))}</span><span class="faint">${esc(fmtDate(f.createdAt))}</span></span><span class="row" style="gap:6px"><span class="badge ${st === 'done' ? 'live' : st === 'new' ? '' : 'warn'}">${esc(t('id_s_' + st))}</span><button type="button" class="btn ghost icon sm" data-act="fbDel" data-id="${esc(f.id)}" aria-label="${esc(t('id_del'))}" title="${esc(t('id_del'))}">${ic('trash', 'sm')}</button></span></div>
+    <p class="fb-text">${esc(f.text)}</p>${f.reply ? `<div class="fb-reply"><b class="small">${esc(t('id_reply', { n:branding.name }))}</b><p class="small">${esc(f.reply)}</p></div>` : ''}</div>`;
+}
+PAGES.ideas = function(){
+  if (!state.user) return page(`${head('id_title', 'id_sub', '', 'gaze', 4)}<div class="auth-wrap lock-wrap"><div class="lock-note">${ic('lock')}<div><b>${esc(t('id_login'))}</b></div></div>${authCard(authTab === 'signin' ? t('signin') : t('signup'), t('lock_note'), false)}</div>`);
+  loadIdeas();
+  const list = (ideasData || []).slice().sort((a, b) => (IDEA_ORDER[a.status] ?? 2) - (IDEA_ORDER[b.status] ?? 2) || (+b.votes || 0) - (+a.votes || 0));
+  const live = list.filter(x => x.status !== 'done'), done = list.filter(x => x.status === 'done');
+  const loading = `<p class="muted small">${esc(t('loading'))}</p>`;
+  page(`${head('id_title', 'id_sub', '', 'gaze', 4)}
+    <div class="grid g-main ideas-grid" style="align-items:start">
+      <section class="card pad stack"><div><h2 style="font-size:1.2rem">${esc(t('id_vote_h'))}</h2><p class="small muted">${esc(t('id_vote_note'))}</p></div>
+        ${ideasData === null ? loading : live.length ? `<div class="idea-list">${live.map(ideaCard).join('')}</div>` : emptyBox('star', t('id_none'), t('id_none_sub'))}
+        ${done.length ? `<details class="faq"><summary>${esc(t('id_done_h'))} (${done.length})</summary><div class="idea-list" style="padding-top:8px">${done.map(ideaCard).join('')}</div></details>` : ''}</section>
+      <div class="stack">
+        <section class="card pad"><h2 style="font-size:1.2rem;margin-bottom:4px">${esc(t('id_send_h'))}</h2><p class="small muted" style="margin-bottom:12px">${esc(t('id_send_note', { n:branding.name }))}</p>
+          <form class="stack" data-form="feedback"><div class="seg" role="radiogroup" style="align-self:flex-start;flex-wrap:wrap">${FB_KINDS.map(k => `<button type="button" role="radio" aria-checked="${fbKind === k}" class="${fbKind === k ? 'on' : ''}" data-act="fbKind" data-k="${k}">${esc(t('id_k_' + k))}</button>`).join('')}</div>
+            <textarea class="textarea" id="fb-text" maxlength="${FB_MAX}" minlength="3" required style="min-height:120px" placeholder="${esc(t('id_ph'))}">${esc(fbDraft)}</textarea>
+            <div class="row between"><span class="small faint" id="fb-count">${fbDraft.length} / ${FB_MAX}</span><button class="btn primary" type="submit" id="fb-btn">${ic('mail', 'sm')} ${esc(t('id_send'))}</button></div>
+            <p class="small" id="fb-err" style="color:var(--danger)"></p></form></section>
+        <section class="card pad"><h2 style="font-size:1.05rem;margin-bottom:8px">${esc(t('id_mine_h'))}</h2>${myFeedback === null ? loading : myFeedback.length ? myFeedback.map(fbItem).join('') : `<p class="small muted">${esc(t('id_mine_none'))}</p>`}</section>
+      </div></div>`);
+};
+async function fbSend(kind, text){
+  const u = state.user, rateRef = db.collection('feedback_rate').doc(u.uid);
+  const r = await rateRef.get(), d = r.exists ? r.data() : null;
+  const last = d && d.last ? tsMs(d.last) : 0, sameDay = !!last && DT.fromMillis(last, { zone:'utc' }).toISODate() === DT.utc().toISODate();
+  if (last && Date.now() - last < FB_GAP) throw { code:'fb-wait' };
+  if (sameDay && (+d.n || 0) >= FB_DAY) throw { code:'fb-limit' };
+  const doc = { uid:u.uid, name:(displayName() || '').slice(0, 60), email:u.email || '', kind, text, lang:state.lang, status:'new' };
+  const write = async n => {                                    // góp ý + dấu chống spam ghi cùng lúc (rules bắt buộc)
+    const ref = db.collection('feedback').doc(), b = db.batch();
+    b.set(ref, { ...doc, createdAt:TS() }); b.set(rateRef, { last:TS(), lastId:ref.id, n });
+    await b.commit(); return ref.id;
+  };
+  const n = d ? (sameDay ? (+d.n || 0) + 1 : 1) : 1;
+  try { return await write(n); }
+  catch (e) {                                                    // đồng hồ máy lệch ngày so với máy chủ: thử cách đếm còn lại một lần
+    const alt = d ? (sameDay ? 1 : (+d.n || 0) + 1) : 0;
+    if (e.code === 'permission-denied' && alt && alt <= FB_DAY) return write(alt);
+    throw e;
+  }
+}
+FORMS.feedback = async () => {
+  if (fbBusy || !state.user) return;
+  const el = $('fb-text'), err = $('fb-err'), text = (el.value || '').trim().slice(0, FB_MAX); err.textContent = '';
+  if (text.length < 3) { err.textContent = t('id_short'); el.focus(); return; }
+  fbBusy = true; $('fb-btn').disabled = true;
+  try {
+    const id = DEMO ? 'demo' + Date.now() : await fbSend(fbKind, text);
+    myFeedback = [{ id, kind:fbKind, text, status:'new', createdAt:Date.now() }, ...(myFeedback || [])];
+    el.value = fbDraft = ''; toast(t('id_sent')); render(true);
+  } catch (e) {
+    console.warn('feedback send', e.code);
+    err.textContent = e.code === 'fb-wait' ? t('id_wait') : e.code === 'fb-limit' ? t('id_limit', { n:FB_DAY }) : e.code === 'permission-denied' ? t('id_wait') : t('id_err');
+  } finally { fbBusy = false; const b = $('fb-btn'); if (b) b.disabled = false; }
+};
+Object.assign(ACTIONS, {
+  fbKind: el => { fbKind = el.dataset.k; document.querySelectorAll('[data-act="fbKind"]').forEach(b => { const on = b === el; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); }); },   // không vẽ lại cả trang để khỏi mất chữ đang gõ
+  fbDel: async el => {
+    const id = el.dataset.id; if (!confirm(t('id_del_q'))) return;
+    try { if (!DEMO) await db.collection('feedback').doc(id).delete(); myFeedback = (myFeedback || []).filter(f => f.id !== id); render(true); } catch (e) { toast(t('id_err')); }
+  },
+  ideaVote: async el => {
+    const u = state.user, id = el.dataset.id, x = (ideasData || []).find(i => i.id === id); if (!u || !x || x.status === 'done' || voteBusy.has(id)) return;
+    voteBusy.add(id);
+    const on = !ideasVotes[id], d = on ? 1 : -1;
+    ideasVotes[id] = on; x.votes = Math.max(0, (+x.votes || 0) + d); render(true);          // hiện ngay, lưu lỗi thì trả lại
+    if (DEMO) return voteBusy.delete(id);
+    try {
+      const ref = db.collection('ideas').doc(id), vref = ref.collection('votes').doc(u.uid), b = db.batch();
+      if (on) b.set(vref, { at:TS() }); else b.delete(vref);
+      b.update(ref, { votes:firebase.firestore.FieldValue.increment(d) });
+      await b.commit();
+    } catch (e) { console.warn('vote', e.code); ideasVotes[id] = !on; x.votes = Math.max(0, (+x.votes || 0) - d); toast(t('id_err')); render(true); loadIdeas(true); }
+    finally { voteBusy.delete(id); }
+  }
+});
+// nhớ chữ đang gõ để bấm bình chọn (vẽ lại trang) không làm mất; cập nhật bộ đếm ký tự
+document.addEventListener('input', e => { if (e.target.id !== 'fb-text') return; fbDraft = e.target.value; const c = $('fb-count'); if (c) c.textContent = fbDraft.length + ' / ' + FB_MAX; });
