@@ -65,7 +65,7 @@ Các tab và việc chính:
 - **Lịch live**: mỗi buổi live có thể chọn **"Mẫu Pomodoro (tự tính)"** (VD 50/10/30) **hoặc "Tự sắp xếp từng đoạn"**: bạn thêm từng đoạn *Tập trung / Nghỉ ngắn / Nghỉ dài* với số phút tuỳ ý, theo thứ tự tuỳ ý (VD: 25 – 5 – 25 – 15 – 40). Có thể huỷ từng buổi hoặc cả ngày kèm lý do.
 - **Bài viết**: bấm **Quản lý các mục** để tạo các mục (Nhật ký, Ghi chép học tập, Tản văn, Sách & phim, Thơ…). Khi viết bài, chọn mục, ghim lên đầu, hoặc hẹn giờ đăng. Bản nháp tự lưu trong trình duyệt. Tiếng Anh là ngôn ngữ chính, tiếng Việt là tuỳ chọn.
 - **Sản phẩm / Đơn hàng / Mã giảm giá / Đánh giá**: thêm sản phẩm, đổi trạng thái đơn sang `paid` khi thấy tiền về, xoá đánh giá…
-- **Thanh toán & Ủng hộ**: thông tin ngân hàng, PayPal, Ko-fi, các mức tiền gợi ý, link "Người đồng hành".
+- **Thanh toán**: thông tin ngân hàng (VietQR), PayPal, Stripe, Ko-fi và mẫu email EmailJS. **Gói Người đồng hành**: giá, mức tiền gợi ý, link tự gia hạn, thanh mục tiêu, khuyến mãi, giới hạn Focus, nhóm học.
 - **Thành viên**: danh sách tài khoản, tiến độ Hành trình trăng của từng người, ô tích **"Người đồng hành"**.
 
 **Sửa chữ và ảnh trực tiếp trên trang**: bấm nút ✏️ (cây bút) ở thanh trên cùng → bấm vào chữ có viền nét đứt để gõ lại (tự lưu khi bấm ra ngoài) → bấm vào ảnh để thay.
@@ -77,7 +77,7 @@ Mặc định trang hiển thị **tiếng Anh**. Khách đổi ngôn ngữ ở 
 ## PHẦN 5 — Nhận ủng hộ (trang "Support")
 
 ### 5.1. Chuyển khoản trong nước (VietQR)
-1. Vào Admin console → tab **Thanh toán & Ủng hộ**.
+1. Vào Admin console → tab **Thanh toán**.
 2. **Mã ngân hàng / BIN**: điền mã của ngân hàng bạn:
 
 | Ngân hàng | Mã | Ngân hàng | Mã |
@@ -131,7 +131,7 @@ Nếu muốn tải thẳng từ máy:
 
 1. Vào https://www.emailjs.com → đăng nhập → **Email Templates** → **Create New Template**.
 2. Trong nội dung email, dùng các biến: `{{user_name}}`, `{{user_email}}`, `{{order_code}}`, `{{items}}`, `{{total}}`. Ô "To email" điền `{{user_email}}`.
-3. Lưu, copy **Template ID** → dán vào Admin console → **Thanh toán & Ủng hộ** → ô **Template ID** → Lưu.
+3. Lưu, copy **Template ID** → dán vào Admin console → **Thanh toán** → ô **Template ID** → Lưu.
 (Email nhắc lịch cũ vẫn dùng template sẵn có.)
 
 ---
@@ -150,31 +150,18 @@ Xem thử toàn bộ giao diện không cần cài gì: thêm `?demo=1&as=admin`
 
 ---
 
-## PHẦN 10 — Kiếm tiền nhẹ nhàng: "Người đồng hành" mở khoá bằng MÃ HÀNG THÁNG
+## PHẦN 10 — "Người đồng hành" (mã hàng tháng đã bỏ)
 
-Cách hoạt động: người xem miễn phí tập trung tối đa **2 tiếng mỗi ngày**. Ai ủng hộ hằng tháng thì nhận **một mã**, gõ vào web là **không còn giới hạn**. Bạn **không phải tick từng người**, chỉ đổi mã mỗi tháng.
+Trước đây có "mã hàng tháng" để mở Focus không giới hạn. **Đã bỏ**, vì mã bị chia sẻ là mọi người dùng chùa không cần trả tiền. Bây giờ chỉ có hai cách thành Người đồng hành:
 
-### 10.1. Thiết lập Ko-fi (làm 1 lần, để mã tự đến tay người trả)
-1. Vào https://ko-fi.com → **Sign up** (đăng ký) bằng email của bạn → làm theo hướng dẫn tạo trang, ví dụ `ko-fi.com/tenban`.
-2. Cần nhận tiền: vào **Settings** → **Payments** → nối **PayPal** hoặc **Stripe** theo hướng dẫn trên màn hình.
-3. Bật gói hằng tháng: mục **Membership** (hoặc "Memberships") → **Enable** → tạo 1 gói, ví dụ tên **"Companion"**, giá bạn chọn (ví dụ 2–3 USD/tháng).
-4. Ở gói đó, tìm ô **Welcome message** (lời chào gửi ngay khi có người đăng ký) hoặc tạo một **bài đăng chỉ dành cho thành viên**. Ghi: *"Cảm ơn bạn! Mã tháng này: MOON-XXXX-XXXX. Gõ mã ở trang Support hoặc Phòng tập trung trên web."*
-5. Copy link Ko-fi của bạn → vào web **Admin console → Thanh toán & Ủng hộ** → dán vào ô **"Link đăng ký hằng tháng cho Người đồng hành"** và ô **Ko-fi** → **Lưu thanh toán**.
+- **Trả tiền:** khách bấm "Tôi đã thanh toán" ở trang Ủng hộ, bạn kiểm tra tiền rồi bấm **Duyệt** ở tab **Thành viên** (xem PHẦN 5 và PHẦN 22.z).
+- **Dùng thử:** khách nhập **mã dùng thử** (PHẦN 16), có hạn số ngày và mỗi tài khoản một lần.
 
-### 10.2. Việc làm MỖI THÁNG (khoảng 2 phút)
-1. Vào **Admin console → Thanh toán & Ủng hộ**, tìm khung **"Mã hàng tháng cho Người đồng hành"**.
-2. Bấm **Tạo mã ngẫu nhiên** (ra dạng `MOON-AB12-CD34`). **Copy mã này lại** (web không lưu mã gốc để bảo mật).
-3. Ô **"Hết vào ngày"**: để mặc định (cuối tháng sau) hoặc chọn ngày khác.
-4. Bấm **Lưu mã**. Mã cũ hết tác dụng ngay.
-5. Sang Ko-fi, sửa **Welcome message** (hoặc đăng bài mới cho thành viên) với mã mới.
+Người xem miễn phí tập trung tối đa số phút mỗi ngày bạn đặt ở tab **Gói Người đồng hành**, khung **"Giới hạn Phòng tập trung"** (điền 0 để bỏ giới hạn). Người đồng hành, người đang dùng thử và bạn không bị giới hạn.
 
-### 10.3. Người trả bằng chuyển khoản (VietQR) hoặc PayPal
-Họ chuyển tiền, báo bạn (nhắn Instagram/email kèm nội dung chuyển khoản). Bạn **nhắn lại mã của tháng** cho họ. Số người ít thì rất nhẹ; nếu muốn đỡ việc, hãy hướng mọi người sang Ko-fi.
+Ko-fi chỉ còn cần nếu bạn muốn gói **tự gia hạn**: dán link Membership vào ô "Link đăng ký hằng tháng" ở tab **Gói Người đồng hành**. Khách trả qua Ko-fi cũng bấm "Tôi đã thanh toán" và bạn bấm Duyệt như trên.
 
-### Lưu ý
-- Mã có thể bị chia sẻ cho người khác; đổi mã mỗi tháng để hạn chế. Giới hạn đếm theo trình duyệt nên người rành kỹ thuật có thể vượt được.
-- Đổi số phút giới hạn hoặc bỏ hẳn giới hạn (điền 0) ở khung **"Giới hạn Phòng tập trung"** cùng tab.
-- Tick **"Người đồng hành"** ở tab Thành viên chỉ dùng khi bạn muốn tặng hoặc làm ngoại lệ.
+---
 
 ## PHẦN 11 — Bắt buộc đăng nhập, tiếng Hindi và tự dịch nội dung
 
@@ -553,13 +540,13 @@ Mỗi lần mình đưa bản mới, mình sẽ tạo một thư mục chứa **
 GitHub tự bỏ qua file nào không đổi.
 
 ### 22.x. Thanh mục tiêu, giá mỗi ngày, nhắc hết dùng thử
-- **Thanh mục tiêu:** vào Admin → **Thanh toán & Ủng hộ**, thẻ riêng **"Thanh mục tiêu duy trì web"**, nhập **Mục tiêu** (số Người đồng hành) và **Hiện đã có** (bạn tự cập nhật khi có người mới) rồi bấm **Lưu mục tiêu** (nút riêng, không cần bấm Lưu thanh toán). Thanh hiện ở đầu thẻ Người đồng hành trên trang Ủng hộ. Để trống mục tiêu là ẩn thanh.
+- **Thanh mục tiêu:** vào Admin → **Gói Người đồng hành**, thẻ riêng **"Thanh mục tiêu duy trì web"**, nhập **Mục tiêu** (số Người đồng hành) và **Hiện đã có** (bạn tự cập nhật khi có người mới) rồi bấm **Lưu mục tiêu** (nút riêng, không cần bấm Lưu thanh toán). Thanh hiện ở đầu thẻ Người đồng hành trên trang Ủng hộ. Để trống mục tiêu là ẩn thanh.
 - **Giá mỗi ngày:** tự hiện dưới các gói ("Chỉ khoảng 2.000 ₫ mỗi ngày"), không cần cài đặt.
 - **Nhắc hết dùng thử:** khi gói dùng thử còn 7 ngày trở xuống, người dùng thử thấy lời nhắc ở Tổng quan và Phòng tập trung. Người đã là Người đồng hành không thấy.
 
 ### 22.y. Chỉ dùng PayPal cho khách quốc tế (không dùng Ko-fi)
-1. Admin → **Thanh toán & Ủng hộ**: ô **PayPal.me** phải có link dạng `https://paypal.me/tencuaban`.
-2. **Xoá** hai ô Ko-fi: ô **Ko-fi** (thẻ "Thanh toán quốc tế") và ô **Link đăng ký hằng tháng cho "Người đồng hành"**, rồi bấm **Lưu thanh toán**.
+1. Admin → **Thanh toán**: ô **PayPal.me** phải có link dạng `https://paypal.me/tencuaban`.
+2. **Xoá** ô **Ko-fi** (tab **Thanh toán**, bấm **Lưu thanh toán**) và ô **Link đăng ký hằng tháng cho "Người đồng hành"** (tab **Gói Người đồng hành**, bấm **Lưu giá và link**).
 3. Khách quốc tế sẽ thấy các gói 1, 3, 12 tháng, bấm nút "Trả $X một lần bằng PayPal" và PayPal tự điền sẵn số tiền. Trả bằng PayPal là **một lần, không tự gia hạn**, hết hạn thì khách trả lại. Sau khi trả, họ bấm "Tôi đã thanh toán" và bạn duyệt trong tab Thành viên như thường.
 4. Nếu sau này muốn có gói tự gia hạn, dán lại link Ko-fi Membership hoặc Patreon vào ô "Link đăng ký hằng tháng".
 
@@ -567,3 +554,7 @@ GitHub tự bỏ qua file nào không đổi.
 - Ở thẻ **"Thanh mục tiêu duy trì web"**, bấm **Đếm tự động** để web đếm Người đồng hành còn hạn và điền vào ô "Hiện đã có", rồi bấm **Lưu mục tiêu**.
 - Ở tab **Thành viên**, thẻ **"Sắp hết hạn / đã hết hạn"** (người hết hạn trong 7 ngày tới hoặc đã hết hạn) có thêm ô chọn ngôn ngữ (đủ 8 ngôn ngữ của web: English, Tiếng Việt, हिन्दी, 日本語, 한국어, 中文, Français, Español) và nút **Nhắc gia hạn**: chọn ngôn ngữ của khách rồi bấm để sao chép tin nhắn nhắc gia hạn (ngày hiện theo ngôn ngữ đó; máy nhớ ngôn ngữ bạn chọn lần trước) (kèm link trang Ủng hộ), rồi dán vào Zalo, Instagram hoặc email gửi cho họ. Khi họ trả tiền, bấm **Gia hạn**.
 
+
+### 22.w. Dọn Admin: tách tab và bỏ mã hàng tháng
+- Tab **Thanh toán & Ủng hộ** được tách đôi: **Thanh toán** (VietQR, PayPal/Stripe/Ko-fi, mẫu EmailJS, nút **Lưu thanh toán**) và **Gói Người đồng hành** (giá và link, thanh mục tiêu, khuyến mãi, ưu đãi Hành trình trăng, giới hạn Focus, nhóm học; mỗi thẻ có nút lưu riêng).
+- **Mã hàng tháng** đã bỏ (xem PHẦN 10). Ai đã mở khoá bằng mã cũ sẽ bị giới hạn Focus trở lại, trừ khi họ là Người đồng hành hoặc đang dùng thử.
