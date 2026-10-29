@@ -361,21 +361,9 @@ function addFocus(min){
 }
 /* Giới hạn thời gian tập trung mỗi ngày cho người xem miễn phí. Người đồng hành (Companions) và admin không bị giới hạn.
    Đếm bằng bộ nhớ trình duyệt nên đây là giới hạn "nhẹ nhàng" (có thể vượt bằng cách xoá dữ liệu trình duyệt). */
-const focusUnlimited = () => !!(state.companion || state.isAdmin || unlockValid() || trialActive());
+const focusUnlimited = () => !!(state.companion || state.isAdmin || trialActive());
 const focusLimit = () => focusUnlimited() ? 0 : Math.max(0, Math.round(+branding.focusLimit || 0));
 const focusUsed = () => (localFocus()[DT.now().setZone(userTZ).toISODate()] || { m:0 }).m;
-/* ô nhập mã đồng hành (dùng ở Focus room, hộp thoại hết giờ và trang Support) */
-const unlockBox = () => `<form class="stack" data-form="unlock" style="gap:8px"><label class="label" style="margin:0">${esc(t('unlock_title'))}</label><div class="row" style="flex-wrap:nowrap"><input class="input" autocomplete="off" spellcheck="false" placeholder="${esc(t('unlock_ph'))}" maxlength="60"><button class="btn secondary" type="submit">${ic('check', 'sm')} ${esc(t('unlock_btn'))}</button></div></form>`;
-FORMS.unlock = async form => {
-  const code = normCode(form.querySelector('input').value); if (!code) return;
-  const h = await sha256(code), today = DT.now().toISODate();
-  if (!branding.focusCodeHash || h !== branding.focusCodeHash) return toast(t('unlock_bad'));
-  if (branding.focusCodeUntil && branding.focusCodeUntil < today) return toast(t('unlock_expired'));
-  const u = { hash:h, until:branding.focusCodeUntil || '' };
-  store.set('unlock', u); profile.unlock = u;
-  if (state.user && !DEMO) db.collection('users').doc(state.user.uid).set({ unlock:u }, { merge:true }).catch(() => {});
-  closeModal(); toast(t('unlock_ok')); render(true);
-};
 (function(){
   const G = {
     en:{ trial_title:'Have a trial code?', trial_sub:'Enter it to try Companion perks (Weekly Planner, unlimited focus) for free for a limited time. Each account can use one trial.', trial_ph:'e.g. TRY-ABCD-1234', trial_btn:'Activate',
@@ -415,7 +403,6 @@ FORMS.trial = async form => {
 function limitModal(){
   const L0 = focusLimit();
   openModal(`<h2>${esc(t('focus_limit_title'))}</h2><p class="muted mt-s">${esc(t('focus_limit_text', { l:L0 }))}</p>
-    <div class="mt">${unlockBox()}</div>
     <div class="row mt"><a class="btn primary" href="#/donate" data-act="closeModal">${ic('heart', 'sm')} ${esc(t('focus_limit_cta'))}</a>${state.user ? '' : `<a class="btn secondary" href="#/account" data-act="closeModal">${esc(t('signin'))}</a>`}<button class="btn ghost" data-act="closeModal">${esc(t('close'))}</button></div>`, true);
 }
 function pomoStart(){
@@ -536,7 +523,7 @@ PAGES.focus = function(){
       <div class="seg"><button type="button" data-seg="focus" data-act="pmode" data-m="focus">${esc(t('mode_focus'))}</button><button type="button" data-seg="short" data-act="pmode" data-m="short">${esc(t('mode_short'))}</button><button type="button" data-seg="long" data-act="pmode" data-m="long">${esc(t('mode_long'))}</button></div>
       <div class="ring" id="tm-ring"><svg viewBox="0 0 120 120"><circle class="bg" cx="60" cy="60" r="54" stroke-width="7"/><circle class="fg" id="tm-fg" cx="60" cy="60" r="54" stroke-width="7" stroke-dasharray="${RING_C.toFixed(2)}" stroke-dashoffset="0"/></svg><div class="center"><div class="tt" data-pomo-time>25:00</div><div class="md" data-pomo-mode></div></div></div>
       <div class="cycle" id="tm-cycle"></div><div class="small muted" id="tm-cur" style="text-align:center;min-height:1.2em"></div>
-      ${focusLimit() ? `<div class="limit-box"><div class="row between small"><b>${esc(t('focus_limit_used', { u:Math.min(focusUsed(), focusLimit()), l:focusLimit() }))}</b><span class="faint">${esc(t('focus_limit_note', { l:focusLimit() }))}</span></div><div class="progress mt-s"><i style="width:${Math.min(100, focusUsed() / focusLimit() * 100)}%"></i></div><div class="mt-s">${unlockBox()}</div></div>` : (state.companion ? `<div class="limit-box">${compBadge(' · ' + esc(t('focus_nolimit')))}</div>` : '')}
+      ${focusLimit() ? `<div class="limit-box"><div class="row between small"><b>${esc(t('focus_limit_used', { u:Math.min(focusUsed(), focusLimit()), l:focusLimit() }))}</b><span class="faint">${esc(t('focus_limit_note', { l:focusLimit() }))}</span></div><div class="progress mt-s"><i style="width:${Math.min(100, focusUsed() / focusLimit() * 100)}%"></i></div></div>` : (state.companion ? `<div class="limit-box">${compBadge(' · ' + esc(t('focus_nolimit')))}</div>` : '')}
       <div class="row"><button class="btn primary lg" id="tm-main" data-act="pstart"></button><button class="btn secondary icon" style="width:48px;height:48px" data-act="preset-reset" title="${esc(t('reset'))}">${ic('reset')}</button><button class="btn secondary icon" style="width:48px;height:48px" data-act="pskip" title="${esc(t('skip'))}">${ic('skip')}</button></div>
       ${branding.groupOn === true ? '<div id="grp-strip" class="grp-strip-wrap"></div>' : ''}
       <div class="divider" style="width:100%;margin:2px 0"></div>
@@ -1114,7 +1101,7 @@ let compPay = null, compMonths = 1;
 const COMP_DISC = { 1:1, 3:.9, 12:.75 };
 Object.assign(I18N.en, { comp_pay_pp:'USD (PayPal)', goal_title:'Keeping the site and the study group running', goal_note:'Every companion helps cover the cost of keeping the site and the study group running.', goal_done:'Goal reached. Thank you for keeping this place going!', goal_of:'{n} / {m} companions', perday:'That is about {x} a day.', tr_left:'Your free trial ends in {d} days. Become a companion to keep the Planner, the study group and your weekly rank.', tr_left1:'Your free trial ends today or tomorrow. Become a companion to keep the Planner, the study group and your weekly rank.', tr_cta:'See the Companion plan' });
 Object.assign(I18N.vi, { comp_pay_pp:'USD (PayPal)', goal_title:'Duy trì web và nhóm học', goal_note:'Mỗi Người đồng hành góp một phần chi phí để web và nhóm học luôn chạy.', goal_done:'Đã đạt mục tiêu. Cảm ơn bạn đã giữ cho nơi này luôn sáng đèn!', goal_of:'{n} / {m} người đồng hành', perday:'Chỉ khoảng {x} mỗi ngày, ít hơn một ly trà đá.', tr_left:'Gói dùng thử còn {d} ngày. Trở thành Người đồng hành để giữ Planner, nhóm học và hạng tuần của bạn.', tr_left1:'Gói dùng thử hết hạn hôm nay hoặc ngày mai. Trở thành Người đồng hành để giữ Planner, nhóm học và hạng tuần của bạn.', tr_cta:'Xem gói Người đồng hành' });
-const goalBar = () => {   // thanh mục tiêu duy trì web (admin nhập ở Thanh toán & Ủng hộ)
+const goalBar = () => {   // thanh mục tiêu duy trì web (admin nhập ở tab Gói Người đồng hành)
   const m = Math.round(+payments.goalTarget) || 0; if (m <= 0) return '';
   const n = Math.max(0, Math.round(+payments.goalNow) || 0), p = Math.min(100, Math.round(n / m * 100));
   return `<div class="goal"><div class="row between small"><b>${esc(payments.goalText || t('goal_title'))}</b><span class="faint">${esc(t('goal_of', { n, m }))}</span></div><div class="progress mt-s" role="progressbar" aria-valuemin="0" aria-valuemax="${m}" aria-valuenow="${Math.min(n, m)}"><i style="width:${p}%"></i></div><p class="small faint">${esc(t(n >= m ? 'goal_done' : 'goal_note'))}</p></div>`;
@@ -1213,7 +1200,7 @@ const donateHTML = function(){
   /* Người đồng hành: bên trái là quyền lợi, bên phải là 3 bước (chọn gói, thanh toán, báo đã trả) */
   const cp = state.companion && !compRenewOpen() ? null : compPayHTML(), claim = compClaimHTML(!!cp);
   const info = `<div class="stack">${goalBar()}<p class="muted" ${cms('comp_text')}>${esc(ctext('comp_text'))}</p><div><div class="label">${esc(t('comp_perks'))}</div><ul class="perks">${branding.groupOn === true ? `<li ${cms('comp_perk5')}>${esc(ctext('comp_perk5'))}</li>` : ''}<li ${cms('comp_perk4')}>${esc(ctext('comp_perk4'))}</li>${Math.round(+branding.focusLimit) > 0 ? `<li ${cms('comp_perk6')}>${esc(ctext('comp_perk6'))}</li>` : ''}<li ${cms('comp_perk3')}>${esc(ctext('comp_perk3'))}</li><li ${cms('comp_perk1')}>${esc(ctext('comp_perk1'))}</li><li ${cms('comp_perk2')}>${esc(ctext('comp_perk2'))}</li></ul></div>
-      ${branding.focusCodeHash ? `<div><div class="label">${esc(t('comp_steps_title'))}</div><ol class="steps"><li>${esc(t('comp_step1'))}</li><li>${esc(t('comp_step2'))}</li><li>${esc(t('comp_step3'))}</li></ol></div>${unlockBox()}` : ''}${!state.companion && unlockValid() ? `<p class="small" style="color:var(--live)">${esc(t('comp_active'))}</p>` : ''}${state.companion || !state.user ? '' : trialBox()}</div>`;
+      ${state.companion || !state.user ? '' : trialBox()}</div>`;
   const steps = cp ? `${step(1, t('don_plan'), cp.plan)}${step(2, t('don_pay'), cp.pay)}${cp.login ? '' : step(3, t('cc_title'), claim)}` : claim;
   const comp = `<div class="don-cols">${info}<div class="stack">${steps}</div></div>`;
   const opt = (k, icon, name, sub, attr = '') => [k, `<span class="don-ic">${ic(icon)}</span><span><b ${attr}>${esc(name)}</b><small>${esc(sub)}</small></span>`, k === 'comp' ? comp : once];

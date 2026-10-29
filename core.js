@@ -65,7 +65,7 @@ const state = {
 if (!['galaxy', 'clouds', 'petals', 'fireflies', 'off'].includes(state.sky)) state.sky = 'galaxy';
 if (!['rain', 'pop', 'violet', 'teal'].includes(state.theme)) state.theme = null;   // bỏ giá trị theme cũ của các bản trước
 let userTZ = state.tz === 'auto' ? DT.local().zoneName : state.tz;
-let branding = { name:'Ép Study Room', groupOn:false, themeColor:'#ff3d9a', defaultTheme:'rain', font:'baloo', logoUrl:'', mascotUrl:'', ytChannelId:'', ytLiveId:'', videos:[], contacts:{}, socialLinks:{}, announcement:{}, nav:null, homeSections:{}, focusLimit:120, focusCodeHash:'', focusCodeUntil:'',
+let branding = { name:'Ép Study Room', groupOn:false, themeColor:'#ff3d9a', defaultTheme:'rain', font:'baloo', logoUrl:'', mascotUrl:'', ytChannelId:'', ytLiveId:'', videos:[], contacts:{}, socialLinks:{}, announcement:{}, nav:null, homeSections:{}, focusLimit:120,  
   blogCats:[
     { id:'journal', label:{ en:'Journal', vi:'Nhật ký' }, desc:{ en:'Personal notes and updates.', vi:'Ghi chép và cập nhật cá nhân.' } },
     { id:'study', label:{ en:'Study notes', vi:'Ghi chép học tập' }, desc:{ en:'Methods, routines and what works.', vi:'Phương pháp, thói quen và điều hiệu quả.' } },
@@ -436,17 +436,6 @@ function startLibrary(){
 const ADMIN_EMAIL = 'epstudyroom.contact@gmail.com';
 const isAdminUser = u => !!u && (u.email || '').toLowerCase() === ADMIN_EMAIL && u.emailVerified === true;
 const isAdminEmail = u => !!u && (u.email || '').toLowerCase() === ADMIN_EMAIL;
-/* Mã hàng tháng của "Người đồng hành": chỉ lưu SHA-256 của mã trong settings/branding (không lưu mã gốc). */
-async function sha256(text){
-  try { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
-  catch (e) { let h = 5381; for (const c of text) h = ((h << 5) + h + c.charCodeAt(0)) >>> 0; return 'f' + h.toString(16); }
-}
-const normCode = s => String(s || '').trim().toLowerCase();
-function unlockValid(){
-  const u = store.get('unlock', null) || (profile && profile.unlock) || null, today = DT.now().toISODate();
-  if (!u || !branding.focusCodeHash) return false;
-  return u.hash === branding.focusCodeHash && (!u.until || u.until >= today) && (!branding.focusCodeUntil || branding.focusCodeUntil >= today);
-}
 /* Mã dùng thử (trial_redemptions/<uid>): quyền thật do firestore.rules kiểm (Planner); ở đây chỉ để hiện giao diện cho đúng.
    Hết hạn khi: admin đặt hạn riêng (endsAt), hoặc theo mã: startedAt + số ngày của mã; mã bị tắt/xoá thì hết quyền ngay. */
 const trialActive = () => !!state.trial && state.trial.endsAt > Date.now();
@@ -486,7 +475,6 @@ auth.onAuthStateChanged(async u => {
       store.set('todos_gone', [...gone].slice(-300));
       const fl = cleanFocus(profile.focusLog); Object.entries(localFocus()).forEach(([k, v]) => { const o = fl[k] || { m:0, s:0 }; fl[k] = { m:Math.max(o.m, v.m), s:Math.max(o.s, v.s) }; });
       store.set('todos', todos); store.set('focus', fl); profile.todos = todos; profile.focusLog = fl;
-      if (profile.unlock && !store.get('unlock', null)) store.set('unlock', profile.unlock);
       if (!d.exists || !profile.displayName) { profile.displayName = profile.displayName || u.displayName || (u.email || '').split('@')[0]; }
       state.profileReady = true;                                      // hồ sơ đã tải xong → mới được hiện/ghi Moon Journey
       if (typeof grpPing === 'function') grpPing();                   // đã tham gia nhóm học và đồng hồ đang chạy → báo lại trạng thái
