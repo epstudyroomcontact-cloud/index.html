@@ -934,10 +934,21 @@ html[data-calm="1"] .sky-mote,html[data-calm="1"] .tap-star,html[data-calm="1"] 
 html[data-calm="1"] .sky-tw,html[data-calm="1"] .sp-tw{opacity:.7}
 @media (prefers-reduced-motion:reduce){.sky-mote,.tap-star,.sp-bar{display:none}*::before,*::after{animation:none!important}}
 
-/* Con trỏ chuột = bàn chân mèo (chỉ máy có chuột; ô nhập chữ giữ con trỏ chữ I, nút bị khoá giữ biểu tượng cấm). Chân mèo nhỏ 22px, viền mảnh; chuyển hồng nhạt khi chỉ vào nút/liên kết. */
-@media (pointer:fine){
+/* Con trỏ chuột = bàn chân mèo (chỉ máy có chuột; bản hình tĩnh này dùng khi giảm chuyển động hoặc JS chưa chạy, còn bản biết xoay do js/cursor.js vẽ; ô nhập chữ giữ con trỏ chữ I, nút bị khoá giữ biểu tượng cấm). Chân mèo nhỏ 22px, viền mảnh; chuyển hồng nhạt khi chỉ vào nút/liên kết. */
+@media (any-pointer:fine){
 html,html :not(input,textarea,select,[contenteditable]){cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22' viewBox='0 0 32 32'%3E%3Cg fill='%23fff3dc' stroke='%234a2f62' stroke-opacity='.85' stroke-width='1.7' stroke-linejoin='round'%3E%3Cpath d='M16 15c-4 0-8 4.2-8 8 0 2.6 2 4 4 4 1.6 0 2.6-.8 4-.8s2.4.8 4 .8c2 0 4-1.4 4-4 0-3.8-4-8-8-8z'/%3E%3Cellipse cx='6.6' cy='13.2' rx='2.7' ry='3.5' transform='rotate%28-22 6.6 13.2%29'/%3E%3Cellipse cx='12.4' cy='7.6' rx='2.8' ry='3.7' transform='rotate%28-8 12.4 7.6%29'/%3E%3Cellipse cx='19.6' cy='7.6' rx='2.8' ry='3.7' transform='rotate%288 19.6 7.6%29'/%3E%3Cellipse cx='25.4' cy='13.2' rx='2.7' ry='3.5' transform='rotate%2822 25.4 13.2%29'/%3E%3C/g%3E%3C/svg%3E") 11 11,auto}
 html :is(a,button,summary,label,[role=button],[data-act],.pcard,.gal-th img,.mj-stop,input[type=checkbox],input[type=radio],input[type=range],input[type=submit],input[type=button]),html :is(a,button,summary,label,[data-act]) *{cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22' viewBox='0 0 32 32'%3E%3Cg fill='%23ffb3d6' stroke='%234a2f62' stroke-opacity='.85' stroke-width='1.7' stroke-linejoin='round'%3E%3Cpath d='M16 15c-4 0-8 4.2-8 8 0 2.6 2 4 4 4 1.6 0 2.6-.8 4-.8s2.4.8 4 .8c2 0 4-1.4 4-4 0-3.8-4-8-8-8z'/%3E%3Cellipse cx='6.6' cy='13.2' rx='2.7' ry='3.5' transform='rotate%28-22 6.6 13.2%29'/%3E%3Cellipse cx='12.4' cy='7.6' rx='2.8' ry='3.7' transform='rotate%28-8 12.4 7.6%29'/%3E%3Cellipse cx='19.6' cy='7.6' rx='2.8' ry='3.7' transform='rotate%288 19.6 7.6%29'/%3E%3Cellipse cx='25.4' cy='13.2' rx='2.7' ry='3.5' transform='rotate%2822 25.4 13.2%29'/%3E%3C/g%3E%3C/svg%3E") 11 11,pointer}
 textarea,input:not([type=checkbox],[type=radio],[type=range],[type=submit],[type=button],[type=file],[type=color]){cursor:text}
 button:disabled,.btn:disabled{cursor:not-allowed}
 }
+
+/* Chân mèo biết xoay (js/cursor.js bật html.paw-live sau lần di chuột đầu tiên): ẩn con trỏ tĩnh, trừ ô nhập chữ / khung nhúng */
+html.paw-live :not(textarea,input:not([type=checkbox],[type=radio],[type=range],[type=submit],[type=button],[type=file],[type=color]),[contenteditable=""],[contenteditable="true"],iframe){cursor:none!important}
+.ep-paw{position:fixed;left:0;top:0;width:24px;height:24px;margin:-12px 0 0 -12px;z-index:660;pointer-events:none;opacity:0;transition:opacity .12s;will-change:transform}
+.ep-paw.on:not(.off){opacity:1}
+.ep-paw svg{display:block;width:24px;height:24px;transform-origin:50% 50%;transition:transform .12s ease-out}
+.ep-paw.settle svg{transition:transform .6s cubic-bezier(.3,.7,.3,1)}
+.ep-paw g{fill:#fff3dc;stroke:#4a2f62;stroke-opacity:.85;stroke-width:1.7;stroke-linejoin:round;transition:fill .15s}
+.ep-paw.hot g{fill:#ffb3d6}
+@media (prefers-reduced-motion:reduce){.ep-paw{display:none}}
+html[data-calm="1"] .ep-paw{display:none}
