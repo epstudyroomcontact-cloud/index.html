@@ -1,20 +1,21 @@
 'use strict';
 /* =========================================================
-   HIỆU ỨNG CON TRỎ CHUỘT: vệt bụi sao đi theo con trỏ (cùng kiểu sao bốn cánh của logo và thiên hà)
-   - Chỉ chạy trên máy có chuột (pointer:fine). Điện thoại / máy tính bảng không có con trỏ nên không tải gì thêm.
-   - Con trỏ gốc của hệ điều hành vẫn giữ nguyên (không ẩn, không thay), chỉ thêm vầng sáng mờ và sao nhỏ rơi theo vệt di chuột.
-   - Một canvas trong suốt phủ cả màn hình, không bắt chuột. Chỉ vẽ lúc có hạt, hết hạt thì dừng hẳn vòng vẽ (không tốn pin).
+   HIỆU ỨNG CON TRỎ CHUỘT: một vệt sáng mảnh như đuôi sao băng đi sau con trỏ, thỉnh thoảng một hạt sao li ti rơi lại
+   - Vệt sáng: dải mảnh thon dần về đuôi, màu trắng ấm chuyển hồng nhạt rồi tan trong khoảng 0,4 giây. Vẽ cộng sáng nên trên nền tối nhìn như ánh sáng thật.
+   - Hạt sao: rất nhỏ (2-4 px), thưa (cứ ~90 px di chuyển mới có một hạt), mờ, trôi chậm rồi tan. Không có "mưa sao" ồn ào.
+   - Chạm vào nút / link: một vòng mảnh khẽ nở quanh con trỏ cho biết bấm được, rời ra thì thu lại.
+   - Con trỏ gốc của hệ điều hành giữ nguyên. Chỉ chạy trên máy có chuột (pointer:fine). Canvas trong suốt không bắt chuột; hết vệt thì dừng hẳn vòng vẽ.
    - Giảm chuyển động (máy hoặc ô ở ⚙️, html[data-calm]): không có hiệu ứng này; bật/tắt ô ⚙️ có tác dụng ngay.
    ========================================================= */
 (function(){
   if (!window.matchMedia || !matchMedia('(pointer: fine)').matches) return;
   const rm = matchMedia('(prefers-reduced-motion: reduce)');
   const off = () => rm.matches || document.documentElement.dataset.calm === '1';
-  const COLORS = ['255,244,214', '255,224,138', '255,208,230', '255,255,255'];
-  const MAX = 70;
-  let cv = null, g = null, W = 0, H = 0, D = 1, raf = 0, last = 0;
-  const P = [];                                    // sao đang bay
-  const m = { x:-99, y:-99, gx:-99, gy:-99, on:false, lx:0, ly:0, acc:0 };
+  const LIFE = .42, MAXP = 40;                       // tuổi của một điểm trên vệt (giây), số điểm tối đa
+  const HOT = 'a,button,select,label,summary,[data-act],input[type=checkbox],input[type=radio],input[type=range]';
+  let cv = null, g = null, W = 0, H = 0, raf = 0, last = 0, now = 0;
+  const trail = [], spark = [];
+  const m = { x:0, y:0, on:false, lastMove:-9, acc:0, ring:0, hot:false };
 
   function ensure(){
     if (cv) return;
@@ -23,49 +24,58 @@
     document.body.appendChild(cv); g = cv.getContext('2d'); size();
   }
   function size(){
-    if (!cv) return;
-    D = Math.min(2, window.devicePixelRatio || 1); W = window.innerWidth; H = window.innerHeight;
+    if (!cv) return; const D = Math.min(2, window.devicePixelRatio || 1); W = window.innerWidth; H = window.innerHeight;
     cv.width = Math.round(W * D); cv.height = Math.round(H * D); g.setTransform(D, 0, 0, D, 0, 0);
   }
-  // sao bốn cánh: hai nét cong lõm như path của logo (M10 0Q11 9 20 10Q11 11 10 20Q9 11 0 10Q9 9 10 0Z), vẽ theo bán kính r
-  function star(x, y, r, rot){
-    g.save(); g.translate(x, y); g.rotate(rot); g.scale(r / 10, r / 10); g.translate(-10, -10);
+  // sao bốn cánh li ti (cùng hình sao trên logo), vẽ quanh (x, y) bán kính r
+  function star(x, y, r){
+    g.save(); g.translate(x, y); g.scale(r / 10, r / 10); g.translate(-10, -10);
     g.beginPath(); g.moveTo(10, 0); g.quadraticCurveTo(11, 9, 20, 10); g.quadraticCurveTo(11, 11, 10, 20); g.quadraticCurveTo(9, 11, 0, 10); g.quadraticCurveTo(9, 9, 10, 0); g.closePath(); g.fill(); g.restore();
   }
-  function spawn(x, y, speed){
-    if (P.length >= MAX) P.shift();
-    const a = Math.random() * 6.283, v = 6 + Math.random() * 14;
-    P.push({ x:x + (Math.random() - .5) * 6, y:y + (Math.random() - .5) * 6, vx:Math.cos(a) * v, vy:Math.sin(a) * v + 8 + Math.random() * 10,
-      r:2.5 + Math.random() * 4.5 + Math.min(speed / 400, 2), rot:Math.random() * 3, vr:(Math.random() - .5) * 3, life:0, max:.7 + Math.random() * .7, c:COLORS[Math.floor(Math.random() * COLORS.length)] });
-  }
   function frame(t){
-    raf = 0; const dt = Math.min(.05, (t - last) / 1000 || .016); last = t;
-    if (off()) { P.length = 0; g.clearRect(0, 0, W, H); return; }
+    raf = 0; const dt = Math.min(.05, (t - last) / 1000 || .016); last = t; now += dt;
     g.clearRect(0, 0, W, H);
-    // vầng sáng mờ trễ nhẹ sau con trỏ
-    m.gx += (m.x - m.gx) * Math.min(1, dt * 9); m.gy += (m.y - m.gy) * Math.min(1, dt * 9);
-    if (m.on) { const gr = g.createRadialGradient(m.gx, m.gy, 0, m.gx, m.gy, 34); gr.addColorStop(0, 'rgba(255,214,170,.20)'); gr.addColorStop(.5, 'rgba(255,150,200,.08)'); gr.addColorStop(1, 'rgba(255,150,200,0)'); g.fillStyle = gr; g.beginPath(); g.arc(m.gx, m.gy, 34, 0, 7); g.fill(); }
-    for (let i = P.length - 1; i >= 0; i--) {
-      const p = P[i]; p.life += dt; if (p.life >= p.max) { P.splice(i, 1); continue; }
-      p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 1 - dt * 1.6; p.vy *= 1 - dt * .8; p.rot += p.vr * dt;
-      const u = p.life / p.max, a = Math.sin(Math.PI * Math.min(1, u * 1.15)) * .9, r = p.r * (1 - u * .45);
-      g.fillStyle = `rgba(${p.c},${a.toFixed(3)})`; g.shadowColor = `rgba(255,214,150,${(a * .8).toFixed(3)})`; g.shadowBlur = 6; star(p.x, p.y, r, p.rot);
+    if (off()) { trail.length = 0; spark.length = 0; return; }
+    while (trail.length && now - trail[0].t > LIFE) trail.shift();
+    g.globalCompositeOperation = 'lighter'; g.lineCap = 'round'; g.lineJoin = 'round';
+    // vệt sáng: nối các điểm, càng cũ càng mảnh và mờ, màu từ trắng ấm sang hồng nhạt
+    for (let i = 1; i < trail.length; i++) {
+      const a = trail[i - 1], b = trail[i], u = 1 - (now - b.t) / LIFE, k = Math.pow(Math.max(0, u), 1.4);
+      if (k <= 0) continue;
+      g.strokeStyle = `rgba(${Math.round(255)},${Math.round(190 + 50 * k)},${Math.round(210 + 20 * k)},${(.55 * k).toFixed(3)})`;
+      g.lineWidth = .6 + 3.2 * k; g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke();
     }
-    g.shadowBlur = 0;
-    if (P.length || m.on) raf = requestAnimationFrame(frame);
+    // quầng sáng nhỏ ở đầu vệt, mờ dần khi con trỏ đứng yên
+    const idle = now - m.lastMove, ga = m.on ? Math.max(0, 1 - Math.max(0, idle - .6) / .9) : 0;
+    if (ga > .01) { const gr = g.createRadialGradient(m.x, m.y, 0, m.x, m.y, 16); gr.addColorStop(0, `rgba(255,232,200,${(.22 * ga).toFixed(3)})`); gr.addColorStop(1, 'rgba(255,200,220,0)'); g.fillStyle = gr; g.beginPath(); g.arc(m.x, m.y, 16, 0, 7); g.fill(); }
+    // hạt sao li ti
+    for (let i = spark.length - 1; i >= 0; i--) {
+      const s = spark[i]; s.life += dt; if (s.life >= s.max) { spark.splice(i, 1); continue; }
+      const u = s.life / s.max, a = Math.sin(Math.PI * u) * .75; s.x += s.vx * dt; s.y += s.vy * dt;
+      g.fillStyle = `rgba(255,236,200,${a.toFixed(3)})`; star(s.x, s.y, s.r * (1 - u * .3));
+    }
+    // vòng mảnh khi chạm vào nút / link
+    m.ring += ((m.hot && m.on ? 1 : 0) - m.ring) * Math.min(1, dt * 12);
+    if (m.ring > .02) { g.strokeStyle = `rgba(255,214,190,${(.5 * m.ring).toFixed(3)})`; g.lineWidth = 1; g.beginPath(); g.arc(m.x, m.y, 8 + 8 * m.ring, 0, 7); g.stroke(); }
+    g.globalCompositeOperation = 'source-over';
+    if (trail.length || spark.length || m.ring > .02 || ga > .01) raf = requestAnimationFrame(frame);
   }
   const kick = () => { if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } };
 
   window.addEventListener('pointermove', e => {
     if (e.pointerType && e.pointerType !== 'mouse' && e.pointerType !== 'pen') return;
     if (off()) return;
-    ensure(); if (!m.on) { m.gx = e.clientX; m.gy = e.clientY; m.lx = e.clientX; m.ly = e.clientY; }
-    m.on = true; m.x = e.clientX; m.y = e.clientY;
-    const d = Math.hypot(m.x - m.lx, m.y - m.ly); m.acc += d; m.lx = m.x; m.ly = m.y;
-    while (m.acc > 26) { m.acc -= 26; spawn(m.x, m.y, d * 60); }    // cứ 26px di chuyển thì rơi một ngôi sao: di chậm thì thưa, di nhanh thì dày
+    ensure();
+    const px = m.x, py = m.y, first = !m.on;
+    m.on = true; m.x = e.clientX; m.y = e.clientY; m.lastMove = now;
+    if (first) { trail.length = 0; } else {
+      trail.push({ x:m.x, y:m.y, t:now }); if (trail.length > MAXP) trail.shift();
+      m.acc += Math.hypot(m.x - px, m.y - py);
+      if (m.acc > 90) { m.acc = 0; const a = Math.random() * 6.283; spark.push({ x:m.x + (Math.random() - .5) * 6, y:m.y + (Math.random() - .5) * 6, vx:Math.cos(a) * 5, vy:Math.sin(a) * 5 + 4, r:2 + Math.random() * 2, life:0, max:.8 + Math.random() * .5 }); if (spark.length > 14) spark.shift(); }
+    }
     kick();
   }, { passive:true });
-  document.addEventListener('pointerleave', () => { m.on = false; }, { passive:true });
-  document.documentElement.addEventListener('mouseleave', () => { m.on = false; });
+  document.addEventListener('pointerover', e => { m.hot = !!(e.target.closest && e.target.closest(HOT)); if (m.hot) kick(); }, { passive:true });
+  document.documentElement.addEventListener('mouseleave', () => { m.on = false; m.hot = false; kick(); });
   window.addEventListener('resize', size);
 })();
