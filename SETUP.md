@@ -526,7 +526,7 @@ Khi sửa web (hoặc nhờ mình sửa), cần nhớ:
 
 ## PHẦN 22 — Nhóm học trực tiếp (chỉ cho Người đồng hành)
 
-Trong **Phòng tập trung** có khung **Nhóm học**: Người đồng hành (cả người đang dùng thử mã, và bạn) xem được **ai đang học ngay lúc này** và đã học bao lâu, cùng **bảng xếp hạng giờ tập trung trong tuần** (làm mới mỗi thứ Hai 00:00 giờ Việt Nam). Khách thường chỉ thấy lời mời trở thành Người đồng hành, nên đây là một lý do để họ ủng hộ web.
+Nhóm học hiện ở 3 chỗ: thẻ **Nhóm học** ngay dưới khối chào ở trang **Tổng quan** (ai đang học), một dải nhỏ **ngay dưới đồng hồ** trong Phòng tập trung (có bao nhiêu người đang học và **hạng tuần của bạn**), và khung đầy đủ bên phải Phòng tập trung. Trong **Phòng tập trung** có khung **Nhóm học**: Người đồng hành (cả người đang dùng thử mã, và bạn) xem được **ai đang học ngay lúc này** và đã học bao lâu, cùng **bảng xếp hạng giờ tập trung trong tuần** (làm mới mỗi thứ Hai 00:00 giờ Việt Nam). Khách thường chỉ thấy lời mời trở thành Người đồng hành, nên đây là một lý do để họ ủng hộ web.
 
 **Việc phải làm 1 lần:**
 1. Dán lại luật `firestore.rules` mới (làm đúng 4 bước ở mục 2.3). Chưa dán thì nhóm báo "chưa sẵn sàng".
