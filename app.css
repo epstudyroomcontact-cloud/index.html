@@ -1015,3 +1015,19 @@ html[data-calm="1"] .ep-paw{display:none}
 .goal{padding:12px 14px;border-radius:14px;background:var(--accent-soft)}
 .goal .progress{height:10px}
 .perday{margin:6px 0 0}
+
+/* trang Hướng dẫn + lời mời cho khách mới */
+.guide-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin-top:10px}
+.guide-step{display:flex;gap:12px;align-items:flex-start}
+.guide-n{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:800;background:var(--accent-soft);color:var(--accent-strong)}
+.guide-step p{margin:4px 0 0}
+.guide-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.guide-pg{display:flex;flex-direction:column;gap:8px;color:inherit;text-decoration:none;transition:transform .15s,border-color .15s}
+.guide-pg:hover{transform:translateY(-2px);border-color:var(--accent)}
+.guide-pg p{margin:0;flex:1}
+.guide-ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent-strong)}
+.guide-open{color:var(--accent-strong);font-weight:700;display:inline-flex;align-items:center;gap:4px}
+.guide-q p{margin:3px 0 0}
+.guide-nudge{gap:10px;flex-wrap:wrap;margin-bottom:12px;border-color:var(--accent)}
+[data-route="guide"] .card.pad>h2{margin-bottom:10px}
+[data-route="guide"] .card.pad>p.small{margin-top:10px}
