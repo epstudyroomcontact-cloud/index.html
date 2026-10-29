@@ -131,6 +131,7 @@ PAGES.home = function(){
       <div class="clock mt" data-clock>--:--:--</div></div>
       <div class="next-card" id="next-card"><span class="live-pill" style="padding:5px 8px"><i></i></span><div><small></small><b>—</b></div></div></section>`;
   if (branding.groupOn === true) html += `<section class="card pad grp grp-home mt" id="grp-home"><div class="card-h"><h2>${ic('users', 'sm')} ${esc(t('grp_title'))}</h2></div><p class="muted small">${esc(t('loading'))}</p></section>`;   // ai đang học: nằm ngay dưới khối chào
+  if (html) html += trialNudge();
   S.hero = html; html = '';
   if (on('stats')) html += `<div class="grid g4 keep2 mt">
       <div class="card tile"><span class="t-ic">${ic('calendar')}</span><span class="t-l">${esc(t('stat_lives'))}</span><span class="t-v">${wk.length}</span></div>
@@ -530,7 +531,7 @@ Object.assign(ACTIONS, {
 PAGES.focus = function(){
   const fl = localFocus(), today = DT.now().setZone(userTZ), days = Array.from({ length:7 }, (_, i) => today.minus({ days:6 - i })), vals = days.map(d => (fl[d.toISODate()] || { m:0 }).m), mx = Math.max(30, ...vals), td = fl[today.toISODate()] || { m:0, s:0 };
   const c = pomo.cfg, num = (k, lab) => `<div class="field"><label class="label">${esc(lab)}</label><input class="input" type="number" min="1" max="180" value="${c[k]}" data-change="cfg" data-k="${k}"></div>`;
-  page(`${head('focus_title', 'focus_sub', '', 'umbrella', 4)}${state.user ? (plLinked() ? hintNote('new_focus') : hintNote('new_tease', '#/planner')) : ''}
+  page(`${head('focus_title', 'focus_sub', '', 'umbrella', 4)}${state.user ? (plLinked() ? hintNote('new_focus') : hintNote('new_tease', '#/planner')) : ''}${trialNudge()}
     <div class="grid g-main"><section class="card timer-card">
       <div class="seg"><button type="button" data-seg="focus" data-act="pmode" data-m="focus">${esc(t('mode_focus'))}</button><button type="button" data-seg="short" data-act="pmode" data-m="short">${esc(t('mode_short'))}</button><button type="button" data-seg="long" data-act="pmode" data-m="long">${esc(t('mode_long'))}</button></div>
       <div class="ring" id="tm-ring"><svg viewBox="0 0 120 120"><circle class="bg" cx="60" cy="60" r="54" stroke-width="7"/><circle class="fg" id="tm-fg" cx="60" cy="60" r="54" stroke-width="7" stroke-dasharray="${RING_C.toFixed(2)}" stroke-dashoffset="0"/></svg><div class="center"><div class="tt" data-pomo-time>25:00</div><div class="md" data-pomo-mode></div></div></div>
@@ -1111,6 +1112,20 @@ function compClaimHTML(bare){                                     // bare: bỏ 
 let compPay = null, compMonths = 1;
 /* Gói VND: 1 tháng = giá gốc; 3 tháng giảm 10%, 12 tháng giảm 25% (làm tròn nghìn) để người dùng trả dài hạn có lợi hơn, còn mình có tiền ổn định */
 const COMP_DISC = { 1:1, 3:.9, 12:.75 };
+Object.assign(I18N.en, { goal_title:'Keeping the site and the study group running', goal_note:'Every companion helps cover the cost of keeping the site and the study group running.', goal_done:'Goal reached. Thank you for keeping this place going!', goal_of:'{n} / {m} companions', perday:'That is about {x} a day.', tr_left:'Your free trial ends in {d} days. Become a companion to keep the Planner, the study group and your weekly rank.', tr_left1:'Your free trial ends today or tomorrow. Become a companion to keep the Planner, the study group and your weekly rank.', tr_cta:'See the Companion plan' });
+Object.assign(I18N.vi, { goal_title:'Duy trì web và nhóm học', goal_note:'Mỗi Người đồng hành góp một phần chi phí để web và nhóm học luôn chạy.', goal_done:'Đã đạt mục tiêu. Cảm ơn bạn đã giữ cho nơi này luôn sáng đèn!', goal_of:'{n} / {m} người đồng hành', perday:'Chỉ khoảng {x} mỗi ngày, ít hơn một ly trà đá.', tr_left:'Gói dùng thử còn {d} ngày. Trở thành Người đồng hành để giữ Planner, nhóm học và hạng tuần của bạn.', tr_left1:'Gói dùng thử hết hạn hôm nay hoặc ngày mai. Trở thành Người đồng hành để giữ Planner, nhóm học và hạng tuần của bạn.', tr_cta:'Xem gói Người đồng hành' });
+const goalBar = () => {   // thanh mục tiêu duy trì web (admin nhập ở Thanh toán & Ủng hộ)
+  const m = Math.round(+payments.goalTarget) || 0; if (m <= 0) return '';
+  const n = Math.max(0, Math.round(+payments.goalNow) || 0), p = Math.min(100, Math.round(n / m * 100));
+  return `<div class="goal"><div class="row between small"><b>${esc(payments.goalText || t('goal_title'))}</b><span class="faint">${esc(t('goal_of', { n, m }))}</span></div><div class="progress mt-s" role="progressbar" aria-valuemin="0" aria-valuemax="${m}" aria-valuenow="${Math.min(n, m)}"><i style="width:${p}%"></i></div><p class="small faint">${esc(t(n >= m ? 'goal_done' : 'goal_note'))}</p></div>`;
+};
+const perDay = (price, months, cur) => `<p class="small muted perday">${esc(t('perday', { x:cur === 'VND' ? money(Math.round(price / (30 * months) / 100) * 100, 'VND') : '$' + (price / (30 * months)).toFixed(2) }))}</p>`;
+/* nhắc khi gói dùng thử sắp hết: người dùng thử đã có thói quen và hạng tuần nên đây là lúc dễ chuyển sang Người đồng hành nhất */
+const trialNudge = () => {
+  if (DEMO || state.companion || state.isAdmin || !trialActive()) return '';
+  const d = Math.ceil((state.trial.endsAt - Date.now()) / 864e5); if (d > 7) return '';
+  return `<div class="limit-box stack mt" style="border-color:var(--accent)"><p class="small" style="margin:0">⏳ ${esc(t(d <= 1 ? 'tr_left1' : 'tr_left', { d }))}</p><div class="row"><a class="btn primary sm" href="#/donate">${ic('heart', 'sm')} ${esc(t('tr_cta'))}</a></div></div>`;
+};
 const compBase = () => Math.round(+payments.companionVND) || 59000;
 const compPrice = m => m === 1 ? compBase() : Math.round(compBase() * m * COMP_DISC[m] / 1000) * 1000;
 const compBaseUSD = () => +payments.companionUSD || 3;
@@ -1146,11 +1161,11 @@ function compPayHTML(){
   const banners = `${promoBanner()}${rewardBanner(moonRewardActive())}`;
   if (mode === 'kofi') {
     const um = payments.paypal ? compMonths : 1;
-    return { plan:`${seg}${banners}<div class="row">${(payments.paypal ? [1, 3, 12] : [1]).map(m => `<button type="button" class="chip ${m === um ? 'on' : ''}" data-act="compMonths" data-m="${m}">${esc(t('comp_plan_' + m))} · ${money(compPriceUSD(m), 'USD')}${m > 1 ? ` <small>${esc(t('comp_save', { p:Math.round((1 - compPriceUSD(m) / (compBaseUSD() * m)) * 100) }))}</small>` : ''}${bonusChip(m)}</button>`).join('')}</div>`,
+    return { plan:`${seg}${banners}<div class="row">${(payments.paypal ? [1, 3, 12] : [1]).map(m => `<button type="button" class="chip ${m === um ? 'on' : ''}" data-act="compMonths" data-m="${m}">${esc(t('comp_plan_' + m))} · ${money(compPriceUSD(m), 'USD')}${m > 1 ? ` <small>${esc(t('comp_save', { p:Math.round((1 - compPriceUSD(m) / (compBaseUSD() * m)) * 100) }))}</small>` : ''}${bonusChip(m)}</button>`).join('')}</div>${perDay(compPriceUSD(um), um, 'USD')}`,
       pay:`<a class="btn primary lg" target="_blank" rel="noopener" href="${esc(safeUrl(compUsdUrl(um)))}">${ic('heart', 'sm')} ${esc(t(um === 1 ? 'comp_cta' : 'comp_pay_prepaid', { a:money(compPriceUSD(um), 'USD') }))}</a>
     <p class="small faint">${esc(t(um === 1 ? 'comp_usd_note1' : 'comp_usd_note'))}</p>` };
   }
-  const plan = `${seg}${banners}<div class="row">${[1, 3, 12].map(m => { const pr = compPrice(m); return `<button type="button" class="chip ${m === compMonths ? 'on' : ''}" data-act="compMonths" data-m="${m}">${esc(t('comp_plan_' + m))} · ${money(pr, 'VND')}${m > 1 ? ` <small>${esc(t('comp_save', { p:Math.round((1 - pr / (compBase() * m)) * 100) }))}</small>` : ''}${bonusChip(m)}</button>`; }).join('')}</div>`;
+  const plan = `${seg}${banners}<div class="row">${[1, 3, 12].map(m => { const pr = compPrice(m); return `<button type="button" class="chip ${m === compMonths ? 'on' : ''}" data-act="compMonths" data-m="${m}">${esc(t('comp_plan_' + m))} · ${money(pr, 'VND')}${m > 1 ? ` <small>${esc(t('comp_save', { p:Math.round((1 - pr / (compBase() * m)) * 100) }))}</small>` : ''}${bonusChip(m)}</button>`; }).join('')}</div>${perDay(compPrice(compMonths), compMonths, 'VND')}`;
   if (!state.user) return { plan, pay:`<div class="limit-box stack"><p class="small muted">${esc(t('comp_vnd_login'))}</p><a class="btn secondary" href="#/account">${esc(t('signin'))}</a></div>`, login:true };
   return { plan, pay:`<img class="qr" alt="VietQR" src="https://img.vietqr.io/image/${encodeURIComponent(payments.bankBin)}-${encodeURIComponent(payments.accountNo)}-compact2.png?amount=${amt}&addInfo=${encodeURIComponent(code)}&accountName=${encodeURIComponent(payments.accountName || '')}"><p class="small muted" style="text-align:center">${esc(t('donate_scan'))}</p>
     <div class="kv"><div class="kvr"><span>${esc(t('acc_no'))}</span><b>${esc(payments.accountNo)}</b>${cp(payments.accountNo)}</div><div class="kvr"><span>${esc(t('comp_vnd_sum'))}</span><b>${esc(String(amt))}</b>${cp(String(amt))}</div><div class="kvr"><span>${esc(t('donate_note'))}</span><b>${esc(code)}</b>${cp(code)}</div></div><p class="small faint">${esc(t(state.user.email ? 'comp_vnd_mail' : 'comp_vnd_hint'))}</p>` };
@@ -1197,7 +1212,7 @@ const donateHTML = function(){
     <div class="stack">${step(2, t('don_pay'), `${pay || `<p class="muted">${esc(t('donate_none'))}</p>`}<p class="small faint">${esc(t('donate_thanks'))}</p>`)}</div></div>`;
   /* Người đồng hành: bên trái là quyền lợi, bên phải là 3 bước (chọn gói, thanh toán, báo đã trả) */
   const cp = state.companion && !compRenewOpen() ? null : compPayHTML(), claim = compClaimHTML(!!cp);
-  const info = `<div class="stack"><p class="muted" ${cms('comp_text')}>${esc(ctext('comp_text'))}</p><div><div class="label">${esc(t('comp_perks'))}</div><ul class="perks"><li ${cms('comp_perk4')}>${esc(ctext('comp_perk4'))}</li><li ${cms('comp_perk1')}>${esc(ctext('comp_perk1'))}</li><li ${cms('comp_perk2')}>${esc(ctext('comp_perk2'))}</li><li ${cms('comp_perk3')}>${esc(ctext('comp_perk3'))}</li></ul></div>
+  const info = `<div class="stack">${goalBar()}<p class="muted" ${cms('comp_text')}>${esc(ctext('comp_text'))}</p><div><div class="label">${esc(t('comp_perks'))}</div><ul class="perks"><li ${cms('comp_perk4')}>${esc(ctext('comp_perk4'))}</li><li ${cms('comp_perk1')}>${esc(ctext('comp_perk1'))}</li><li ${cms('comp_perk2')}>${esc(ctext('comp_perk2'))}</li><li ${cms('comp_perk3')}>${esc(ctext('comp_perk3'))}</li></ul></div>
       ${branding.focusCodeHash ? `<div><div class="label">${esc(t('comp_steps_title'))}</div><ol class="steps"><li>${esc(t('comp_step1'))}</li><li>${esc(t('comp_step2'))}</li><li>${esc(t('comp_step3'))}</li></ol></div>${unlockBox()}` : ''}${!state.companion && unlockValid() ? `<p class="small" style="color:var(--live)">${esc(t('comp_active'))}</p>` : ''}${state.companion || !state.user ? '' : trialBox()}</div>`;
   const steps = cp ? `${step(1, t('don_plan'), cp.plan)}${step(2, t('don_pay'), cp.pay)}${cp.login ? '' : step(3, t('cc_title'), claim)}` : claim;
   const comp = `<div class="don-cols">${info}<div class="stack">${steps}</div></div>`;
