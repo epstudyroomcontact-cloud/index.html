@@ -40,6 +40,18 @@ Object.assign(I18N.vi, {
   grp_strip_join:'Tham gia nhóm học để xem ai đang học và thứ hạng tuần của bạn', grp_strip_n:'{n} người đang học', grp_strip_0:'Chưa ai đang học', grp_rank:'Hạng {r}', grp_rank_none:'Tuần này chưa có giờ học', grp_home_sub:'Xem ai đang học ngay lúc này.', grp_home_join:'Tham gia nhóm ở Phòng tập trung', grp_home_open:'Mở Phòng tập trung', grp_home_up:'Người đồng hành xem được ai đang học ngay lúc này, kèm đồng hồ trực tiếp và bảng xếp hạng tuần.',
   grp_err:'Chưa tải được nhóm. Bạn thử lại sau một lát nhé.', grp_err_rules:'Nhóm chưa sẵn sàng: chủ web cần dán luật bảo mật mới nhất lên Firebase.', grp_err_quota:'Hôm nay nhóm đang nghỉ. Bạn quay lại vào ngày mai nhé.'
 });
+/* Bản dịch cho khách chưa là Người đồng hành (lời mời ở Phòng tập trung và Tổng quan) bằng hi / ja / ko / zh / fr / es; phần dành cho thành viên nhóm còn en / vi, thiếu thì tự dùng tiếng Anh. */
+(function(){
+  const X = {
+    hi:{ grp_title:'लाइव स्टडी ग्रुप', grp_up_text:'साथी लाइव स्टडी ग्रुप में शामिल हो सकते हैं: देखिए अभी कौन पढ़ रहा है और कितनी देर से, साथ में फ़ोकस घंटों का साप्ताहिक लीडरबोर्ड। आपका सहयोग इस वेबसाइट को चालू रखने में भी मदद करता है।', grp_up_login:'यह देखने के लिए साइन इन करें कि क्या आप जुड़ सकते हैं।', grp_up_cta:'साथी बनने का तरीक़ा देखें', grp_home_up:'साथी देख सकते हैं कि अभी कौन पढ़ रहा है, लाइव टाइमर और साप्ताहिक लीडरबोर्ड के साथ।' },
+    ja:{ grp_title:'ライブ勉強グループ', grp_up_text:'仲間はライブ勉強グループに参加できます。今だれが、どれくらい勉強しているかが見られ、集中時間の週間ランキングもあります。あなたの支援はこのサイトの運営も支えます。', grp_up_login:'参加できるか確認するにはログインしてください。', grp_up_cta:'仲間になる方法を見る', grp_home_up:'仲間は、今だれが勉強中かをライブタイマーと週間ランキングつきで見られます。' },
+    ko:{ grp_title:'실시간 스터디 그룹', grp_up_text:'동반자는 실시간 스터디 그룹에 참여할 수 있어요. 지금 누가 얼마나 공부하고 있는지, 그리고 집중 시간 주간 순위를 볼 수 있어요. 여러분의 후원은 이 웹사이트 운영에도 보탬이 돼요.', grp_up_login:'참여할 수 있는지 보려면 로그인하세요.', grp_up_cta:'동반자가 되는 방법 보기', grp_home_up:'동반자는 지금 누가 공부 중인지 실시간 타이머와 주간 순위와 함께 볼 수 있어요.' },
+    zh:{ grp_title:'实时学习小组', grp_up_text:'同伴可以加入实时学习小组：看看现在谁在学习、已经学了多久，还有每周专注时长排行榜。你的支持也让这个网站得以持续运营。', grp_up_login:'登录后查看你是否可以加入。', grp_up_cta:'了解如何成为同伴', grp_home_up:'同伴可以看到现在谁在学习，附带实时计时器和每周排行榜。' },
+    fr:{ grp_title:"Groupe d'étude en direct", grp_up_text:"Les Compagnons peuvent rejoindre un groupe d'étude en direct : voir qui étudie en ce moment et depuis combien de temps, avec un classement hebdomadaire des heures de concentration. Ton soutien aide aussi à faire vivre ce site.", grp_up_login:'Connecte-toi pour voir si tu peux le rejoindre.', grp_up_cta:'Voir comment devenir Compagnon', grp_home_up:'Les Compagnons voient qui étudie en ce moment, avec les minuteurs en direct et le classement de la semaine.' },
+    es:{ grp_title:'Grupo de estudio en vivo', grp_up_text:'Los Acompañantes pueden unirse a un grupo de estudio en vivo: ver quién está estudiando ahora y desde hace cuánto, y un ranking semanal de horas de enfoque. Tu apoyo también ayuda a mantener este sitio en marcha.', grp_up_login:'Inicia sesión para ver si puedes unirte.', grp_up_cta:'Ver cómo ser Acompañante', grp_home_up:'Los Acompañantes ven quién está estudiando ahora, con temporizadores en vivo y el ranking semanal.' }
+  };
+  Object.keys(X).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], X[l]); });   // ghi đè: các bản dịch của khách chưa là Người đồng hành nằm ở đây
+})();
 (function(){
   const TZ = 'Asia/Ho_Chi_Minh', BEAT = 4 * 60e3, STALE = 9 * 60e3, POLL = 60e3, POLL_SLOW = 180e3, IDLE = 10 * 60e3, SESS_GAP = 15 * 60e3, TOP = 20;   // nhịp báo, quá hạn thì ẩn, tải lại (Phòng tập trung / trang khác), ngừng tải khi không đụng vào gì, nghỉ quá lâu thì tính phiên mới, số người trong bảng
   const wk = () => DT.now().setZone(TZ).toFormat("kkkk-'W'WW");
@@ -98,8 +110,15 @@ Object.assign(I18N.vi, {
   /* ---------- hiển thị ---------- */
   const box = () => document.getElementById('grp-box');
   const head = () => `<div class="card-h"><h2>${ic('users', 'sm')} ${esc(t('grp_title'))}</h2></div>`;
+  let pvHTML = '', pvLang = '';   // bản xem thử cho khách chưa là Người đồng hành: dữ liệu mẫu nằm trong guide.js (tải riêng, không đọc Firestore)
+  function pvFill(){
+    const n = document.getElementById('grp-pv'); if (!n || (pvHTML && pvLang === state.lang)) return;
+    loadGuide().then(() => { if (typeof EPTour === 'undefined') return; pvHTML = EPTour.preview(); pvLang = state.lang; const m = document.getElementById('grp-pv'); if (m) m.innerHTML = pvHTML; }).catch(() => {});
+  }
   function upsell(){
+    setTimeout(pvFill, 0);
     return `${head()}<p class="muted">${esc(t('grp_up_text'))}</p>
+      <div class="grp-pv" id="grp-pv">${pvLang === state.lang ? pvHTML : ''}</div>
       <div class="row mt-s">${state.user ? `<a class="btn primary" href="#/donate">${ic('heart', 'sm')} ${esc(t('grp_up_cta'))}</a>` : `<a class="btn primary" href="#/account">${ic('user', 'sm')} ${esc(t('grp_up_login'))}</a>`}</div>`;
   }
   const nickForm = (joined, v) => `<form class="stack" data-form="grpJoin" style="gap:8px"><label class="label" for="grp-nick" style="margin:0">${esc(t('grp_nick'))}</label>
