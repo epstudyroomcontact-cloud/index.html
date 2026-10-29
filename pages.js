@@ -206,25 +206,106 @@ const pomoDur = m => (pomo.cfg[m] || 25) * 60e3;
 const pomoSave = () => store.set('pomo', pomo);
 let actx = null;
 function audio(){ if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (actx && actx.state !== 'running' && actx.state !== 'closed') { const r = actx.resume(); if (r && r.catch) r.catch(() => {}); } return actx; }
-/* ---- Âm thanh nền tự tạo (không cần mạng, không bản quyền): mưa / ồn nâu / ồn trắng ---- */
+/* ---- Âm thanh nền tự tạo (không cần mạng, không bản quyền): mưa / ồn nâu / ồn trắng ----
+   Mỗi âm được "thu" một lần bằng OfflineAudioContext thành một đoạn stereo 16 giây rồi phát lặp liền mạch (hai đầu hoà vào nhau 2 giây,
+   không nghe thấy chỗ nối), nên lúc phát gần như không tốn máy. Hai tai nghe hai luồng nhiễu độc lập nên có độ rộng, không bị "dẹt" như một luồng mono.
+   - Mưa: lớp mưa rì rào mịn (nhiễu hồng lọc 600-6500 Hz, độ to nhấp nhô chậm) + hàng nghìn giọt riêng lẻ mỗi giọt một cao độ, độ to, độ tắt dần và vị trí trái/phải
+     ngẫu nhiên + vài giọt to trầm + tiếng ào xa rất trầm. Không còn tiếng "xì" the thé của nhiễu trắng thô.
+   - Ồn nâu: nhiễu nâu lọc 40-1100 Hz, ấm và sâu như thác nước xa / tiếng quạt trầm.
+   - Ồn trắng: nhiễu trắng cắt 60 Hz - 11 kHz rồi hạ nhẹ dải chói trên 5 kHz, vẫn đều phẳng nhưng không chói tai.
+   Cả ba chuẩn hoá cùng một độ to (RMS) nên đổi qua lại không bị chói hay nhỏ đột ngột; đổi âm và đổi âm lượng đều có lướt mượt, không bị "tách". */
 const AMB = ['off', 'rain', 'brown', 'white'];
-let ambType = 'off', ambVol = store.get('ambvol', .5), ambNode = null;
-const ambGain = type => ambVol * ({ rain:.55, brown:.45, white:.16 }[type] || .3);
+let ambType = 'off', ambVol = store.get('ambvol', .5), ambNode = null, ambTok = 0;
+const AMB_LEN = 16, AMB_X = 2, AMB_RMS = .16, ambCache = {};
+const ambGain = () => Math.pow(ambVol, 1.3);
+function ambNoise(len, kind){
+  const d = new Float32Array(len);
+  if (kind === 'brown') { let last = 0; for (let i = 0; i < len; i++) { last = (last + .02 * (Math.random() * 2 - 1)) / 1.02; d[i] = last * 3.5; } }
+  else if (kind === 'pink') { let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0; for (let i = 0; i < len; i++) { const w = Math.random() * 2 - 1; b0 = .99886 * b0 + w * .0555179; b1 = .99332 * b1 + w * .0750759; b2 = .969 * b2 + w * .153852; b3 = .8665 * b3 + w * .3104856; b4 = .55 * b4 + w * .5329522; b5 = -.7616 * b5 - w * .016898; d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * .5362) * .11; b6 = w * .115926; } }
+  else for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  return d;
+}
+// Rải các giọt mưa vào hai kênh: mỗi giọt là một cụm nhiễu ngắn qua bộ lọc dải (cao độ, độ nhọn, độ to, độ tắt dần, vị trí trái/phải ngẫu nhiên)
+function ambDrops(dat, sr, rate, fr, qr, pk, dc){
+  const N = dat[0].length;
+  for (let t = 0; t < N / sr - .1; t += -Math.log(1 - Math.random()) / rate) {
+    const f = fr[0] + Math.pow(Math.random(), fr[2]) * (fr[1] - fr[0]), q = qr[0] + Math.random() * (qr[1] - qr[0]), peak = pk[0] + Math.pow(Math.random(), pk[2]) * (pk[1] - pk[0]), decay = dc[0] + Math.random() * (dc[1] - dc[0]);
+    const pan = (Math.random() * 1.8 - .9 + 1) * Math.PI / 4, gl = Math.cos(pan), gr = Math.sin(pan);
+    const w0 = 2 * Math.PI * f / sr, al = Math.sin(w0) / (2 * q), a0 = 1 + al, b0 = al / a0, b2 = -al / a0, a1 = -2 * Math.cos(w0) / a0, a2 = (1 - al) / a0;
+    const n = Math.round((decay + .02) * sr), i0 = Math.round(t * sr), k = Math.log(1e-4 / peak) / (decay * sr); let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+    for (let i = 0; i < n && i0 + i < N; i++) {
+      const x = Math.random() * 2 - 1, y = b0 * x + b2 * x2 - a1 * y1 - a2 * y2; x2 = x1; x1 = x; y2 = y1; y1 = y;
+      const env = i < sr * .0015 ? peak * i / (sr * .0015) : peak * Math.exp(k * (i - sr * .0015)), v = y * env; dat[0][i0 + i] += v * gl; dat[1][i0 + i] += v * gr;
+    }
+  }
+}
+function ambRender(type, sr){
+  const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext; if (!OAC) return Promise.reject(new Error('no offline'));
+  const total = Math.round((AMB_LEN + AMB_X) * sr), dur = total / sr, off = new OAC(2, total, sr);
+  const flt = (ty, f, q) => { const n = off.createBiquadFilter(); n.type = ty; n.frequency.value = f; if (q) n.Q.value = q; return n; };
+  const noise = (kind, n = total) => { const b = off.createBuffer(1, n, sr); b.getChannelData(0).set(ambNoise(n, kind)); const sc = off.createBufferSource(); sc.buffer = b; return sc; };
+  const master = off.createGain(), merger = off.createChannelMerger(2); master.connect(off.destination);
+  const lpMaster = flt('lowpass', 9500, .5); lpMaster.connect(master);
+  if (type === 'brown' || type === 'white') {
+    for (let ch = 0; ch < 2; ch++) {
+      const sc = noise(type); let n = sc;
+      const chain = type === 'brown' ? [flt('highpass', 40, .7), flt('lowpass', 1100, .6)] : [flt('highpass', 60, .7), flt('lowpass', 11000, .6), flt('highshelf', 5000)];
+      chain.forEach(f => { if (f.type === 'highshelf') f.gain.value = -5; n.connect(f); n = f; });
+      n.connect(merger, 0, ch); sc.start();
+    }
+    merger.connect(master);
+  } else {                                                   // mưa
+    for (let ch = 0; ch < 2; ch++) {
+      const bed = noise('pink'), hp = flt('highpass', 600, .7), lp = flt('lowpass', 6500, .6), am = off.createGain(), gb = off.createGain();
+      const curve = new Float32Array(48); let v = 1; for (let i = 0; i < curve.length; i++) { v += (Math.random() - .5) * .22; v = Math.max(.7, Math.min(1.2, v)); curve[i] = v; }
+      curve[curve.length - 1] = curve[0];
+      am.gain.setValueCurveAtTime(curve, 0, dur); gb.gain.value = .5;
+      bed.connect(hp); hp.connect(lp); lp.connect(am); am.connect(gb); gb.connect(merger, 0, ch); bed.start();
+      const rum = noise('brown'), rl = flt('lowpass', 220, .7), rg = off.createGain(); rg.gain.value = .22; rum.connect(rl); rl.connect(rg); rg.connect(merger, 0, ch); rum.start();
+    }
+    merger.connect(lpMaster);
+  }
+  return off.startRendering().then(r => {
+    const L = Math.round(AMB_LEN * sr), X = Math.round(AMB_X * sr), out = [new Float32Array(L), new Float32Array(L)];
+    const dat = [r.getChannelData(0), r.getChannelData(1)];
+    if (type === 'rain') {                                       // giọt mưa tổng hợp thẳng bằng mã (nhanh hơn dựng hàng nghìn nút âm thanh)
+      ambDrops(dat, sr, 55, [1200, 7000, 1.6], [1.5, 6.5], [.02, .27, 3], [.012, .052]);                 // giọt nhỏ ~55 giọt/giây
+      ambDrops(dat, sr, 2.5, [500, 1400, 1], [1, 3], [.06, .14, 1], [.05, .12]);                          // giọt to trầm, thưa
+    }
+    let sum = 0;
+    for (let c = 0; c < 2; c++) {
+      const d = dat[c], o = out[c];
+      for (let i = 0; i < L; i++) o[i] = d[i];
+      for (let i = 0; i < X; i++) { const w = i / X; o[i] = d[i] * Math.sin(w * Math.PI / 2) + d[L + i] * Math.cos(w * Math.PI / 2); }   // hoà đuôi vào đầu: nối liền mạch
+      for (let i = 0; i < L; i++) sum += o[i] * o[i];
+    }
+    const k = AMB_RMS / (Math.sqrt(sum / (2 * L)) || 1);
+    for (let c = 0; c < 2; c++) for (let i = 0; i < L; i++) out[c][i] = Math.tanh(out[c][i] * k);   // chuẩn hoá cùng độ to, tanh để đỉnh nhọn không vượt 1
+    return out;
+  });
+}
+function ambFallback(type, sr){                                // máy không có OfflineAudioContext: nhiễu đơn giản
+  const L = Math.round(AMB_LEN * sr);
+  return [0, 1].map(() => { const d = ambNoise(L, type === 'white' ? 'white' : type === 'brown' ? 'brown' : 'pink'); let s = 0; for (let i = 0; i < L; i++) s += d[i] * d[i]; const k = AMB_RMS / (Math.sqrt(s / L) || 1); for (let i = 0; i < L; i++) d[i] = Math.tanh(d[i] * k); return d; });
+}
+function ambBuffer(type, a){
+  const key = type + a.sampleRate; if (ambCache[key]) return ambCache[key];
+  return ambCache[key] = ambRender(type, a.sampleRate).catch(() => ambFallback(type, a.sampleRate)).then(ch => { const b = a.createBuffer(2, ch[0].length, a.sampleRate); b.copyToChannel(ch[0], 0); b.copyToChannel(ch[1], 1); return b; }).catch(e => { delete ambCache[key]; throw e; });
+}
 function setAmbient(type){
-  ambType = type;
-  if (ambNode) { try { ambNode.src.stop(); ambNode.g.disconnect(); } catch (e) {} ambNode = null; }
+  ambType = type; const tok = ++ambTok;
+  const a0 = actx;
+  if (ambNode) { const o = ambNode; ambNode = null; try { o.g.gain.setTargetAtTime(0, a0.currentTime, .12); o.src.stop(a0.currentTime + .7); } catch (e) {} }   // cũ lướt nhỏ dần rồi dừng
   document.querySelectorAll('#amb-chips [data-k]').forEach(b => b.classList.toggle('on', b.dataset.k === type));
   if (type === 'off') return;
   const a = audio(); if (!a) return;
-  const len = a.sampleRate * 4, buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
-  if (type === 'brown') { let last = 0; for (let i = 0; i < len; i++) { last = (last + .02 * (Math.random() * 2 - 1)) / 1.02; d[i] = last * 3.5; } }
-  else for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
-  const src = a.createBufferSource(), g = a.createGain(); src.buffer = buf; src.loop = true;
-  let out = src;
-  if (type === 'rain') { const hp = a.createBiquadFilter(), lp = a.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 450; lp.type = 'lowpass'; lp.frequency.value = 7500; src.connect(hp); hp.connect(lp); out = lp; }
-  g.gain.value = ambGain(type); out.connect(g); g.connect(a.destination); src.start(); ambNode = { src, g };
+  ambBuffer(type, a).then(buf => {
+    if (tok !== ambTok) return;                                // trong lúc chờ đã đổi sang âm khác
+    const src = a.createBufferSource(), g = a.createGain(); src.buffer = buf; src.loop = true; g.gain.value = 0; src.connect(g); g.connect(a.destination); src.start();
+    g.gain.setTargetAtTime(ambGain(), a.currentTime, .35); ambNode = { src, g };                 // lướt to dần
+  }).catch(e => console.warn('ambient', e));
 }
-CHANGES.ambVol = el => { ambVol = Math.max(0, Math.min(1, +el.value / 100)); store.set('ambvol', ambVol); if (ambNode) ambNode.g.gain.value = ambGain(ambType); };
+CHANGES.ambVol = el => { ambVol = Math.max(0, Math.min(1, +el.value / 100)); store.set('ambvol', ambVol); if (ambNode && actx) ambNode.g.gain.setTargetAtTime(ambGain(), actx.currentTime, .05); };
 document.addEventListener('input', e => { if (e.target.dataset && e.target.dataset.change === 'ambVol') CHANGES.ambVol(e.target); });
 
 /* ---- Nhạc gợi ý: tự đổi link YouTube / Spotify / SoundCloud thành khung phát ngay trong trang ---- */
