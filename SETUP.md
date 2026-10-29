@@ -565,5 +565,5 @@ GitHub tự bỏ qua file nào không đổi.
 
 ### 22.z. Đếm Người đồng hành tự động và nhắc gia hạn
 - Ở thẻ **"Thanh mục tiêu duy trì web"**, bấm **Đếm tự động** để web đếm Người đồng hành còn hạn và điền vào ô "Hiện đã có", rồi bấm **Lưu mục tiêu**.
-- Ở tab **Thành viên**, thẻ **"Sắp hết hạn / đã hết hạn"** (người hết hạn trong 7 ngày tới hoặc đã hết hạn) có thêm nút **Nhắc VI** và **Nhắc EN**: bấm để sao chép tin nhắn nhắc gia hạn (kèm link trang Ủng hộ), rồi dán vào Zalo, Instagram hoặc email gửi cho họ. Khi họ trả tiền, bấm **Gia hạn**.
+- Ở tab **Thành viên**, thẻ **"Sắp hết hạn / đã hết hạn"** (người hết hạn trong 7 ngày tới hoặc đã hết hạn) có thêm ô chọn ngôn ngữ (đủ 8 ngôn ngữ của web: English, Tiếng Việt, हिन्दी, 日本語, 한국어, 中文, Français, Español) và nút **Nhắc gia hạn**: chọn ngôn ngữ của khách rồi bấm để sao chép tin nhắn nhắc gia hạn (ngày hiện theo ngôn ngữ đó; máy nhớ ngôn ngữ bạn chọn lần trước) (kèm link trang Ủng hộ), rồi dán vào Zalo, Instagram hoặc email gửi cho họ. Khi họ trả tiền, bấm **Gia hạn**.
 
