@@ -563,3 +563,7 @@ GitHub tự bỏ qua file nào không đổi.
 3. Khách quốc tế sẽ thấy các gói 1, 3, 12 tháng, bấm nút "Trả $X một lần bằng PayPal" và PayPal tự điền sẵn số tiền. Trả bằng PayPal là **một lần, không tự gia hạn**, hết hạn thì khách trả lại. Sau khi trả, họ bấm "Tôi đã thanh toán" và bạn duyệt trong tab Thành viên như thường.
 4. Nếu sau này muốn có gói tự gia hạn, dán lại link Ko-fi Membership hoặc Patreon vào ô "Link đăng ký hằng tháng".
 
+### 22.z. Đếm Người đồng hành tự động và nhắc gia hạn
+- Ở thẻ **"Thanh mục tiêu duy trì web"**, bấm **Đếm tự động** để web đếm Người đồng hành còn hạn và điền vào ô "Hiện đã có", rồi bấm **Lưu mục tiêu**.
+- Ở tab **Thành viên**, thẻ **"Sắp hết hạn / đã hết hạn"** (người hết hạn trong 7 ngày tới hoặc đã hết hạn) có thêm nút **Nhắc VI** và **Nhắc EN**: bấm để sao chép tin nhắn nhắc gia hạn (kèm link trang Ủng hộ), rồi dán vào Zalo, Instagram hoặc email gửi cho họ. Khi họ trả tiền, bấm **Gia hạn**.
+
