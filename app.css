@@ -42,7 +42,10 @@ button{cursor:pointer;background:none;border:none}
 .ic{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .ic.sm{width:15px;height:15px}.ic.lg{width:22px;height:22px}
 html[data-calm="1"] *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* Máy bật "giảm chuyển động" (Windows tắt Animation effects, iPhone bật Reduce Motion…): tắt mọi chuyển động lớn (trôi, bay, mưa,
+   chuyển trang…) nhưng giữ vài hiệu ứng rất nhẹ tại chỗ để web không đứng im hẳn: sao lấp lánh, ánh sáng thở, trăng bồng bềnh khẽ.
+   Muốn tắt hẳn mọi thứ thì tick "Giảm chuyển động" ở ⚙️ (html[data-calm] ở dòng trên). */
+@media (prefers-reduced-motion:reduce){*:not(.sky-tw,.sky-core,.sp-tw,.sp-star,.sp-glow,.sp-float,.rs-twk,.rs-pulse,.logo-mark.is-moon img){animation:none!important;transition:none!important}}
 
 /* ---------- App shell ---------- */
 .app{display:grid;grid-template-columns:var(--sbw) minmax(0,1fr);min-height:100vh}
@@ -929,4 +932,4 @@ button.sb-item{width:100%;background:none;border:0;font:inherit;font-weight:600;
 /* giảm chuyển động: `*` ở đầu file không áp cho ::before/::after nên tắt riêng ở đây */
 html[data-calm="1"] .sky-mote,html[data-calm="1"] .tap-star,html[data-calm="1"] .sp-bar{display:none}
 html[data-calm="1"] .sky-tw,html[data-calm="1"] .sp-tw{opacity:.7}
-@media (prefers-reduced-motion:reduce){.sky-mote,.tap-star,.sp-bar{display:none}.sky-tw,.sp-tw{opacity:.7}*::before,*::after{animation:none!important}}
+@media (prefers-reduced-motion:reduce){.sky-mote,.tap-star,.sp-bar{display:none}*::before,*::after{animation:none!important}}
