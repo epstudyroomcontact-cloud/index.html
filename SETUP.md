@@ -553,6 +553,6 @@ Mỗi lần mình đưa bản mới, mình sẽ tạo một thư mục chứa **
 GitHub tự bỏ qua file nào không đổi.
 
 ### 22.x. Thanh mục tiêu, giá mỗi ngày, nhắc hết dùng thử
-- **Thanh mục tiêu:** vào Admin → **Thanh toán & Ủng hộ**, phần "Ủng hộ & Người đồng hành", nhập **Mục tiêu** (số Người đồng hành để duy trì web) và **Hiện đã có** (bạn tự cập nhật khi có người mới). Thanh hiện ở đầu thẻ Người đồng hành trên trang Ủng hộ. Để trống mục tiêu là ẩn thanh.
+- **Thanh mục tiêu:** vào Admin → **Thanh toán & Ủng hộ**, thẻ riêng **"Thanh mục tiêu duy trì web"**, nhập **Mục tiêu** (số Người đồng hành) và **Hiện đã có** (bạn tự cập nhật khi có người mới) rồi bấm **Lưu mục tiêu** (nút riêng, không cần bấm Lưu thanh toán). Thanh hiện ở đầu thẻ Người đồng hành trên trang Ủng hộ. Để trống mục tiêu là ẩn thanh.
 - **Giá mỗi ngày:** tự hiện dưới các gói ("Chỉ khoảng 2.000 ₫ mỗi ngày"), không cần cài đặt.
 - **Nhắc hết dùng thử:** khi gói dùng thử còn 7 ngày trở xuống, người dùng thử thấy lời nhắc ở Tổng quan và Phòng tập trung. Người đã là Người đồng hành không thấy.
