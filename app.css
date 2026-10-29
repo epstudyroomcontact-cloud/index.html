@@ -1012,3 +1012,6 @@ html[data-calm="1"] .ep-paw{display:none}
 .grp-home .grp-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));column-gap:14px}
 .grp-home{margin-top:18px}
 .stack>.grp .grp-cols{grid-template-columns:1fr}
+.goal{padding:12px 14px;border-radius:14px;background:var(--accent-soft)}
+.goal .progress{height:10px}
+.perday{margin:6px 0 0}
