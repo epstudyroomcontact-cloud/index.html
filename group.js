@@ -23,6 +23,7 @@ Object.assign(I18N.en, {
   grp_now:'Studying now', grp_none:'Nobody is studying right now. Start your timer to be the first.',
   grp_board:'This week', grp_board_none:'No focus time yet this week. Finish a focus session to appear here.', grp_reset:'Resets every Monday at 00:00 (Vietnam time, GMT+7).',
   grp_focus:'Focus', grp_break:'Break', grp_you:'You', grp_hm:'{h} h {m} min', grp_m:'{m} min', grp_refresh:'Refresh', grp_remove:'Remove from the group',
+  grp_strip_join:'Join the study group to see who is studying and your weekly rank', grp_strip_n:'{n} studying now', grp_strip_0:'Nobody studying yet', grp_rank:'Rank #{r}', grp_rank_none:'No hours this week yet', grp_home_sub:'See who is studying right now.', grp_home_join:'Join the group in the Focus room', grp_home_open:'Open the Focus room', grp_home_up:'Companions can see who is studying right now, with live timers and a weekly leaderboard.',
   grp_err:'Could not load the group. Try again in a moment.', grp_err_rules:'The group is not ready yet. The site owner still needs to publish the latest security rules.', grp_err_quota:'The group is resting for today. Please come back tomorrow.'
 });
 Object.assign(I18N.vi, {
@@ -36,6 +37,7 @@ Object.assign(I18N.vi, {
   grp_now:'Đang học', grp_none:'Hiện chưa ai đang học. Bấm bắt đầu đồng hồ để làm người đầu tiên nhé.',
   grp_board:'Tuần này', grp_board_none:'Tuần này chưa ai có giờ tập trung. Xong một phiên tập trung là bạn sẽ có tên ở đây.', grp_reset:'Làm mới mỗi thứ Hai lúc 00:00 (giờ Việt Nam, GMT+7).',
   grp_focus:'Tập trung', grp_break:'Nghỉ', grp_you:'Bạn', grp_hm:'{h} giờ {m} phút', grp_m:'{m} phút', grp_refresh:'Tải lại', grp_remove:'Xoá khỏi nhóm',
+  grp_strip_join:'Tham gia nhóm học để xem ai đang học và thứ hạng tuần của bạn', grp_strip_n:'{n} người đang học', grp_strip_0:'Chưa ai đang học', grp_rank:'Hạng {r}', grp_rank_none:'Tuần này chưa có giờ học', grp_home_sub:'Xem ai đang học ngay lúc này.', grp_home_join:'Tham gia nhóm ở Phòng tập trung', grp_home_open:'Mở Phòng tập trung', grp_home_up:'Người đồng hành xem được ai đang học ngay lúc này, kèm đồng hồ trực tiếp và bảng xếp hạng tuần.',
   grp_err:'Chưa tải được nhóm. Bạn thử lại sau một lát nhé.', grp_err_rules:'Nhóm chưa sẵn sàng: chủ web cần dán luật bảo mật mới nhất lên Firebase.', grp_err_quota:'Hôm nay nhóm đang nghỉ. Bạn quay lại vào ngày mai nhé.'
 });
 (function(){
@@ -115,7 +117,7 @@ Object.assign(I18N.vi, {
     return `<h3 class="grp-h">${esc(t('grp_board'))}</h3>` + (all.length
       ? `<ol class="grp-list">${top.map(row).join('')}${mine >= TOP ? `<li class="grp-gap" aria-hidden="true">…</li>${row(all[mine], mine)}` : ''}</ol>` : `<p class="muted small">${esc(t('grp_board_none'))}</p>`) + `<p class="small faint mt-s">${esc(t('grp_reset'))}</p>`;
   }
-  function renderBox(){
+  function renderMain(){
     const el = box(); if (!el) return;
     if (!state.user || !on()) { el.innerHTML = upsell(); return; }
     const m = me();
@@ -129,6 +131,26 @@ Object.assign(I18N.vi, {
       <details class="grp-opts mt"><summary class="small muted">${esc(m.n)} · ${esc(t('grp_save_nick'))}</summary><div class="mt-s">${nickForm(true, m.n)}</div></details>
       <div class="mt-s">${leaving ? `<p class="small">${esc(t('grp_leave_ask'))}</p><div class="row mt-s"><button type="button" class="btn danger sm" data-act="grpLeaveYes">${esc(t('grp_leave_yes'))}</button><button type="button" class="btn secondary sm" data-act="grpLeaveNo">${esc(t('grp_cancel'))}</button></div>` : `<button type="button" class="btn ghost sm" data-act="grpLeave">${esc(t('grp_leave'))}</button>`}</div>`;
   }
+  const rankOf = () => { const id = state.user.uid, all = Object.entries(board).map(([k, e]) => ({ k, mins:(e && e.mins) | 0 })).filter(x => x.mins > 0).sort((a, b) => b.mins - a.mins), i = all.findIndex(x => x.k === id); return i < 0 ? null : { r:i + 1, mins:all[i].mins }; };
+  function renderStrip(){            // dải nhỏ ngay dưới đồng hồ: ai đang học + hạng tuần của mình
+    const el = document.getElementById('grp-strip'); if (!el) return;
+    if (!state.user || !on()) { el.innerHTML = ''; return; }
+    if (!me()) { el.innerHTML = `<button type="button" class="grp-strip-join" data-act="grpGo">${ic('users', 'sm')} ${esc(t('grp_strip_join'))}</button>`; return; }
+    const rows = liveRows(), rk = rankOf();
+    el.innerHTML = `<div class="grp-strip"><div class="grp-strip-l"><span class="grp-avs">${rows.slice(0, 5).map(r => avatar(r.n)).join('')}</span><span class="small">${esc(rows.length ? t('grp_strip_n', { n:rows.length }) : t('grp_strip_0'))}</span></div>
+      <button type="button" class="grp-strip-r small" data-act="grpGo">${rk ? `<b>${esc(t('grp_rank', { r:rk.r }))}</b> · ${esc(fmt(rk.mins * 60000))}` : esc(t('grp_rank_none'))}</button></div>`;
+  }
+  function renderHome(){             // thẻ ở trang Tổng quan: ai đang học (khách chưa là Người đồng hành chỉ thấy lời mời)
+    const el = document.getElementById('grp-home'); if (!el) return;
+    const hd = `<div class="card-h"><h2>${ic('users', 'sm')} ${esc(t('grp_title'))}</h2><a class="link" href="#/focus">${esc(t('nav_focus'))} ${ic('arrow', 'sm')}</a></div>`;
+    if (!state.user || !on()) { el.innerHTML = `${hd}<p class="muted small">${esc(t('grp_home_up'))}</p><div class="row mt-s"><a class="btn secondary sm" href="${state.user ? '#/donate' : '#/account'}">${ic(state.user ? 'heart' : 'user', 'sm')} ${esc(t(state.user ? 'grp_up_cta' : 'grp_up_login'))}</a></div>`; return; }
+    const rows = liveRows(), id = state.user.uid, now = Date.now();
+    el.innerHTML = `${hd}${errHTML()}` + (rows.length
+      ? `<ul class="grp-list">${rows.slice(0, 6).map(r => `<li class="grp-row ${r.id === id ? 'me' : ''}">${avatar(r.n)}<b class="grp-n">${esc(r.n)}</b><span class="grp-st ${r.k}">${esc(t(r.k === 'b' ? 'grp_break' : 'grp_focus'))}</span><span class="grp-t" data-s="${r.s}">${esc(fmt(now - r.s))}</span></li>`).join('')}</ul>${rows.length > 6 ? `<p class="small faint mt-s">+${rows.length - 6}</p>` : ''}`
+      : `<p class="muted small">${esc(t(busy ? 'loading' : 'grp_none'))}</p>`)
+      + (me() ? '' : `<div class="row mt-s"><a class="btn primary sm" href="#/focus">${ic('timer', 'sm')} ${esc(t('grp_home_join'))}</a></div>`);
+  }
+  function renderBox(){ renderMain(); renderStrip(); renderHome(); }
   const errHTML = () => err ? `<p class="hint grp-err">${esc(t(err === 'rules' ? 'grp_err_rules' : err === 'quota' ? 'grp_err_quota' : 'grp_err'))}</p>` : '';
   function liveCols(){
     const rows = liveRows(), id = state.user.uid, now = Date.now();
@@ -142,8 +164,8 @@ Object.assign(I18N.vi, {
     if (!timers) {
       timers = true;
       setInterval(() => { sync(); flush(); }, 30e3);                                                   // báo nhịp + cộng phút còn chờ
-      setInterval(() => { if (document.visibilityState === 'visible' && box() && route.name === 'focus') load(); }, POLL);
-      setInterval(() => { const b = box(); if (!b) return; const now = Date.now(); b.querySelectorAll('[data-s]').forEach(e => { e.textContent = fmt(now - +e.dataset.s); }); }, 20e3);
+      setInterval(() => { if (document.visibilityState === 'visible' && (box() || document.getElementById('grp-strip') || document.getElementById('grp-home'))) load(); }, POLL);
+      setInterval(() => { const now = Date.now(); document.querySelectorAll('#grp-box [data-s], #grp-home [data-s]').forEach(e => { e.textContent = fmt(now - +e.dataset.s); }); }, 20e3);
     }
   }
   FORMS.grpJoin = () => {
@@ -155,6 +177,7 @@ Object.assign(I18N.vi, {
   };
   Object.assign(ACTIONS, {
     grpRefresh: () => load(true),
+    grpGo: () => { const b = box(); if (b) b.scrollIntoView({ block:'start' }); },
     grpLeave: () => { leaving = true; renderBox(); },
     grpLeaveNo: () => { leaving = false; renderBox(); },
     grpLeaveYes: async () => {

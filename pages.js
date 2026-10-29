@@ -130,6 +130,7 @@ PAGES.home = function(){
       <div class="cta"><a class="btn primary lg" href="#/watch">${ic('play', 'sm')} ${esc(t('btn_watch_live'))}</a><a class="btn secondary lg" href="#/schedule">${ic('calendar', 'sm')} ${esc(t('btn_see_schedule'))}</a></div>
       <div class="clock mt" data-clock>--:--:--</div></div>
       <div class="next-card" id="next-card"><span class="live-pill" style="padding:5px 8px"><i></i></span><div><small></small><b>—</b></div></div></section>`;
+  if (branding.groupOn === true) html += `<section class="card pad grp grp-home mt" id="grp-home"><div class="card-h"><h2>${ic('users', 'sm')} ${esc(t('grp_title'))}</h2></div><p class="muted small">${esc(t('loading'))}</p></section>`;   // ai đang học: nằm ngay dưới khối chào
   S.hero = html; html = '';
   if (on('stats')) html += `<div class="grid g4 keep2 mt">
       <div class="card tile"><span class="t-ic">${ic('calendar')}</span><span class="t-l">${esc(t('stat_lives'))}</span><span class="t-v">${wk.length}</span></div>
@@ -150,6 +151,7 @@ PAGES.home = function(){
       </div></div>`;
   }
   S.today = html; html = '';
+  if (branding.groupOn === true) loadGroup().then(() => window.EPGroup.mount()).catch(() => { const b = $('grp-home'); if (b) b.remove(); });
   if (on('blog') && livePosts().length) S.blog = secHead('sec_blog', '#/blog') + `<div class="pgrid home-peek">${livePosts().slice(0, 3).map(blogCard).join('')}</div>`;
   if (on('shop') && products.length) S.shop = secHead('sec_shop', '#/shop') + `<div class="pgrid home-peek">${products.slice(0, 3).map(prodCard).join('')}</div>`;
   if (on('thanks') && thanksList().length) S.thanks = thanksCard();
@@ -535,20 +537,20 @@ PAGES.focus = function(){
       <div class="cycle" id="tm-cycle"></div><div class="small muted" id="tm-cur" style="text-align:center;min-height:1.2em"></div>
       ${focusLimit() ? `<div class="limit-box"><div class="row between small"><b>${esc(t('focus_limit_used', { u:Math.min(focusUsed(), focusLimit()), l:focusLimit() }))}</b><span class="faint">${esc(t('focus_limit_note', { l:focusLimit() }))}</span></div><div class="progress mt-s"><i style="width:${Math.min(100, focusUsed() / focusLimit() * 100)}%"></i></div><div class="mt-s">${unlockBox()}</div></div>` : (state.companion ? `<div class="limit-box">${compBadge(' · ' + esc(t('focus_nolimit')))}</div>` : '')}
       <div class="row"><button class="btn primary lg" id="tm-main" data-act="pstart"></button><button class="btn secondary icon" style="width:48px;height:48px" data-act="preset-reset" title="${esc(t('reset'))}">${ic('reset')}</button><button class="btn secondary icon" style="width:48px;height:48px" data-act="pskip" title="${esc(t('skip'))}">${ic('skip')}</button></div>
+      ${branding.groupOn === true ? '<div id="grp-strip" class="grp-strip-wrap"></div>' : ''}
       <div class="divider" style="width:100%;margin:2px 0"></div>
       <div class="row" style="width:100%"><span class="small muted">${esc(t('presets'))}:</span>${Object.entries(PRESETS).map(([k, p]) => `<button type="button" class="chip" data-act="ppreset" data-p="${k}">${p.focus}/${p.short}/${p.long}</button>`).join('')}</div>
       <div class="cfg-grid">${num('focus', t('cfg_focus'))}${num('short', t('cfg_short'))}${num('long', t('cfg_long'))}${num('every', t('cfg_every'))}</div>
       <div class="row between" style="width:100%"><label class="row small" style="font-weight:600"><input type="checkbox" data-change="cfgAuto" ${c.auto ? 'checked' : ''}> ${esc(t('auto_start'))}</label></div>
     </section>
-    <div class="stack">${streamCard()}<section class="card pad"><div class="card-h"><h2>${esc(t('todo_title'))}</h2></div>
+    <div class="stack">${streamCard()}${branding.groupOn === true ? `<section class="card pad grp" id="grp-box"><div class="card-h"><h2>${ic('users', 'sm')} ${esc(t('grp_title'))}</h2></div><p class="muted">${esc(t('loading'))}</p></section>` : ''}<section class="card pad"><div class="card-h"><h2>${esc(t('todo_title'))}</h2></div>
         <form class="row" style="flex-wrap:nowrap" data-form="todo"><input class="input" id="todo-in" placeholder="${esc(t('todo_ph'))}" maxlength="140" autocomplete="off"><button class="btn primary icon" type="submit" aria-label="add">${ic('plus')}</button></form>
         <div id="todo-list" class="mt-s"></div><div id="todo-pl"></div>${!state.user ? `<p class="hint mt-s">${esc(t('sync_note'))} <a class="link" href="#/account">${esc(t('signin'))}</a></p>` : ''}</section>
       ${focusNudge()}<div class="grid g2 keep2"><div class="card tile"><span class="t-l">${esc(t('sessions_today'))}</span><span class="t-v">${td.s}</span></div><div class="card tile"><span class="t-l">${esc(t('minutes_today'))}</span><span class="t-v">${td.m}</span></div></div>
       <section class="card pad"><div class="card-h"><h2>${esc(t('week_chart'))}</h2></div><div class="bars">${days.map((d, i) => `<div><i style="height:${Math.max(3, vals[i] / mx * 100)}%" title="${vals[i]} ${esc(t('min'))}"></i><small>${esc(d.setLocale(state.lang).toFormat('ccc'))}</small></div>`).join('')}</div></section></div></div><div class="mt">${musicCard()}</div>
-    ${branding.groupOn === true ? `<section class="card pad grp" id="grp-box"><div class="card-h"><h2>${ic('users', 'sm')} ${esc(t('grp_title'))}</h2></div><p class="muted">${esc(t('loading'))}</p></section>` : ''}
     <h2 class="mt" style="font-size:1.3rem;margin:40px 0 14px">${ic('heart', 'sm')} ${esc(t('nav_donate'))}</h2>${donateHTML()}`);   // phần Support nằm ngay trong Focus room
   renderTodos();
-  if (branding.groupOn === true) loadGroup().then(() => window.EPGroup.mount()).catch(() => { const b = $('grp-box'); if (b) b.remove(); });
+  if (branding.groupOn === true) loadGroup().then(() => window.EPGroup.mount()).catch(() => { for (const id of ['grp-box', 'grp-strip']) { const b = $(id); if (b) b.remove(); } });
 };
 CHANGES.cfg = el => { const k = el.dataset.k, v = Math.max(1, Math.min(180, parseInt(el.value, 10) || 1)); pomo.cfg[k] = v; if (!pomo.running && (k === pomo.mode)) pomo.remaining = pomoDur(pomo.mode); pomoSave(); updateTimerUI(); };
 CHANGES.cfgAuto = el => { pomo.cfg.auto = el.checked; pomoSave(); };
