@@ -559,8 +559,9 @@ GitHub tự bỏ qua file nào không đổi.
 - Tab **Thanh toán & Ủng hộ** được tách đôi: **Thanh toán** (VietQR, PayPal/Stripe/Ko-fi, mẫu EmailJS, nút **Lưu thanh toán**) và **Gói Người đồng hành** (giá và link, thanh mục tiêu, khuyến mãi, ưu đãi Hành trình trăng, giới hạn Focus, nhóm học; mỗi thẻ có nút lưu riêng).
 - **Mã hàng tháng** đã bỏ (xem PHẦN 10). Ai đã mở khoá bằng mã cũ sẽ bị giới hạn Focus trở lại, trừ khi họ là Người đồng hành hoặc đang dùng thử.
 
-### 22.v. Trang Hướng dẫn cho khách mới
-- Menu có thêm mục **Hướng dẫn** (ngay dưới Tổng quan), mở trang `#/guide`: 3 bước bắt đầu, mỗi trang dùng để làm gì, khác nhau giữa miễn phí và Người đồng hành, vài mẹo, và câu hỏi thường gặp. Có đủ 8 ngôn ngữ của web, tự theo ngôn ngữ khách chọn.
-- Khách mới còn thấy một thanh mời "Lần đầu đến đây? Xem hướng dẫn" ở đầu trang Tổng quan, đến khi họ mở Hướng dẫn hoặc bấm ×.
-- Nội dung nằm trong file mới **`guide.js`** (nhớ tải file này lên GitHub cùng chỗ với `group.js`). Số phút giới hạn Focus và việc nhóm học bật hay tắt được lấy tự động từ cài đặt của bạn (giới hạn 0 thì ẩn dòng giới hạn, nhóm học tắt thì ẩn dòng nhóm học).
-- Không muốn hiện mục trong menu: Admin → Giao diện & Menu → bỏ tích **Hướng dẫn**.
+### 22.v. Hướng dẫn từng bước cho khách mới (mèo Moon chỉ đường)
+- Khi mở web, hướng dẫn chạy từng bước: chú mèo Moon chỉ vào đúng nút (tài khoản, Xem live, Phòng tập trung, Hành trình trăng, nút tuỳ chọn, chuông, Ủng hộ), mỗi bước một câu ngắn, bấm **Tiếp** để đi tiếp hoặc **Bỏ qua** để thoát. Có đủ 8 ngôn ngữ của web.
+- **Khách mới** (lần đầu vào, chưa đăng nhập, chưa dùng gì): hướng dẫn tự chạy. **Khách cũ** (đã đăng nhập, hoặc máy đã có việc / giờ tập trung): hiện thẻ hỏi "Bạn có muốn xem hướng dẫn không?" với hai nút **Xem hướng dẫn** và **Tôi hiểu rồi**. Trả lời xong thì không hỏi lại.
+- Xem lại bất cứ lúc nào bằng mục **Hướng dẫn** trên menu (ngay dưới Tổng quan).
+- Nội dung nằm trong file mới **`guide.js`** (nhớ tải file này lên GitHub cùng chỗ với `group.js`). Nếu bạn ẩn một mục khỏi menu (Admin → Giao diện & Menu), bước chỉ vào mục đó tự được bỏ qua.
+- Không muốn hiện mục Hướng dẫn trong menu: Admin → Giao diện & Menu → bỏ tích **Hướng dẫn**.

@@ -131,7 +131,7 @@ PAGES.home = function(){
       <div class="clock mt" data-clock>--:--:--</div></div>
       <div class="next-card" id="next-card"><span class="live-pill" style="padding:5px 8px"><i></i></span><div><small></small><b>—</b></div></div></section>`;
   if (branding.groupOn === true) html += `<section class="card pad grp grp-home mt" id="grp-home"><div class="card-h"><h2>${ic('users', 'sm')} ${esc(t('grp_title'))}</h2></div><p class="muted small">${esc(t('loading'))}</p></section>`;   // ai đang học: nằm ngay dưới khối chào
-  if (html) html = guideNudge() + html + trialNudge();
+  if (html) html += trialNudge();
   S.hero = html; html = '';
   if (on('stats')) html += `<div class="grid g4 keep2 mt">
       <div class="card tile"><span class="t-ic">${ic('calendar')}</span><span class="t-l">${esc(t('stat_lives'))}</span><span class="t-v">${wk.length}</span></div>
@@ -1108,8 +1108,6 @@ const goalBar = () => {   // thanh mục tiêu duy trì web (admin nhập ở ta
 };
 const perDay = (price, months, cur) => `<p class="small muted perday">${esc(t('perday', { x:cur === 'VND' ? money(Math.round(price / (30 * months) / 100) * 100, 'VND') : '$' + (price / (30 * months)).toFixed(2) }))}</p>`;
 /* nhắc khi gói dùng thử sắp hết: người dùng thử đã có thói quen và hạng tuần nên đây là lúc dễ chuyển sang Người đồng hành nhất */
-/* lời mời xem Hướng dẫn cho khách mới: hiện ở Tổng quan đến khi khách mở trang Hướng dẫn hoặc bấm × */
-const guideNudge = () => store.get('guide_seen', 0) ? '' : `<div class="limit-box row between guide-nudge"><span class="small">${ic('info', 'sm')} ${esc(t('guide_nudge'))}</span><span class="row"><a class="btn primary sm" href="#/guide">${esc(t('guide_nudge_btn'))}</a><button type="button" class="btn ghost icon sm" data-act="guideHide" aria-label="${esc(t('snd_close'))}">${ic('x', 'sm')}</button></span></div>`;
 const trialNudge = () => {
   if (DEMO || state.companion || state.isAdmin || !trialActive()) return '';
   const d = Math.ceil((state.trial.endsAt - Date.now()) / 864e5); if (d > 7) return '';
