@@ -556,3 +556,10 @@ GitHub tự bỏ qua file nào không đổi.
 - **Thanh mục tiêu:** vào Admin → **Thanh toán & Ủng hộ**, thẻ riêng **"Thanh mục tiêu duy trì web"**, nhập **Mục tiêu** (số Người đồng hành) và **Hiện đã có** (bạn tự cập nhật khi có người mới) rồi bấm **Lưu mục tiêu** (nút riêng, không cần bấm Lưu thanh toán). Thanh hiện ở đầu thẻ Người đồng hành trên trang Ủng hộ. Để trống mục tiêu là ẩn thanh.
 - **Giá mỗi ngày:** tự hiện dưới các gói ("Chỉ khoảng 2.000 ₫ mỗi ngày"), không cần cài đặt.
 - **Nhắc hết dùng thử:** khi gói dùng thử còn 7 ngày trở xuống, người dùng thử thấy lời nhắc ở Tổng quan và Phòng tập trung. Người đã là Người đồng hành không thấy.
+
+### 22.y. Chỉ dùng PayPal cho khách quốc tế (không dùng Ko-fi)
+1. Admin → **Thanh toán & Ủng hộ**: ô **PayPal.me** phải có link dạng `https://paypal.me/tencuaban`.
+2. **Xoá** hai ô Ko-fi: ô **Ko-fi** (thẻ "Thanh toán quốc tế") và ô **Link đăng ký hằng tháng cho "Người đồng hành"**, rồi bấm **Lưu thanh toán**.
+3. Khách quốc tế sẽ thấy các gói 1, 3, 12 tháng, bấm nút "Trả $X một lần bằng PayPal" và PayPal tự điền sẵn số tiền. Trả bằng PayPal là **một lần, không tự gia hạn**, hết hạn thì khách trả lại. Sau khi trả, họ bấm "Tôi đã thanh toán" và bạn duyệt trong tab Thành viên như thường.
+4. Nếu sau này muốn có gói tự gia hạn, dán lại link Ko-fi Membership hoặc Patreon vào ô "Link đăng ký hằng tháng".
+
