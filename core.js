@@ -57,9 +57,10 @@ function toast(msg, ms){ const el = $('toast'); el.textContent = msg; el.classLi
 /* ---------- state ---------- */
 const state = {
   lang: store.get('lang', null) || 'en',      // tiếng Anh là mặc định; khách tự đổi bằng nút ⚙️
-  tz: store.get('tz', 'auto'), theme: store.get('theme', null), calm: store.get('calm', false),
+  tz: store.get('tz', 'auto'), theme: store.get('theme', null), calm: store.get('calm', false), sky: store.get('sky', 'galaxy'),
   currency: store.get('currency', null), user: null, isAdmin: false, editMode: false
 };
+if (!['galaxy', 'clouds', 'petals', 'fireflies', 'off'].includes(state.sky)) state.sky = 'galaxy';
 if (!['rain', 'pop', 'violet', 'teal'].includes(state.theme)) state.theme = null;   // bỏ giá trị theme cũ của các bản trước
 let userTZ = state.tz === 'auto' ? DT.local().zoneName : state.tz;
 let branding = { name:'Ép Study Room', themeColor:'#ff3d9a', defaultTheme:'rain', font:'baloo', logoUrl:'', mascotUrl:'', ytChannelId:'', ytLiveId:'', videos:[], contacts:{}, socialLinks:{}, announcement:{}, nav:null, homeSections:{}, focusLimit:120, focusCodeHash:'', focusCodeUntil:'',
@@ -118,6 +119,7 @@ const effCurrency = () => state.currency || ((state.lang === 'vi' || userTZ === 
 /* =========================================================
    LOOK & FEEL
    ========================================================= */
+const SKY_FX = [['galaxy', 'linear-gradient(135deg,#3b2c78,#ff9fc8)'], ['clouds', 'linear-gradient(180deg,#b9c8ff,#fff)'], ['petals', 'radial-gradient(circle at 35% 35%,#fff,#ff9cc6)'], ['fireflies', 'radial-gradient(circle,#ffe58a 0,#ffe58a 25%,#3a3470 70%)'], ['off', 'repeating-linear-gradient(45deg,#d7d3e6,#d7d3e6 3px,#fff 3px,#fff 6px)']];   // ô màu nhỏ trong bảng chọn nền động
 const THEMES = {                 // ô màu nhỏ trong bảng chọn giao diện
   rain:'linear-gradient(135deg,#080b13 50%,#ff3d9a 50%)', pop:'linear-gradient(135deg,#ffffff 50%,#ff2d87 50%)',
   violet:'linear-gradient(135deg,#0f0720 50%,#ff4fd8 50%)', teal:'linear-gradient(135deg,#041317 50%,#ffb21f 50%)'
@@ -139,6 +141,7 @@ function applyLook(){
   const root = document.documentElement, th = effTheme();
   root.dataset.theme = th;
   if (state.calm) root.dataset.calm = '1'; else delete root.dataset.calm;
+  root.dataset.sky = state.sky;
   if (th === 'rain' || th === 'pop') {          // màu chủ đạo do chủ trang chọn áp dụng cho theme "Đêm mưa" và "Rực rỡ"
     const c = branding.themeColor || '#ff3d9a', rgb = hexToRgb(c);
     root.style.setProperty('--accent', c); root.style.setProperty('--accent-rgb', rgb.join(','));
@@ -649,6 +652,7 @@ function renderPrefs(){
   if (!zones.some(z => z[0] === state.tz)) zones.push([state.tz, state.tz]);
   $('sel-tz').innerHTML = zones.map(([v, n]) => `<option value="${esc(v)}" ${state.tz === v ? 'selected' : ''}>${esc(n)}</option>`).join('');
   $('theme-grid').innerHTML = Object.keys(THEMES).map(k => `<button type="button" class="theme-chip ${effTheme() === k ? 'on' : ''}" data-act="theme" data-th="${k}"><i style="background:${THEMES[k]}"></i>${esc(t('th_' + k))}</button>`).join('');
+  $('fx-grid').innerHTML = SKY_FX.map(([k, bg]) => `<button type="button" class="theme-chip ${state.sky === k ? 'on' : ''}" data-act="sky" data-sky="${k}"><i style="background:${bg}"></i>${esc(t('fx_' + k))}</button>`).join('');
   document.querySelectorAll('[data-i18n]').forEach(el => el.textContent = t(el.dataset.i18n));
   document.documentElement.lang = state.lang;
 }
@@ -1061,6 +1065,7 @@ const ACTIONS = {
   closeNav: () => document.body.classList.remove('nav-open'),
   prefs: () => { $('live-rem').classList.remove('open'); $('prefs').classList.toggle('open'); },
   closeModal,
+  sky: el => { state.sky = el.dataset.sky; store.set('sky', state.sky); applyLook(); renderPrefs(); },
   theme: el => { state.theme = el.dataset.th; store.set('theme', state.theme); applyLook(); renderPrefs(); render(true); },
   editMode: toggleEditMode,
   dismissLive: () => { const { live } = liveState(); dismissedLive = live ? live.key : null; updateNext(); },
