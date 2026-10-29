@@ -697,3 +697,18 @@
   const H = {"en": {"bell_hint": "Tap the bell 🔔 to get live reminders with a chime.", "snd_close": "Close"}, "vi": {"bell_hint": "Bấm vào chuông 🔔 để nhận nhắc giờ live kèm tiếng chuông.", "snd_close": "Đóng"}, "hi": {"bell_hint": "लाइव रिमाइंडर और घंटी की आवाज़ के लिए घंटी 🔔 दबाएँ।", "snd_close": "बंद करें"}, "ja": {"bell_hint": "ベル 🔔 をタップすると、チャイム付きでライブのお知らせが届きます。", "snd_close": "閉じる"}, "ko": {"bell_hint": "종 🔔 을 눌러 알림음과 함께 라이브 알림을 받아 보세요.", "snd_close": "닫기"}, "zh": {"bell_hint": "点一下铃铛 🔔，即可收到带铃声的直播提醒。", "snd_close": "关闭"}, "fr": {"bell_hint": "Touchez la cloche 🔔 pour être prévenu des lives avec un carillon.", "snd_close": "Fermer"}, "es": {"bell_hint": "Toca la campana 🔔 para recibir avisos del directo con sonido.", "snd_close": "Cerrar"}};
   Object.keys(H).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], H[l]); });
 })();
+
+/* Trang "Hướng dẫn" (#/guide): tên menu, tiêu đề và lời mời cho khách mới. Nội dung bài hướng dẫn nằm ở guide.js (đủ 8 tiếng) */
+(function () {
+  const G = {
+    en:{ nav_guide:"Guide", guide_title:"How this study room works", guide_sub:"A two-minute tour: what is here, where to start, and what Companions get.", guide_nudge:"New here? Take a two-minute tour of how the study room works.", guide_nudge_btn:"Show me" },
+    vi:{ nav_guide:"Hướng dẫn", guide_title:"Phòng học này hoạt động thế nào", guide_sub:"Chuyến tham quan hai phút: có gì ở đây, bắt đầu từ đâu, và Người đồng hành được gì.", guide_nudge:"Lần đầu đến đây? Xem hướng dẫn hai phút về cách phòng học hoạt động.", guide_nudge_btn:"Xem hướng dẫn" },
+    hi:{ nav_guide:"गाइड", guide_title:"यह स्टडी रूम कैसे काम करता है", guide_sub:"दो मिनट का सफ़र: यहाँ क्या है, कहाँ से शुरू करें, और साथियों को क्या मिलता है।", guide_nudge:"यहाँ नए हैं? स्टडी रूम कैसे काम करता है, इसका दो मिनट का परिचय देखें।", guide_nudge_btn:"दिखाइए" },
+    ja:{ nav_guide:"ガイド", guide_title:"このスタディルームの使い方", guide_sub:"2分でわかるツアー：ここに何があるか、どこから始めるか、仲間になると何が使えるか。", guide_nudge:"はじめてですか？スタディルームの使い方を2分で見てみましょう。", guide_nudge_btn:"見てみる" },
+    ko:{ nav_guide:"안내", guide_title:"이 스터디룸은 이렇게 쓰세요", guide_sub:"2분 투어: 무엇이 있는지, 어디서 시작하는지, 동반자는 무엇을 받는지.", guide_nudge:"처음이세요? 스터디룸이 어떻게 돌아가는지 2분 안내를 확인해 보세요.", guide_nudge_btn:"보여 주세요" },
+    zh:{ nav_guide:"使用指南", guide_title:"这间自习室怎么用", guide_sub:"两分钟导览：这里有什么、从哪里开始、同伴能得到什么。", guide_nudge:"第一次来？用两分钟了解这间自习室是怎么运作的。", guide_nudge_btn:"带我看看" },
+    fr:{ nav_guide:"Guide", guide_title:"Comment fonctionne cette salle d'étude", guide_sub:"Une visite de deux minutes : ce qu'il y a ici, par où commencer, et ce que reçoivent les Compagnons.", guide_nudge:"Première visite ? Faites un tour de deux minutes pour comprendre comment fonctionne la salle d'étude.", guide_nudge_btn:"Montrez-moi" },
+    es:{ nav_guide:"Guía", guide_title:"Cómo funciona esta sala de estudio", guide_sub:"Un recorrido de dos minutos: qué hay aquí, por dónde empezar y qué reciben los acompañantes.", guide_nudge:"¿Es tu primera vez? Haz un recorrido de dos minutos para ver cómo funciona la sala de estudio.", guide_nudge_btn:"Enséñame" }
+  };
+  Object.keys(G).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], G[l]); });
+})();

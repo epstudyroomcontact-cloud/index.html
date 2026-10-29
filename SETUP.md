@@ -11,7 +11,7 @@ Bạn sẽ dùng 4 nơi: **GitHub** (để đăng web), **Firebase** (lưu dữ 
 1. Vào https://github.com và đăng nhập. Mở repo (kho) chứa website của bạn.
 2. Bấm nút **Add file** (góc phải, màu xám) → chọn **Upload files**.
 3. Mở thư mục `D:\STUDY WITH EP\code web epstudyroom` trên máy. Chọn **tất cả** bên trong (bấm vào 1 file rồi nhấn `Ctrl + A`) và **kéo thả** vào khung trên GitHub.
-   Phải có đủ: `index.html`, `core.js`, `pages.js`, `admin.js`, `group.js`, `app.css` và các file khác ở trang gốc, thư mục `js`, `vendor`, `icons`, `firestore.rules`, `storage.rules`, `SETUP.md` (xem thêm **Quy tắc cập nhật** ở cuối file).
+   Phải có đủ: `index.html`, `core.js`, `pages.js`, `admin.js`, `group.js`, `guide.js`, `app.css` và các file khác ở trang gốc, thư mục `js`, `vendor`, `icons`, `firestore.rules`, `storage.rules`, `SETUP.md` (xem thêm **Quy tắc cập nhật** ở cuối file).
    Nếu GitHub hỏi file trùng tên thì cứ để nó thay thế (bản mới đè bản cũ).
 4. Kéo xuống cuối trang, bấm nút xanh **Commit changes**.
 5. Bật trang web: bấm tab **Settings** (của repo) → cột trái chọn **Pages** → mục **Branch** chọn `main` và `/ (root)` → bấm **Save**.
@@ -558,3 +558,9 @@ GitHub tự bỏ qua file nào không đổi.
 ### 22.w. Dọn Admin: tách tab và bỏ mã hàng tháng
 - Tab **Thanh toán & Ủng hộ** được tách đôi: **Thanh toán** (VietQR, PayPal/Stripe/Ko-fi, mẫu EmailJS, nút **Lưu thanh toán**) và **Gói Người đồng hành** (giá và link, thanh mục tiêu, khuyến mãi, ưu đãi Hành trình trăng, giới hạn Focus, nhóm học; mỗi thẻ có nút lưu riêng).
 - **Mã hàng tháng** đã bỏ (xem PHẦN 10). Ai đã mở khoá bằng mã cũ sẽ bị giới hạn Focus trở lại, trừ khi họ là Người đồng hành hoặc đang dùng thử.
+
+### 22.v. Trang Hướng dẫn cho khách mới
+- Menu có thêm mục **Hướng dẫn** (ngay dưới Tổng quan), mở trang `#/guide`: 3 bước bắt đầu, mỗi trang dùng để làm gì, khác nhau giữa miễn phí và Người đồng hành, vài mẹo, và câu hỏi thường gặp. Có đủ 8 ngôn ngữ của web, tự theo ngôn ngữ khách chọn.
+- Khách mới còn thấy một thanh mời "Lần đầu đến đây? Xem hướng dẫn" ở đầu trang Tổng quan, đến khi họ mở Hướng dẫn hoặc bấm ×.
+- Nội dung nằm trong file mới **`guide.js`** (nhớ tải file này lên GitHub cùng chỗ với `group.js`). Số phút giới hạn Focus và việc nhóm học bật hay tắt được lấy tự động từ cài đặt của bạn (giới hạn 0 thì ẩn dòng giới hạn, nhóm học tắt thì ẩn dòng nhóm học).
+- Không muốn hiện mục trong menu: Admin → Giao diện & Menu → bỏ tích **Hướng dẫn**.

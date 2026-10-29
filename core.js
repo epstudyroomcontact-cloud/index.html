@@ -20,6 +20,8 @@ const loadLangs = () => window.EP_LANGS ? Promise.resolve() : (langsP || (langsP
 const needLangs = l => l !== 'en' && l !== 'vi' && !window.EP_LANGS;
 let plannerP = null;
 const loadPlanner = () => typeof PAGES.planner === 'function' ? Promise.resolve() : (plannerP || (plannerP = Promise.all([loadScript('planner-i18n.js?v=' + ASSET_V).catch(() => {}), loadScript('planner.js?v=' + ASSET_V)]).catch(e => { plannerP = null; throw e; })));   // planner-i18n.js = bản dịch hi/ja/ko/zh/fr/es; thiếu thì dùng tiếng Anh
+let guideP = null;   // guide.js (trang Hướng dẫn): chỉ tải khi mở #/guide
+const loadGuide = () => typeof PAGES.guide === 'function' ? Promise.resolve() : (guideP || (guideP = loadScript('guide.js?v=' + ASSET_V).catch(e => { guideP = null; throw e; })));
 let groupP = null;   // group.js (Nhóm học trực tiếp): chỉ tải khi mở Phòng tập trung hoặc khi khách đã tham gia và đồng hồ đổi trạng thái
 const loadGroup = () => window.EPGroup ? Promise.resolve() : (groupP || (groupP = loadScript('group.js?v=' + ASSET_V).catch(e => { groupP = null; throw e; })));
 const EMAILJS_SERVICE = 'service_a098n5f', EMAILJS_CHALLENGE_TPL = 'template_lhv0y0n';
@@ -575,6 +577,11 @@ function doRender(){
     loadMoonArt().then(() => render(true)).catch(pageCrash);
     return;
   }
+  if (route.name === 'guide' && typeof PAGES.guide !== 'function') {            // guide.js chỉ tải khi mở #/guide
+    renderChrome(); $('page').innerHTML = '<div class="gate-load"><i></i></div>';
+    loadGuide().then(() => render(true)).catch(pageCrash);
+    return;
+  }
   if (route.name === 'planner' && typeof PAGES.planner !== 'function') {        // planner.js chỉ tải khi mở #/planner
     renderChrome(); $('page').innerHTML = '<div class="gate-load"><i></i></div>';
     loadPlanner().then(() => render(true)).catch(pageCrash);   // không tải được planner.js (mạng chập chờn, bị chặn…)
@@ -602,7 +609,7 @@ function afterRender(){
   if (state.editMode) applyEditable();
 }
 const NAV_DEFAULT = [
-  { id:'home', icon:'home', path:'/' }, { id:'schedule', icon:'calendar', path:'/schedule' }, { id:'watch', icon:'play', path:'/watch' },
+  { id:'home', icon:'home', path:'/' }, { id:'guide', icon:'info', path:'/guide' }, { id:'schedule', icon:'calendar', path:'/schedule' }, { id:'watch', icon:'play', path:'/watch' },
   { id:'focus', icon:'timer', path:'/focus' }, { id:'blog', icon:'pen', path:'/blog' }, { id:'club', icon:'moon', path:'/club' }, { id:'planner', icon:'chart', path:'/planner' }, { id:'shop', icon:'bag', path:'/shop' }, { id:'gear', icon:'tag', path:'/gear' }, { id:'donate', icon:'heart', path:'/donate' }, { id:'about', icon:'info', path:'/about' }
 ];
 function navItems(){
@@ -1054,6 +1061,7 @@ const ACTIONS = {
   pageReload: () => location.reload(),
   openNav: () => document.body.classList.add('nav-open'),
   closeNav: () => document.body.classList.remove('nav-open'),
+  guideHide: () => { store.set('guide_seen', 1); render(true); },
   prefs: () => { $('live-rem').classList.remove('open'); $('prefs').classList.toggle('open'); },
   closeModal,
   sky: el => { state.sky = el.dataset.sky; store.set('sky', state.sky); applyLook(); renderPrefs(); },
