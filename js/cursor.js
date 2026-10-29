@@ -1,21 +1,21 @@
 'use strict';
 /* =========================================================
-   HIỆU ỨNG CON TRỎ CHUỘT: một vệt sáng mảnh như đuôi sao băng đi sau con trỏ, thỉnh thoảng một hạt sao li ti rơi lại
-   - Vệt sáng: dải mảnh thon dần về đuôi, màu trắng ấm chuyển hồng nhạt rồi tan trong khoảng 0,4 giây. Vẽ cộng sáng nên trên nền tối nhìn như ánh sáng thật.
-   - Hạt sao: rất nhỏ (2-4 px), thưa (cứ ~90 px di chuyển mới có một hạt), mờ, trôi chậm rồi tan. Không có "mưa sao" ồn ào.
-   - Chạm vào nút / link: một vòng mảnh khẽ nở quanh con trỏ cho biết bấm được, rời ra thì thu lại.
+   HIỆU ỨNG CON TRỎ CHUỘT
+   - Di chuột: một vệt sáng mảnh, thon dần về đuôi và tan trong ~0,45 giây, kèm vầng sáng bé ở đầu vệt. Cố ý kín đáo, không hạt sao, không vòng.
+     Vệt gồm các đốm gradient tròn mờ rải dày dọc đường đi nên liền mạch, không có nét cứng.
+   - Nhấp chuột: một vòng gợn sáng mỏng toả ra từ chỗ nhấp cùng một vầng sáng nở ra rồi tan (ngôi sao ở nút/liên kết do core.js vẽ thêm).
+   - Dùng màu chủ đạo của web (--accent-rgb); nền tối thì cộng sáng, nền trắng ("Rực rỡ") thì pha thường để vẫn thấy được.
    - Con trỏ gốc của hệ điều hành giữ nguyên. Chỉ chạy trên máy có chuột (pointer:fine). Canvas trong suốt không bắt chuột; hết vệt thì dừng hẳn vòng vẽ.
    - Giảm chuyển động (máy hoặc ô ở ⚙️, html[data-calm]): không có hiệu ứng này; bật/tắt ô ⚙️ có tác dụng ngay.
    ========================================================= */
 (function(){
   if (!window.matchMedia || !matchMedia('(pointer: fine)').matches) return;
   const rm = matchMedia('(prefers-reduced-motion: reduce)');
-  const off = () => rm.matches || document.documentElement.dataset.calm === '1';
-  const LIFE = .42, MAXP = 40;                       // tuổi của một điểm trên vệt (giây), số điểm tối đa
-  const HOT = 'a,button,select,label,summary,[data-act],input[type=checkbox],input[type=radio],input[type=range]';
-  let cv = null, g = null, W = 0, H = 0, raf = 0, last = 0, now = 0;
-  const trail = [], spark = [];
-  const m = { x:0, y:0, on:false, lastMove:-9, acc:0, ring:0, hot:false };
+  const root = document.documentElement, off = () => rm.matches || root.dataset.calm === '1';
+  const LIFE = .45, GAP = 2.5, MAXB = 90, RIP = .6;   // tuổi một đốm (giây), khoảng cách rải đốm (px), số đốm tối đa, thời gian một gợn nhấp (giây)
+  let cv = null, g = null, W = 0, H = 0, raf = 0, last = 0, now = 0, tone = '', spr = null, light = false, toneAt = -9, rgbNow = '255,255,255';
+  const blobs = [], rips = [];
+  const m = { x:0, y:0, fx:0, fy:0, on:false, lastMove:-9, acc:0 };
 
   function ensure(){
     if (cv) return;
@@ -27,38 +27,47 @@
     if (!cv) return; const D = Math.min(2, window.devicePixelRatio || 1); W = window.innerWidth; H = window.innerHeight;
     cv.width = Math.round(W * D); cv.height = Math.round(H * D); g.setTransform(D, 0, 0, D, 0, 0);
   }
-  // sao bốn cánh li ti (cùng hình sao trên logo), vẽ quanh (x, y) bán kính r
-  function star(x, y, r){
-    g.save(); g.translate(x, y); g.scale(r / 10, r / 10); g.translate(-10, -10);
-    g.beginPath(); g.moveTo(10, 0); g.quadraticCurveTo(11, 9, 20, 10); g.quadraticCurveTo(11, 11, 10, 20); g.quadraticCurveTo(9, 11, 0, 10); g.quadraticCurveTo(9, 9, 10, 0); g.closePath(); g.fill(); g.restore();
+  // đốm sáng mềm dựng sẵn một lần cho mỗi màu: gradient tròn mờ dần ra rìa (đường cong mịn, không có viền)
+  function sprite(rgb, a){
+    const s = document.createElement('canvas'); s.width = s.height = 96; const c = s.getContext('2d'), r = c.createRadialGradient(48, 48, 0, 48, 48, 48);
+    [[0, 1], [.25, .62], [.5, .26], [.75, .07], [1, 0]].forEach(([o, k]) => r.addColorStop(o, `rgba(${rgb},${(a * k).toFixed(3)})`));
+    c.fillStyle = r; c.fillRect(0, 0, 96, 96); return s;
+  }
+  // màu theo theme (đọc lại tối đa 2 lần/giây để đổi theme / màu chủ đạo thì đổi theo)
+  function colors(){
+    if (now - toneAt < .5 && spr) return; toneAt = now;
+    const acc = (getComputedStyle(root).getPropertyValue('--accent-rgb') || '').trim() || '255,61,154', lt = root.dataset.theme === 'pop';
+    const key = acc + '|' + lt; if (key === tone) return; tone = key; light = lt;
+    // nền tối: pha màu chủ đạo 45% về phía trắng để sáng hơn, phép cộng sáng trên nền gần đen mới thấy rõ
+    const rgb = lt ? acc : acc.split(',').map(v => Math.round(+v + (255 - +v) * .45)).join(',');
+    rgbNow = rgb; spr = sprite(rgb, lt ? .7 : .85);
   }
   function frame(t){
     raf = 0; const dt = Math.min(.05, (t - last) / 1000 || .016); last = t; now += dt;
     g.clearRect(0, 0, W, H);
-    if (off()) { trail.length = 0; spark.length = 0; return; }
-    while (trail.length && now - trail[0].t > LIFE) trail.shift();
-    g.globalCompositeOperation = 'lighter'; g.lineCap = 'round'; g.lineJoin = 'round';
-    // vệt sáng: nối các điểm, càng cũ càng mảnh và mờ, màu từ trắng ấm sang hồng nhạt
-    for (let i = 1; i < trail.length; i++) {
-      const a = trail[i - 1], b = trail[i], u = 1 - (now - b.t) / LIFE, k = Math.pow(Math.max(0, u), 1.4);
-      if (k <= 0) continue;
-      g.strokeStyle = `rgba(${Math.round(255)},${Math.round(190 + 50 * k)},${Math.round(210 + 20 * k)},${(.55 * k).toFixed(3)})`;
-      g.lineWidth = .6 + 3.2 * k; g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke();
+    if (off()) { blobs.length = 0; rips.length = 0; return; }
+    colors();
+    while (blobs.length && now - blobs[0].t > LIFE) blobs.shift();
+    g.globalCompositeOperation = light ? 'source-over' : 'lighter';
+    // đốm trong vệt: càng cũ càng nhỏ và mờ
+    for (const b of blobs) {
+      const k = 1 - (now - b.t) / LIFE, r = 1.3 + 4.2 * Math.pow(k, 1.1), a = Math.pow(k, 1.5) * (light ? .5 : .4);
+      if (a <= .01) continue; g.globalAlpha = a; g.drawImage(spr, b.x - r, b.y - r, r * 2, r * 2);
     }
-    // quầng sáng nhỏ ở đầu vệt, mờ dần khi con trỏ đứng yên
-    const idle = now - m.lastMove, ga = m.on ? Math.max(0, 1 - Math.max(0, idle - .6) / .9) : 0;
-    if (ga > .01) { const gr = g.createRadialGradient(m.x, m.y, 0, m.x, m.y, 16); gr.addColorStop(0, `rgba(255,232,200,${(.22 * ga).toFixed(3)})`); gr.addColorStop(1, 'rgba(255,200,220,0)'); g.fillStyle = gr; g.beginPath(); g.arc(m.x, m.y, 16, 0, 7); g.fill(); }
-    // hạt sao li ti
-    for (let i = spark.length - 1; i >= 0; i--) {
-      const s = spark[i]; s.life += dt; if (s.life >= s.max) { spark.splice(i, 1); continue; }
-      const u = s.life / s.max, a = Math.sin(Math.PI * u) * .75; s.x += s.vx * dt; s.y += s.vy * dt;
-      g.fillStyle = `rgba(255,236,200,${a.toFixed(3)})`; star(s.x, s.y, s.r * (1 - u * .3));
+    // gợn khi nhấp: vầng sáng nở ra rồi tan + một vòng mỏng toả ra, chậm dần (easeOut)
+    while (rips.length && now - rips[0].t > RIP) rips.shift();
+    for (const q of rips) {
+      const u = (now - q.t) / RIP, e = 1 - Math.pow(1 - u, 3), f = 1 - u;
+      g.globalAlpha = f * f * (light ? .5 : .42); const R = 8 + 20 * e; g.drawImage(spr, q.x - R, q.y - R, R * 2, R * 2);
+      g.globalAlpha = f * f * (light ? .75 : .6); g.lineWidth = 1.6 - 1 * u; g.strokeStyle = `rgb(${rgbNow})`;
+      g.beginPath(); g.arc(q.x, q.y, 5 + 26 * e, 0, 6.2832); g.stroke();
     }
-    // vòng mảnh khi chạm vào nút / link
-    m.ring += ((m.hot && m.on ? 1 : 0) - m.ring) * Math.min(1, dt * 12);
-    if (m.ring > .02) { g.strokeStyle = `rgba(255,214,190,${(.5 * m.ring).toFixed(3)})`; g.lineWidth = 1; g.beginPath(); g.arc(m.x, m.y, 8 + 8 * m.ring, 0, 7); g.stroke(); }
-    g.globalCompositeOperation = 'source-over';
-    if (trail.length || spark.length || m.ring > .02 || ga > .01) raf = requestAnimationFrame(frame);
+    // vầng sáng bé đi sau con trỏ với độ trễ êm, mờ dần khi con trỏ đứng yên
+    m.fx += (m.x - m.fx) * Math.min(1, dt * 11); m.fy += (m.y - m.fy) * Math.min(1, dt * 11);
+    const idle = now - m.lastMove, ga = m.on ? Math.max(0, 1 - Math.max(0, idle - .5) / .5) : 0;
+    if (ga > .01) { g.globalAlpha = ga * .24; g.drawImage(spr, m.fx - 11, m.fy - 11, 22, 22); }
+    g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+    if (blobs.length || rips.length || ga > .01) raf = requestAnimationFrame(frame);
   }
   const kick = () => { if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } };
 
@@ -68,14 +77,18 @@
     ensure();
     const px = m.x, py = m.y, first = !m.on;
     m.on = true; m.x = e.clientX; m.y = e.clientY; m.lastMove = now;
-    if (first) { trail.length = 0; } else {
-      trail.push({ x:m.x, y:m.y, t:now }); if (trail.length > MAXP) trail.shift();
-      m.acc += Math.hypot(m.x - px, m.y - py);
-      if (m.acc > 90) { m.acc = 0; const a = Math.random() * 6.283; spark.push({ x:m.x + (Math.random() - .5) * 6, y:m.y + (Math.random() - .5) * 6, vx:Math.cos(a) * 5, vy:Math.sin(a) * 5 + 4, r:2 + Math.random() * 2, life:0, max:.8 + Math.random() * .5 }); if (spark.length > 14) spark.shift(); }
+    if (first) { m.fx = m.x; m.fy = m.y; blobs.length = 0; } else {
+      // rải đốm đều dọc đoạn vừa đi qua để đi nhanh vẫn liền mạch
+      const d = Math.hypot(m.x - px, m.y - py), n = Math.min(12, Math.floor((d + m.acc) / GAP));
+      for (let i = 1; i <= n; i++) { const k = i / n; blobs.push({ x:px + (m.x - px) * k, y:py + (m.y - py) * k, t:now }); }
+      m.acc = n ? (d + m.acc) - n * GAP : m.acc + d; if (blobs.length > MAXB) blobs.splice(0, blobs.length - MAXB);
     }
     kick();
   }, { passive:true });
-  document.addEventListener('pointerover', e => { m.hot = !!(e.target.closest && e.target.closest(HOT)); if (m.hot) kick(); }, { passive:true });
-  document.documentElement.addEventListener('mouseleave', () => { m.on = false; m.hot = false; kick(); });
+  window.addEventListener('pointerdown', e => {
+    if (e.button || (e.pointerType && e.pointerType !== 'mouse' && e.pointerType !== 'pen') || off()) return;
+    ensure(); rips.push({ x:e.clientX, y:e.clientY, t:now }); if (rips.length > 6) rips.shift(); kick();
+  }, { passive:true });
+  root.addEventListener('mouseleave', () => { m.on = false; kick(); });
   window.addEventListener('resize', size);
 })();
