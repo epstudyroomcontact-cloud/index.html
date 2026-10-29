@@ -1,9 +1,9 @@
 'use strict';
 /* =========================================================
-   HIỆU ỨNG CON TRỎ CHUỘT: một vệt sáng rất nhẹ, mềm, tan nhanh sau con trỏ
-   - Cố ý để kín đáo: vệt ngắn (~0,3 giây), nhỏ và mờ, một vầng sáng bé ở đầu vệt, không hạt sao, không vòng, không đổi hình khi chạm nút.
-     Chỉ để con trỏ có chút ánh sáng hợp với nền thiên hà, không làm khách bị phân tán khi đọc hay học.
-   - Vệt gồm các đốm gradient tròn mờ rải đều dọc đường di chuột nên liền mạch, không có nét cứng.
+   HIỆU ỨNG CON TRỎ CHUỘT
+   - Di chuột: một vệt sáng mảnh, thon dần về đuôi và tan trong ~0,45 giây, kèm vầng sáng bé ở đầu vệt. Cố ý kín đáo, không hạt sao, không vòng.
+     Vệt gồm các đốm gradient tròn mờ rải dày dọc đường đi nên liền mạch, không có nét cứng.
+   - Nhấp chuột: một vòng gợn sáng mỏng toả ra từ chỗ nhấp cùng một vầng sáng nở ra rồi tan (ngôi sao ở nút/liên kết do core.js vẽ thêm).
    - Dùng màu chủ đạo của web (--accent-rgb); nền tối thì cộng sáng, nền trắng ("Rực rỡ") thì pha thường để vẫn thấy được.
    - Con trỏ gốc của hệ điều hành giữ nguyên. Chỉ chạy trên máy có chuột (pointer:fine). Canvas trong suốt không bắt chuột; hết vệt thì dừng hẳn vòng vẽ.
    - Giảm chuyển động (máy hoặc ô ở ⚙️, html[data-calm]): không có hiệu ứng này; bật/tắt ô ⚙️ có tác dụng ngay.
@@ -12,9 +12,9 @@
   if (!window.matchMedia || !matchMedia('(pointer: fine)').matches) return;
   const rm = matchMedia('(prefers-reduced-motion: reduce)');
   const root = document.documentElement, off = () => rm.matches || root.dataset.calm === '1';
-  const LIFE = .32, GAP = 4, MAXB = 40;              // tuổi một đốm (giây), khoảng cách rải đốm (px), số đốm tối đa
-  let cv = null, g = null, W = 0, H = 0, raf = 0, last = 0, now = 0, tone = '', spr = null, light = false, toneAt = -9;
-  const blobs = [];
+  const LIFE = .45, GAP = 2.5, MAXB = 90, RIP = .6;   // tuổi một đốm (giây), khoảng cách rải đốm (px), số đốm tối đa, thời gian một gợn nhấp (giây)
+  let cv = null, g = null, W = 0, H = 0, raf = 0, last = 0, now = 0, tone = '', spr = null, light = false, toneAt = -9, rgbNow = '255,255,255';
+  const blobs = [], rips = [];
   const m = { x:0, y:0, fx:0, fy:0, on:false, lastMove:-9, acc:0 };
 
   function ensure(){
@@ -40,26 +40,34 @@
     const key = acc + '|' + lt; if (key === tone) return; tone = key; light = lt;
     // nền tối: pha màu chủ đạo 45% về phía trắng để sáng hơn, phép cộng sáng trên nền gần đen mới thấy rõ
     const rgb = lt ? acc : acc.split(',').map(v => Math.round(+v + (255 - +v) * .45)).join(',');
-    spr = sprite(rgb, lt ? .7 : .85);
+    rgbNow = rgb; spr = sprite(rgb, lt ? .7 : .85);
   }
   function frame(t){
     raf = 0; const dt = Math.min(.05, (t - last) / 1000 || .016); last = t; now += dt;
     g.clearRect(0, 0, W, H);
-    if (off()) { blobs.length = 0; return; }
+    if (off()) { blobs.length = 0; rips.length = 0; return; }
     colors();
     while (blobs.length && now - blobs[0].t > LIFE) blobs.shift();
     g.globalCompositeOperation = light ? 'source-over' : 'lighter';
     // đốm trong vệt: càng cũ càng nhỏ và mờ
     for (const b of blobs) {
-      const k = 1 - (now - b.t) / LIFE, r = 2.5 + 6.5 * Math.pow(k, 1.2), a = Math.pow(k, 1.6) * (light ? .45 : .42);
+      const k = 1 - (now - b.t) / LIFE, r = 1.3 + 4.2 * Math.pow(k, 1.1), a = Math.pow(k, 1.5) * (light ? .5 : .4);
       if (a <= .01) continue; g.globalAlpha = a; g.drawImage(spr, b.x - r, b.y - r, r * 2, r * 2);
+    }
+    // gợn khi nhấp: vầng sáng nở ra rồi tan + một vòng mỏng toả ra, chậm dần (easeOut)
+    while (rips.length && now - rips[0].t > RIP) rips.shift();
+    for (const q of rips) {
+      const u = (now - q.t) / RIP, e = 1 - Math.pow(1 - u, 3), f = 1 - u;
+      g.globalAlpha = f * f * (light ? .5 : .42); const R = 8 + 20 * e; g.drawImage(spr, q.x - R, q.y - R, R * 2, R * 2);
+      g.globalAlpha = f * f * (light ? .75 : .6); g.lineWidth = 1.6 - 1 * u; g.strokeStyle = `rgb(${rgbNow})`;
+      g.beginPath(); g.arc(q.x, q.y, 5 + 26 * e, 0, 6.2832); g.stroke();
     }
     // vầng sáng bé đi sau con trỏ với độ trễ êm, mờ dần khi con trỏ đứng yên
     m.fx += (m.x - m.fx) * Math.min(1, dt * 11); m.fy += (m.y - m.fy) * Math.min(1, dt * 11);
     const idle = now - m.lastMove, ga = m.on ? Math.max(0, 1 - Math.max(0, idle - .5) / .5) : 0;
     if (ga > .01) { g.globalAlpha = ga * .24; g.drawImage(spr, m.fx - 11, m.fy - 11, 22, 22); }
     g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
-    if (blobs.length || ga > .01) raf = requestAnimationFrame(frame);
+    if (blobs.length || rips.length || ga > .01) raf = requestAnimationFrame(frame);
   }
   const kick = () => { if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } };
 
@@ -76,6 +84,10 @@
       m.acc = n ? (d + m.acc) - n * GAP : m.acc + d; if (blobs.length > MAXB) blobs.splice(0, blobs.length - MAXB);
     }
     kick();
+  }, { passive:true });
+  window.addEventListener('pointerdown', e => {
+    if (e.button || (e.pointerType && e.pointerType !== 'mouse' && e.pointerType !== 'pen') || off()) return;
+    ensure(); rips.push({ x:e.clientX, y:e.clientY, t:now }); if (rips.length > 6) rips.shift(); kick();
   }, { passive:true });
   root.addEventListener('mouseleave', () => { m.on = false; kick(); });
   window.addEventListener('resize', size);
