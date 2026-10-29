@@ -518,7 +518,7 @@ Nhóm học hiện ở 3 chỗ: thẻ **Nhóm học** ngay dưới khối chào 
 **Việc phải làm 1 lần:**
 1. Dán lại luật `firestore.rules` mới (làm đúng 4 bước ở mục 2.3). Chưa dán thì nhóm báo "chưa sẵn sàng".
 2. Tải lên GitHub các file đã đổi, nhớ có file mới **`group.js`** ở trang gốc (cùng chỗ với `planner.js`).
-3. Vào **Admin → Giao diện**, tìm thẻ **Nhóm học trực tiếp (chỉ cho Người đồng hành)**, tick **Bật nhóm học** rồi bấm Lưu. Tắt ô này bất cứ lúc nào để ẩn nhóm.
+3. Vào **Admin → Thanh toán & Ủng hộ**, tìm thẻ **Nhóm học trực tiếp (chỉ cho Người đồng hành)**, tick **Bật nhóm học** rồi bấm Lưu. Tắt ô này bất cứ lúc nào để ẩn nhóm.
 
 **Cách hoạt động:**
 - Người đồng hành bấm **Tham gia nhóm** và tự đặt một **biệt danh** (không lấy tên hay email của tài khoản). Ai đang chạy đồng hồ sẽ hiện trong "Đang học"; phút tập trung của mỗi phiên xong được cộng vào bảng xếp hạng tuần. Bấm **Rời nhóm** thì họ biến mất khỏi danh sách và bảng xếp hạng.
