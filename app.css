@@ -648,6 +648,12 @@ html[data-font="serif"] h1,html[data-font="serif"] h2,html[data-font="serif"] h3
 .pl-trend b{font-size:.72rem}.pl-trend small{font-size:.66rem;color:var(--ink3)}
 /* Planner v3: bố cục gọn, thẻ số liệu, lưới + cột bên, phân tích phía dưới */
 .pl-kpis4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.pl-perf{display:flex;align-items:center;gap:12px;margin:10px 0 8px;padding:10px 12px;border-radius:14px;background:var(--accent-soft)}
+.pl-perf b{font-size:1.9rem;line-height:1;font-variant-numeric:tabular-nums}.pl-perf b em{font-size:1rem;font-style:normal;opacity:.7;margin-left:1px}
+.pl-perf span{display:flex;flex-direction:column;gap:2px;min-width:0}.pl-perf strong{font-size:.82rem}
+.pl-perf.pulse{animation:plPop .7s cubic-bezier(.2,1.4,.4,1)}
+@keyframes plPop{0%{transform:scale(.94);box-shadow:0 0 0 0 var(--accent)}50%{transform:scale(1.03)}100%{transform:none;box-shadow:0 0 0 14px transparent}}
+@media(prefers-reduced-motion:reduce){.pl-perf.pulse{animation:none}}
 .pl-kpi{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border-radius:18px;background:var(--surface);border:1px solid var(--line2)}
 .pl-kpi .pl-bar{flex:none;margin:6px 0 2px}.pl-kl{font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)}
 .pl-kpi b{font-size:1.7rem;line-height:1.1}.pl-kpi b em{font-style:normal;font-size:1rem;color:var(--ink3);font-weight:600}

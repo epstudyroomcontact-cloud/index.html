@@ -7,7 +7,7 @@
    Quy tắc Firestore: chỉ chính chủ đọc/ghi và chỉ khi có companions/<uid> (xem firestore.rules). Admin không đọc được planner của người khác.
    ========================================================= */
 Object.assign(I18N.en, {
-  pl_title:'My weekly planner', pl_sub:'Your own private planner: plan your week, tick things off, and see how productive the week really was. Only your account can open it on this website.',
+  pl_title:'Your weekly plan', pl_sub:'Your own private planner: plan your week, tick things off, and see how productive the week really was. Only your account can open it on this website.',
   pl_up_title:'The Planner is for companions', pl_up_text:'Companions get a private weekly planner: a time grid for your week, a to-do list for things without a time, and an automatic review of how much you finished. Support the channel monthly and I will unlock it for your account.',
   pl_up_login:'Sign in to use the Planner.', pl_up_cta:'See how to become a companion',
   pl_d0:'Mon', pl_d1:'Tue', pl_d2:'Wed', pl_d3:'Thu', pl_d4:'Fri', pl_d5:'Sat', pl_d6:'Sun',
@@ -24,7 +24,7 @@ Object.assign(I18N.en, {
   pl_min:'{m} min', pl_h:'{h} h', pl_hm:'{h} h {m} min', pl_untimed:'(no time set)', pl_until:'You are a companion until {d}.', pl_max:'A week can hold up to {n} tasks.', pl_soon:'Your companion access ends on {d}. Renew to keep using the planner.'
 });
 Object.assign(I18N.vi, {
-  pl_title:'Planner riêng của bạn', pl_sub:'Planner riêng của chính bạn: lên kế hoạch cho tuần, tick những việc đã xong và xem tuần này bạn thật sự làm được bao nhiêu. Chỉ tài khoản của bạn mở được trên trang web này.',
+  pl_title:'Kế hoạch tuần của bạn', pl_sub:'Planner riêng của chính bạn: lên kế hoạch cho tuần, tick những việc đã xong và xem tuần này bạn thật sự làm được bao nhiêu. Chỉ tài khoản của bạn mở được trên trang web này.',
   pl_up_title:'Planner dành cho Companions', pl_up_text:'Companions có một planner tuần riêng tư: lưới giờ cho cả tuần, danh sách việc chưa có giờ và bản tổng kết tự động bạn đã làm xong bao nhiêu. Ủng hộ kênh hằng tháng là mình mở nó cho tài khoản của bạn.',
   pl_up_login:'Hãy đăng nhập để dùng Planner.', pl_up_cta:'Xem cách trở thành Companion',
   pl_d0:'T2', pl_d1:'T3', pl_d2:'T4', pl_d3:'T5', pl_d4:'T6', pl_d5:'T7', pl_d6:'CN',
@@ -71,6 +71,7 @@ Object.assign(I18N.en, {
   pl_s_vocab:'Review vocabulary', pl_s_listen:'Listening practice', pl_s_read:'Reading task', pl_s_gym:'Workout', pl_s_essay:'Write an essay', pl_s_book:'Read a book', pl_s_meet:'Team meeting', pl_s_speak:'Speaking practice', pl_s_movie:'Watch a movie', pl_s_clean:'Tidy up', pl_s_review:'Weekly review',
   pl_chime_on:'Chime on', pl_chime_off:'Chime off', pl_rem_inpage:'Your browser blocks notifications, so I will remind you inside this page, with a chime. Keep the tab open.', pl_preview:'Preview with sample data', pl_preview_note:'This is how the Planner looks for companions. It is locked until you become a companion.',
   pl_day_empty:'Nothing planned for this day yet.',
+  pl_perf:'Performance today', pl_perf_how:'The share of today\'s planned time you have finished (or of your daily goal if you set one). It updates every time you tick a task.', pl_pf_now:'Nice! {d}{l} · {p}% ({n}/{m} tasks).', pl_pf_all:'All done! {d}{l} · {p}%. Time for a breather.', pl_pf_up:'Level up: {l}!', pl_pf_week:'Done! Week so far: {l} · score {s}.', pl_pf_nowk:'Done! Tick a few more tasks and your week score appears.',
   pl_quick_ph:'Quick add: type a task and press Enter (try "19:30 Review vocab")', pl_quick_btn:'Add', pl_tpl_menu:'Weekly template', pl_streak_l:'Streak', pl_streak_u:'weeks at 70% or more', pl_streak_start:'Finish 70% of a week to start one', pl_ana:'Details', pl_still:'Still to do', pl_goal_set:'Goal', pl_now:'Now',
 });
 Object.assign(I18N.vi, {
@@ -83,6 +84,7 @@ Object.assign(I18N.vi, {
   pl_s_vocab:'Ôn từ vựng', pl_s_listen:'Luyện nghe', pl_s_read:'Làm bài đọc', pl_s_gym:'Tập thể dục', pl_s_essay:'Viết bài luận', pl_s_book:'Đọc sách', pl_s_meet:'Họp nhóm', pl_s_speak:'Luyện nói', pl_s_movie:'Xem phim', pl_s_clean:'Dọn dẹp', pl_s_review:'Tổng kết tuần',
   pl_chime_on:'Chuông: bật', pl_chime_off:'Chuông: tắt', pl_rem_inpage:'Trình duyệt đang chặn thông báo, nên mình sẽ nhắc ngay trong trang và có chuông. Bạn để tab này mở nhé.', pl_preview:'Xem trước với dữ liệu mẫu', pl_preview_note:'Đây là giao diện Planner dành cho Companions. Planner bị khoá cho đến khi bạn trở thành Companion.',
   pl_day_empty:'Ngày này chưa có việc nào.',
+  pl_perf:'Hiệu suất hôm nay', pl_perf_how:'Tỉ lệ thời gian đã xong so với thời gian dự định của hôm nay (hoặc so với mục tiêu ngày nếu bạn đã đặt). Cập nhật mỗi lần bạn tick một việc.', pl_pf_now:'Tốt lắm! {d}{l} · {p}% ({n}/{m} việc).', pl_pf_all:'Xong hết! {d}{l} · {p}%. Nghỉ một chút nhé.', pl_pf_up:'Lên hạng: {l}!', pl_pf_week:'Xong! Cả tuần đến giờ: {l} · {s} điểm.', pl_pf_nowk:'Xong! Tick thêm vài việc nữa là hiện điểm tuần.',
   pl_quick_ph:'Thêm nhanh: gõ việc rồi bấm Enter (ví dụ "19:30 Ôn từ vựng")', pl_quick_btn:'Thêm', pl_tpl_menu:'Tuần mẫu', pl_streak_l:'Chuỗi tuần', pl_streak_u:'tuần liên tiếp xong từ 70%', pl_streak_start:'Xong 70% việc của một tuần để bắt đầu', pl_ana:'Chi tiết', pl_still:'Việc chưa xong', pl_goal_set:'Mục tiêu', pl_now:'Bây giờ',
 });
 
@@ -646,6 +648,24 @@ function plGoalSel(change, label, cur, opts, style){
   const list = cur && !opts.includes(cur) ? [...opts, cur].sort((a, b) => a - b) : opts;
   return `<select class="select" data-change="${change}" aria-label="${esc(label)}"${style ? ` style="${style}"` : ''}>${list.map(m => `<option value="${m}" ${cur === m ? 'selected' : ''}>${esc(m ? fmtMin(m) : t('pl_goal_none'))}</option>`).join('')}<option value="custom">${esc(t('pl_goal_custom'))}</option></select>`;
 }
+const plLv = sc => sc >= 85 ? 3 : sc >= 70 ? 2 : sc >= 50 ? 1 : 0;      // cấp của điểm tuần (pl_lv_0..3)
+function plDayPerf(di){                                           // hiệu suất của một ngày: phần trăm số phút dự định đã xong (việc chưa ghi phút tính 30; việc đã dời / bỏ vẫn nằm trong mẫu số), hoặc so với mục tiêu ngày nếu bạn đã đặt; cấp 0-4 là pl_dlv_*
+  const list = PL.tasks.filter(x => x.day === di), gone = (PL.gone || []).filter(g => g.day === di), goal = PL.prefs && PL.prefs.dayGoalMin || 0;
+  const wAll = list.reduce((a, x) => a + plW(x), 0) + gone.reduce((a, g) => a + plW(g), 0), wDone = list.reduce((a, x) => a + (x.done ? plW(x) : 0), 0), doneMin = list.reduce((a, x) => a + (x.done ? x.dur : 0), 0);
+  const frac = goal ? doneMin / goal : wAll ? wDone / wAll : 0;
+  return { frac, pct:Math.round(Math.min(1, frac) * 100), lv:frac >= 1 ? 4 : frac >= .6 ? 3 : frac >= .3 ? 2 : frac > 0 ? 1 : 0, nd:list.filter(x => x.done).length, all:list.length + gone.length };
+}
+function plTickNote(x, before){                                   // thông báo ngay sau khi tick xong một việc: hiệu suất của ngày đó (hoặc điểm tuần nếu việc không gắn ngày), kèm "lên hạng" nếu vừa qua cấp
+  let msg;
+  if (x.day !== null) {
+    const P = plDayPerf(x.day), d = PL.off === 0 && x.day === DT.now().setZone(userTZ).weekday - 1 ? '' : t('pl_d' + x.day) + ': ', l = t('pl_dlv_' + P.lv);
+    msg = t(P.frac >= 1 ? 'pl_pf_all' : 'pl_pf_now', { d, l, p:P.pct, n:P.nd, m:P.all }) + (before && before.lv >= 1 && P.lv > before.lv && P.lv < 4 ? ' ' + t('pl_pf_up', { l }) : '');
+  } else {
+    const sc = plScore(plStats(PL.tasks, PL.off, PL.gone));
+    msg = sc === null ? t('pl_pf_nowk') : t('pl_pf_week', { l:t('pl_lv_' + plLv(sc)), s:sc });
+  }
+  toast(msg, 4200);
+}
 function plToday(){
   if (PL.off !== 0) return '';
   const now = DT.now().setZone(userTZ), di = now.weekday - 1, mins = now.hour * 60 + now.minute;
@@ -662,7 +682,7 @@ function plToday(){
   const rem = `<button type="button" class="btn ${plRemOn() ? 'ghost' : 'secondary'} sm" data-act="plBell">${ic('bell', 'sm')} ${esc(t(plRemOn() ? 'pl_rem_on' : 'pl_rem_btn'))}</button><p class="small faint" style="margin-top:6px">${esc(t(plRemOn() ? (plPushHere() ? 'pl_rem_bg' : pwaIOS && !pwaStandalone() ? 'pl_rem_ios' : 'pl_rem_fg') : 'pl_rem_bell'))}</p>`;
   const goalSel = plGoalSel('plDayGoal', t('pl_dgoal'), goal, [0, 30, 60, 90, 120, 180, 240], 'width:auto;padding:3px 8px;font-size:.8rem');
   return `<section class="card pad"><div class="row between"><h3>${esc(t('pl_today'))}</h3>${all ? `<span class="badge">${esc(t('pl_dlv_' + (frac >= 1 ? 4 : frac >= .6 ? 3 : frac >= .3 ? 2 : frac > 0 ? 1 : 0)))}</span>` : ''}</div>
-    <div class="row between" style="margin:8px 0 6px"><small class="faint">${nd}/${all}${goal ? ' · ' + esc(fmtMin(doneMin)) + ' / ' + esc(fmtMin(goal)) : wAll ? ' · ' + Math.round(frac * 100) + '%' : ''}</small></div>${goal ? plBar(doneMin, goal) : plBar3([[wDone, ''], [wMv, 'mv'], [wAll - wDone - wMv - list.reduce((a, x) => a + (!x.done && !x.carried ? plW(x) : 0), 0), 'gx']], wAll)}
+    <div class="pl-perf${PL.pop === di ? ' pulse' : ''}" role="status" title="${esc(t('pl_perf_how'))}"><b>${all ? Math.round(Math.min(1, frac) * 100) : '–'}<em>${all ? '%' : ''}</em></b><span><strong>${esc(t('pl_perf'))}</strong><small class="faint">${nd}/${all}${goal ? ' · ' + esc(fmtMin(doneMin)) + ' / ' + esc(fmtMin(goal)) : ''}</small></span></div>${goal ? plBar(doneMin, goal) : plBar3([[wDone, ''], [wMv, 'mv'], [wAll - wDone - wMv - list.reduce((a, x) => a + (!x.done && !x.carried ? plW(x) : 0), 0), 'gx']], wAll)}
     ${mixD ? `<p class="small faint" style="margin:6px 0 0">${esc(mixD)}</p>` : ''}
     <p class="small" style="margin:10px 0 4px"><b>${esc(verdict)}</b></p>
     ${next ? `<p class="small muted" style="margin:0 0 4px">${esc(t('pl_next', { t:next.start + ' ' + (next.title || '—') }))}</p>` : ''}
@@ -815,7 +835,12 @@ Object.assign(ACTIONS, {
   plEdit: el => { const x = PL.tasks.find(v => v.id === el.dataset.id); if (!x) return; PL.sel = x.id; plForm(x, false); },
   plDur: el => { const n = $('pl-dur'), m = +el.dataset.m; if (!n) return; n.querySelector('[data-u=h]').value = Math.floor(m / 60); n.querySelector('[data-u=m]').value = m % 60; },
   plCat: el => { PL.cat = +el.dataset.c; document.querySelectorAll('#pl-cats .pl-cat').forEach(b => b.classList.toggle('on', +b.dataset.c === PL.cat)); },
-  plToggle: el => { const x = PL.tasks.find(v => v.id === el.dataset.id); if (!x) return; x.done = !x.done; plSave(); render(true); },
+  plToggle: el => {
+    const x = PL.tasks.find(v => v.id === el.dataset.id); if (!x) return;
+    const before = x.day !== null ? plDayPerf(x.day) : null; x.done = !x.done;
+    if (x.done) { plTickNote(x, before); PL.pop = x.day; setTimeout(() => { PL.pop = null; }, 900); }   // vừa tick xong: báo ngay hiệu suất và cho khối hiệu suất nháy một lần
+    plSave(); render(true);
+  },
   plDel: () => {
     const x = PL.tasks.find(v => v.id === PL.sel); if (!x) return closeModal();
     if (x.done || x.carried || !plStarted(x.day)) return ACTIONS.plDelGo({ dataset:{ s:'' } });   // việc đã xong / chưa tới ngày: xoá luôn như trước, không có gì cần ghi nhận
