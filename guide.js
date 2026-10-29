@@ -1,339 +1,117 @@
 'use strict';
 /* =========================================================
-   GUIDE — trang "Hướng dẫn" (#/guide) cho khách mới: web này làm được gì, bắt đầu từ đâu.
-   Chỉ tải khi khách mở #/guide (core.js: loadGuide). Nội dung đủ 8 ngôn ngữ nằm ngay trong file này; thiếu câu nào thì dùng tiếng Anh.
-   Tên các mục menu lấy từ t('nav_…') để luôn khớp với thanh menu; {tên} trong câu được thay bằng đúng tên đó.
+   TOUR — hướng dẫn từng bước kiểu "chỉ vào đúng nút" (mèo Moon dẫn đường), thay cho trang hướng dẫn dài.
+   - Khách mới vào lần đầu: tự chạy. Khách cũ (đã đăng nhập hoặc đã dùng web): hiện một thẻ hỏi "Bạn có muốn xem hướng dẫn không?".
+   - Xem lại bất cứ lúc nào: mục "Hướng dẫn" trên menu (#/guide) → chạy lại từ đầu.
+   - Chỉ tải khi cần (core.js: loadGuide). Đủ 8 ngôn ngữ ngay trong file này; thiếu thì dùng tiếng Anh. Hình mèo là ảnh chụp sẵn của mjCat (moon-art.js) nên không phải tải moon-art.js.
+   - Kết quả lưu ở localStorage 'ep_tour' = 'done' hoặc 'skip'; chưa có = chưa trả lời.
    ========================================================= */
-const GUIDE = {
-  en: {
-    comp: 'Companion',
-    start: 'Start in 3 steps',
-    s1t: 'Create a free account', s1d: 'Open {account} in the menu and sign in. It takes a minute, and your tasks, focus time and {club} progress then follow you on every device.',
-    s2t: 'Study together', s2d: 'On {watch} you join the live stream. {schedule} shows when the next one starts, in your own time zone. Or open the {focus}: your own Pomodoro timer and to-do list, to run next to the stream.',
-    s3t: 'Come back each day', s3d: 'Check in on {club} each day you study. Every day is one step on the road to find Moon, and every stop opens a new picture.',
-    pages: 'What each page is for',
-    p_home: 'Your starting point: what is on now, what is coming up, and the latest from the study room.',
-    p_schedule: 'The live schedule for the week. Times are converted to your time zone automatically.',
-    p_watch: 'Join the study room live right here, or catch up on recent videos.',
-    p_focus: 'Your own Pomodoro timer and to-do list. Study alongside the stream, even when nobody is live.',
-    p_planner: 'A private weekly planner with an automatic weekly review of how your focus adds up.',
-    p_club: 'Check in each day you study and walk the road with me. Badges and pictures unlock as you go.',
-    p_blog: 'Short writing from the study room.',
-    p_shop: 'Planners, printables and little things for your study desk.',
-    p_gear: 'The things on my desk that help me study.',
-    p_donate: 'Support the channel, become a {comp}, or enter a trial code.',
-    open: 'Open',
-    plans: 'Free and {comp}',
-    free: 'Free for everyone',
-    free_li: ['Watch the live stream and see the schedule', 'The focus timer and to-do list in the {focus}', '{club} daily check-ins, {blog} and the {shop}'],
-    free_lim: 'Up to {m} minutes of focus per day in the {focus}.',
-    comp_t: 'As a {comp}',
-    comp_li: ['Your private weekly planner ({planner}) with an automatic weekly review', 'No daily limit in the {focus}', 'Live study group: see who is studying right now and climb the weekly leaderboard', 'A small badge by your name and, if you like, your name on the supporters list'],
-    comp_end: 'Companions are the people who keep this little study room going, and can stop whenever they like.',
-    trial: 'Have a trial code? Enter it on the {donate} page, or in {planner}, to try the {comp} features free for a few days.',
-    see: 'See how to support',
-    tips: 'Small tips',
-    tip1: 'Tap the options button (sliders icon, top right) to choose your language, theme and time zone.',
-    tip2: 'Tap the bell 🔔 to get a reminder, with a small chime, when we go live.',
-    tip3: 'Use {install} in the menu to add the web to your home screen or desktop.',
-    tip4: 'It works on your phone, but it is designed for a computer: a computer with your phone put away helps you stay focused for longer.',
-    faq: 'Common questions',
-    q1: 'Is it free?', a1: 'Yes. Watching, the schedule, the {focus} (with a daily limit), {club} and {blog} are free. Becoming a {comp} is optional and only adds extras.',
-    q2: 'Where are my tasks saved?', a2: 'When you are signed in, in your account, so they sync across devices. When you are not, only in this browser.',
-    q3: 'I paid. When do I get {comp} access?', a3: 'After you tap “I have paid” on the {donate} page, I check new payments every day and unlock it on your account. You will see it there once it is done.',
-    q4: 'Why does a page ask me to sign in?', a4: 'Some sections need a free account so your progress is saved to you. It only takes a minute.',
-    gl: 'Back to Overview'
-  },
-  vi: {
-    comp: 'Người đồng hành',
-    start: 'Bắt đầu trong 3 bước',
-    s1t: 'Tạo tài khoản miễn phí', s1d: 'Mở mục {account} trên menu rồi đăng nhập. Mất chưa tới một phút, và việc cần làm, giờ tập trung, tiến độ {club} của bạn sẽ theo bạn trên mọi thiết bị.',
-    s2t: 'Học cùng nhau', s2d: 'Ở {watch} bạn vào xem buổi live. {schedule} cho biết buổi tiếp theo bắt đầu lúc nào, đã đổi sang múi giờ của bạn. Hoặc mở {focus}: đồng hồ Pomodoro và danh sách việc cần làm riêng của bạn, để học song song với buổi live.',
-    s3t: 'Quay lại mỗi ngày', s3d: 'Điểm danh ở {club} vào những ngày bạn học. Mỗi ngày là một bước trên con đường đi tìm Moon, và mỗi chặng dừng chân mở ra một bức tranh mới.',
-    pages: 'Mỗi trang dùng để làm gì',
-    p_home: 'Điểm bắt đầu: đang có gì, sắp có gì, và tin mới từ phòng học.',
-    p_schedule: 'Lịch live trong tuần. Giờ được tự đổi sang múi giờ của bạn.',
-    p_watch: 'Vào phòng học live ngay tại đây, hoặc xem lại các video gần đây.',
-    p_focus: 'Đồng hồ Pomodoro và danh sách việc cần làm của riêng bạn. Học song song với buổi live, kể cả khi chưa ai live.',
-    p_planner: 'Sổ kế hoạch tuần riêng tư, có tổng kết tuần tự động cho thấy giờ tập trung của bạn cộng dồn ra sao.',
-    p_club: 'Điểm danh mỗi ngày bạn học và cùng mình đi trên con đường. Huy hiệu và tranh mở dần theo từng chặng.',
-    p_blog: 'Những bài viết ngắn từ phòng học.',
-    p_shop: 'Sổ kế hoạch, bản in và những món nhỏ cho bàn học của bạn.',
-    p_gear: 'Những món trên bàn của mình giúp mình học.',
-    p_donate: 'Ủng hộ kênh, trở thành {comp}, hoặc nhập mã dùng thử.',
-    open: 'Mở',
-    plans: 'Miễn phí và {comp}',
-    free: 'Miễn phí cho mọi người',
-    free_li: ['Xem live và xem lịch', 'Đồng hồ tập trung và danh sách việc cần làm ở {focus}', 'Điểm danh {club}, {blog} và {shop}'],
-    free_lim: 'Tối đa {m} phút tập trung mỗi ngày ở {focus}.',
-    comp_t: 'Khi là {comp}',
-    comp_li: ['Sổ kế hoạch tuần riêng ({planner}) có tổng kết tuần tự động', 'Không giới hạn thời gian ở {focus}', 'Nhóm học trực tiếp: xem ai đang học ngay lúc này và leo bảng xếp hạng tuần', 'Huy hiệu nhỏ cạnh tên bạn và, nếu bạn muốn, tên hiện ở mục cảm ơn'],
-    comp_end: 'Người đồng hành là những người giữ cho căn phòng học nhỏ này tiếp tục, và có thể dừng bất cứ lúc nào.',
-    trial: 'Có mã dùng thử? Nhập ở trang {donate}, hoặc ở {planner}, để dùng thử các tính năng của {comp} miễn phí vài ngày.',
-    see: 'Xem cách ủng hộ',
-    tips: 'Vài mẹo nhỏ',
-    tip1: 'Bấm nút tuỳ chọn (biểu tượng thanh trượt, góc trên bên phải) để chọn ngôn ngữ, giao diện và múi giờ.',
-    tip2: 'Bấm chuông 🔔 để nhận nhắc kèm tiếng chuông nhỏ khi bắt đầu live.',
-    tip3: 'Dùng {install} trên menu để thêm web vào màn hình chính hoặc máy tính.',
-    tip4: 'Web chạy được trên điện thoại nhưng được thiết kế cho máy tính: máy tính, cất điện thoại đi, giúp bạn tập trung lâu hơn.',
-    faq: 'Câu hỏi thường gặp',
-    q1: 'Web có miễn phí không?', a1: 'Có. Xem live, xem lịch, {focus} (có giới hạn mỗi ngày), {club} và {blog} đều miễn phí. Trở thành {comp} là tuỳ chọn và chỉ thêm các tiện ích.',
-    q2: 'Việc cần làm của tôi được lưu ở đâu?', a2: 'Khi đã đăng nhập, ở trong tài khoản của bạn nên đồng bộ giữa các thiết bị. Khi chưa đăng nhập, chỉ lưu trên trình duyệt này.',
-    q3: 'Tôi đã thanh toán, khi nào được mở quyền {comp}?', a3: 'Sau khi bạn bấm “Tôi đã thanh toán” ở trang {donate}, mình kiểm tra thanh toán mới mỗi ngày và mở quyền cho tài khoản của bạn. Xong là bạn thấy ngay ở đó.',
-    q4: 'Sao có trang bắt tôi đăng nhập?', a4: 'Một số mục cần tài khoản miễn phí để tiến độ được lưu cho riêng bạn. Chỉ mất chưa tới một phút.',
-    gl: 'Về trang Tổng quan'
-  },
-  hi: {
-    comp: 'साथी',
-    start: '3 कदम में शुरू करें',
-    s1t: 'मुफ़्त खाता बनाएँ', s1d: 'मेनू में {account} खोलकर साइन इन करें। इसमें एक मिनट भी नहीं लगता, और आपके कार्य, फ़ोकस समय और {club} की प्रगति हर डिवाइस पर आपके साथ रहती है।',
-    s2t: 'साथ मिलकर पढ़ें', s2d: '{watch} पर आप लाइव स्ट्रीम से जुड़ते हैं। {schedule} बताता है कि अगला लाइव कब शुरू होगा, आपके अपने समय क्षेत्र में। या {focus} खोलें: आपका अपना पोमोडोरो टाइमर और टू-डू सूची, जिसे स्ट्रीम के साथ चलाया जा सकता है।',
-    s3t: 'हर दिन लौटें', s3d: 'जिस दिन आप पढ़ें, {club} में चेक-इन करें। हर दिन मून को खोजने वाले रास्ते पर एक कदम है, और हर पड़ाव एक नई तस्वीर खोलता है।',
-    pages: 'हर पेज किस काम का है',
-    p_home: 'आपकी शुरुआत: अभी क्या चल रहा है, आगे क्या आ रहा है, और स्टडी रूम की ताज़ा बातें।',
-    p_schedule: 'इस सप्ताह का लाइव शेड्यूल। समय अपने आप आपके समय क्षेत्र में बदल जाता है।',
-    p_watch: 'स्टडी रूम में यहीं लाइव जुड़ें, या हाल के वीडियो देखें।',
-    p_focus: 'आपका अपना पोमोडोरो टाइमर और टू-डू सूची। स्ट्रीम के साथ पढ़ें, तब भी जब कोई लाइव न हो।',
-    p_planner: 'निजी साप्ताहिक प्लानर, जिसमें अपने आप बनी साप्ताहिक समीक्षा दिखाती है कि आपका फ़ोकस कैसे जुड़ता है।',
-    p_club: 'जिस दिन पढ़ें, चेक-इन करें और मेरे साथ रास्ते पर चलें। बैज और तस्वीरें आगे बढ़ने पर खुलती हैं।',
-    p_blog: 'स्टडी रूम से छोटे लेख।',
-    p_shop: 'प्लानर, प्रिंटेबल और आपकी स्टडी डेस्क के लिए छोटी चीज़ें।',
-    p_gear: 'मेरी डेस्क की वे चीज़ें जो पढ़ाई में मदद करती हैं।',
-    p_donate: 'चैनल का समर्थन करें, {comp} बनें, या ट्रायल कोड डालें।',
-    open: 'खोलें',
-    plans: 'मुफ़्त और {comp}',
-    free: 'सबके लिए मुफ़्त',
-    free_li: ['लाइव स्ट्रीम देखें और शेड्यूल देखें', '{focus} में फ़ोकस टाइमर और टू-डू सूची', '{club} के रोज़ के चेक-इन, {blog} और {shop}'],
-    free_lim: '{focus} में प्रतिदिन अधिकतम {m} मिनट का फ़ोकस।',
-    comp_t: '{comp} के रूप में',
-    comp_li: ['अपने आप बनी साप्ताहिक समीक्षा के साथ आपका निजी साप्ताहिक प्लानर ({planner})', '{focus} में कोई दैनिक सीमा नहीं', 'लाइव स्टडी ग्रुप: देखें अभी कौन पढ़ रहा है और साप्ताहिक लीडरबोर्ड पर ऊपर चढ़ें', 'आपके नाम के पास एक छोटा बैज और, चाहें तो, समर्थकों की सूची में आपका नाम'],
-    comp_end: 'साथी वे लोग हैं जो इस छोटे से स्टडी रूम को चलाए रखते हैं, और जब चाहें रुक सकते हैं।',
-    trial: 'ट्रायल कोड है? इसे {donate} पेज पर या {planner} में डालें और कुछ दिन {comp} की सुविधाएँ मुफ़्त आज़माएँ।',
-    see: 'समर्थन का तरीका देखें',
-    tips: 'छोटे सुझाव',
-    tip1: 'भाषा, थीम और समय क्षेत्र चुनने के लिए विकल्प बटन (स्लाइडर आइकन, ऊपर दाईं ओर) दबाएँ।',
-    tip2: 'लाइव शुरू होने पर छोटी घंटी की आवाज़ के साथ याद दिलाने के लिए घंटी 🔔 दबाएँ।',
-    tip3: 'वेब को होम स्क्रीन या डेस्कटॉप पर जोड़ने के लिए मेनू में {install} इस्तेमाल करें।',
-    tip4: 'यह फ़ोन पर भी चलता है, पर बनाया कंप्यूटर के लिए गया है: फ़ोन दूर रखकर कंप्यूटर पर पढ़ने से आप ज़्यादा देर ध्यान लगा पाते हैं।',
-    faq: 'आम सवाल',
-    q1: 'क्या यह मुफ़्त है?', a1: 'हाँ। देखना, शेड्यूल, {focus} (दैनिक सीमा के साथ), {club} और {blog} मुफ़्त हैं। {comp} बनना वैकल्पिक है और सिर्फ़ अतिरिक्त सुविधाएँ जोड़ता है।',
-    q2: 'मेरे कार्य कहाँ सहेजे जाते हैं?', a2: 'साइन इन होने पर आपके खाते में, इसलिए वे डिवाइसों के बीच सिंक होते हैं। साइन इन न होने पर सिर्फ़ इसी ब्राउज़र में।',
-    q3: 'मैंने भुगतान कर दिया है। {comp} की सुविधा कब मिलेगी?', a3: '{donate} पेज पर “मैंने भुगतान कर दिया है” दबाने के बाद मैं हर दिन नए भुगतान जाँचता हूँ और आपके खाते पर इसे चालू कर देता हूँ। चालू होते ही आपको वहीं दिख जाएगा।',
-    q4: 'कोई पेज साइन इन क्यों माँगता है?', a4: 'कुछ हिस्सों के लिए मुफ़्त खाता चाहिए ताकि आपकी प्रगति आपके नाम सहेजी जा सके। इसमें एक मिनट भी नहीं लगता।',
-    gl: 'सिंहावलोकन पर लौटें'
-  },
-  ja: {
-    comp: '仲間',
-    start: '3ステップで始める',
-    s1t: '無料アカウントを作る', s1d: 'メニューの{account}を開いてログインします。1分もかからず、タスク、集中時間、{club}の進み具合がどの端末でも引き継がれます。',
-    s2t: 'いっしょに勉強する', s2d: '{watch}でライブ配信に参加できます。{schedule}では次の配信がいつ始まるかを、あなたのタイムゾーンで確認できます。または{focus}を開いて、自分だけのポモドーロタイマーとToDoリストを配信のとなりで使いましょう。',
-    s3t: '毎日戻ってくる', s3d: '勉強した日は{club}でチェックインします。1日が、Moonを探す道の一歩になり、道の途中の駅ごとに新しい絵が開きます。',
-    pages: '各ページの使いみち',
-    p_home: 'はじまりの場所。いま何をしているか、次に何があるか、スタディルームの最新情報。',
-    p_schedule: '今週のライブスケジュール。時間は自動であなたのタイムゾーンに変換されます。',
-    p_watch: 'ここからスタディルームのライブに参加できます。最近の動画も見られます。',
-    p_focus: '自分だけのポモドーロタイマーとToDoリスト。ライブがないときも、配信といっしょに勉強できます。',
-    p_planner: '自分だけの週間プランナー。集中時間がどう積み上がるかを自動の週間レビューで見られます。',
-    p_club: '勉強した日にチェックインして、いっしょに道を歩きましょう。バッジや絵が進むたびに開きます。',
-    p_blog: 'スタディルームからの短い文章。',
-    p_shop: 'プランナー、プリント、勉強机のための小さなもの。',
-    p_gear: '勉強に役立つ、私の机の上のもの。',
-    p_donate: 'チャンネルを応援する、{comp}になる、トライアルコードを入力する。',
-    open: '開く',
-    plans: '無料と{comp}',
-    free: '誰でも無料',
-    free_li: ['ライブ配信の視聴とスケジュールの確認', '{focus}の集中タイマーとToDoリスト', '{club}の毎日のチェックイン、{blog}、{shop}'],
-    free_lim: '{focus}では1日あたり最大{m}分まで集中できます。',
-    comp_t: '{comp}になると',
-    comp_li: ['自動の週間レビュー付きの自分だけの週間プランナー（{planner}）', '{focus}の1日の制限なし', 'ライブ勉強グループ：いま誰が勉強中か見られて、週間ランキングを登れます', '名前のとなりに小さなバッジ、希望すれば応援者リストにお名前も', ],
-    comp_end: '仲間は、この小さなスタディルームを支えてくれる人たちで、いつでもやめられます。',
-    trial: 'トライアルコードをお持ちですか？{donate}ページか{planner}で入力すると、{comp}の機能を数日間無料で試せます。',
-    see: '応援の方法を見る',
-    tips: 'ちょっとしたコツ',
-    tip1: '右上のオプションボタン（スライダーのアイコン）で、言語、テーマ、タイムゾーンを選べます。',
-    tip2: 'ベル 🔔 をタップすると、ライブが始まるときに小さなチャイム付きでお知らせが届きます。',
-    tip3: 'メニューの{install}で、ホーム画面やデスクトップにこのウェブを追加できます。',
-    tip4: 'スマホでも使えますが、パソコン向けに作られています。スマホをしまってパソコンで勉強すると、集中が長く続きます。',
-    faq: 'よくある質問',
-    q1: '無料ですか？', a1: 'はい。視聴、スケジュール、{focus}（1日の制限あり）、{club}、{blog}は無料です。{comp}になるのは任意で、追加の機能が加わるだけです。',
-    q2: 'タスクはどこに保存されますか？', a2: 'ログインしているときはアカウントに保存され、端末間で同期されます。ログインしていないときは、このブラウザにだけ保存されます。',
-    q3: '支払いました。{comp}はいつ使えますか？', a3: '{donate}ページで「支払いました」をタップしたあと、毎日新しい支払いを確認して、あなたのアカウントで有効にします。有効になると、そこで表示されます。',
-    q4: 'なぜログインを求められるページがありますか？', a4: '一部のセクションは、進み具合をあなたのために保存するため、無料アカウントが必要です。1分もかかりません。',
-    gl: 'ホームに戻る'
-  },
-  ko: {
-    comp: '동반자',
-    start: '3단계로 시작하기',
-    s1t: '무료 계정 만들기', s1d: '메뉴에서 {account}을(를) 열어 로그인하세요. 1분도 걸리지 않고, 할 일, 집중 시간, {club} 진행 상황이 모든 기기에서 이어집니다.',
-    s2t: '함께 공부하기', s2d: '{watch}에서 라이브 방송에 참여할 수 있어요. {schedule}에서는 다음 방송이 언제 시작하는지 내 시간대로 볼 수 있어요. 또는 {focus}을(를) 열어 나만의 뽀모도로 타이머와 할 일 목록을 방송 옆에서 사용해 보세요.',
-    s3t: '매일 돌아오기', s3d: '공부한 날에는 {club}에서 체크인하세요. 하루하루가 Moon을 찾는 길의 한 걸음이고, 길의 정거장마다 새로운 그림이 열려요.',
-    pages: '각 페이지는 무엇에 쓰나요',
-    p_home: '시작 지점: 지금 무엇이 있고, 곧 무엇이 있는지, 스터디룸의 새 소식.',
-    p_schedule: '이번 주 라이브 일정. 시간은 자동으로 내 시간대로 바뀝니다.',
-    p_watch: '여기서 바로 스터디룸 라이브에 참여하거나 최근 영상을 볼 수 있어요.',
-    p_focus: '나만의 뽀모도로 타이머와 할 일 목록. 라이브가 없을 때도 방송과 함께 공부할 수 있어요.',
-    p_planner: '나만의 주간 플래너. 집중 시간이 어떻게 쌓이는지 자동 주간 리뷰로 보여 줘요.',
-    p_club: '공부한 날 체크인하고 저와 함께 길을 걸어요. 배지와 그림이 단계마다 열려요.',
-    p_blog: '스터디룸의 짧은 글.',
-    p_shop: '플래너, 프린트물, 공부 책상을 위한 작은 물건들.',
-    p_gear: '공부에 도움이 되는 제 책상 위의 물건들.',
-    p_donate: '채널을 응원하거나, {comp}이(가) 되거나, 체험 코드를 입력하세요.',
-    open: '열기',
-    plans: '무료와 {comp}',
-    free: '누구나 무료',
-    free_li: ['라이브 방송 시청과 일정 확인', '{focus}의 집중 타이머와 할 일 목록', '{club} 매일 체크인, {blog}, {shop}'],
-    free_lim: '{focus}에서 하루 최대 {m}분까지 집중할 수 있어요.',
-    comp_t: '{comp}이(가) 되면',
-    comp_li: ['자동 주간 리뷰가 있는 나만의 주간 플래너({planner})', '{focus}의 일일 한도 없음', '라이브 스터디 그룹: 지금 누가 공부 중인지 보고 주간 순위를 올려 보세요', '이름 옆의 작은 배지, 원하면 후원자 목록에 이름도'],
-    comp_end: '동반자는 이 작은 스터디룸이 계속되도록 도와주는 분들이며, 언제든 그만둘 수 있어요.',
-    trial: '체험 코드가 있나요? {donate} 페이지나 {planner}에서 입력하면 {comp} 기능을 며칠 동안 무료로 써 볼 수 있어요.',
-    see: '후원 방법 보기',
-    tips: '작은 팁',
-    tip1: '오른쪽 위의 옵션 버튼(슬라이더 아이콘)으로 언어, 테마, 시간대를 고를 수 있어요.',
-    tip2: '종 🔔 을 누르면 라이브가 시작될 때 작은 알림음과 함께 알려 줘요.',
-    tip3: '메뉴의 {install}으로 홈 화면이나 바탕화면에 웹을 추가하세요.',
-    tip4: '휴대폰에서도 되지만 컴퓨터용으로 만들었어요. 휴대폰은 치워 두고 컴퓨터로 공부하면 더 오래 집중할 수 있어요.',
-    faq: '자주 묻는 질문',
-    q1: '무료인가요?', a1: '네. 시청, 일정, {focus}(일일 한도 있음), {club}, {blog}는 무료예요. {comp}이(가) 되는 것은 선택이며 추가 기능만 더해져요.',
-    q2: '할 일은 어디에 저장되나요?', a2: '로그인하면 내 계정에 저장되어 기기 간에 동기화돼요. 로그인하지 않으면 이 브라우저에만 저장돼요.',
-    q3: '결제했어요. {comp} 이용은 언제부터인가요?', a3: '{donate} 페이지에서 “결제했어요”를 누르면, 새 결제를 매일 확인해서 계정에 열어 드려요. 완료되면 그곳에서 보여요.',
-    q4: '왜 어떤 페이지는 로그인을 요구하나요?', a4: '일부 메뉴는 진행 상황을 나에게 저장하려고 무료 계정이 필요해요. 1분도 걸리지 않아요.',
-    gl: '홈으로 돌아가기'
-  },
-  zh: {
-    comp: '同伴',
-    start: '三步开始',
-    s1t: '创建免费账户', s1d: '在菜单里打开{account}并登录。不到一分钟，你的任务、专注时间和{club}进度就会在所有设备上同步。',
-    s2t: '一起学习', s2d: '在{watch}可以加入直播。{schedule}会按你的时区显示下一场几点开始。也可以打开{focus}：你自己的番茄钟和待办清单，在直播旁边一起使用。',
-    s3t: '每天回来', s3d: '学习的日子到{club}打卡。每一天都是寻找 Moon 路上的一步，每到一站就会解锁一张新图。',
-    pages: '每个页面是做什么的',
-    p_home: '起点：现在有什么，接下来有什么，以及自习室的最新消息。',
-    p_schedule: '本周的直播日程。时间会自动换算成你所在的时区。',
-    p_watch: '在这里直接加入自习室直播，或回看最近的视频。',
-    p_focus: '你自己的番茄钟和待办清单。没人直播时，也可以陪着直播一起学。',
-    p_planner: '私人的每周计划本，并有自动生成的每周回顾，看你的专注时间是怎么累积的。',
-    p_club: '学习的日子来打卡，和我一起走这条路。徽章和图片会随着前进解锁。',
-    p_blog: '来自自习室的短文。',
-    p_shop: '计划本、可打印资料，以及给你书桌的小东西。',
-    p_gear: '我书桌上帮助学习的东西。',
-    p_donate: '支持频道、成为{comp}，或输入试用码。',
-    open: '打开',
-    plans: '免费与{comp}',
-    free: '人人免费',
-    free_li: ['观看直播、查看日程', '{focus}里的专注计时和待办清单', '{club}每日打卡、{blog}和{shop}'],
-    free_lim: '在{focus}里每天最多专注 {m} 分钟。',
-    comp_t: '成为{comp}后',
-    comp_li: ['带自动每周回顾的私人每周计划本（{planner}）', '{focus}没有每日限制', '实时学习小组：看看现在谁在学习，并爬上每周排行榜', '名字旁的小徽章，也可以选择把名字放进支持者名单'],
-    comp_end: '同伴是让这间小小自习室持续下去的人，随时可以停止。',
-    trial: '有试用码吗？在{donate}页面或{planner}里输入，即可免费试用{comp}功能几天。',
-    see: '了解如何支持',
-    tips: '小提示',
-    tip1: '点右上角的选项按钮（滑块图标），可以选择语言、主题和时区。',
-    tip2: '点铃铛 🔔，开播时会收到带轻柔提示音的提醒。',
-    tip3: '用菜单里的{install}，把网站添加到主屏幕或桌面。',
-    tip4: '手机上也能用，但网站是为电脑设计的：把手机收起来、用电脑学习，更能长时间保持专注。',
-    faq: '常见问题',
-    q1: '免费吗？', a1: '是的。观看、日程、{focus}（有每日限制）、{club}和{blog}都是免费的。成为{comp}是自愿的，只会多出一些功能。',
-    q2: '我的任务保存在哪里？', a2: '登录后保存在你的账户里，可以在不同设备间同步。未登录时只保存在这个浏览器里。',
-    q3: '我已付款，什么时候能开通{comp}？', a3: '你在{donate}页面点“我已付款”后，我每天都会核对新的付款并为你的账户开通。开通后你会在那里看到。',
-    q4: '为什么有的页面要我先登录？', a4: '有些板块需要免费账户，这样你的进度才能保存给你。只需要一分钟。',
-    gl: '返回概览'
-  },
-  fr: {
-    comp: 'Compagnon',
-    start: 'Démarrer en 3 étapes',
-    s1t: 'Créer un compte gratuit', s1d: 'Ouvrez {account} dans le menu et connectez-vous. Cela prend une minute, et vos tâches, votre temps de concentration et votre progression dans {club} vous suivent sur tous vos appareils.',
-    s2t: 'Étudier ensemble', s2d: 'Dans {watch}, vous rejoignez le live. {schedule} indique quand commence le prochain, dans votre fuseau horaire. Ou ouvrez {focus} : votre propre minuteur Pomodoro et votre liste de tâches, à utiliser à côté du live.',
-    s3t: 'Revenir chaque jour', s3d: 'Faites votre check-in dans {club} chaque jour où vous étudiez. Chaque jour est un pas sur la route pour retrouver Moon, et chaque étape ouvre une nouvelle image.',
-    pages: 'À quoi sert chaque page',
-    p_home: 'Votre point de départ : ce qui se passe maintenant, ce qui arrive, et les nouvelles de la salle d\'étude.',
-    p_schedule: 'Le programme des lives de la semaine. Les heures sont converties automatiquement dans votre fuseau horaire.',
-    p_watch: 'Rejoignez la salle d\'étude en direct ici, ou rattrapez les vidéos récentes.',
-    p_focus: 'Votre propre minuteur Pomodoro et votre liste de tâches. Étudiez à côté du live, même quand personne n\'est en direct.',
-    p_planner: 'Un planning hebdomadaire privé, avec un bilan de la semaine automatique qui montre comment votre concentration s\'additionne.',
-    p_club: 'Faites votre check-in chaque jour où vous étudiez et marchez avec moi sur la route. Badges et images se débloquent en chemin.',
-    p_blog: 'De courts textes de la salle d\'étude.',
-    p_shop: 'Des planners, des fichiers à imprimer et des petites choses pour votre bureau d\'étude.',
-    p_gear: 'Les objets sur mon bureau qui m\'aident à étudier.',
-    p_donate: 'Soutenir la chaîne, devenir {comp}, ou saisir un code d\'essai.',
-    open: 'Ouvrir',
-    plans: 'Gratuit et {comp}',
-    free: 'Gratuit pour tous',
-    free_li: ['Regarder le live et voir le programme', 'Le minuteur de concentration et la liste de tâches dans {focus}', 'Les check-ins quotidiens de {club}, {blog} et {shop}'],
-    free_lim: 'Jusqu\'à {m} minutes de concentration par jour dans {focus}.',
-    comp_t: 'En tant que {comp}',
-    comp_li: ['Votre planning hebdomadaire privé ({planner}) avec bilan de la semaine automatique', 'Aucune limite quotidienne dans {focus}', 'Groupe d\'étude en direct : voyez qui étudie en ce moment et grimpez dans le classement de la semaine', 'Un petit badge à côté de votre nom et, si vous le souhaitez, votre nom sur la liste des soutiens'],
-    comp_end: 'Les Compagnons sont les personnes qui font vivre cette petite salle d\'étude, et peuvent s\'arrêter quand ils veulent.',
-    trial: 'Vous avez un code d\'essai ? Saisissez-le sur la page {donate} ou dans {planner} pour essayer les fonctions {comp} gratuitement quelques jours.',
-    see: 'Voir comment soutenir',
-    tips: 'Petits conseils',
-    tip1: 'Touchez le bouton d\'options (icône de curseurs, en haut à droite) pour choisir la langue, le thème et le fuseau horaire.',
-    tip2: 'Touchez la cloche 🔔 pour être prévenu, avec un petit carillon, quand le live commence.',
-    tip3: 'Utilisez {install} dans le menu pour ajouter le site à votre écran d\'accueil ou à votre bureau.',
-    tip4: 'Cela fonctionne sur téléphone, mais c\'est conçu pour un ordinateur : un ordinateur, téléphone rangé, aide à rester concentré plus longtemps.',
-    faq: 'Questions fréquentes',
-    q1: 'Est-ce gratuit ?', a1: 'Oui. Regarder, le programme, {focus} (avec une limite quotidienne), {club} et {blog} sont gratuits. Devenir {comp} est facultatif et ajoute seulement des extras.',
-    q2: 'Où sont enregistrées mes tâches ?', a2: 'Une fois connecté, dans votre compte, donc elles se synchronisent entre vos appareils. Sinon, uniquement dans ce navigateur.',
-    q3: 'J\'ai payé. Quand aurai-je l\'accès {comp} ?', a3: 'Après avoir touché « J\'ai payé » sur la page {donate}, je vérifie les nouveaux paiements chaque jour et je l\'active sur votre compte. Vous le verrez alors à cet endroit.',
-    q4: 'Pourquoi une page me demande-t-elle de me connecter ?', a4: 'Certaines sections demandent un compte gratuit pour que votre progression soit enregistrée à votre nom. Cela prend une minute.',
-    gl: 'Retour à l\'aperçu'
-  },
-  es: {
-    comp: 'Acompañante',
-    start: 'Empieza en 3 pasos',
-    s1t: 'Crea una cuenta gratis', s1d: 'Abre {account} en el menú e inicia sesión. Lleva un minuto, y tus tareas, tu tiempo de concentración y tu progreso en {club} te siguen en todos tus dispositivos.',
-    s2t: 'Estudiad juntos', s2d: 'En {watch} te unes al directo. {schedule} te dice cuándo empieza el siguiente, en tu zona horaria. O abre {focus}: tu propio temporizador Pomodoro y tu lista de tareas, para usar junto al directo.',
-    s3t: 'Vuelve cada día', s3d: 'Haz tu check-in en {club} cada día que estudies. Cada día es un paso en el camino para encontrar a Moon, y cada parada abre una imagen nueva.',
-    pages: 'Para qué sirve cada página',
-    p_home: 'Tu punto de partida: qué pasa ahora, qué viene y las novedades de la sala de estudio.',
-    p_schedule: 'El horario de directos de la semana. Las horas se convierten solas a tu zona horaria.',
-    p_watch: 'Únete aquí mismo a la sala de estudio en directo, o ponte al día con los vídeos recientes.',
-    p_focus: 'Tu propio temporizador Pomodoro y tu lista de tareas. Estudia junto al directo, incluso cuando nadie está en vivo.',
-    p_planner: 'Un planificador semanal privado, con un resumen semanal automático que muestra cómo se suma tu concentración.',
-    p_club: 'Haz check-in cada día que estudies y recorre el camino conmigo. Las insignias y las imágenes se desbloquean por el camino.',
-    p_blog: 'Textos cortos desde la sala de estudio.',
-    p_shop: 'Planificadores, imprimibles y pequeñas cosas para tu escritorio de estudio.',
-    p_gear: 'Las cosas de mi escritorio que me ayudan a estudiar.',
-    p_donate: 'Apoya el canal, hazte {comp} o introduce un código de prueba.',
-    open: 'Abrir',
-    plans: 'Gratis y {comp}',
-    free: 'Gratis para todos',
-    free_li: ['Ver el directo y consultar el horario', 'El temporizador de concentración y la lista de tareas en {focus}', 'Los check-ins diarios de {club}, {blog} y {shop}'],
-    free_lim: 'Hasta {m} minutos de concentración al día en {focus}.',
-    comp_t: 'Como {comp}',
-    comp_li: ['Tu planificador semanal privado ({planner}) con resumen semanal automático', 'Sin límite diario en {focus}', 'Grupo de estudio en directo: mira quién estudia ahora mismo y sube en la clasificación semanal', 'Una pequeña insignia junto a tu nombre y, si quieres, tu nombre en la lista de apoyos'],
-    comp_end: 'Los acompañantes son quienes mantienen en marcha esta pequeña sala de estudio, y pueden parar cuando quieran.',
-    trial: '¿Tienes un código de prueba? Introdúcelo en la página {donate} o en {planner} para probar gratis unos días las funciones de {comp}.',
-    see: 'Ver cómo apoyar',
-    tips: 'Pequeños consejos',
-    tip1: 'Pulsa el botón de opciones (icono de deslizadores, arriba a la derecha) para elegir idioma, tema y zona horaria.',
-    tip2: 'Pulsa la campana 🔔 para recibir un aviso, con un pequeño sonido, cuando empiece el directo.',
-    tip3: 'Usa {install} en el menú para añadir la web a tu pantalla de inicio o a tu escritorio.',
-    tip4: 'Funciona en el móvil, pero está pensada para ordenador: un ordenador, con el móvil guardado, te ayuda a concentrarte más tiempo.',
-    faq: 'Preguntas frecuentes',
-    q1: '¿Es gratis?', a1: 'Sí. Ver, el horario, {focus} (con límite diario), {club} y {blog} son gratis. Ser {comp} es opcional y solo añade extras.',
-    q2: '¿Dónde se guardan mis tareas?', a2: 'Si has iniciado sesión, en tu cuenta, así que se sincronizan entre dispositivos. Si no, solo en este navegador.',
-    q3: 'He pagado. ¿Cuándo tengo el acceso de {comp}?', a3: 'Después de pulsar «He pagado» en la página {donate}, reviso los pagos nuevos cada día y lo activo en tu cuenta. Lo verás allí cuando esté hecho.',
-    q4: '¿Por qué una página me pide iniciar sesión?', a4: 'Algunas secciones necesitan una cuenta gratuita para guardar tu progreso a tu nombre. Solo lleva un minuto.',
-    gl: 'Volver al resumen'
-  }
+const TOUR_CAT = `<svg class="tour-cat" viewBox="-10 -27 24 29" aria-hidden="true"><defs><clipPath id="tc_1"><ellipse cx="0" cy="-16.8" rx="6.448" ry="5.827999999999999"/></clipPath></defs><g class="mj-cat" transform="translate(0 0) scale(1 1)"><g class="mja mja-breath" style="animation-delay:-0.7s;animation-duration:5.1s"><g class="mja mja-tail" style="animation-delay:-4.8s"><path d="M4.5 -1.2Q11.5 -1 11.5 -6.6Q11.5 -10.4 9 -11" stroke="#aab4d0" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="1"/><path d="M4.5 -1.2Q11.5 -1 11.5 -6.6Q11.5 -10.4 9 -11" stroke="#fdfaf3" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="1"/></g><path d="M-6.8 0C-7.8 -6 -6.4 -11 -3.2 -12.8Q0 -13.8 3.2 -12.8C6.4 -11 7.8 -6 6.8 0Q0 1 -6.8 0Z" fill="#fdfaf3" stroke="#aab4d0" stroke-width=".45"/><path d="M2.4 -12.8C5.6 -11 7.6 -6 6.8 0Q5 .5 3.2 .6C4.6 -4.6 4.4 -9 2.4 -12.8Z" fill="#c9d1e6" opacity=".75"/><ellipse cx="-2.3" cy="-.9" rx="2.1" ry="1.3" fill="#fdfaf3" stroke="#aab4d0" stroke-width=".45"/><ellipse cx="2.3" cy="-.9" rx="2.1" ry="1.3" fill="#fdfaf3" stroke="#aab4d0" stroke-width=".45"/><path d="M0 -11.6v2.4" stroke="#c9d1e6" stroke-width="0.6" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.7"/><g class="mja mja-tilt" style="animation-delay:-7.7s;animation-duration:10.2s;transform-box:view-box;transform-origin:0px -11.6px"><path d="M-5.7 -18L-5.3 -25.2L-1.2 -21.6Z" fill="#f2a15c"/><g class="mja mja-ear" style="animation-delay:-5.5s;animation-duration:7.3s"><path d="M5.7 -18L5.3 -25.2L1.2 -21.6Z" fill="#f2a15c"/></g><path d="M-3.844 -20.21L-4.712000000000001 -23.744L-2.108 -21.388Z" fill="#f4a9b6"/><path d="M3.844 -20.21L4.712000000000001 -23.744L2.108 -21.388Z" fill="#f4a9b6"/>    <ellipse cx="0" cy="-16.8" rx="6.448" ry="5.827999999999999" fill="#fdfaf3"/><g clip-path="url(#tc_1)"><path d="M-8.1 -15.6L-8.1 -25.5L8.1 -25.5L8.1 -18.7Q5.3 -19.7 3.1 -19Q1.5 -18.8 0.7 -20.3Q0 -22 -0.7 -20.4Q-1.4 -18.7 -3 -18.4Q-4.6 -18 -4.8 -16.1Q-5.3 -14.7 -8.1 -15.6Z" fill="#f2a15c"/><path d="M-3.1 -22.1q0.5 1 0.1 1.9M2.9 -22.3q-0.5 1 -0.1 1.9M-5 -19.9q0.9 0.4 1.4 1.2" stroke="#d9823f" stroke-width="0.5579999999999999" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.55"/></g><ellipse cx="0" cy="-16.8" rx="6.448" ry="5.827999999999999" fill="none" stroke="#aab4d0" stroke-width=".45"/>    <g class="mja mja-blink"><ellipse cx="-2.4800000000000004" cy="-16.428" rx="0.9299999999999999" ry="1.1780000000000002" fill="#29203a"/><ellipse cx="2.4800000000000004" cy="-16.428" rx="0.9299999999999999" ry="1.1780000000000002" fill="#29203a"/><circle cx="-2.17" cy="-16.924" r="0.372" fill="#fff"/><circle cx="2.79" cy="-16.924" r="0.372" fill="#fff"/></g>    <ellipse cx="-3.844" cy="-14.444" rx="1.1159999999999999" ry="0.682" fill="#f4a9b6" opacity=".75"/><ellipse cx="3.844" cy="-14.444" rx="1.1159999999999999" ry="0.682" fill="#f4a9b6" opacity=".75"/>    <path d="M-0.6200000000000001 -15.126000000000001h1.2400000000000002l-0.6200000000000001 0.682z" fill="#ee8fa1"/><path d="M-1.1159999999999999 -14.010000000000002q0.5579999999999999 0.49600000000000005 1.1159999999999999 0q0.5579999999999999 0.49600000000000005 1.1159999999999999 0" stroke="#9b7b80" stroke-width="0.372" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="1"/></g></g></g></svg>`;
+
+const TOUR_T = {
+  en: { w:"Hi, I'm Moon! Let me show you around. It takes less than a minute.", a:"Your account lives here. Signing in is free and keeps your tasks and progress on every device.", v:"Tap here to join the live study stream. The Live schedule right above shows when we start, in your own time zone.", f:"Your own Pomodoro timer and to-do list. Study alongside the stream any time.", c:"Check in here each day you study. Every day is one step on the road to find me.", o:"Choose your language, theme and time zone here.", b:"Tap the bell to get a little chime when we go live.", s:"Support the channel and become a Companion for extras like a weekly planner. Have a trial code? Enter it here.", e:"That's all! You can play this tour again any time from “Guide” in the menu.", next:"Next", back:"Back", skip:"Skip", done:"Got it", ask:"Welcome back! Would you like a quick tour of how things work?", yes:"Show me", no:"I know it" },
+  vi: { w:"Chào bạn, mình là Moon! Để mình dẫn bạn đi một vòng, chưa tới một phút thôi.", a:"Tài khoản của bạn ở đây. Đăng nhập miễn phí, và việc cần làm cùng tiến độ của bạn được lưu trên mọi thiết bị.", v:"Bấm vào đây để vào buổi học live. Mục Lịch live ngay phía trên cho biết khi nào bắt đầu, theo múi giờ của bạn.", f:"Đồng hồ Pomodoro và danh sách việc cần làm của riêng bạn. Học song song với buổi live bất cứ lúc nào.", c:"Điểm danh ở đây mỗi ngày bạn học. Mỗi ngày là một bước trên con đường đi tìm mình.", o:"Chọn ngôn ngữ, giao diện và múi giờ ở đây.", b:"Bấm chuông để nghe tiếng chuông nhỏ khi bắt đầu live.", s:"Ủng hộ kênh và trở thành Người đồng hành để có thêm tiện ích như sổ kế hoạch tuần. Có mã dùng thử? Nhập ở đây.", e:"Xong rồi! Bạn có thể xem lại hướng dẫn này bất cứ lúc nào ở mục “Hướng dẫn” trên menu.", next:"Tiếp", back:"Quay lại", skip:"Bỏ qua", done:"Đã hiểu", ask:"Chào mừng bạn quay lại! Bạn có muốn xem nhanh cách web hoạt động không?", yes:"Xem hướng dẫn", no:"Tôi hiểu rồi" },
+  hi: { w:"नमस्ते, मैं मून हूँ! चलिए, मैं आपको घुमाकर दिखाती हूँ। एक मिनट से भी कम लगेगा।", a:"आपका खाता यहाँ है। साइन इन मुफ़्त है और आपके कार्य और प्रगति हर डिवाइस पर सहेजे रहते हैं।", v:"लाइव स्टडी स्ट्रीम से जुड़ने के लिए यहाँ दबाएँ। ठीक ऊपर का लाइव शेड्यूल बताता है कि हम कब शुरू करते हैं, आपके समय क्षेत्र में।", f:"आपका अपना पोमोडोरो टाइमर और टू-डू सूची। जब चाहें स्ट्रीम के साथ पढ़ें।", c:"जिस दिन पढ़ें, यहाँ चेक-इन करें। हर दिन मुझे खोजने वाले रास्ते पर एक कदम है।", o:"यहाँ अपनी भाषा, थीम और समय क्षेत्र चुनें।", b:"घंटी दबाएँ, लाइव शुरू होने पर छोटी सी घंटी की आवाज़ आएगी।", s:"चैनल का समर्थन करें और साप्ताहिक प्लानर जैसी सुविधाओं के लिए साथी बनें। ट्रायल कोड है? यहीं डालें।", e:"बस इतना ही! यह परिचय आप कभी भी मेनू के “गाइड” से दोबारा देख सकते हैं।", next:"आगे", back:"पीछे", skip:"छोड़ें", done:"समझ गया", ask:"वापसी पर स्वागत है! क्या आप सब कुछ कैसे चलता है, इसका छोटा परिचय देखना चाहेंगे?", yes:"दिखाइए", no:"मुझे पता है" },
+  ja: { w:"こんにちは、Moonだよ！ 1分もかからないから、案内させてね。", a:"ここがあなたのアカウント。ログインは無料で、タスクや進み具合がどの端末でも引き継がれるよ。", v:"ここをタップすると、ライブの勉強配信に参加できるよ。すぐ上のライブスケジュールで、あなたのタイムゾーンの開始時間がわかるよ。", f:"自分だけのポモドーロタイマーとToDoリスト。いつでも配信といっしょに勉強できるよ。", c:"勉強した日はここでチェックイン。1日が、私を探す道の一歩になるよ。", o:"ここで言語、テーマ、タイムゾーンを選べるよ。", b:"ベルをタップすると、ライブが始まるときに小さなチャイムでお知らせするよ。", s:"チャンネルを応援して、週間プランナーなどが使える仲間になろう。トライアルコードがあるなら、ここで入力してね。", e:"以上だよ！ このツアーは、メニューの「ガイド」からいつでももう一度見られるよ。", next:"次へ", back:"戻る", skip:"スキップ", done:"わかった", ask:"おかえりなさい！ 使い方をさっと案内しましょうか？", yes:"見てみる", no:"わかってる" },
+  ko: { w:"안녕, 나는 Moon이야! 1분도 안 걸리니까 둘러보는 걸 도와줄게.", a:"여기가 내 계정이야. 로그인은 무료고, 할 일과 진행 상황이 모든 기기에 저장돼.", v:"여기를 눌러 라이브 스터디 방송에 참여해. 바로 위의 라이브 일정에서 내 시간대로 시작 시간을 볼 수 있어.", f:"나만의 뽀모도로 타이머와 할 일 목록이야. 언제든 방송과 함께 공부할 수 있어.", c:"공부한 날마다 여기서 체크인해. 하루하루가 나를 찾는 길의 한 걸음이야.", o:"여기서 언어, 테마, 시간대를 고를 수 있어.", b:"종을 누르면 라이브가 시작될 때 작은 알림음으로 알려 줄게.", s:"채널을 응원하고 주간 플래너 같은 기능을 쓸 수 있는 동반자가 되어 보세요. 체험 코드가 있나요? 여기에 입력하세요.", e:"이게 전부야! 이 안내는 메뉴의 “안내”에서 언제든 다시 볼 수 있어.", next:"다음", back:"이전", skip:"건너뛰기", done:"알겠어요", ask:"다시 오신 걸 환영해요! 어떻게 쓰는지 빠르게 안내해 드릴까요?", yes:"보여 주세요", no:"알고 있어요" },
+  zh: { w:"嗨，我是 Moon！让我带你逛一圈，不到一分钟。", a:"你的账户在这里。登录是免费的，任务和进度会在所有设备上保存。", v:"点这里加入直播学习。正上方的直播日程会按你的时区显示开始时间。", f:"你自己的番茄钟和待办清单。随时可以陪着直播一起学。", c:"学习的日子来这里打卡。每一天都是寻找我的路上的一步。", o:"在这里选择语言、主题和时区。", b:"点铃铛，开播时会用小小的提示音提醒你。", s:"支持频道，成为同伴就能用到每周计划本等功能。有试用码吗？在这里输入。", e:"就这些！你随时可以在菜单的“使用指南”里重新观看这个导览。", next:"下一步", back:"上一步", skip:"跳过", done:"明白了", ask:"欢迎回来！想快速了解一下这里是怎么用的吗？", yes:"带我看看", no:"我知道了" },
+  fr: { w:"Salut, je suis Moon ! Je te fais faire le tour, ça prend moins d'une minute.", a:"Ton compte est ici. La connexion est gratuite et garde tes tâches et ta progression sur tous tes appareils.", v:"Touche ici pour rejoindre le live d'étude. Le programme des lives, juste au-dessus, indique quand on commence, dans ton fuseau horaire.", f:"Ton propre minuteur Pomodoro et ta liste de tâches. Étudie à côté du live quand tu veux.", c:"Fais ton check-in ici chaque jour où tu étudies. Chaque jour est un pas sur la route pour me retrouver.", o:"Choisis ici ta langue, ton thème et ton fuseau horaire.", b:"Touche la cloche pour entendre un petit carillon quand le live commence.", s:"Soutiens la chaîne et deviens Compagnon pour des extras comme le planning hebdomadaire. Un code d'essai ? Saisis-le ici.", e:"C'est tout ! Tu peux revoir ce tour à tout moment depuis « Guide » dans le menu.", next:"Suivant", back:"Retour", skip:"Passer", done:"Compris", ask:"Content de te revoir ! Veux-tu un petit tour pour voir comment tout fonctionne ?", yes:"Montre-moi", no:"Je connais" },
+  es: { w:"¡Hola, soy Moon! Te enseño todo, lleva menos de un minuto.", a:"Tu cuenta está aquí. Iniciar sesión es gratis y guarda tus tareas y tu progreso en todos tus dispositivos.", v:"Toca aquí para unirte al directo de estudio. El horario de directos, justo encima, te dice cuándo empezamos, en tu zona horaria.", f:"Tu propio temporizador Pomodoro y tu lista de tareas. Estudia junto al directo cuando quieras.", c:"Haz check-in aquí cada día que estudies. Cada día es un paso en el camino para encontrarme.", o:"Elige aquí tu idioma, tema y zona horaria.", b:"Toca la campana para oír un pequeño sonido cuando empiece el directo.", s:"Apoya el canal y hazte Acompañante para tener extras como el planificador semanal. ¿Tienes un código de prueba? Introdúcelo aquí.", e:"¡Eso es todo! Puedes ver este recorrido otra vez cuando quieras desde «Guía» en el menú.", next:"Siguiente", back:"Atrás", skip:"Saltar", done:"Entendido", ask:"¡Qué bueno verte de nuevo! ¿Quieres un recorrido rápido de cómo funciona todo?", yes:"Enséñame", no:"Ya lo sé" }
 };
 
-PAGES.guide = function(){
-  store.set('guide_seen', 1);
-  const L = GUIDE[state.lang] || GUIDE.en, E = GUIDE.en, g = k => L[k] != null ? L[k] : E[k];
-  const nav = id => t('nav_' + id), lim = Math.max(0, Math.round(+branding.focusLimit || 0));
-  const fill = s => String(s).replace(/\{(\w+)\}/g, (m, k) => k === 'comp' ? g('comp') : k === 'm' ? lim : k === 'install' ? t('pwa_install') : t('nav_' + k));
-  const li = a => `<ul class="perks">${a.map(x => `<li>${esc(fill(x))}</li>`).join('')}</ul>`;
-  const steps = [1, 2, 3].map(n => `<div class="guide-step"><span class="guide-n">${n}</span><div><b>${esc(g('s' + n + 't'))}</b><p class="muted small">${esc(fill(g('s' + n + 'd')))}</p></div></div>`).join('');
-  const PG = [['home', 'home', '/'], ['schedule', 'calendar', '/schedule'], ['watch', 'play', '/watch'], ['focus', 'timer', '/focus'], ['planner', 'chart', '/planner'], ['club', 'moon', '/club'], ['blog', 'pen', '/blog'], ['shop', 'bag', '/shop'], ['gear', 'tag', '/gear'], ['donate', 'heart', '/donate']];
-  const cards = PG.map(([id, icn, path]) => `<a class="card pad guide-pg" href="#${path}"><span class="row" style="gap:8px"><span class="guide-ic">${ic(icn)}</span><b>${esc(nav(id))}</b></span><p class="muted small">${esc(fill(g('p_' + id)))}</p><span class="small guide-open">${esc(g('open'))} ${ic('arrow', 'sm')}</span></a>`).join('');
-  const faq = [1, 2, 3, 4].map(n => `<div class="guide-q"><b>${esc(fill(g('q' + n)))}</b><p class="muted small">${esc(fill(g('a' + n)))}</p></div>`).join('');
-  page(`${head('guide_title', 'guide_sub', '', 'lantern', 5)}
-    <section class="card pad"><h2>${esc(g('start'))}</h2><div class="guide-steps">${steps}</div></section>
-    <section class="mt"><h2 style="margin-bottom:10px">${esc(g('pages'))}</h2><div class="guide-grid">${cards}</div></section>
-    <section class="card pad mt"><h2>${esc(fill(g('plans')))}</h2><div class="grid g2"><div class="stack"><b>${esc(g('free'))}</b>${li(g('free_li'))}${lim ? `<p class="small muted">${esc(fill(g('free_lim')))}</p>` : ''}</div><div class="stack"><b>${esc(fill(g('comp_t')))}</b>${li(g('comp_li').filter((x, i) => (i !== 1 || lim > 0) && (i !== 2 || branding.groupOn === true)))}</div></div><p class="muted small mt">${esc(g('comp_end'))}</p><p class="small">${esc(fill(g('trial')))}</p><div class="row"><a class="btn primary" href="#/donate">${ic('heart', 'sm')} ${esc(g('see'))}</a></div></section>
-    <div class="grid g2 mt"><section class="card pad"><h2>${esc(g('tips'))}</h2>${li([g('tip1'), g('tip2'), g('tip3'), g('tip4')])}</section>
-    <section class="card pad"><h2>${esc(g('faq'))}</h2><div class="stack">${faq}</div></section></div>
-    <div class="row mt"><a class="btn secondary" href="#/">${ic('chev-l', 'sm')} ${esc(g('gl'))}</a></div>`);
-};
+const EPTour = (() => {
+  const STEPS = [
+    { k:'w' },
+    { k:'a', sel:'.sb-foot a', nav:true },
+    { k:'v', sel:'#sidebar a[href="#/watch"]', nav:true },
+    { k:'f', sel:'#sidebar a[href="#/focus"]', nav:true },
+    { k:'c', sel:'#sidebar a[href="#/club"]', nav:true },
+    { k:'o', sel:'#btn-prefs' },
+    { k:'b', sel:'#btn-notif' },
+    { k:'s', sel:'#sidebar a[href="#/donate"]', nav:true },
+    { k:'e' }
+  ];
+  const L = () => TOUR_T[state.lang] || TOUR_T.en, tx = k => (L()[k] != null ? L()[k] : TOUR_T.en[k]);
+  const mobile = () => window.innerWidth <= 960;
+  let cur = null;   // { steps, i }
+  const el = id => document.getElementById(id);
+  function close(mark){
+    ['tour-card', 'tour-ring', 'tour-shade', 'tour-ask'].forEach(id => { const n = el(id); if (n) n.remove(); });
+    window.removeEventListener('resize', place); window.removeEventListener('keydown', onKey, true);
+    document.body.classList.remove('nav-open'); cur = null;
+    if (mark) { store.set('tour', mark); store.set('bell_hint', 1); }
+  }
+  const target = s => s && s.sel ? document.querySelector(s.sel) : null;
+  function place(){
+    if (!cur) return;
+    const s = cur.steps[cur.i], t = target(s), card = el('tour-card'), ring = el('tour-ring'), shade = el('tour-shade'); if (!card) return;
+    const W = innerWidth, H = innerHeight, cw = Math.min(310, W - 24);
+    if (!t) { ring.style.opacity = 0; shade.classList.remove('t-hole'); card.style.cssText = `left:${Math.round((W - cw) / 2)}px;top:${Math.round(Math.max(64, (H - card.offsetHeight) / 2))}px;width:${cw}px`; return; }
+    const r = t.getBoundingClientRect(), pad = 6;
+    ring.style.opacity = 1; shade.classList.add('t-hole');
+    ring.style.cssText = `opacity:1;left:${Math.round(r.left - pad)}px;top:${Math.round(r.top - pad)}px;width:${Math.round(r.width + pad * 2)}px;height:${Math.round(r.height + pad * 2)}px`;
+    const ch = card.offsetHeight; let left, top;
+    if (mobile() && r.left < 320 && s.nav) { left = 12; top = r.bottom + 16 > H - ch - 14 ? 60 : H - ch - 14; }   // thanh bên mở: thẻ ở dưới cùng màn hình, hoặc lên trên nếu mục cần chỉ nằm thấp
+    else if (s.nav) { left = r.right + 20; top = r.top + r.height / 2 - ch / 2; }                                      // mục ở thanh bên: thẻ bên phải
+    else { left = r.right - cw; top = r.bottom + 22; }                                                                          // nút ở thanh trên: thẻ bên dưới, canh phải
+    left = Math.max(12, Math.min(left, W - cw - 12)); top = Math.max(60, Math.min(top, H - ch - 14));
+    card.style.cssText = `left:${Math.round(left)}px;top:${Math.round(top)}px;width:${cw}px`;
+  }
+  function show(){
+    const s = cur.steps[cur.i], n = cur.steps.length, last = cur.i === n - 1, first = cur.i === 0;
+    if (mobile()) document.body.classList.toggle('nav-open', !!s.nav); else document.body.classList.remove('nav-open');
+    if (s.k === 'b' || s.k === 'o') { $('prefs').classList.remove('open'); $('live-rem').classList.remove('open'); }
+    el('tour-card').innerHTML = `${TOUR_CAT}<p class="tour-tx">${esc(tx(s.k))}</p>
+      <div class="tour-foot"><span class="tour-dots" aria-hidden="true">${cur.steps.map((_, j) => `<i class="${j === cur.i ? 'on' : ''}"></i>`).join('')}</span>
+      <span class="row" style="gap:6px">${first ? `<button type="button" class="btn ghost sm" data-tour="skip">${esc(tx('skip'))}</button>` : `<button type="button" class="btn ghost sm" data-tour="back">${esc(tx('back'))}</button>`}<button type="button" class="btn primary sm" data-tour="next" id="tour-next">${esc(last ? tx('done') : tx('next'))}</button></span></div>`;
+    place(); setTimeout(place, 140); setTimeout(place, 420);   // thanh bên trượt ra trên điện thoại: đo lại sau khi xong
+    const nb = el('tour-next'); if (nb) nb.focus({ preventScroll:true });
+  }
+  function go(d){
+    if (!cur) return;
+    const i = cur.i + d;
+    if (i < 0) return;
+    if (i >= cur.steps.length) return close('done');
+    cur.i = i; show();
+  }
+  function onKey(e){ if (!cur) return; if (e.key === 'Escape') { e.stopPropagation(); close('skip'); } else if (e.key === 'ArrowRight') go(1); else if (e.key === 'ArrowLeft') go(-1); }
+  function start(){
+    close();
+    if (route.name === 'admin') return;
+    $('prefs').classList.remove('open'); $('live-rem').classList.remove('open'); closeModal();
+    const sh = document.createElement('div'); sh.id = 'tour-shade'; const ring = document.createElement('div'); ring.id = 'tour-ring'; ring.style.opacity = 0;
+    const card = document.createElement('div'); card.id = 'tour-card'; card.setAttribute('role', 'dialog'); card.setAttribute('aria-live', 'polite');
+    document.body.append(sh, ring, card);
+    // thanh bên phải mở ra (điện thoại) thì mới đo được các mục trong đó
+    if (mobile()) document.body.classList.add('nav-open');
+    cur = { i:0, steps:[] };
+    setTimeout(() => {
+      cur.steps = STEPS.filter(s => !s.sel || (target(s) && target(s).getClientRects().length)); // bỏ bước nếu admin đã ẩn mục đó khỏi menu
+      show();
+    }, mobile() ? 320 : 0);
+    sh.addEventListener('click', e => e.stopPropagation());
+    card.addEventListener('click', e => { const b = e.target.closest('[data-tour]'); if (!b) return; const a = b.dataset.tour; if (a === 'next') go(1); else if (a === 'back') go(-1); else close('skip'); });
+    window.addEventListener('resize', place); window.addEventListener('keydown', onKey, true);
+  }
+  // khách cũ: đã đăng nhập, hoặc đã có việc / giờ tập trung lưu trên máy này
+  const returning = () => {
+    if (state.user) return true;
+    const f = store.get('focus', null), td = store.get('todos', null);
+    return !!((f && typeof f === 'object' && Object.keys(f).length) || (Array.isArray(td) && td.length) || store.get('bell_hint', 0) || store.get('unlock', null));
+  };
+  function ask(){
+    if (el('tour-ask')) return;
+    const d = document.createElement('div'); d.id = 'tour-ask'; d.setAttribute('role', 'dialog');
+    d.innerHTML = `${TOUR_CAT}<p class="tour-tx">${esc(tx('ask'))}</p><div class="tour-foot"><span></span><span class="row" style="gap:6px"><button type="button" class="btn ghost sm" data-ask="no">${esc(tx('no'))}</button><button type="button" class="btn primary sm" data-ask="yes">${esc(tx('yes'))}</button></span></div>`;
+    d.addEventListener('click', e => { const b = e.target.closest('[data-ask]'); if (!b) return; if (b.dataset.ask === 'yes') start(); else close('skip'); });
+    document.body.appendChild(d);
+  }
+  let tries = 0;
+  function auto(){
+    if (store.get('tour', null) !== null || cur || el('tour-ask') || route.name === 'admin') return;
+    if (!state.authReady && tries++ < 6) return setTimeout(auto, 1000);   // đợi biết đã đăng nhập chưa để chọn "tự chạy" hay "hỏi trước"
+    returning() ? ask() : start();
+  }
+  return { start, auto, close };
+})();
+PAGES.guide = function(){ location.replace('#/'); setTimeout(() => EPTour.start(), 400); };   // mục "Hướng dẫn" trên menu: về Tổng quan rồi chạy lại từ đầu

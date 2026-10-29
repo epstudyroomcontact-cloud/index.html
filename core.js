@@ -20,7 +20,7 @@ const loadLangs = () => window.EP_LANGS ? Promise.resolve() : (langsP || (langsP
 const needLangs = l => l !== 'en' && l !== 'vi' && !window.EP_LANGS;
 let plannerP = null;
 const loadPlanner = () => typeof PAGES.planner === 'function' ? Promise.resolve() : (plannerP || (plannerP = Promise.all([loadScript('planner-i18n.js?v=' + ASSET_V).catch(() => {}), loadScript('planner.js?v=' + ASSET_V)]).catch(e => { plannerP = null; throw e; })));   // planner-i18n.js = bản dịch hi/ja/ko/zh/fr/es; thiếu thì dùng tiếng Anh
-let guideP = null;   // guide.js (trang Hướng dẫn): chỉ tải khi mở #/guide
+let guideP = null;   // guide.js (hướng dẫn từng bước có mèo Moon): chỉ tải khi cần chạy hoặc hỏi khách
 const loadGuide = () => typeof PAGES.guide === 'function' ? Promise.resolve() : (guideP || (guideP = loadScript('guide.js?v=' + ASSET_V).catch(e => { guideP = null; throw e; })));
 let groupP = null;   // group.js (Nhóm học trực tiếp): chỉ tải khi mở Phòng tập trung hoặc khi khách đã tham gia và đồng hồ đổi trạng thái
 const loadGroup = () => window.EPGroup ? Promise.resolve() : (groupP || (groupP = loadScript('group.js?v=' + ASSET_V).catch(e => { groupP = null; throw e; })));
@@ -577,7 +577,7 @@ function doRender(){
     loadMoonArt().then(() => render(true)).catch(pageCrash);
     return;
   }
-  if (route.name === 'guide' && typeof PAGES.guide !== 'function') {            // guide.js chỉ tải khi mở #/guide
+  if (route.name === 'guide' && typeof PAGES.guide !== 'function') {            // #/guide (mục Hướng dẫn trên menu): tải guide.js rồi chạy lại hướng dẫn
     renderChrome(); $('page').innerHTML = '<div class="gate-load"><i></i></div>';
     loadGuide().then(() => render(true)).catch(pageCrash);
     return;
@@ -760,7 +760,7 @@ function sndHTML(){
    Khách mới vào web (chưa mở bảng chuông, chưa bật nhắc) thấy một dòng ngắn trỏ vào nút 🔔; bấm chuông hoặc bấm × là không hiện lại. */
 function bellHintHide(mark){ const h = $('bell-hint'); if (h) h.remove(); if (mark) store.set('bell_hint', 1); }
 function bellHintShow(){
-  const b = $('btn-notif'); if (!b || !b.offsetParent || $('bell-hint') || store.get('bell_hint', 0) || LR.on || $('live-rem').classList.contains('open')) return;
+  const b = $('btn-notif'); if (!b || !b.offsetParent || $('bell-hint') || store.get('bell_hint', 0) || store.get('tour', null) === null || LR.on || $('live-rem').classList.contains('open')) return;
   const r = b.getBoundingClientRect(), h = document.createElement('div');
   h.id = 'bell-hint'; h.setAttribute('role', 'status');
   h.style.cssText = `top:${Math.round(r.bottom + 10)}px;right:${Math.max(8, Math.round(innerWidth - r.right))}px;--ax:${Math.round(r.width / 2)}px`;
@@ -1061,7 +1061,6 @@ const ACTIONS = {
   pageReload: () => location.reload(),
   openNav: () => document.body.classList.add('nav-open'),
   closeNav: () => document.body.classList.remove('nav-open'),
-  guideHide: () => { store.set('guide_seen', 1); render(true); },
   prefs: () => { $('live-rem').classList.remove('open'); $('prefs').classList.toggle('open'); },
   closeModal,
   sky: el => { state.sky = el.dataset.sky; store.set('sky', state.sky); applyLook(); renderPrefs(); },
@@ -1127,6 +1126,7 @@ window.addEventListener('hashchange', () => { document.body.classList.remove('na
 
 function boot(){
   state.booted = true; setTimeout(bellHintShow, 3000);
+  setTimeout(() => { if (store.get('tour', null) === null) loadGuide().then(() => typeof EPTour !== 'undefined' && EPTour.auto()).catch(() => {}); }, 3500);   // khách mới: hướng dẫn tự chạy; khách cũ: được hỏi trước
   // Từng bước bắt lỗi riêng: một phần lỗi (giao diện, ngôn ngữ, dữ liệu…) không làm cả trang trắng. Chỉ khi không vẽ nổi trang thì báo cho lưới an toàn trong index.html (tự sửa + tải lại).
   const step = (nm, fn) => { try { const r = fn(); if (r && r.catch) r.catch(e => console.error('[EP] ' + nm, e)); } catch (e) { console.error('[EP] ' + nm, e); } };
   step('look', applyLook); step('prefs', renderPrefs); step('data', listenAll);
