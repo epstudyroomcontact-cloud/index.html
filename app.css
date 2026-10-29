@@ -45,7 +45,7 @@ html[data-calm="1"] *{animation:none!important;transition:none!important;scroll-
 /* Máy bật "giảm chuyển động" (Windows tắt Animation effects, iPhone bật Reduce Motion…): tắt mọi chuyển động lớn (trôi, bay, mưa,
    chuyển trang…) nhưng giữ vài hiệu ứng rất nhẹ tại chỗ để web không đứng im hẳn: sao lấp lánh, ánh sáng thở, trăng bồng bềnh khẽ.
    Muốn tắt hẳn mọi thứ thì tick "Giảm chuyển động" ở ⚙️ (html[data-calm] ở dòng trên). */
-@media (prefers-reduced-motion:reduce){*:not(.sky-tw,.sky-core,.sp-tw,.sp-star,.sp-glow,.sp-float,.rs-twk,.rs-pulse,.logo-mark.is-moon img){animation:none!important;transition:none!important}}
+@media (prefers-reduced-motion:reduce){*:not(.sky-tw,.sky-fly i,.sky-core,.sp-tw,.sp-star,.sp-glow,.sp-float,.rs-twk,.rs-pulse,.logo-mark.is-moon img){animation:none!important;transition:none!important}}
 
 /* ---------- App shell ---------- */
 .app{display:grid;grid-template-columns:var(--sbw) minmax(0,1fr);min-height:100vh}
@@ -157,6 +157,9 @@ input[type=checkbox],input[type=radio]{accent-color:var(--accent-strong)}
 .theme-chip{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 4px;border-radius:12px;border:1px solid var(--line);font-size:.7rem;font-weight:700;color:var(--ink2)}
 .theme-chip i{width:26px;height:26px;border-radius:50%;box-shadow:inset 0 0 0 2px rgba(255,255,255,.7)}
 .theme-chip.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-strong)}
+.fx-grid{grid-template-columns:repeat(5,1fr);gap:6px}
+.fx-grid .theme-chip{font-size:.64rem;padding:8px 2px}
+.fx-grid .theme-chip i{width:22px;height:22px}
 .switch{display:flex;align-items:center;justify-content:space-between;font-size:.86rem;font-weight:600;margin-top:12px}
 .modal{position:fixed;inset:0;z-index:200;background:rgba(15,10,20,.55);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:16px}
 .modal.open{display:flex}
@@ -915,9 +918,27 @@ button.sb-item{width:100%;background:none;border:0;font:inherit;font-weight:600;
 @keyframes gal-drift{from{transform:translate(0,0) rotate(0) scale(1)}to{transform:translate(-2.2%,1.4%) rotate(1.2deg) scale(1.03)}}
 @keyframes core-breathe{0%,100%{opacity:.6}50%{opacity:1}}
 @keyframes mote{0%{opacity:0;transform:translate(0,0)}12%{opacity:.7}85%{opacity:.5}100%{opacity:0;transform:translate(3vw,-38vh)}}
-[data-theme="pop"] .sky-gal,[data-theme="pop"] .sky-core,[data-theme="pop"] .sky-mote{display:none}
-[data-theme="pop"] .sky-tw path{fill:rgba(var(--accent-rgb),.45)}
+/* nền sáng ("Rực rỡ"): dải pastel, sao và bụi mang màu chủ đạo (sao trắng không thấy được trên nền trắng) */
+[data-theme="pop"] .sky-gal{opacity:.92}
+[data-theme="pop"] .sky-core{background:radial-gradient(closest-side,rgba(255,170,200,.26),rgba(190,170,255,.1) 55%,transparent)}
+[data-theme="pop"] .sky-mote{background:rgba(var(--accent-rgb),.7);box-shadow:0 0 6px 1px rgba(var(--accent-rgb),.35)}
+[data-theme="pop"] .sky-tw path{fill:rgba(var(--accent-rgb),.5)}
 [data-theme="pop"] .sky-tw{filter:none}
+/* kiểu nền khác (khách chọn ở ⚙️, html[data-sky]): mây trôi, cánh hoa, đom đóm; chỉ animate transform/opacity */
+.sky:not([data-m="galaxy"]) .sky-core{display:none}
+.sky-cloud{left:0;top:var(--t);width:var(--w);height:auto;opacity:var(--o);transform:translate3d(var(--cx),0,0);animation:cloud-drift var(--dur) linear var(--dl) infinite;will-change:transform}
+@keyframes cloud-drift{from{transform:translate3d(-65vw,0,0)}to{transform:translate3d(118vw,0,0)}}
+.sky-petal{left:var(--x0);top:-8vh;width:var(--s);height:var(--s);opacity:0;animation:petal-fall var(--dur) linear var(--dl) infinite;will-change:transform,opacity}
+.sky-petal img{display:block;width:100%;height:100%;animation:petal-flip var(--flip) ease-in-out infinite alternate}
+@keyframes petal-fall{0%{transform:translate3d(0,0,0) rotate(0);opacity:0}8%{opacity:var(--o)}25%{transform:translate3d(5vw,28vh,0) rotate(70deg)}50%{transform:translate3d(-3vw,60vh,0) rotate(160deg)}75%{transform:translate3d(6vw,92vh,0) rotate(250deg)}92%{opacity:var(--o)}100%{transform:translate3d(1vw,124vh,0) rotate(330deg);opacity:0}}
+@keyframes petal-flip{from{transform:scaleX(1)}to{transform:scaleX(.35)}}
+.sky-fly{left:var(--x);top:var(--y);width:0;height:0;animation:fly-wander var(--dur) ease-in-out var(--dl) infinite alternate}
+.sky-fly i{position:absolute;display:block;left:calc(var(--sz) / -2);top:calc(var(--sz) / -2);width:var(--sz);height:var(--sz);border-radius:50%;background:var(--c);box-shadow:0 0 calc(var(--sz) * 2.4) calc(var(--sz) * .6) var(--g);opacity:.7;animation:fly-blink var(--bl) ease-in-out var(--bd) infinite}
+@keyframes fly-wander{0%{transform:translate3d(0,0,0)}33%{transform:translate3d(var(--dx),calc(var(--dy) * -.6),0)}66%{transform:translate3d(calc(var(--dx) * -.5),var(--dy),0)}100%{transform:translate3d(calc(var(--dx) * .4),calc(var(--dy) * -1),0)}}
+@keyframes fly-blink{0%,100%{opacity:.12}50%{opacity:1}}
+/* giảm chuyển động: mây và cánh hoa đứng yên rải khắp màn hình; đom đóm vẫn nhấp nháy tại chỗ (ngoại lệ ở quy tắc reduced-motion bên dưới) */
+html[data-calm="1"] .sky-petal{top:var(--ty);opacity:var(--o);transform:rotate(var(--r0))}
+@media (prefers-reduced-motion:reduce){.sky-petal{top:var(--ty);opacity:var(--o);transform:rotate(var(--r0))}}
 
 /* ---------- chuyển trang: nội dung trang mới hiện dần và nhích lên nhẹ (core.js pageIn) ---------- */
 .page.page-in{animation:page-in .45s cubic-bezier(.2,.8,.2,1) backwards}
