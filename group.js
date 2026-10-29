@@ -6,8 +6,8 @@
      live:  { <uid>: { n:tên, s:lúc bắt đầu học (ms), k:'f'|'b', b:nhịp báo gần nhất (ms) } },   ai đang học
      board: { <uid>: { n:tên, mins:tổng phút tập trung tuần này, t:giờ máy chủ lần ghi cuối } }  bảng xếp hạng tuần
    }
-   Tiết kiệm lượt đọc Firestore (gói miễn phí 50.000 lượt đọc/ngày): cả nhóm nằm trong MỘT tài liệu, người xem tải lại mỗi 60 giây và chỉ khi đang
-   mở Phòng tập trung; đồng hồ của từng người tính ở máy từ lúc bắt đầu (s) nên không ghi mỗi giây; người đang học báo nhịp 4 phút/lần,
+   Tiết kiệm lượt đọc Firestore (gói miễn phí 50.000 lượt đọc/ngày): cả nhóm nằm trong MỘT tài liệu, người xem tải lại mỗi 60 giây ở Phòng tập trung (3 phút ở Tổng quan),
+   chỉ khi tab đang hiện và người xem còn đụng vào trang trong 10 phút gần nhất; đồng hồ của từng người tính ở máy từ lúc bắt đầu (s) nên không ghi mỗi giây; người đang học báo nhịp 4 phút/lần,
    quá 9 phút không báo thì ẩn. Phút học chỉ được cộng khi xong một phiên tập trung (cùng chỗ với addFocus trong pages.js).
    Quy tắc Firestore (firestore.rules): mỗi người chỉ ghi được khoá của chính mình; số phút chỉ tăng và không nhanh hơn thời gian thật.
    Tên hiển thị là biệt danh khách tự đặt khi tham gia, không lấy từ email hay tên tài khoản.
@@ -41,7 +41,7 @@ Object.assign(I18N.vi, {
   grp_err:'Chưa tải được nhóm. Bạn thử lại sau một lát nhé.', grp_err_rules:'Nhóm chưa sẵn sàng: chủ web cần dán luật bảo mật mới nhất lên Firebase.', grp_err_quota:'Hôm nay nhóm đang nghỉ. Bạn quay lại vào ngày mai nhé.'
 });
 (function(){
-  const TZ = 'Asia/Ho_Chi_Minh', BEAT = 4 * 60e3, STALE = 9 * 60e3, POLL = 60e3, SESS_GAP = 15 * 60e3, TOP = 20;   // nhịp báo, quá hạn thì ẩn, tải lại, nghỉ quá lâu thì tính phiên mới, số người trong bảng
+  const TZ = 'Asia/Ho_Chi_Minh', BEAT = 4 * 60e3, STALE = 9 * 60e3, POLL = 60e3, POLL_SLOW = 180e3, IDLE = 10 * 60e3, SESS_GAP = 15 * 60e3, TOP = 20;   // nhịp báo, quá hạn thì ẩn, tải lại (Phòng tập trung / trang khác), ngừng tải khi không đụng vào gì, nghỉ quá lâu thì tính phiên mới, số người trong bảng
   const wk = () => DT.now().setZone(TZ).toFormat("kkkk-'W'WW");
   const ref = () => db.collection('study_group').doc(wk());
   const key = () => 'grp_' + state.user.uid;
@@ -164,7 +164,14 @@ Object.assign(I18N.vi, {
     if (!timers) {
       timers = true;
       setInterval(() => { sync(); flush(); }, 30e3);                                                   // báo nhịp + cộng phút còn chờ
-      setInterval(() => { if (document.visibilityState === 'visible' && (box() || document.getElementById('grp-strip') || document.getElementById('grp-home'))) load(); }, POLL);
+      let act = Date.now(), idle = false;                                                              // không đụng vào gì 10 phút (và đồng hồ không chạy) thì ngừng tải lại cho đỡ tốn lượt đọc
+      const wake = () => { act = Date.now(); if (idle) { idle = false; if (document.visibilityState === 'visible') load(); } };
+      ['pointerdown', 'keydown', 'scroll', 'touchstart'].forEach(ev => addEventListener(ev, wake, { passive:true, capture:true }));
+      setInterval(() => {
+        const here = box() || document.getElementById('grp-strip') || document.getElementById('grp-home'); if (!here || document.visibilityState !== 'visible') return;
+        if (!pomo.running && Date.now() - act > IDLE) { idle = true; return; }
+        if (box() || Date.now() - loadedAt >= POLL_SLOW - 5e3) load();                                  // Phòng tập trung: mỗi 60 giây; Tổng quan: mỗi 3 phút
+      }, POLL);
       setInterval(() => { const now = Date.now(); document.querySelectorAll('#grp-box [data-s], #grp-home [data-s]').forEach(e => { e.textContent = fmt(now - +e.dataset.s); }); }, 20e3);
     }
   }
