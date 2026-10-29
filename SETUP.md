@@ -560,7 +560,7 @@ GitHub tự bỏ qua file nào không đổi.
 - **Mã hàng tháng** đã bỏ (xem PHẦN 10). Ai đã mở khoá bằng mã cũ sẽ bị giới hạn Focus trở lại, trừ khi họ là Người đồng hành hoặc đang dùng thử.
 
 ### 22.v. Hướng dẫn từng bước cho khách mới (mèo Moon chỉ đường)
-- Khi mở web, hướng dẫn chạy từng bước: chú mèo Moon chỉ vào đúng nút (tài khoản, Xem live, Phòng tập trung, Hành trình trăng, nút tuỳ chọn, chuông, Ủng hộ), mỗi bước một câu ngắn, bấm **Tiếp** để đi tiếp hoặc **Bỏ qua** để thoát. Có đủ 8 ngôn ngữ của web.
+- Khi mở web, hướng dẫn chạy từng bước: chú mèo Moon chỉ vào đúng nút (tài khoản, Xem live, Phòng tập trung, Hành trình trăng, nút tuỳ chọn, chuông, Ủng hộ), mỗi bước một câu ngắn, bấm **Tiếp** để đi tiếp hoặc **Bỏ qua** để thoát. Gần cuối có các bước giới thiệu **quyền lợi của Người đồng hành**: Planner của tôi, nhóm học và không giới hạn Phòng tập trung (hai ý này chỉ hiện khi bạn đã bật nhóm học / đã đặt giới hạn phút), rồi mục Ủng hộ kèm lời mời thử bằng mã dùng thử. Có đủ 8 ngôn ngữ của web.
 - **Khách mới** (lần đầu vào, chưa đăng nhập, chưa dùng gì): hướng dẫn tự chạy. **Khách cũ** (đã đăng nhập, hoặc máy đã có việc / giờ tập trung): hiện thẻ hỏi "Bạn có muốn xem hướng dẫn không?" với hai nút **Xem hướng dẫn** và **Tôi hiểu rồi**. Trả lời xong thì không hỏi lại.
 - Xem lại bất cứ lúc nào bằng mục **Hướng dẫn** trên menu (ngay dưới Tổng quan).
 - Nội dung nằm trong file mới **`guide.js`** (nhớ tải file này lên GitHub cùng chỗ với `group.js`). Nếu bạn ẩn một mục khỏi menu (Admin → Giao diện & Menu), bước chỉ vào mục đó tự được bỏ qua.
