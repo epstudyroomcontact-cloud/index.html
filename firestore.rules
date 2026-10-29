@@ -55,9 +55,60 @@ service cloud.firestore {
       let m = get(/databases/$(database)/documents/users/$(uid)).data.moon;
       return m.get('best', 0) >= 60 || m.days.size() >= 60;
     }
+    // Nhóm học trực tiếp: chỉ admin, Người đồng hành còn hạn hoặc người đang dùng thử (cùng điều kiện với Planner)
+    function grpAccess() {
+      return signedIn() && (isAdmin()
+        || (exists(/databases/$(database)/documents/companions/$(request.auth.uid)) && compActive(request.auth.uid))
+        || trialOk(request.auth.uid));
+    }
+    // live[uid] = { n:tên, s:lúc bắt đầu học (ms), k:'f' tập trung | 'b' nghỉ, b:nhịp báo gần nhất (ms, lệch giờ máy chủ tối đa 10 phút) }
+    function grpLiveOk(uid, m) {
+      return !(uid in m) || (
+        m[uid].keys().hasOnly(['n', 's', 'k', 'b'])
+        && m[uid].n is string && m[uid].n.size() >= 1 && m[uid].n.size() <= 20
+        && m[uid].s is int && m[uid].b is int
+        && m[uid].k in ['f', 'b']
+        && m[uid].b > request.time.toMillis() - 600000 && m[uid].b < request.time.toMillis() + 600000
+        && m[uid].s <= m[uid].b && m[uid].s > m[uid].b - 172800000);
+    }
+    // board[uid] = { n:tên, mins:tổng phút tập trung trong tuần, t:giờ máy chủ lần ghi cuối }
+    // Số phút chỉ tăng, mỗi lần tối đa 180 phút và không nhanh hơn thời gian thật đã trôi qua từ lần ghi trước (chống khai khống); tối đa 112 giờ/tuần.
+    function grpBoardOk(uid, nw, old) {
+      return !(uid in nw) || (
+        nw[uid].keys().hasOnly(['n', 'mins', 't'])
+        && nw[uid].n is string && nw[uid].n.size() >= 1 && nw[uid].n.size() <= 20
+        && nw[uid].mins is int && nw[uid].mins >= 0 && nw[uid].mins <= 6720
+        && nw[uid].t == request.time
+        && ((uid in old)
+          ? (nw[uid].mins >= old[uid].mins
+             && nw[uid].mins - old[uid].mins <= 180
+             && (nw[uid].mins - old[uid].mins) * 60000 <= request.time.toMillis() - old[uid].t.toMillis() + 120000)
+          : nw[uid].mins <= 180));
+    }
+    function grpWriteOk() {
+      let uid = request.auth.uid;
+      let nw = request.resource.data;
+      let live = nw.get('live', {});
+      let board = nw.get('board', {});
+      let ol = resource == null ? {} : resource.data.get('live', {});
+      let ob = resource == null ? {} : resource.data.get('board', {});
+      return nw.keys().hasOnly(['live', 'board'])
+        && live.diff(ol).affectedKeys().hasOnly([uid])
+        && board.diff(ob).affectedKeys().hasOnly([uid])
+        && live.size() <= 400 && board.size() <= 400
+        && grpLiveOk(uid, live) && grpBoardOk(uid, board, ob);
+    }
     // Giao diện, nội dung chữ/ảnh, thông tin thanh toán hiển thị cho khách, lịch live: ai cũng xem, chỉ admin sửa
     match /settings/{id}         { allow read: if true; allow write: if isAdmin(); }
     match /weekly_schedules/{id} { allow read: if true; allow write: if isAdmin(); }
+
+    // Nhóm học trực tiếp: mỗi tuần (giờ Việt Nam) một tài liệu study_group/<năm>-W<tuần> = { live:{ uid:{...} }, board:{ uid:{...} } }.
+    // Chỉ người có quyền (grpAccess) đọc được. Mỗi người chỉ ghi được khoá của chính mình trong live và board; admin xoá được mọi khoá.
+    match /study_group/{wk} {
+      allow read: if grpAccess();
+      allow create, update: if wk.matches('^20[0-9]{2}-W[0-5][0-9]$') && (isAdmin() || (grpAccess() && grpWriteOk()));
+      allow delete: if isAdmin();
+    }
 
     // Bài viết: khách chỉ đọc được bài đã xuất bản
     match /posts/{id} {

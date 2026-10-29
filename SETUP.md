@@ -11,7 +11,7 @@ Bạn sẽ dùng 4 nơi: **GitHub** (để đăng web), **Firebase** (lưu dữ 
 1. Vào https://github.com và đăng nhập. Mở repo (kho) chứa website của bạn.
 2. Bấm nút **Add file** (góc phải, màu xám) → chọn **Upload files**.
 3. Mở thư mục `D:\STUDY WITH EP\code web epstudyroom` trên máy. Chọn **tất cả** bên trong (bấm vào 1 file rồi nhấn `Ctrl + A`) và **kéo thả** vào khung trên GitHub.
-   Phải có đủ: `index.html`, `core.js`, `pages.js`, `admin.js`, `app.css` và các file khác ở trang gốc, thư mục `js`, `vendor`, `icons`, `firestore.rules`, `storage.rules`, `SETUP.md` (xem thêm **Quy tắc cập nhật** ở cuối file).
+   Phải có đủ: `index.html`, `core.js`, `pages.js`, `admin.js`, `group.js`, `app.css` và các file khác ở trang gốc, thư mục `js`, `vendor`, `icons`, `firestore.rules`, `storage.rules`, `SETUP.md` (xem thêm **Quy tắc cập nhật** ở cuối file).
    Nếu GitHub hỏi file trùng tên thì cứ để nó thay thế (bản mới đè bản cũ).
 4. Kéo xuống cuối trang, bấm nút xanh **Commit changes**.
 5. Bật trang web: bấm tab **Settings** (của repo) → cột trái chọn **Pages** → mục **Branch** chọn `main` và `/ (root)` → bấm **Save**.
@@ -523,6 +523,23 @@ Khi sửa web (hoặc nhờ mình sửa), cần nhớ:
 - Muốn gọi thêm một dịch vụ bên ngoài (một trang nhúng, một API mới…) thì phải thêm địa chỉ của nó vào dòng `Content-Security-Policy` ở `index.html` (mục `connect-src` cho lệnh gọi dữ liệu, `frame-src` cho khung nhúng). Quên bước này thì trình duyệt chặn và tính năng đó không chạy.
 - `offline.html` là ngoại lệ: mã viết thẳng trong đó được khoá bằng mã băm. Sửa mã đó thì chạy `node scripts/csp-hash.mjs` và dán mã băm mới vào dòng CSP của file.
 - Máy kiểm tra sức khoẻ mỗi tuần (Phần 20) có thêm mục "Lớp chặn mã lạ (CSP) không chặn nhầm tính năng": đỏ nghĩa là có nguồn bị chặn nhầm, báo mình xử lý.
+
+## PHẦN 22 — Nhóm học trực tiếp (chỉ cho Người đồng hành)
+
+Trong **Phòng tập trung** có khung **Nhóm học**: Người đồng hành (cả người đang dùng thử mã, và bạn) xem được **ai đang học ngay lúc này** và đã học bao lâu, cùng **bảng xếp hạng giờ tập trung trong tuần** (làm mới mỗi thứ Hai 00:00 giờ Việt Nam). Khách thường chỉ thấy lời mời trở thành Người đồng hành, nên đây là một lý do để họ ủng hộ web.
+
+**Việc phải làm 1 lần:**
+1. Dán lại luật `firestore.rules` mới (làm đúng 4 bước ở mục 2.3). Chưa dán thì nhóm báo "chưa sẵn sàng".
+2. Tải lên GitHub các file đã đổi, nhớ có file mới **`group.js`** ở trang gốc (cùng chỗ với `planner.js`).
+3. Vào **Admin → Giao diện**, tìm thẻ **Nhóm học trực tiếp (chỉ cho Người đồng hành)**, tick **Bật nhóm học** rồi bấm Lưu. Tắt ô này bất cứ lúc nào để ẩn nhóm.
+
+**Cách hoạt động:**
+- Người đồng hành bấm **Tham gia nhóm** và tự đặt một **biệt danh** (không lấy tên hay email của tài khoản). Ai đang chạy đồng hồ sẽ hiện trong "Đang học"; phút tập trung của mỗi phiên xong được cộng vào bảng xếp hạng tuần. Bấm **Rời nhóm** thì họ biến mất khỏi danh sách và bảng xếp hạng.
+- Bạn (admin) thấy nút **×** cạnh tên trong bảng xếp hạng để xoá một người có biệt danh không phù hợp.
+- Chống khai khống: quy tắc Firestore chỉ cho cộng phút không nhanh hơn thời gian thật đã trôi qua, mỗi người chỉ sửa được dòng của chính mình.
+- Nhóm tính theo từng tuần nên dữ liệu tự "làm mới" mỗi thứ Hai (tài liệu của tuần cũ vẫn còn trong Firestore, bạn có thể xoá nếu muốn). Mỗi tuần nhóm chứa tối đa khoảng 400 người khác nhau.
+
+**Chi phí:** cả nhóm nằm trong **một tài liệu**, mỗi lần làm mới (60 giây một lần, và chỉ khi đang mở Phòng tập trung) tốn khoảng 2 lượt đọc (một lượt cho tài liệu, một lượt cho việc kiểm tra quyền). Gói miễn phí cho 50.000 lượt đọc mỗi ngày, nên đủ cho vài chục người xem cùng lúc. Nếu hôm nào hết hạn mức, **nhóm tạm nghỉ đến hôm sau và bạn không bị tính tiền** (gói miễn phí không tự trừ tiền). Nếu nhóm đông lên nhiều trăm người, bạn cân nhắc nâng lên gói trả theo mức dùng của Firebase và nhớ **đặt cảnh báo ngân sách** (ví dụ 5 đô) trong Google Cloud Billing; gói này không tự dừng khi vượt hạn mức. Mục 14 nói thêm về hạn mức miễn phí.
 
 ## QUY TẮC CẬP NHẬT WEB LÊN GITHUB (đọc cái này khi cần cập nhật)
 Từ bản 8, các file hay thay đổi (`index.html`, `core.js`, `pages.js`, `admin.js`, `i18n-extra.js`, `app.css`) **đều nằm ở trang gốc của repo**, cùng chỗ với `index.html`. Chỉ còn 4 file ít khi đổi nằm trong thư mục `js`: `art.js`, `i18n.js`, `translate.js`, `firebase-config.js`. Thư mục `css` và các bản cũ `js/core.js`, `js/pages.js`, `js/admin.js`, `js/i18n-extra.js` đã bỏ hẳn (web không dùng), nếu máy bạn còn thì không cần tải lên nữa.

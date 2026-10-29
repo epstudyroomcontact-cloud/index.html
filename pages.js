@@ -344,11 +344,16 @@ Object.assign(ACTIONS, {
   ambSet: el => setAmbient(el.dataset.k),
   musicPlay: el => { const it = (music[el.dataset.k] || [])[+el.dataset.i]; if (!it) return; const e = musicEmbed(it.url); if (!e) return; musicSel = { ...e, title:L(it.title) }; const b = $('mplayer-box'); if (b) { b.innerHTML = playerHTML(); b.scrollIntoView({ block:'nearest', behavior:'smooth' }); } },
   musicClose: () => { musicSel = null; const b = $('mplayer-box'); if (b) b.innerHTML = ''; }
-});function addFocus(min){
+});/* Nhóm học trực tiếp (group.js): chỉ chạy khi admin bật và khách đã tham gia. Báo trạng thái đồng hồ lên nhóm / cộng phút lên bảng xếp hạng tuần. */
+const grpJoined = () => !!(state.user && branding.groupOn === true && store.get('grp_' + state.user.uid, null));
+const grpPing = () => { if (grpJoined()) loadGroup().then(() => window.EPGroup.sync()).catch(() => {}); };
+const grpCredit = m => { if (grpJoined()) loadGroup().then(() => window.EPGroup.credit(m)).catch(() => {}); };
+function addFocus(min){
   const k = DT.now().setZone(userTZ).toISODate(), fl = localFocus(), o = fl[k] || { m:0, s:0 };
   fl[k] = { m:o.m + min, s:o.s + 1 }; store.set('focus', fl);
   const cur = typeof curTodo === 'function' && curTodo(); if (cur) store.set('todos', todos().map(x => x.id === cur.id ? { ...x, p:(x.p || 0) + 1 } : x));      // phiên tập trung xong: cộng 1 🍅 cho việc đang chọn
   saveProfileSoon(); if (typeof renderTodos === 'function') renderTodos();
+  grpCredit(min);
   if (typeof plStudyCheck === 'function') plStudyCheck().catch(() => {});   // vừa đạt mục tiêu giờ học tuần (Planner) thì chúc mừng
 }
 /* Giới hạn thời gian tập trung mỗi ngày cho người xem miễn phí. Người đồng hành (Companions) và admin không bị giới hạn.
@@ -418,11 +423,11 @@ function pomoStart(){
     if (allow <= 0) { limitModal(); return; }
     if (pomo.remaining / 60000 > allow) { pomo.remaining = allow * 60e3; pomo.blockMin = allow; toast(t('focus_last_block', { m:allow })); }
   }
-  audio(); pomo.endAt = Date.now() + pomo.remaining; pomo.running = true; pomoSave(); updateTimerUI();
+  audio(); pomo.endAt = Date.now() + pomo.remaining; pomo.running = true; pomoSave(); updateTimerUI(); grpPing();
 }
-function pomoPause(){ if (!pomo.running) return; pomo.remaining = Math.max(0, pomo.endAt - Date.now()); pomo.running = false; pomoSave(); updateTimerUI(); }
-function pomoReset(){ pomo.running = false; pomo.blockMin = 0; pomo.remaining = pomoDur(pomo.mode); pomoSave(); updateTimerUI(); }
-function pomoMode(m){ pomo.mode = m; pomo.running = false; pomo.blockMin = 0; pomo.remaining = pomoDur(m); pomoSave(); updateTimerUI(); }
+function pomoPause(){ if (!pomo.running) return; pomo.remaining = Math.max(0, pomo.endAt - Date.now()); pomo.running = false; pomoSave(); updateTimerUI(); grpPing(); }
+function pomoReset(){ pomo.running = false; pomo.blockMin = 0; pomo.remaining = pomoDur(pomo.mode); pomoSave(); updateTimerUI(); grpPing(); }
+function pomoMode(m){ pomo.mode = m; pomo.running = false; pomo.blockMin = 0; pomo.remaining = pomoDur(m); pomoSave(); updateTimerUI(); grpPing(); }
 function pomoComplete(natural, silent){
   const wasFocus = pomo.mode === 'focus', doneMin = pomo.blockMin || pomo.cfg.focus;
   if (wasFocus && natural) pomo.cycle++;
@@ -436,6 +441,7 @@ function pomoComplete(natural, silent){
     soundPlay(wasFocus ? 'focus' : 'break'); toast(t(wasFocus ? 'notify_done_focus' : 'notify_done_break'));
     if ('Notification' in window && Notification.permission === 'granted') new Notification(branding.name, { body:t(wasFocus ? 'notify_done_focus' : 'notify_done_break') });
   }
+  grpPing();
   if (route.name === 'focus' || route.name === 'home') render(true); else updateTimerUI();
 }
 function pomoTick(){ if (!pomo.running) return; if (pomo.endAt - Date.now() <= 0) pomoComplete(true); else updateTimerUI(); }
@@ -539,8 +545,10 @@ PAGES.focus = function(){
         <div id="todo-list" class="mt-s"></div><div id="todo-pl"></div>${!state.user ? `<p class="hint mt-s">${esc(t('sync_note'))} <a class="link" href="#/account">${esc(t('signin'))}</a></p>` : ''}</section>
       ${focusNudge()}<div class="grid g2 keep2"><div class="card tile"><span class="t-l">${esc(t('sessions_today'))}</span><span class="t-v">${td.s}</span></div><div class="card tile"><span class="t-l">${esc(t('minutes_today'))}</span><span class="t-v">${td.m}</span></div></div>
       <section class="card pad"><div class="card-h"><h2>${esc(t('week_chart'))}</h2></div><div class="bars">${days.map((d, i) => `<div><i style="height:${Math.max(3, vals[i] / mx * 100)}%" title="${vals[i]} ${esc(t('min'))}"></i><small>${esc(d.setLocale(state.lang).toFormat('ccc'))}</small></div>`).join('')}</div></section></div></div><div class="mt">${musicCard()}</div>
+    ${branding.groupOn === true ? `<section class="card pad grp" id="grp-box"><div class="card-h"><h2>${ic('users', 'sm')} ${esc(t('grp_title'))}</h2></div><p class="muted">${esc(t('loading'))}</p></section>` : ''}
     <h2 class="mt" style="font-size:1.3rem;margin:40px 0 14px">${ic('heart', 'sm')} ${esc(t('nav_donate'))}</h2>${donateHTML()}`);   // phần Support nằm ngay trong Focus room
   renderTodos();
+  if (branding.groupOn === true) loadGroup().then(() => window.EPGroup.mount()).catch(() => { const b = $('grp-box'); if (b) b.remove(); });
 };
 CHANGES.cfg = el => { const k = el.dataset.k, v = Math.max(1, Math.min(180, parseInt(el.value, 10) || 1)); pomo.cfg[k] = v; if (!pomo.running && (k === pomo.mode)) pomo.remaining = pomoDur(pomo.mode); pomoSave(); updateTimerUI(); };
 CHANGES.cfgAuto = el => { pomo.cfg.auto = el.checked; pomoSave(); };

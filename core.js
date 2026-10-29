@@ -20,6 +20,8 @@ const loadLangs = () => window.EP_LANGS ? Promise.resolve() : (langsP || (langsP
 const needLangs = l => l !== 'en' && l !== 'vi' && !window.EP_LANGS;
 let plannerP = null;
 const loadPlanner = () => typeof PAGES.planner === 'function' ? Promise.resolve() : (plannerP || (plannerP = Promise.all([loadScript('planner-i18n.js?v=' + ASSET_V).catch(() => {}), loadScript('planner.js?v=' + ASSET_V)]).catch(e => { plannerP = null; throw e; })));   // planner-i18n.js = bản dịch hi/ja/ko/zh/fr/es; thiếu thì dùng tiếng Anh
+let groupP = null;   // group.js (Nhóm học trực tiếp): chỉ tải khi mở Phòng tập trung hoặc khi khách đã tham gia và đồng hồ đổi trạng thái
+const loadGroup = () => window.EPGroup ? Promise.resolve() : (groupP || (groupP = loadScript('group.js?v=' + ASSET_V).catch(e => { groupP = null; throw e; })));
 const EMAILJS_SERVICE = 'service_a098n5f', EMAILJS_CHALLENGE_TPL = 'template_lhv0y0n';
 // Cấu hình Firebase nằm trong js/firebase-config.js (file duy nhất bạn cần sửa để nối web với Firebase)
 const CONFIG_MISSING = !window.FIREBASE_CONFIG || /PASTE_|PLACEHOLDER/.test(JSON.stringify(window.FIREBASE_CONFIG));
@@ -63,7 +65,7 @@ const state = {
 if (!['galaxy', 'clouds', 'petals', 'fireflies', 'off'].includes(state.sky)) state.sky = 'galaxy';
 if (!['rain', 'pop', 'violet', 'teal'].includes(state.theme)) state.theme = null;   // bỏ giá trị theme cũ của các bản trước
 let userTZ = state.tz === 'auto' ? DT.local().zoneName : state.tz;
-let branding = { name:'Ép Study Room', themeColor:'#ff3d9a', defaultTheme:'rain', font:'baloo', logoUrl:'', mascotUrl:'', ytChannelId:'', ytLiveId:'', videos:[], contacts:{}, socialLinks:{}, announcement:{}, nav:null, homeSections:{}, focusLimit:120, focusCodeHash:'', focusCodeUntil:'',
+let branding = { name:'Ép Study Room', groupOn:false, themeColor:'#ff3d9a', defaultTheme:'rain', font:'baloo', logoUrl:'', mascotUrl:'', ytChannelId:'', ytLiveId:'', videos:[], contacts:{}, socialLinks:{}, announcement:{}, nav:null, homeSections:{}, focusLimit:120, focusCodeHash:'', focusCodeUntil:'',
   blogCats:[
     { id:'journal', label:{ en:'Journal', vi:'Nhật ký' }, desc:{ en:'Personal notes and updates.', vi:'Ghi chép và cập nhật cá nhân.' } },
     { id:'study', label:{ en:'Study notes', vi:'Ghi chép học tập' }, desc:{ en:'Methods, routines and what works.', vi:'Phương pháp, thói quen và điều hiệu quả.' } },
@@ -487,6 +489,7 @@ auth.onAuthStateChanged(async u => {
       if (profile.unlock && !store.get('unlock', null)) store.set('unlock', profile.unlock);
       if (!d.exists || !profile.displayName) { profile.displayName = profile.displayName || u.displayName || (u.email || '').split('@')[0]; }
       state.profileReady = true;                                      // hồ sơ đã tải xong → mới được hiện/ghi Moon Journey
+      if (typeof grpPing === 'function') grpPing();                   // đã tham gia nhóm học và đồng hồ đang chạy → báo lại trạng thái
       store.set('moon_' + u.uid, profile.moon || null);               // nhớ để lần sau hiện ngay trong lúc chờ tải
       render(true);
       saveProfileNow();
