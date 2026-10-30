@@ -616,7 +616,7 @@ function afterRender(){
 }
 const NAV_DEFAULT = [
   { id:'home', icon:'home', path:'/' }, { id:'guide', icon:'info', path:'/guide' }, { id:'schedule', icon:'calendar', path:'/schedule' }, { id:'watch', icon:'play', path:'/watch' },
-  { id:'focus', icon:'timer', path:'/focus' }, { id:'group', icon:'users', path:'/focus' }, { id:'blog', icon:'pen', path:'/blog' }, { id:'club', icon:'moon', path:'/club' }, { id:'planner', icon:'chart', path:'/planner' }, { id:'shop', icon:'bag', path:'/shop' }, { id:'gear', icon:'tag', path:'/gear' }, { id:'donate', icon:'heart', path:'/donate' }, { id:'about', icon:'info', path:'/about' }
+  { id:'focus', icon:'timer', path:'/focus' }, { id:'blog', icon:'pen', path:'/blog' }, { id:'club', icon:'moon', path:'/club' }, { id:'planner', icon:'chart', path:'/planner' }, { id:'shop', icon:'bag', path:'/shop' }, { id:'gear', icon:'tag', path:'/gear' }, { id:'donate', icon:'heart', path:'/donate' }, { id:'about', icon:'info', path:'/about' }
 ];
 function navItems(){
   const saved = branding.nav; if (!Array.isArray(saved) || !saved.length) return NAV_DEFAULT.map(n => ({ ...n, visible:true }));
@@ -627,15 +627,14 @@ function navItems(){
 }
 const navLabel = n => (n.label && (n.label[state.lang] || (isNativeContent() ? '' : n.label.en) || n.label.en || n.label.vi)) || t('nav_' + n.id);
 function renderChrome(){
-  const items = navItems().filter(n => n.visible !== false && n.id !== 'about' && (n.id !== 'group' || branding.groupOn === true));   // About đã gộp vào Overview
+  const items = navItems().filter(n => n.visible !== false && n.id !== 'about');   // About đã gộp vào Overview
   const cartN = cartCount();
   const logo = `<img src="${esc(branding.logoUrl || 'icons/logo.svg')}" alt="">`;
   $('sidebar').innerHTML = `
     <a class="sb-brand" href="#/"><span class="logo-mark${branding.logoUrl ? '' : ' is-moon'}">${logo}</span><span>${esc(branding.name)}</span></a>
     ${items.map(n => n.url
       ? `<a class="sb-item" href="${esc(safeUrl(n.url))}" target="_blank" rel="noopener">${ic('link')}<span>${esc(navLabel(n))}</span></a>`
-      : n.id === 'group' ? `<a class="sb-item sb-grp" href="#/focus" data-act="grpOpen">${ic(n.icon)}<span>${esc(navLabel(n))}</span>${store.get('grp_seen', 0) ? '' : '<i class="sb-new" aria-hidden="true"></i>'}</a>`
-      : `<a class="sb-item ${route.name === n.id || (n.id === 'home' && route.name === 'home') ? 'active' : ''}" href="#${n.path}" data-act="closeNav">${ic(n.icon)}<span>${esc(navLabel(n))}</span>${n.id === 'shop' && cartN ? `<span class="count">${cartN}</span>` : ''}${isLocked(n.id) ? `<span class="lk" title="${esc(t('lock_title'))}">${ic('lock', 'sm')}</span>` : ''}</a>`).join('')}
+      : `<a class="sb-item ${route.name === n.id || (n.id === 'home' && route.name === 'home') ? 'active' : ''}" href="#${n.path}" data-act="${n.id === 'focus' && branding.groupOn === true ? 'grpSeen' : 'closeNav'}">${ic(n.icon)}${n.id === 'focus' && branding.groupOn === true ? `<span class="sb-two">${esc(navLabel(n))}<small>+ ${esc(t('nav_group'))}</small></span>${store.get('grp_seen', 0) ? '' : '<i class="sb-new" aria-hidden="true"></i>'}` : `<span>${esc(navLabel(n))}</span>`}${n.id === 'shop' && cartN ? `<span class="count">${cartN}</span>` : ''}${isLocked(n.id) ? `<span class="lk" title="${esc(t('lock_title'))}">${ic('lock', 'sm')}</span>` : ''}</a>`).join('')}
     ${state.user ? `<div class="sb-label">${esc(t('nav_account'))}</div>
       <a class="sb-item ${route.name === 'account' && route.args[0] === 'library' ? 'active' : ''}" href="#/account/library" data-act="closeNav">${ic('download')}<span>${esc(t('nav_library'))}</span>${library.length ? `<span class="count">${library.length}</span>` : ''}</a>` : ''}
     ${pwaStandalone() ? '' : `<button type="button" class="sb-item sb-install" data-act="pwaInstall">${ic('download')}<span>${esc(t('pwa_install'))}</span></button>`}

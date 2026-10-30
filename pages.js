@@ -350,6 +350,7 @@ Object.assign(ACTIONS, {
 });/* Nhóm học trực tiếp (group.js): chỉ chạy khi admin bật và khách đã tham gia. Báo trạng thái đồng hồ lên nhóm / cộng phút lên bảng xếp hạng tuần. */
 const grpJoined = () => !!(state.user && branding.groupOn === true && store.get('grp_' + state.user.uid, null));
 const grpScroll = () => { const b = $('grp-box'); if (b) b.scrollIntoView({ block:'start', behavior:motionOff() ? 'auto' : 'smooth' }); };   // lối vào nhóm học (menu, Tổng quan): mở Phòng tập trung và kéo xuống khung nhóm học
+ACTIONS.grpSeen = () => { store.set('grp_seen', 1); document.body.classList.remove('nav-open'); document.querySelectorAll('.sb-new').forEach(e => e.remove()); };   // bấm Phòng tập trung ở menu: chấm "mới" của nhóm học tắt
 ACTIONS.grpOpen = () => { store.set('grp_seen', 1); document.body.classList.remove('nav-open'); document.querySelectorAll('.sb-new').forEach(e => e.remove()); if (route.name === 'focus') grpScroll(); else store.set('grp_goto', 1); };
 const grpPing = () =>  { if (grpJoined()) loadGroup().then(() => window.EPGroup.sync()).catch(() => {}); };
 const grpCredit = m => { if (grpJoined()) loadGroup().then(() => window.EPGroup.credit(m)).catch(() => {}); };
@@ -548,7 +549,7 @@ Object.assign(ACTIONS, {
 PAGES.focus = function(){
   const fl = localFocus(), today = DT.now().setZone(userTZ), days = Array.from({ length:7 }, (_, i) => today.minus({ days:6 - i })), vals = days.map(d => (fl[d.toISODate()] || { m:0 }).m), mx = Math.max(30, ...vals), td = fl[today.toISODate()] || { m:0, s:0 };
   const fxTabs = [['todo', t('fx_tab_todo'), 'check'], ['music', t('fx_tab_music'), 'volume']], fsTabs = [...(branding.groupOn === true ? [['group', t('fx_tab_group'), 'users']] : []), ['live', t('fx_tab_stream'), 'play']];   // Việc + Nhạc cạnh bộ đếm; Nhóm + Live ở khung riêng để xem song song
-  const fxCur = [TABS.fx, store.get('fx_tab', 'todo')].find(k => fxTabs.some(x => x[0] === k)) || 'todo', fsCur = [TABS.fs, store.get('fs_tab', 'live')].find(k => fsTabs.some(x => x[0] === k)) || fsTabs[0][0], fxCfgOpen = store.get('fx_cfg', null) ?? matchMedia('(min-width:1101px)').matches;   // bộ đếm: cài đặt mở sẵn trên màn rộng, gập trên điện thoại để danh sách việc không bị đẩy xuống
+  const fxCur = [TABS.fx, store.get('fx_tab', 'todo')].find(k => fxTabs.some(x => x[0] === k)) || 'todo', fsCur = [TABS.fs, store.get('fs_tab', 'group')].find(k => fsTabs.some(x => x[0] === k)) || fsTabs[0][0], fxCfgOpen = store.get('fx_cfg', null) ?? matchMedia('(min-width:1101px)').matches;   // bộ đếm: cài đặt mở sẵn trên màn rộng, gập trên điện thoại để danh sách việc không bị đẩy xuống
   const c = pomo.cfg, num = (k, lab) => `<div class="field"><label class="label">${esc(lab)}</label><input class="input" type="number" min="1" max="180" value="${c[k]}" data-change="cfg" data-k="${k}"></div>`;
   page(`${head('focus_title', 'focus_sub', '', 'umbrella', 4)}${state.user ? (plLinked() ? hintNote('new_focus2') : hintNote('new_tease', '#/planner')) : ''}${trialNudge()}
     <div class="grid g-main fx3"><section class="card timer-card fx-timer">
