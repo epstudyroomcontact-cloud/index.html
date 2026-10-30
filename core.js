@@ -256,7 +256,7 @@ function listenOnair(){
     ONAIR.unsub = db.collection('settings').doc('onair').onSnapshot(d => {
       const f = d.exists ? d.data() : {}, nx = { start:+f.start || 0, sched:+f.sched || 0, at:+f.at || 0 }, cur = ONAIR.v || {};
       if (nx.start === cur.start && nx.sched === cur.sched) return;
-      ONAIR.v = nx; store.set('onair', nx); lastSig = ''; render();
+      ONAIR.v = nx; store.set('onair', nx); lastSig = ''; render(); try { adminLiveNudge(); } catch (e) {}
     }, e => console.warn('onair', e.code || e));
   } catch (e) {}
 }
@@ -972,6 +972,17 @@ async function plRemSet(on, quiet){
   renderLiveRem(); if (route.name === 'planner') render(true);
 }
 ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => { if ((LR.on && lrSound() || plRemIsOn()) && typeof audio === 'function' && audioLocked()) { audio(); if ($('live-rem').classList.contains('open')) setTimeout(renderLiveRem, 50); } }, { passive:true }));
+/* Nút nổi "Bắt đầu live" chỉ cho admin: web CHỈ báo "Đang live" sau khi admin bấm bắt đầu (settings/onair), còn bấm Start Streaming trong OBS chỉ dời bộ đếm trên OBS.
+   Để khỏi quên, khi tới giờ lịch mà chưa bấm (hoặc còn dưới 15 phút nữa tới giờ) thì ở mọi trang đều có nút này, bấm một lần là xong, dùng được cả trên điện thoại. */
+function adminLiveNudge(){
+  let b = document.getElementById('golive-fab');
+  const st = state.isAdmin && !DEMO ? liveState() : null, x = st && !st.live && (st.waiting || (st.next && st.next.start.toMillis() - st.now < 15 * 60e3 ? st.next : null));
+  if (!x) { if (b) b.remove(); return; }
+  if (!b) { b = document.createElement('button'); b.id = 'golive-fab'; b.type = 'button'; b.className = 'btn primary golive-fab'; b.dataset.act = 'goLiveNow'; document.body.appendChild(b); }
+  const late = st.waiting ? Math.max(1, Math.round((st.now - x.sched.toMillis()) / 60e3)) : 0;
+  b.innerHTML = `<i class="golive-dot"></i> Bắt đầu live${late ? ` <small>(đã tới giờ, trễ ${late} phút)</small>` : ` <small>(${x.start.setZone(VN).toFormat('HH:mm')})</small>`}`;
+  b.classList.toggle('late', !!late);
+}
 function tickClock(){
   const n = DT.now().setZone(userTZ), txt = n.toFormat('hh:mm:ss a');
   document.querySelectorAll('[data-clock]').forEach(e => e.textContent = txt);
@@ -980,6 +991,7 @@ function tickClock(){
   if (mk !== lastMin) { lastMin = mk; const ms = Date.now(), sig = n.toISODate() + poolAll().map(x => x.key + (isLive(x, ms) ? 'L' : isWaiting(x, ms) ? 'W' : ms >= x.end.toMillis() ? 'P' : '')).join(','); if (sig !== lastSig) { lastSig = sig; if (['home', 'schedule'].includes(route.name)) render(); } }
 }
 setInterval(() => { tickClock(); updateNext(); }, 1000);
+setInterval(() => { try { adminLiveNudge(); } catch (e) {} }, 10e3);
 
 /* =========================================================
    MODAL / POPOVER / NAV
@@ -1062,6 +1074,12 @@ const ACTIONS = {
   openNav: () => document.body.classList.add('nav-open'),
   closeNav: () => document.body.classList.remove('nav-open'),
   prefs: () => { $('live-rem').classList.remove('open'); $('prefs').classList.toggle('open'); },
+  goLiveNow: async () => {   // giống nút "Bắt đầu buổi live bây giờ" trong Admin (ghi settings/onair), nhưng bấm được từ mọi trang
+    const st = liveState(), x = st.waiting || st.next; if (!x || !state.isAdmin || st.live) return;
+    const cur = ONAIR.v || {}, now = Date.now();
+    try { await db.collection('settings').doc('onair').set({ start:now, sched:x.sched.toMillis(), at:now, prev:{ start:cur.start || 0, sched:cur.sched || 0, at:cur.at || 0 } }, { merge:true }); toast('✓ Đã bắt đầu. Web báo đang live ngay, OBS tự theo trong khoảng 10 giây.', 3500); adminLiveNudge(); }
+    catch (e) { console.warn(e); toast('Chưa lưu được: ' + (e.code || e.message)); }
+  },
   closeModal,
   sky: el => { state.sky = el.dataset.sky; store.set('sky', state.sky); applyLook(); renderPrefs(); },
   theme: el => { state.theme = el.dataset.th; store.set('theme', state.theme); applyLook(); renderPrefs(); render(true); },
