@@ -277,10 +277,28 @@ function onairCard(){
   body += `<div class="mt" style="border-top:1px dashed var(--line,#ddd);padding-top:12px"><label class="small"><b>Thông báo trên OBS</b> <span class="muted">(hiện nổi bật trên bảng lịch cho người xem, ví dụ mục tiêu hôm nay, nội quy, lời nhắn; để trống là ẩn)</span></label>
       <textarea class="textarea" id="onairNote" maxlength="300" style="min-height:60px;margin-top:6px" placeholder="VD: Mục tiêu hôm nay: xong 10 phiên 🔥  ·  Nhớ uống nước nha!">${esc(note)}</textarea>
       <div class="row mt-s"><button class="btn primary sm" data-act="onairNote">Lưu thông báo</button>${note ? `<button class="btn ghost sm" data-act="onairNoteClear">Ẩn thông báo</button>` : ''}</div></div>`;
+  body += obsKeyHTML();
   return `<div id="onair" style="margin-bottom:16px">${aCard(`${ic('timer', 'sm')} Bắt đầu buổi live`, body)}</div>`;
+}
+/* Khoá OBS: để bảng lịch / bộ đếm trong OBS tự báo web "Đang live" lúc bấm Start Streaming (xem core.js obsWatch, overlay.js tellWeb, firestore.rules obs_signal).
+   Khoá nằm ở private/obs (chỉ admin đọc được). Link trong OBS thêm &k=<khoá>. */
+let obsKey;   // undefined = đang tải, '' = chưa tạo, 'err' = chưa đọc được (thường do chưa dán luật bảo mật mới)
+function obsKeyHTML(){
+  const top = `<div class="mt" id="obs-key" style="border-top:1px dashed var(--line,#ddd);padding-top:12px"><b class="small">Tự báo live theo OBS</b>`;
+  if (obsKey === undefined) return `${top}<p class="hint">Đang kiểm tra…</p></div>`;
+  if (obsKey === 'err') return `${top}<p class="hint">Chưa dùng được: cần dán luật bảo mật mới nhất lên Firebase (SETUP.md, mục 22.s), rồi tải lại trang này.</p></div>`;
+  if (!obsKey) return `${top}<p class="hint">Bật tính năng này thì khi bạn bấm <b>Start Streaming</b> trong OBS, web tự báo <b>Đang live</b> đúng giờ đó (khi bạn đang mở web bằng tài khoản admin), không phải bấm hay nhập phút.</p><button class="btn secondary sm" data-act="obsKeyMake">Tạo khoá OBS</button></div>`;
+  return `${top}<p class="hint">Đã bật. Trong OBS, ở <b>mỗi</b> nguồn Browser (bảng lịch, bộ đếm), thêm đoạn dưới vào <b>cuối</b> link rồi lưu. Khoá chỉ bạn thấy, đừng gửi cho ai.</p>
+    <div class="row" style="flex-wrap:nowrap"><input class="input mono" id="obs-key-val" readonly value="&k=${esc(obsKey)}" onclick="this.select()"><button class="btn secondary sm" data-act="obsKeyCopy">Chép</button></div>
+    <p class="hint">Ví dụ: <code>…/overlay.html?view=timer<b>&k=…</b></code>. Đổi khoá mới thì phải sửa lại link trong OBS. <button type="button" class="btn ghost sm" data-act="obsKeyMake">Tạo khoá mới</button></p></div>`;
+}
+async function obsKeyMount(){
+  if (DEMO) { obsKey = ''; } else { try { const d = await db.collection('private').doc('obs').get(); obsKey = d.exists && d.data().k ? d.data().k : ''; } catch (e) { console.warn('obs key', e.code); obsKey = 'err'; } }
+  const el = $('obs-key'); if (el) el.outerHTML = obsKeyHTML();
 }
 function onairMount(){
   const b = $('admin-body'); if (!b) return;
+  if (obsKey === undefined) obsKeyMount();
   const old = $('onair'); if (old) old.outerHTML = onairCard(); else b.insertAdjacentHTML('afterbegin', onairCard());
   if (!onairUnsub && !DEMO) onairUnsub = db.collection('settings').doc('onair').onSnapshot(d => { onair = d.exists ? d.data() : null; const el = $('onair'); if (el && document.activeElement !== $('onairNote')) el.outerHTML = onairCard(); }, e => console.warn('onair', e.code));
 }
@@ -362,6 +380,13 @@ Object.assign(ACTIONS, {
   onairStartAgo: async () => { const x = onairMatch() || onairNext(); if (!x) return toast('Không có buổi live nào sắp tới trong lịch.');
     const ago = Math.max(0, Math.min(180, Math.round(+($('onairAgo') || {}).value || 0), Math.max(0, x.mins - 1)));   // web và bộ đếm OBS tính cả buổi từ đúng lúc bạn bấm Start Streaming
     if (await onairSave({ start:Date.now() - ago * 60e3, sched:x.sched.toMillis(), prev:onairSnap() })) toast(`✓ Đã bắt đầu${ago ? ` (tính từ ${ago} phút trước)` : ''}. Web báo đang live ngay, OBS tự theo trong khoảng 10 giây.`, 3500); },
+  obsKeyMake: async () => {
+    if (obsKey && !confirm('Tạo khoá mới sẽ làm khoá cũ ngưng hoạt động, bạn phải sửa lại link trong OBS. Tiếp tục?')) return;
+    const a = new Uint8Array(18); crypto.getRandomValues(a); const k = Array.from(a, v => (v % 36).toString(36)).join('');
+    try { if (!DEMO) await db.collection('private').doc('obs').set({ k }); obsKey = k; const el = $('obs-key'); if (el) el.outerHTML = obsKeyHTML(); toast('Đã tạo khoá OBS. Thêm vào link trong OBS theo hướng dẫn.', 3500); }
+    catch (e) { toast('Chưa tạo được: ' + (e.code || e.message) + '. Đã dán luật bảo mật mới lên Firebase chưa?'); }
+  },
+  obsKeyCopy: async () => { const i = $('obs-key-val'); if (!i) return; try { await navigator.clipboard.writeText(i.value); toast('Đã chép.'); } catch (e) { i.select(); toast('Bấm Ctrl+C để chép.'); } },
   onairShift: async el => { if (!onairMatch()) return; await onairSave({ start:onair.start + (+el.dataset.m) * 60e3, sched:onair.sched, prev:(onair.prev && Date.now() - onair.at < 600e3) ? onair.prev : onairSnap() }); },
   onairClear: async () => { if (await onairSave({ start:0, sched:0, prev:onairSnap() })) toast('Đã huỷ bắt đầu: web thôi báo đang live, lịch về giờ dự kiến.'); },
   onairNote: async () => { const v = ($('onairNote').value || '').trim().slice(0, 300);

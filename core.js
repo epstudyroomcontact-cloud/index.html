@@ -974,7 +974,23 @@ async function plRemSet(on, quiet){
 ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => { if ((LR.on && lrSound() || plRemIsOn()) && typeof audio === 'function' && audioLocked()) { audio(); if ($('live-rem').classList.contains('open')) setTimeout(renderLiveRem, 50); } }, { passive:true }));
 /* Nút nổi "Bắt đầu live" chỉ cho admin: web CHỈ báo "Đang live" sau khi admin bấm bắt đầu (settings/onair), còn bấm Start Streaming trong OBS chỉ dời bộ đếm trên OBS.
    Để khỏi quên, khi tới giờ lịch mà chưa bấm (hoặc còn dưới 15 phút nữa tới giờ) thì ở mọi trang đều có nút này, bấm một lần là xong, dùng được cả trên điện thoại. */
+/* Tự báo live theo OBS: overlay trong OBS ghi obs_signal/start lúc bấm Start Streaming (cần khoá &k=… trong link, xem Admin → Khoá OBS). Admin đang mở web thấy tín hiệu này
+   thì tự ghi settings/onair với đúng giờ OBS bắt đầu, nên web báo "Đang live" và bộ đếm khớp OBS mà không phải bấm hay nhập phút. Chỉ admin đọc được tài liệu này (1 lượt đọc mỗi lần đổi). */
+let OBS_SIG = null, obsUnsub = null;
+function obsWatch(){
+  if (obsUnsub || DEMO || !state.isAdmin) return;
+  try { obsUnsub = db.collection('obs_signal').doc('start').onSnapshot(d => { OBS_SIG = d.exists ? d.data() : null; obsAuto(); adminLiveNudge(); }, e => { console.warn('obs_signal', e.code || e); }); } catch (e) {}
+}
+function obsAuto(){
+  const d = OBS_SIG, now = Date.now(); if (!d || !state.isAdmin || !d.start || !d.sched) return;
+  if (now - (+d.at || 0) > 5 * 60e3 || d.start > now + 60e3) return;                      // chỉ theo tín hiệu vừa mới
+  const cur = ONAIR.v || {}; if (cur.sched === d.sched && cur.start) return;              // buổi này đã được báo live rồi (OBS tự báo hoặc admin bấm tay): giữ nguyên
+  const x = upcomingPool().find(p => p.sched.toMillis() === +d.sched); if (!x) return;
+  db.collection('settings').doc('onair').set({ start:+d.start, sched:+d.sched, at:now, prev:{ start:cur.start || 0, sched:cur.sched || 0, at:cur.at || 0 } }, { merge:true })
+    .then(() => toast('✓ OBS vừa bắt đầu stream, web đã tự báo đang live.', 4500)).catch(e => console.warn(e));
+}
 function adminLiveNudge(){
+  obsWatch();
   let b = document.getElementById('golive-fab');
   const st = state.isAdmin && !DEMO ? liveState() : null, x = st && !st.live && (st.waiting || (st.next && st.next.start.toMillis() - st.now < 15 * 60e3 ? st.next : null));
   if (!x) { if (b) b.remove(); return; }
@@ -1076,8 +1092,9 @@ const ACTIONS = {
   prefs: () => { $('live-rem').classList.remove('open'); $('prefs').classList.toggle('open'); },
   goLiveNow: () => {   // hỏi "đã bấm Start Streaming cách đây bao nhiêu phút" để bộ đếm web khớp với OBS, rồi bấm Bắt đầu
     const st = liveState(), x = st.waiting || st.next; if (!x || !state.isAdmin || st.live) return;
-    openModal(`<h3 style="margin-bottom:6px;padding-right:32px">Bắt đầu live</h3><p class="small muted">Bạn đã bấm Start Streaming trong OBS cách đây bao nhiêu phút? Web sẽ tính bộ đếm khớp với OBS. Vừa bấm xong thì để 0.</p>
-      <div class="row mt-s" style="flex-wrap:nowrap;align-items:center"><input class="input" id="golive-min" type="number" min="0" max="180" value="0" style="width:96px"><span>phút trước</span></div>
+    const sg = OBS_SIG && OBS_SIG.sched === x.sched.toMillis() && Date.now() - OBS_SIG.start < 4 * 3600e3 ? Math.max(0, Math.round((Date.now() - OBS_SIG.start) / 60e3)) : null;   // OBS đã báo giờ Start Streaming thật
+    openModal(`<h3 style="margin-bottom:6px;padding-right:32px">Bắt đầu live</h3><p class="small muted">${sg !== null ? `OBS báo bạn đã bắt đầu stream cách đây <b>${sg} phút</b>, web sẽ tính theo mốc đó (bạn vẫn sửa được).` : 'Bạn đã bấm Start Streaming trong OBS cách đây bao nhiêu phút? Web sẽ tính bộ đếm khớp với OBS. Vừa bấm xong thì để 0.'}</p>
+      <div class="row mt-s" style="flex-wrap:nowrap;align-items:center"><input class="input" id="golive-min" type="number" min="0" max="180" value="${sg !== null ? sg : 0}" style="width:96px"><span>phút trước</span></div>
       <div class="row mt"><button type="button" class="btn primary" data-act="goLiveGo">Bắt đầu live</button></div>`, true);
   },
   goLiveGo: async () => {   // ghi settings/onair giống nút "Bắt đầu buổi live bây giờ" trong Admin

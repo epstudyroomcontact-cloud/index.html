@@ -170,7 +170,15 @@ function streamStarted(){
   if (!x) return;
   if (o && o.start && o.sched === x.start && now >= o.start && now < o.start + dur(x)) return;   // buổi này đang chạy rồi (stream lại sau khi rớt mạng)
   obsStart = { start:now, sched:x.start, at:now }; store.set('ep-overlay-obsstart', obsStart); applyOnair();
+  tellWeb(obsStart);
   if (!Q.get('view')) render();
+}
+/* Báo cho web biết OBS vừa bắt đầu stream (để web tự báo "Đang live" đúng giờ này, khỏi bấm tay): ghi obs_signal/start kèm khoá bí mật trong link (&k=…, tạo ở Admin → Tổng quan → Khoá OBS).
+   Không có khoá thì thôi, bảng lịch và bộ đếm vẫn chạy như cũ. firestore.rules chỉ nhận khi khoá đúng. */
+function tellWeb(o){
+  const k = Q.get('k'); if (!k) return;
+  const n = v => ({ integerValue:String(Math.round(v)) });
+  fetch(DOCS + 'obs_signal/start?key=' + API_KEY, { method:'PATCH', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ fields:{ start:n(o.start), sched:n(o.sched), at:n(o.at), k:{ stringValue:k } } }) }).catch(() => {});
 }
 if (Q.get('autostart') !== '0') window.addEventListener('obsStreamingStarted', streamStarted);
 window.addEventListener('storage', e => { if (e.key === 'ep-overlay-obsstart') { obsStart = store.get('ep-overlay-obsstart'); applyOnair(); } });   // nguồn khác trong OBS vừa ghi
