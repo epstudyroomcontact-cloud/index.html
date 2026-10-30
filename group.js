@@ -148,12 +148,24 @@ Object.assign(I18N.vi, {
   }
 
   /* ---------- đọc ---------- */
+  /* Vào web là thấy ngay người đang học của lần xem trước (lưu trong máy), rồi mới cập nhật từ Firestore; trong lúc chờ hiện "Đang tải" thay vì "Chưa có ai". Người báo nhịp quá 9 phút vẫn tự bị ẩn. */
+  let seeded = false;
+  const known = () => loadedAt > 0 || seeded;
+  const ms = v => v && typeof v.toMillis === 'function' ? v.toMillis() : 0, wrapMs = n => n ? { toMillis:() => n } : undefined;
+  function saveSnap(){
+    try { store.set('grp_snap', { uid:state.user.uid, wk:wk(), live, board:Object.fromEntries(Object.entries(board).map(([k, e]) => [k, { ...e, t:ms(e && e.t), f:e && e.f ? ms(e.f) : undefined }])) }); } catch (e) { /* đầy bộ nhớ: bỏ qua */ }
+  }
+  function prime(){
+    if (known() || !state.user) return; const x = store.get('grp_snap', null);
+    if (!x || x.uid !== state.user.uid || x.wk !== wk()) return;
+    live = x.live || {}; board = Object.fromEntries(Object.entries(x.board || {}).map(([k, e]) => [k, { ...e, t:wrapMs(e.t), f:wrapMs(e.f) }])); seeded = true;
+  }
   async function load(force){
     if (!on() || busy || (!force && Date.now() - loadedAt < 15000)) return; busy = true; renderBox();
     const w0 = wk();
     try {
       const d = await ref().get(), x = d.exists ? d.data() : {};
-      live = x.live || {}; board = x.board || {}; loadedAt = Date.now(); loadedWk = w0; err = ''; rankWatch();
+      live = x.live || {}; board = x.board || {}; loadedAt = Date.now(); loadedWk = w0; err = ''; saveSnap(); rankWatch();
       const id = state.user.uid, mine = board[id] || live[id], nn = mine && nameOk(mine.n);
       if (nn && !me()) { store.set(key(), { n:nn }); sync(true); }                // đã tham gia ở thiết bị khác của tài khoản này: nhận lại biệt danh, nếu không thiết bị này không báo "đang học" và không cộng phút
       if (live[id] && !want()) clearLive();          // sót lại từ lần đóng web đột ngột
@@ -195,7 +207,7 @@ Object.assign(I18N.vi, {
     const top = all.slice(0, TOP), mine = all.findIndex(x => x.k === id), row = (x, i) => `<li class="grp-row ${x.k === id ? 'me' : ''}"><span class="grp-rank r${i < 3 ? i + 1 : 0}">${i + 1}</span>${avatar(x.n)}<b class="grp-n">${esc(x.n)}${x.k === id ? ` <span class="badge">${esc(t('grp_you'))}</span>` : ''}</b><span class="grp-t">${esc(fmt(x.mins * 60000))}</span>${kick(x.k)}</li>`;
     const cl = climb(), sum = cl ? `<p class="grp-climb small"><b>${esc(t('grp_rank', { r:cl.r }))}</b>${trendHTML(cl)}<span class="muted">${esc(gapText(cl))}</span></p>` : '';
     return `<h3 class="grp-h">${esc(t('grp_board'))}</h3>${sum}` + (all.length
-      ? `<ol class="grp-list">${top.map(row).join('')}${mine >= TOP ? `<li class="grp-gap" aria-hidden="true">…</li>${row(all[mine], mine)}` : ''}</ol>` : `<p class="muted small">${esc(t('grp_board_none'))}</p>`) + `<p class="small faint mt-s">${esc(t('grp_reset'))}</p>`;
+      ? `<ol class="grp-list">${top.map(row).join('')}${mine >= TOP ? `<li class="grp-gap" aria-hidden="true">…</li>${row(all[mine], mine)}` : ''}</ol>` : `<p class="muted small">${esc(t(known() ? 'grp_board_none' : 'loading'))}</p>`) + `<p class="small faint mt-s">${esc(t('grp_reset'))}</p>`;
   }
   function renderMain(){
     const el = box(); if (!el) return;
@@ -233,8 +245,8 @@ Object.assign(I18N.vi, {
     if (!state.user || !on()) { el.innerHTML = ''; return; }
     if (!me()) { el.innerHTML = `<button type="button" class="grp-strip-join" data-act="grpGo">${ic('users', 'sm')} ${esc(t('grp_strip_join'))}</button>`; return; }
     const rows = liveRows(), rk = rankOf(), cl = climb();
-    el.innerHTML = `<div class="grp-strip"><div class="grp-strip-l"><span class="grp-avs">${rows.slice(0, 5).map(r => avatar(r.n)).join('')}</span><span class="small">${esc(rows.length ? t('grp_strip_n', { n:rows.length }) : t('grp_strip_0'))}</span></div>
-      <button type="button" class="grp-strip-r small" data-act="grpGo" title="${esc(gapText(cl))}">${rk ? `<b>${esc(t('grp_rank', { r:rk.r }))}</b> · ${esc(fmt(rk.mins * 60000))}${trendHTML(cl)}` : esc(t('grp_rank_none'))}</button></div>`;
+    el.innerHTML = `<div class="grp-strip"><div class="grp-strip-l"><span class="grp-avs">${rows.slice(0, 5).map(r => avatar(r.n)).join('')}</span><span class="small">${esc(rows.length ? t('grp_strip_n', { n:rows.length }) : known() ? t('grp_strip_0') : t('loading'))}</span></div>
+      <button type="button" class="grp-strip-r small" data-act="grpGo" title="${esc(gapText(cl))}">${rk ? `<b>${esc(t('grp_rank', { r:rk.r }))}</b> · ${esc(fmt(rk.mins * 60000))}${trendHTML(cl)}` : esc(known() ? t('grp_rank_none') : '')}</button></div>`;
   }
   function renderHome(){             // thẻ ở trang Tổng quan: ai đang học (khách chưa là Người đồng hành chỉ thấy lời mời)
     const el = document.getElementById('grp-home'); if (!el) return;
@@ -243,7 +255,7 @@ Object.assign(I18N.vi, {
     const rows = liveRows(), id = state.user.uid, now = Date.now();
     el.innerHTML = `${hd}${errHTML()}` + (rows.length
       ? `<ul class="grp-list">${rows.slice(0, 6).map(r => `<li class="grp-row ${r.id === id ? 'me' : ''}">${avatar(r.n)}<b class="grp-n">${esc(r.n)}</b><span class="grp-st ${r.k}">${esc(t(r.k === 'b' ? 'grp_break' : 'grp_focus'))}</span><span class="grp-t" data-s="${r.s}">${esc(fmt(now - r.s))}</span></li>`).join('')}</ul>${rows.length > 6 ? `<p class="small faint mt-s">+${rows.length - 6}</p>` : ''}`
-      : `<p class="muted small">${esc(t(busy ? 'loading' : 'grp_none'))}</p>`)
+      : `<p class="muted small">${esc(t(busy || !known() ? 'loading' : 'grp_none'))}</p>`)
       + (me() ? '' : `<div class="row mt-s"><a class="btn primary sm" href="#/focus">${ic('timer', 'sm')} ${esc(t('grp_home_join'))}</a></div>`);
   }
   function renderBox(){ renderMain(); renderStrip(); renderHome(); }
@@ -251,7 +263,7 @@ Object.assign(I18N.vi, {
   function liveCols(){
     const rows = liveRows(), id = state.user.uid, now = Date.now();
     return `<h3 class="grp-h">${esc(t('grp_now'))} <span class="badge">${rows.length}</span></h3>` + (rows.length
-      ? `<ul class="grp-list">${rows.map(r => `<li class="grp-row ${r.id === id ? 'me' : ''}">${avatar(r.n)}<b class="grp-n">${esc(r.n)}${r.id === id ? ` <span class="badge">${esc(t('grp_you'))}</span>` : ''}</b><span class="grp-st ${r.k}">${esc(t(r.k === 'b' ? 'grp_break' : 'grp_focus'))}</span><span class="grp-t" data-s="${r.s}">${esc(fmt(now - r.s))}</span>${kick(r.id)}</li>`).join('')}</ul>` : `<p class="muted small">${esc(t('grp_none'))}</p>`);
+      ? `<ul class="grp-list">${rows.map(r => `<li class="grp-row ${r.id === id ? 'me' : ''}">${avatar(r.n)}<b class="grp-n">${esc(r.n)}${r.id === id ? ` <span class="badge">${esc(t('grp_you'))}</span>` : ''}</b><span class="grp-st ${r.k}">${esc(t(r.k === 'b' ? 'grp_break' : 'grp_focus'))}</span><span class="grp-t" data-s="${r.s}">${esc(fmt(now - r.s))}</span>${kick(r.id)}</li>`).join('')}</ul>` : `<p class="muted small">${esc(t(known() ? 'grp_none' : 'loading'))}</p>`);
   }
 
   /* ---------- mở / đóng ---------- */
@@ -270,7 +282,16 @@ Object.assign(I18N.vi, {
       setInterval(() => { const now = Date.now(); document.querySelectorAll('#grp-box [data-s], #grp-home [data-s]').forEach(e => { e.textContent = fmt(now - +e.dataset.s); }); }, 20e3);
     }
   }
-  function mount(){ renderBox(); if (on()) load(true); startTimers(); }
+  function mount(){ if (on()) prime(); renderBox(); if (on()) load(true); startTimers(); earlyLoad(); }
+  let early = 0;
+  function earlyLoad(){                // lúc mới vào web quyền Người đồng hành đến muộn hơn trang, hoặc lần tải đầu lỗi: thử lại mỗi 2 giây (tối đa ~1 phút) thay vì đợi nhịp 60 giây
+    if (early) return; early = setInterval(() => {
+      if (known() && loadedAt) return clearInterval(early);
+      if (++earlyN > 30) return clearInterval(early);
+      if (on() && !busy && (box() || document.getElementById('grp-strip') || document.getElementById('grp-home'))) { prime(); load(true); }
+    }, 2000);
+  }
+  let earlyN = 0;
   FORMS.grpJoin = () => {
     const n = nameOk($('grp-nick').value); if (!n) return toast(t('grp_nick_bad'));
     const id = state.user.uid, first = !me(); store.set(key(), { n }); leaving = false; renderBox(); toast(t(first ? 'grp_joined_toast' : 'grp_saved'));
