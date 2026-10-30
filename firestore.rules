@@ -71,19 +71,27 @@ service cloud.firestore {
         && m[uid].b > request.time.toMillis() - 600000 && m[uid].b < request.time.toMillis() + 600000
         && m[uid].s <= m[uid].b && m[uid].s > m[uid].b - 172800000);
     }
-    // board[uid] = { n:tên, mins:tổng phút tập trung trong tuần, t:giờ máy chủ lần ghi cuối }
-    // Số phút chỉ tăng, mỗi lần tối đa 180 phút và không nhanh hơn thời gian thật đã trôi qua từ lần ghi trước (chống khai khống); tối đa 112 giờ/tuần.
+    // board[uid] = { n:tên, mins:tổng phút tập trung trong tuần, t:giờ máy chủ lần ghi cuối, f:giờ máy chủ lúc mục được tạo, z:số phút lúc đó }
+    // Chống khai khống phút: (1) mỗi lần ghi chỉ tăng tối đa 180 phút và không nhanh hơn thời gian thật từ lần ghi trước (+2 phút du di);
+    // (2) tính cả tuần: số phút cộng thêm kể từ mốc f (mins - z) không vượt thời gian thật đã trôi qua từ f + 180 phút (phần học dồn lúc mới vào bảng). Mốc f, z chỉ ghi một lần.
+    // Mục cũ chưa có f (tạo trước khi có luật này) được gắn mốc ở lần cộng phút kế tiếp. Tối đa 112 giờ/tuần.
     function grpBoardOk(uid, nw, old) {
       return !(uid in nw) || (uid in old && nw[uid] == old[uid]) || (   // phần không đổi thì không kiểm lại (nếu không, ghi trạng thái "đang học" sẽ bị từ chối khi người đó đã có phút trên bảng)
-        nw[uid].keys().hasOnly(['n', 'mins', 't'])
+        nw[uid].keys().hasOnly(['n', 'mins', 't', 'f', 'z'])
         && nw[uid].n is string && nw[uid].n.size() >= 1 && nw[uid].n.size() <= 20
         && nw[uid].mins is int && nw[uid].mins >= 0 && nw[uid].mins <= 6720
         && nw[uid].t == request.time
         && ((uid in old)
           ? (nw[uid].mins >= old[uid].mins
              && nw[uid].mins - old[uid].mins <= 180
-             && (nw[uid].mins - old[uid].mins) * 60000 <= request.time.toMillis() - old[uid].t.toMillis() + 120000)
-          : nw[uid].mins <= 180));
+             && (nw[uid].mins - old[uid].mins) * 60000 <= request.time.toMillis() - old[uid].t.toMillis() + 120000
+             && ('f' in old[uid]
+                  ? (nw[uid].f == old[uid].f && nw[uid].z == old[uid].z
+                     && (nw[uid].mins - nw[uid].z) * 60000 <= request.time.toMillis() - nw[uid].f.toMillis() + 10800000)
+                  : (nw[uid].mins == old[uid].mins
+                      ? (!('f' in nw[uid]) && !('z' in nw[uid]))
+                      : (nw[uid].f == request.time && nw[uid].z == old[uid].mins))))
+          : (nw[uid].mins <= 180 && nw[uid].f == request.time && nw[uid].z == 0)));
     }
     function grpWriteOk() {
       let uid = request.auth.uid;
