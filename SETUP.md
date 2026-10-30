@@ -558,6 +558,7 @@ GitHub tự bỏ qua file nào không đổi.
 ### 22.t. Nút nổi "Bắt đầu live" và Tổng quan Admin chịu được mạng chậm
 - **Vì sao OBS đã lên sóng mà web chưa báo "Đang live":** web chỉ báo live sau khi **admin bấm "Bắt đầu buổi live bây giờ"** (ghi `settings/onair`). Bấm Start Streaming trong OBS chỉ dời bộ đếm trên OBS, không báo gì lên web (để người lạ không giả mạo được trạng thái live, vì bảng lịch OBS là trang công khai không đăng nhập).
 - **Nút nổi mới (chỉ hiện khi bạn đăng nhập admin):** khi tới giờ lịch mà chưa bấm bắt đầu (hoặc còn dưới 15 phút nữa tới giờ), mọi trang của web đều có nút đỏ **Bắt đầu live** ở góc dưới bên phải, bấm một lần là web báo live, OBS tự theo trong khoảng 10 giây. Dùng được trên điện thoại. Hoàn tác vẫn ở Admin → Tổng quan → ô Bắt đầu buổi live ("Quay về giờ trước đó").
+- **Đã bấm Start Streaming trong OBS từ trước:** nút nổi và ô Bắt đầu live trong Admin đều hỏi "đã bấm Start Streaming cách đây bao nhiêu phút" (mặc định 0), để bộ đếm web và OBS tính cả buổi từ đúng lúc đó, không bị nhảy về 0.
 - **Tổng quan Admin:** mỗi số liệu tải riêng; ô nào chưa tải được hiện dấu **–** (không còn hiện 0 gây hiểu nhầm), có thanh cảnh báo, nút **Tải lại**, dòng "Số liệu lúc HH:mm:ss", và tự thử lại tối đa 3 lần.
 
 ### 22.u. Planner đổi tên thành "Kế hoạch tuần" và có hiệu suất khi tick việc

@@ -1074,12 +1074,19 @@ const ACTIONS = {
   openNav: () => document.body.classList.add('nav-open'),
   closeNav: () => document.body.classList.remove('nav-open'),
   prefs: () => { $('live-rem').classList.remove('open'); $('prefs').classList.toggle('open'); },
-  goLiveNow: async () => {   // giống nút "Bắt đầu buổi live bây giờ" trong Admin (ghi settings/onair), nhưng bấm được từ mọi trang
+  goLiveNow: () => {   // hỏi "đã bấm Start Streaming cách đây bao nhiêu phút" để bộ đếm web khớp với OBS, rồi bấm Bắt đầu
     const st = liveState(), x = st.waiting || st.next; if (!x || !state.isAdmin || st.live) return;
-    const cur = ONAIR.v || {}, now = Date.now();
-    try { await db.collection('settings').doc('onair').set({ start:now, sched:x.sched.toMillis(), at:now, prev:{ start:cur.start || 0, sched:cur.sched || 0, at:cur.at || 0 } }, { merge:true }); toast('✓ Đã bắt đầu. Web báo đang live ngay, OBS tự theo trong khoảng 10 giây.', 3500); adminLiveNudge(); }
+    openModal(`<h3 style="margin-bottom:6px;padding-right:32px">Bắt đầu live</h3><p class="small muted">Bạn đã bấm Start Streaming trong OBS cách đây bao nhiêu phút? Web sẽ tính bộ đếm khớp với OBS. Vừa bấm xong thì để 0.</p>
+      <div class="row mt-s" style="flex-wrap:nowrap;align-items:center"><input class="input" id="golive-min" type="number" min="0" max="180" value="0" style="width:96px"><span>phút trước</span></div>
+      <div class="row mt"><button type="button" class="btn primary" data-act="goLiveGo">Bắt đầu live</button></div>`, true);
+  },
+  goLiveGo: async () => {   // ghi settings/onair giống nút "Bắt đầu buổi live bây giờ" trong Admin
+    const st = liveState(), x = st.waiting || st.next; if (!x || !state.isAdmin || st.live) return closeModal();
+    const ago = Math.max(0, Math.min(180, Math.round(+($('golive-min') || {}).value || 0), Math.max(0, (x.mins || 60) - 1))), cur = ONAIR.v || {}, now = Date.now();
+    try { await db.collection('settings').doc('onair').set({ start:now - ago * 60e3, sched:x.sched.toMillis(), at:now, prev:{ start:cur.start || 0, sched:cur.sched || 0, at:cur.at || 0 } }, { merge:true }); closeModal(); toast('✓ Đã bắt đầu. Web báo đang live ngay, OBS tự theo trong khoảng 10 giây.', 3500); adminLiveNudge(); }
     catch (e) { console.warn(e); toast('Chưa lưu được: ' + (e.code || e.message)); }
   },
+
   closeModal,
   sky: el => { state.sky = el.dataset.sky; store.set('sky', state.sky); applyLook(); renderPrefs(); },
   theme: el => { state.theme = el.dataset.th; store.set('theme', state.theme); applyLook(); renderPrefs(); render(true); },

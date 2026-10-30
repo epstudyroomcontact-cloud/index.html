@@ -271,7 +271,8 @@ function onairCard(){
       <div class="row mt-s"><button class="btn secondary sm" data-act="onairStart">Bắt đầu lại từ bây giờ</button><button class="btn ghost sm" data-act="onairClear">Huỷ bắt đầu (chưa live)</button></div>` + undo;
   } else body = `<p>${now >= x.start.toMillis() ? `Đã tới giờ lịch nhưng <b>chưa bắt đầu</b>` : 'Buổi tiếp theo theo lịch'}: <b>${hm(x.start)} – ${hm(x.end)}</b>${x.slot.title ? ` · ${esc(x.slot.title)}` : ''}.</p>
       <p class="hint">${now >= x.start.toMillis() ? 'Web đang hiện <b>Sắp bắt đầu</b> (chưa báo đang live). ' : ''}Lúc thật sự lên sóng thì bấm nút dưới: web mới báo <b>Đang live</b> và gửi thông báo, lịch trên web và bộ đếm OBS tính lại cả buổi từ lúc bấm (khoảng 10 giây). Start Streaming trong OBS chỉ dời bộ đếm OBS, không báo live trên web.</p>
-      <button class="btn primary mt-s" data-act="onairStart">${ic('play', 'sm')} Bắt đầu buổi live bây giờ</button>` + undo;
+      <button class="btn primary mt-s" data-act="onairStart">${ic('play', 'sm')} Bắt đầu buổi live bây giờ</button>
+      <div class="row mt-s" style="align-items:center"><span class="small muted">Đã bấm Start Streaming trong OBS cách đây</span><input class="input" id="onairAgo" type="number" min="0" max="180" value="0" style="width:84px"><span class="small muted">phút</span><button class="btn secondary sm" data-act="onairStartAgo">Bắt đầu, tính từ lúc đó</button></div>` + undo;
   const note = (onair && onair.note) || '';
   body += `<div class="mt" style="border-top:1px dashed var(--line,#ddd);padding-top:12px"><label class="small"><b>Thông báo trên OBS</b> <span class="muted">(hiện nổi bật trên bảng lịch cho người xem, ví dụ mục tiêu hôm nay, nội quy, lời nhắn; để trống là ẩn)</span></label>
       <textarea class="textarea" id="onairNote" maxlength="300" style="min-height:60px;margin-top:6px" placeholder="VD: Mục tiêu hôm nay: xong 10 phiên 🔥  ·  Nhớ uống nước nha!">${esc(note)}</textarea>
@@ -358,6 +359,9 @@ Object.assign(ACTIONS, {
     const running = !!m && now >= onair.start && now < onair.start + x.mins * 60e3;
     if (running && !confirm('Buổi live đang chạy. Bắt đầu lại sẽ tính lại cả buổi từ bây giờ (bảng lịch và bộ đếm trên OBS chạy lại từ đầu). Tiếp tục?\n\nLỡ bấm nhầm thì có nút "Quay về giờ trước đó".')) return;
     if (await onairSave({ start:now, sched:x.sched.toMillis(), prev:onairSnap() })) toast('✓ Đã bắt đầu. Web báo đang live ngay, OBS tự theo trong khoảng 10 giây.', 3500); },
+  onairStartAgo: async () => { const x = onairMatch() || onairNext(); if (!x) return toast('Không có buổi live nào sắp tới trong lịch.');
+    const ago = Math.max(0, Math.min(180, Math.round(+($('onairAgo') || {}).value || 0), Math.max(0, x.mins - 1)));   // web và bộ đếm OBS tính cả buổi từ đúng lúc bạn bấm Start Streaming
+    if (await onairSave({ start:Date.now() - ago * 60e3, sched:x.sched.toMillis(), prev:onairSnap() })) toast(`✓ Đã bắt đầu${ago ? ` (tính từ ${ago} phút trước)` : ''}. Web báo đang live ngay, OBS tự theo trong khoảng 10 giây.`, 3500); },
   onairShift: async el => { if (!onairMatch()) return; await onairSave({ start:onair.start + (+el.dataset.m) * 60e3, sched:onair.sched, prev:(onair.prev && Date.now() - onair.at < 600e3) ? onair.prev : onairSnap() }); },
   onairClear: async () => { if (await onairSave({ start:0, sched:0, prev:onairSnap() })) toast('Đã huỷ bắt đầu: web thôi báo đang live, lịch về giờ dự kiến.'); },
   onairNote: async () => { const v = ($('onairNote').value || '').trim().slice(0, 300);
