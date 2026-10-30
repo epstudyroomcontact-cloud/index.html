@@ -643,7 +643,7 @@ Làm một lần, sau đó mỗi buổi chỉ cần bấm Start Streaming trong 
 - Lưu ý: tên người trong bảng tuần trước là biệt danh họ đặt lúc đó.
 
 ### 22.aj. Nút hướng dẫn riêng ở từng trang (Moon chỉ bằng hình)
-- Mỗi trang có nút **Hướng dẫn** (biểu tượng ⓘ, góc phải trên của ảnh đầu trang; trên điện thoại chỉ còn biểu tượng): Tổng quan, Lịch live, Xem live, Phòng tập trung, Viết, Hành trình trăng, Kế hoạch tuần, Shop, Đồ của mình, Ủng hộ. Bấm vào thì Moon hiện ra với **ba hình minh họa, mỗi hình một dòng chữ ngắn** (ví dụ Lịch live: chọn một ngày, giờ theo múi giờ của bạn, bấm chuông để được nhắc), thay vì đoạn chữ dài. Mỗi trang Moon có dáng và đạo cụ riêng.
+- Mỗi trang có nút **Hướng dẫn** (biểu tượng ⓘ, góc phải trên của ảnh đầu trang; trên điện thoại chỉ còn biểu tượng): Lịch live, Phòng tập trung, Viết, Hành trình trăng, Kế hoạch tuần, Shop, Đồ của mình, Ủng hộ. (Tổng quan và Xem live không có nút này theo yêu cầu; muốn bật lại thì sửa `helpBtn` trong `pages.js`.) Bấm vào thì Moon hiện ra với **ba hình minh họa, mỗi hình một dòng chữ ngắn** (ví dụ Lịch live: chọn một ngày, giờ theo múi giờ của bạn, bấm chuông để được nhắc), thay vì đoạn chữ dài. Mỗi trang Moon có dáng và đạo cụ riêng.
 - Đây là hướng dẫn riêng của trang, tách khỏi hướng dẫn chung ở mục **Hướng dẫn** trên menu. Bấm nút này **không** tính là đã xem hướng dẫn chung, nên khách mới vẫn được hướng dẫn tự chạy như trước. Có đủ 8 ngôn ngữ. Hình vẽ bằng SVG trong `guide.js`, không thêm ảnh hay lượt đọc nào.
 - Phòng tập trung, Hành trình trăng và Kế hoạch tuần dùng lại ba hình của hướng dẫn chung. Muốn đổi chữ dưới hình: sửa trong `guide.js` ở `TOUR_PG` (các trang mới) hoặc `fi` / `ci` / `pi` trong `TOUR_T`.
 
