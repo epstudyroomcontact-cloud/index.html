@@ -1136,10 +1136,11 @@ body:has(#tour-ask) .sofa{display:none}
 /* Phòng tập trung: bộ đếm | Việc + Nhạc | Nhóm + Live (khung riêng, xem song song) */
 .fx3{grid-template-areas:"timer" "main" "side"}
 .fx3>.fx-timer{grid-area:timer}.fx3>.fx-main{grid-area:main}.fx3>.fx-side{grid-area:side;min-width:0}
-@media (min-width:1101px){.fx3{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);grid-template-areas:"timer main" "side main";align-items:start}}
+@media (min-width:1101px){.fx3 .ring{width:min(400px,100%)}.fx3 .ring .tt{font-size:4.2rem}.fx3{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);grid-template-areas:"timer main" "side main";align-items:start}}
 @media (min-width:1500px){
   .page:has(.fx3){max-width:1560px}
-  .fx3{grid-template-columns:minmax(330px,.95fr) minmax(0,1fr) minmax(0,1fr);grid-template-areas:"timer main side"}
+  .fx3{grid-template-columns:minmax(0,1.8fr) minmax(0,1fr) minmax(0,1fr);grid-template-areas:"timer main side"}
+  .fx3 .ring{width:min(400px,100%)}.fx3 .ring .tt{font-size:4.4rem}
   .fx3>.fx-side{position:sticky;top:84px;max-height:calc(100vh - 104px);overflow-y:auto;scrollbar-width:thin}
 }
 .fx-side>.tabset>.tab-bar{padding-bottom:12px}
