@@ -555,6 +555,15 @@ GitHub tự bỏ qua file nào không đổi.
 - Ở tab **Thành viên**, thẻ **"Sắp hết hạn / đã hết hạn"** (người hết hạn trong 7 ngày tới hoặc đã hết hạn) có thêm ô chọn ngôn ngữ (đủ 8 ngôn ngữ của web: English, Tiếng Việt, हिन्दी, 日本語, 한국어, 中文, Français, Español) và nút **Nhắc gia hạn**: chọn ngôn ngữ của khách rồi bấm để sao chép tin nhắn nhắc gia hạn (ngày hiện theo ngôn ngữ đó; máy nhớ ngôn ngữ bạn chọn lần trước) (kèm link trang Ủng hộ), rồi dán vào Zalo, Instagram hoặc email gửi cho họ. Khi họ trả tiền, bấm **Gia hạn**.
 
 
+### 22.s. Web tự báo "Đang live" khi bấm Start Streaming trong OBS (một lần cài đặt)
+Làm một lần, sau đó mỗi buổi chỉ cần bấm Start Streaming trong OBS (và mở web bằng tài khoản admin ở đâu đó, máy nào cũng được): web tự báo **Đang live** đúng giờ OBS bắt đầu, bộ đếm khớp OBS, không phải bấm hay nhập phút.
+1. **Dán luật bảo mật mới:** mở file `firestore.rules` trong repo, chép toàn bộ vào Firebase Console → Firestore Database → Rules → Publish (như các lần trước). Luật mới thêm 2 chỗ: `private` (chỉ admin) và `obs_signal` (chỉ ghi được khi kèm đúng khoá bí mật).
+2. **Tạo khoá:** vào Admin → Tổng quan → ô **Bắt đầu buổi live** → kéo xuống phần **Tự báo live theo OBS** → bấm **Tạo khoá OBS** → bấm **Chép**.
+3. **Sửa link trong OBS:** ở mỗi nguồn Browser của bảng lịch và bộ đếm (Properties → URL), thêm đoạn vừa chép vào **cuối** link, ví dụ `…/overlay.html?view=timer&k=abc123…`, rồi OK. Nguồn nào đã có `autostart=0` thì không tự báo.
+4. **Điều kiện:** OBS vẫn cần Properties → Page permissions ≥ "Read access to OBS status information" (như cho bộ đếm). Admin phải đang mở web (đăng nhập tài khoản admin) lúc bấm Start Streaming để web tự ghi; nếu không, lúc bạn mở web sau đó, bấm nút đỏ **Bắt đầu live** là web tự điền sẵn "OBS báo bạn đã bắt đầu N phút trước".
+- Vì sao cần khoá: bảng lịch trong OBS là trang công khai không đăng nhập; không có khoá thì ai cũng giả được trạng thái live (và gửi thông báo đẩy giả). Khoá nằm ở `private/obs`, người ngoài không đọc được; lộ khoá thì bấm **Tạo khoá mới** rồi sửa lại link trong OBS.
+- Chi phí Firebase: mỗi lần bấm Start Streaming ghi 1 lần, admin đọc 1 lần khi tín hiệu đổi. Không đáng kể.
+
 ### 22.t. Nút nổi "Bắt đầu live" và Tổng quan Admin chịu được mạng chậm
 - **Vì sao OBS đã lên sóng mà web chưa báo "Đang live":** web chỉ báo live sau khi **admin bấm "Bắt đầu buổi live bây giờ"** (ghi `settings/onair`). Bấm Start Streaming trong OBS chỉ dời bộ đếm trên OBS, không báo gì lên web (để người lạ không giả mạo được trạng thái live, vì bảng lịch OBS là trang công khai không đăng nhập).
 - **Nút nổi mới (chỉ hiện khi bạn đăng nhập admin):** khi tới giờ lịch mà chưa bấm bắt đầu (hoặc còn dưới 15 phút nữa tới giờ), mọi trang của web đều có nút đỏ **Bắt đầu live** ở góc dưới bên phải, bấm một lần là web báo live, OBS tự theo trong khoảng 10 giây. Dùng được trên điện thoại. Hoàn tác vẫn ở Admin → Tổng quan → ô Bắt đầu buổi live ("Quay về giờ trước đó").

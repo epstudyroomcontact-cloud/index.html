@@ -285,6 +285,21 @@ service cloud.firestore {
     // Nút "Gửi thông báo live ngay" (admin ghi push_admin/now) và trạng thái lần gửi gần nhất (máy gửi ghi push_admin/status, push_admin/state).
     match /push_admin/{id} { allow read, write: if isAdmin(); }
 
+    // Tự báo live theo OBS: bảng lịch / bộ đếm trong OBS (overlay.html, không đăng nhập) ghi obs_signal/start lúc bạn bấm Start Streaming, kèm khoá bí mật k
+    // (tạo ở Admin → Tổng quan → "Khoá OBS", lưu ở private/obs mà ai cũng KHÔNG đọc được, chỉ admin). Không đúng khoá thì không ghi được; chỉ admin đọc.
+    // Admin (đang mở web) thấy tín hiệu này rồi tự ghi settings/onair để web báo "Đang live" đúng giờ OBS bắt đầu.
+    match /private/{id} { allow read, write: if isAdmin(); }
+    match /obs_signal/{id} {
+      allow read: if isAdmin();
+      allow create, update: if request.resource.data.keys().hasOnly(['start', 'sched', 'at', 'k'])
+        && request.resource.data.start is number && request.resource.data.sched is number && request.resource.data.at is number
+        && request.resource.data.k is string && request.resource.data.k.size() >= 16
+        && request.resource.data.start <= request.time.toMillis() + 120000 && request.resource.data.start > request.time.toMillis() - 21600000
+        && exists(/databases/$(database)/documents/private/obs)
+        && request.resource.data.k == get(/databases/$(database)/documents/private/obs).data.k;
+      allow delete: if false;
+    }
+
     // Email nhắc lịch (trước đây là Challenge 30 ngày): id = email → tạo lần 2 bị từ chối (chống trùng)
     match /challenge_signups/{id} {
       allow create: if request.resource.data.keys().hasOnly(['codename', 'email', 'timestamp'])
