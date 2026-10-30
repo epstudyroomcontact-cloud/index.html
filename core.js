@@ -67,6 +67,7 @@ const state = {
 if (!['galaxy', 'clouds', 'petals', 'fireflies', 'off'].includes(state.sky)) state.sky = 'galaxy';
 if (!['rain', 'pop', 'violet', 'teal'].includes(state.theme)) state.theme = null;   // bỏ giá trị theme cũ của các bản trước
 let userTZ = state.tz === 'auto' ? DT.local().zoneName : state.tz;
+const tabName = () => branding.name + ' · Study Hub';   // tên tab: cho biết web không chỉ là lịch live
 let branding = { name:'Ép Study Room', groupOn:false, themeColor:'#ff3d9a', defaultTheme:'rain', font:'baloo', logoUrl:'', mascotUrl:'', ytChannelId:'', ytLiveId:'', videos:[], contacts:{}, socialLinks:{}, announcement:{}, nav:null, homeSections:{}, focusLimit:120,  
   blogCats:[
     { id:'journal', label:{ en:'Journal', vi:'Nhật ký' }, desc:{ en:'Personal notes and updates.', vi:'Ghi chép và cập nhật cá nhân.' } },
@@ -644,7 +645,7 @@ function renderChrome(){
   const dot = $('cart-dot'); dot.textContent = cartN; dot.classList.toggle('hidden', !cartN);
   $('btn-edit').classList.toggle('hidden', !state.isAdmin);
   $('btn-edit').classList.toggle('on', state.editMode);
-  $('tab-title').textContent = branding.name;
+  $('tab-title').textContent = tabName();
   const a = (CONFIG_MISSING && !DEMO) ? 'Firebase chưa được cấu hình — mở file SETUP.md, PHẦN 2, rồi điền js/firebase-config.js' : L(branding.announcement), bar = $('ann-bar'); bar.classList.toggle('hidden', !a); $('ann-text').textContent = a;
 }
 function renderPrefs(){
