@@ -1108,7 +1108,6 @@ html[data-calm="1"] .ep-paw{display:none}
 .sofa-ul{margin:0;padding-left:18px;font-size:.85rem;line-height:1.45;color:var(--ink2)}
 .sofa-price{font-size:.9rem}.sofa-price b{color:var(--accent-strong)}
 .sofa-x{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:var(--ink3)}.sofa-x:hover{background:var(--surface2);color:var(--ink)}
-.sofa-hide{color:var(--ink3);text-decoration:underline;align-self:flex-start}
 body.has-sofa .golive-fab{bottom:calc(200px + env(safe-area-inset-bottom))}
 @media(max-width:640px){.sofa{right:8px;bottom:82px}.sofa-btn{width:108px}}
 @media(prefers-reduced-motion:reduce){.sofa-breath,.sofa-zz text{animation:none}.sofa-zz text{opacity:.9}.sofa-btn{transition:none}}
