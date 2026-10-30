@@ -1172,7 +1172,11 @@ body:has(#tour-ask) .sofa{display:none}
 .grp-trend.up{background:rgba(34,197,94,.16);color:#16a34a}
 .grp-trend.dn{background:rgba(239,68,68,.14);color:#dc2626}
 .grp-climb .grp-trend{margin-left:0}
-/* Nhóm học: lối vào nổi bật ở menu và Tổng quan */
-.sb-new{margin-left:auto;width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 0 rgba(var(--accent-rgb),.55);animation:sbNew 1.8s ease-out infinite}
-@keyframes sbNew{70%{box-shadow:0 0 0 8px rgba(var(--accent-rgb),0)}100%{box-shadow:0 0 0 0 rgba(var(--accent-rgb),0)}}
+/* Nhóm học: dấu hiệu ngay trong mục Phòng tập trung ở menu, và thẻ nổi bật ở Tổng quan */
+.sb-two{display:flex;flex-direction:column;line-height:1.15}
+.sb-two small{font-size:.68rem;font-weight:800;color:var(--accent-strong);margin-top:2px}
+.sb-item>.sb-new{margin-left:auto}
+.sb-new{margin:0 0 0 2px;flex:none}
+.sb-new{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 0 rgba(var(--accent-rgb),.55);animation:sbNew 1.8s ease-out infinite}
+@keyframes sbNew{70%{box-shadow:0 0 0 7px rgba(var(--accent-rgb),0)}100%{box-shadow:0 0 0 0 rgba(var(--accent-rgb),0)}}
 .grp-home{border:1px solid rgba(var(--accent-rgb),.35);background:linear-gradient(135deg,var(--accent-soft),transparent 70%)}
