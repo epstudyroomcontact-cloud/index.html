@@ -4,7 +4,7 @@
    Chỉ dành cho Người đồng hành, người đang dùng thử và admin (cùng điều kiện với Planner); admin bật/tắt ở tab Giao diện (branding.groupOn).
    Dữ liệu: study_group/<năm>-W<tuần> (tuần tính theo giờ Việt Nam, nên mọi người thấy cùng một tuần) = {
      live:  { <uid>: { n:tên, s:lúc bắt đầu học (ms), k:'f'|'b', b:nhịp báo gần nhất (ms) } },   ai đang học
-     board: { <uid>: { n:tên, mins:tổng phút tập trung tuần này, t:giờ máy chủ lần ghi cuối } }  bảng xếp hạng tuần
+     board: { <uid>: { n:tên, mins:tổng phút tập trung tuần này, t:giờ máy chủ lần ghi cuối, f:giờ máy chủ lúc mục này được tạo, z:số phút lúc đó } }  bảng xếp hạng tuần
    }
    Tiết kiệm lượt đọc Firestore (gói miễn phí 50.000 lượt đọc/ngày): cả nhóm nằm trong MỘT tài liệu, người xem tải lại mỗi 60 giây ở Phòng tập trung (3 phút ở Tổng quan),
    chỉ khi tab đang hiện và người xem còn đụng vào trang trong 10 phút gần nhất; đồng hồ của từng người tính ở máy từ lúc bắt đầu (s) nên không ghi mỗi giây; người đang học báo nhịp 4 phút/lần,
@@ -62,7 +62,7 @@ Object.assign(I18N.vi, {
   const me = () => state.user ? store.get(key(), null) : null;                    // { n:biệt danh } khi đã tham gia
   const access = () => !!state.user && !DEMO && typeof plLinked === 'function' && plLinked();   // cùng điều kiện với Planner (chốt cuối cùng ở firestore.rules)
   const on = () => branding.groupOn === true && access();
-  let live = {}, board = {}, loadedAt = 0, err = '', busy = false, leaving = false, lastSent = '', lastBeat = 0, lastWeek = '', denied = 0, timers = false, lastFlush = 0;
+  let live = {}, board = {}, loadedAt = 0, err = '', busy = false, leaving = false, lastSent = '', lastBeat = 0, lastWeek = '', denied = 0, timers = false, lastFlush = 0, loadedWk = '', retried = false;
   const TAB = Math.random().toString(36).slice(2), LEASE = 90e3;
   /* Mở nhiều tab cùng lúc: chỉ MỘT tab được ghi lên nhóm (tab giữ "quyền ghi" trong localStorage, hết hạn sau 90 giây nếu tab đó đóng), còn phút đang học
      được tính chung cho cả trình duyệt (grp_acc) nên không tab nào cộng thêm lần hai. Trước đây mỗi tab tự cộng, phút bị gấp đôi rồi bị luật Firestore từ chối. */
@@ -87,18 +87,29 @@ Object.assign(I18N.vi, {
   const liveEntry = () => { const k = want(), m = me(); return k && m ? { n:m.n, s:sessStart(), k, b:Date.now() } : null; };
   async function write(entry, inc){      // MỘT lần ghi gộp trạng thái đang học + phút tuần: luật Firestore kiểm tra cả hai phần mỗi lần ghi
     const id = state.user.uid, m = me(), o = {}, wkNow = wk();
+    if (inc > 0 && loadedWk !== wkNow) {      // luật cần biết mục của bạn đã có mốc bắt đầu (f) chưa, nên đọc bảng tuần này trước khi cộng phút
+      try { const d = await ref().get(), x = d.exists ? d.data() : {}; live = x.live || {}; board = x.board || {}; loadedWk = wkNow; } catch (e) { return errNote(e); }
+    }
+    const ent = board[id]; let sentF = false;
     if (entry) o.live = { [id]: entry };
-    if (inc > 0 || (entry && board[id])) o.board = { [id]: { n:m.n, mins:firebase.firestore.FieldValue.increment(inc), t:TS() } };
+    if (inc > 0 || (entry && ent)) {
+      const b = { n:m.n, mins:firebase.firestore.FieldValue.increment(inc), t:TS() };
+      if (inc > 0 && !(ent && ent.f)) { b.f = TS(); b.z = ent ? ent.mins | 0 : 0; sentF = true; }   // mốc chống khai khống: lần đầu cộng phút trong tuần (hoặc mục cũ chưa có mốc), ghi một lần rồi giữ nguyên
+      o.board = { [id]: b };
+    }
     if (!o.live && !o.board) return;
     try {
       await ref().set(o, { merge:true });
       if (entry) { live[id] = entry; lastSent = entry.k; lastBeat = entry.b; }
-      if (inc > 0) { store.set('grp_pend', Math.max(0, pend() - inc)); const b0 = board[id] || { n:m.n, mins:0 }; board[id] = { ...b0, n:m.n, mins:(b0.mins | 0) + inc }; }
-      lastFlush = Date.now(); lastWeek = wkNow; err = ''; denied = 0; rankWatch(); renderBox();
+      if (inc > 0) { store.set('grp_pend', Math.max(0, pend() - inc)); const b0 = board[id] || { n:m.n, mins:0 }; board[id] = { ...b0, n:m.n, mins:(b0.mins | 0) + inc, f:b0.f || true, z:sentF ? o.board[id].z : b0.z }; }
+      lastFlush = Date.now(); lastWeek = wkNow; err = ''; denied = 0; retried = false; rankWatch(); renderBox();
     } catch (e) {
       if (entry) lastSent = '';
       const nope = e && (e.code === 'permission-denied' || e.code === 'invalid-argument');
-      if (inc > 0 && nope) store.set('grp_pend', Math.max(0, pend() - inc));   // bị quy tắc từ chối thì bỏ phần này, không thử lại mãi
+      if (inc > 0 && nope) {
+        if (sentF && !retried) { retried = true; loadedWk = ''; }   // có thể thiết bị khác vừa tạo mục của bạn: đọc lại bảng rồi thử một lần nữa, giữ phút đang chờ
+        else store.set('grp_pend', Math.max(0, pend() - inc));       // bị quy tắc từ chối thì bỏ phần này, không thử lại mãi
+      }
       if (nope && ++denied < 2) { console.warn('[EP] study group write denied', e.code); renderBox(); return; }   // một lần bị từ chối (vd. quá tốc độ cộng phút) không đáng hiện lời báo "chưa dán luật"; từ lần thứ hai liên tiếp mới báo
       errNote(e);
     }
@@ -139,9 +150,10 @@ Object.assign(I18N.vi, {
   /* ---------- đọc ---------- */
   async function load(force){
     if (!on() || busy || (!force && Date.now() - loadedAt < 15000)) return; busy = true; renderBox();
+    const w0 = wk();
     try {
       const d = await ref().get(), x = d.exists ? d.data() : {};
-      live = x.live || {}; board = x.board || {}; loadedAt = Date.now(); err = ''; rankWatch();
+      live = x.live || {}; board = x.board || {}; loadedAt = Date.now(); loadedWk = w0; err = ''; rankWatch();
       const id = state.user.uid, mine = board[id] || live[id], nn = mine && nameOk(mine.n);
       if (nn && !me()) { store.set(key(), { n:nn }); sync(true); }                // đã tham gia ở thiết bị khác của tài khoản này: nhận lại biệt danh, nếu không thiết bị này không báo "đang học" và không cộng phút
       if (live[id] && !want()) clearLive();          // sót lại từ lần đóng web đột ngột
