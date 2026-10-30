@@ -1180,3 +1180,4 @@ body:has(#tour-ask) .sofa{display:none}
 .sb-new{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 0 rgba(var(--accent-rgb),.55);animation:sbNew 1.8s ease-out infinite}
 @keyframes sbNew{70%{box-shadow:0 0 0 7px rgba(var(--accent-rgb),0)}100%{box-shadow:0 0 0 0 rgba(var(--accent-rgb),0)}}
 .grp-home{border:1px solid rgba(var(--accent-rgb),.35);background:linear-gradient(135deg,var(--accent-soft),transparent 70%)}
+.grp-prev{margin-top:16px}
