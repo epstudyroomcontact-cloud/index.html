@@ -1125,3 +1125,11 @@ body:has(#tour-ask) .sofa{display:none}
 .sofa-pk{display:flex;flex-direction:column;gap:3px;align-items:center;text-align:center;font-size:.7rem;line-height:1.2;color:var(--ink2)}
 .sofa-pk .pk-ill{border-radius:10px}
 .tour-ill{display:flex;gap:6px;margin:8px 0 4px}.tour-ill .pk-ill{flex:1;min-width:0;max-height:118px}.tour-ill.n3 .pk-ill{max-height:70px}
+
+/* Huy hiệu nhỏ cạnh tên Người đồng hành */
+.nbadge{display:inline-grid;place-items:center;flex:none;width:19px;height:19px;margin-left:6px;border-radius:50%;background:var(--accent);color:var(--on-accent);vertical-align:middle;border:1px solid transparent}
+.nbadge .ic{width:12px;height:12px}
+.nbadge.ct1{border-color:#a9b6c9;box-shadow:0 0 0 2px rgba(169,182,201,.25)}
+.nbadge.ct2{border-color:#e0b04f;box-shadow:0 0 0 2px rgba(224,176,79,.25)}
+.nbadge.ct3{border-color:#f2c14e;box-shadow:0 0 0 2px rgba(242,193,78,.3),0 0 10px rgba(242,193,78,.4)}
+.sb-user>div{min-width:0}.sb-user .sb-name{display:flex;align-items:center;min-width:0}.sb-user .sb-name b{display:block;min-width:0}.sb-user .sb-name .nbadge{margin-left:6px}
