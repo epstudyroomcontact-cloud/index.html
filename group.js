@@ -53,14 +53,14 @@ Object.assign(I18N.vi, {
   Object.keys(X).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], X[l]); });   // ghi đè: các bản dịch của khách chưa là Người đồng hành nằm ở đây
 })();
 (function(){
-  const TZ = 'Asia/Ho_Chi_Minh', BEAT = 4 * 60e3, STALE = 9 * 60e3, POLL = 60e3, POLL_SLOW = 180e3, IDLE = 10 * 60e3, SESS_GAP = 15 * 60e3, TOP = 20;   // nhịp báo, quá hạn thì ẩn, tải lại (Phòng tập trung / trang khác), ngừng tải khi không đụng vào gì, nghỉ quá lâu thì tính phiên mới, số người trong bảng
+  const TZ = 'Asia/Ho_Chi_Minh', BEAT = 4 * 60e3, STALE = 9 * 60e3, POLL = 60e3, POLL_SLOW = 180e3, IDLE = 10 * 60e3, SESS_GAP = 15 * 60e3, TOP = 20, FLUSH = 3 * 60e3;   // nhịp báo, quá hạn thì ẩn, tải lại (Phòng tập trung / trang khác), ngừng tải khi không đụng vào gì, nghỉ quá lâu thì tính phiên mới, số người trong bảng
   const wk = () => DT.now().setZone(TZ).toFormat("kkkk-'W'WW");
   const ref = () => db.collection('study_group').doc(wk());
   const key = () => 'grp_' + state.user.uid;
   const me = () => state.user ? store.get(key(), null) : null;                    // { n:biệt danh } khi đã tham gia
   const access = () => !!state.user && !DEMO && typeof plLinked === 'function' && plLinked();   // cùng điều kiện với Planner (chốt cuối cùng ở firestore.rules)
   const on = () => branding.groupOn === true && access();
-  let live = {}, board = {}, loadedAt = 0, err = '', busy = false, leaving = false, lastSent = '', lastBeat = 0, flushing = false, timers = false;
+  let live = {}, board = {}, loadedAt = 0, err = '', busy = false, leaving = false, lastSent = '', lastBeat = 0, timers = false, acc = 0, lastTick = 0, lastFlush = 0;
 
   const fmt = ms => { const m = Math.max(0, Math.floor(ms / 60000)), h = Math.floor(m / 60); return h ? t('grp_hm', { h, m:m % 60 }) : t('grp_m', { m }); };
   const hue = s => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
@@ -76,25 +76,57 @@ Object.assign(I18N.vi, {
     if (!state.user || DEMO) return; const id = state.user.uid; delete live[id];
     try { await ref().update({ ['live.' + id]: DEL() }); } catch (e) { /* tài liệu chưa có hoặc đang offline: không sao */ }
   }
-  async function sync(force){            // gọi mỗi khi đồng hồ đổi trạng thái và mỗi 30 giây (để báo nhịp)
+  let q = Promise.resolve();                                           // mọi lần ghi xếp hàng một, để phút đang chờ không bị cộng hai lần
+  const enqueue = fn => (q = q.then(fn, fn));
+  const liveEntry = () => { const k = want(), m = me(); return k && m ? { n:m.n, s:sessStart(), k, b:Date.now() } : null; };
+  async function write(entry, inc){      // MỘT lần ghi gộp trạng thái đang học + phút tuần: luật Firestore kiểm tra cả hai phần mỗi lần ghi
+    const id = state.user.uid, m = me(), o = {};
+    if (entry) o.live = { [id]: entry };
+    if (inc > 0 || (entry && board[id])) o.board = { [id]: { n:m.n, mins:firebase.firestore.FieldValue.increment(inc), t:TS() } };
+    if (!o.live && !o.board) return;
+    try {
+      await ref().set(o, { merge:true });
+      if (entry) { live[id] = entry; lastSent = entry.k; lastBeat = entry.b; }
+      if (inc > 0) { store.set('grp_pend', Math.max(0, pend() - inc)); const b0 = board[id] || { n:m.n, mins:0 }; board[id] = { ...b0, n:m.n, mins:(b0.mins | 0) + inc }; }
+      lastFlush = Date.now(); err = ''; renderBox();
+    } catch (e) {
+      if (entry) lastSent = '';
+      if (inc > 0 && e && (e.code === 'permission-denied' || e.code === 'invalid-argument')) store.set('grp_pend', Math.max(0, pend() - inc));   // bị quy tắc từ chối thì bỏ phần này, không thử lại mãi
+      errNote(e);
+    }
+  }
+  function sync(force){                  // gọi mỗi khi đồng hồ đổi trạng thái và mỗi 30 giây (để báo nhịp)
+    accrue();
     const m = me(); if (!m || !on()) return;
     const k = want(), now = Date.now();
-    if (!k) { if (lastSent) { lastSent = ''; await clearLive(); renderBox(); } return; }
+    if (!k) { flush(true); return enqueue(async () => { if (lastSent) { lastSent = ''; await clearLive(); renderBox(); } }); }
     if (!force && k === lastSent && now - lastBeat < BEAT) return;
-    const id = state.user.uid, entry = { n:m.n, s:sessStart(), k, b:now }; lastSent = k; lastBeat = now;
-    try { await ref().set({ live:{ [id]: entry } }, { merge:true }); live[id] = entry; err = ''; renderBox(); } catch (e) { lastSent = ''; errNote(e); }
+    return enqueue(() => write(liveEntry(), Math.min(pend(), 180)));
   }
-  async function flush(){               // cộng phút đã xong lên bảng xếp hạng
-    const m = me(); let p = Math.round(+store.get('grp_pend', 0)) || 0;
-    if (!m || !on() || p <= 0 || flushing) return; flushing = true;
-    const inc = Math.min(p, 180), id = state.user.uid;
-    try {
-      await ref().set({ board:{ [id]: { n:m.n, mins:firebase.firestore.FieldValue.increment(inc), t:TS() } } }, { merge:true });
-      store.set('grp_pend', p - inc); const o = board[id] || { n:m.n, mins:0 }; board[id] = { ...o, n:m.n, mins:(o.mins | 0) + inc }; renderBox();
-    } catch (e) { if (e && (e.code === 'permission-denied' || e.code === 'invalid-argument')) store.set('grp_pend', 0); errNote(e); }   // bị quy tắc từ chối thì bỏ, không thử lại mãi
-    flushing = false;
+  const pend = () => Math.round(+store.get('grp_pend', 0)) || 0;     // phút đã học nhưng chưa ghi lên bảng
+  const blkDone = () => Math.round(+store.get('grp_blk', 0)) || 0;   // phút của khối tập trung đang chạy đã được cộng sẵn
+  const blkTotal = () => Math.max(1, Math.round(pomo.blockMin || pomo.cfg.focus));
+  function accrue(){                    // cộng dồn phút đang học (không đợi hết khối), để hạng tuần cập nhật cả khi bạn đang giữa phiên
+    const now = Date.now();
+    const fresh = pomo.mode !== 'focus' || (!pomo.running && pomo.remaining >= blkTotal() * 60000 - 1000);   // khối mới tinh (vừa đặt lại / đổi chế độ)
+    if (fresh && blkDone()) store.set('grp_blk', 0);
+    if (!me() || !on() || !pomo.running || pomo.mode !== 'focus') { lastTick = 0; acc = 0; return; }
+    if (lastTick) acc += Math.min(now - lastTick, 5 * 60e3);               // tab bị trình duyệt làm chậm vẫn không mất phút
+    lastTick = now;
+    let w = Math.floor(acc / 60000); if (w <= 0) return;
+    acc -= w * 60000; w = Math.min(w, Math.max(0, blkTotal() - blkDone())); if (w <= 0) return;
+    store.set('grp_blk', blkDone() + w); store.set('grp_pend', pend() + w); renderBox();
   }
-  function credit(min){ const m = Math.round(+min) || 0; if (m <= 0 || !me()) return; store.set('grp_pend', (Math.round(+store.get('grp_pend', 0)) || 0) + m); return flush(); }
+  function flush(force){                // ghi phút đã học lên bảng xếp hạng (phiên đang chạy: 3 phút một lần để đỡ tốn lượt ghi; hết khối / tạm dừng: ghi ngay)
+    if (!me() || !on() || pend() <= 0 || (!force && Date.now() - lastFlush < FLUSH)) return;
+    return enqueue(() => { if (pend() > 0) return write(liveEntry(), Math.min(pend(), 180)); });
+  }
+  function credit(min){               // hết khối tập trung: chỉ cộng phần còn thiếu, vì phần đã học đã được cộng dần
+    const m = Math.round(+min) || 0; if (m <= 0 || !me()) return;
+    const rest = Math.max(0, m - blkDone()); store.set('grp_blk', 0); acc = 0; lastTick = 0;
+    if (rest > 0) store.set('grp_pend', pend() + rest);
+    return flush(true);
+  }
 
   /* ---------- đọc ---------- */
   async function load(force){
@@ -102,7 +134,9 @@ Object.assign(I18N.vi, {
     try {
       const d = await ref().get(), x = d.exists ? d.data() : {};
       live = x.live || {}; board = x.board || {}; loadedAt = Date.now(); err = '';
-      const id = state.user.uid; if (live[id] && !want()) clearLive();          // sót lại từ lần đóng web đột ngột
+      const id = state.user.uid, mine = board[id] || live[id], nn = mine && nameOk(mine.n);
+      if (nn && !me()) { store.set(key(), { n:nn }); sync(true); }                // đã tham gia ở thiết bị khác của tài khoản này: nhận lại biệt danh, nếu không thiết bị này không báo "đang học" và không cộng phút
+      if (live[id] && !want()) clearLive();          // sót lại từ lần đóng web đột ngột
     } catch (e) { errNote(e); }
     busy = false; renderBox();
   }
@@ -130,8 +164,13 @@ Object.assign(I18N.vi, {
   }
   const avatar = n => `<i class="grp-av" style="--h:${hue(n)}">${esc(String(n).slice(0, 1).toUpperCase())}</i>`;
   const kick = id => state.isAdmin && id !== state.user.uid ? `<button type="button" class="grp-x" data-act="grpKick" data-id="${esc(id)}" title="${esc(t('grp_remove'))}" aria-label="${esc(t('grp_remove'))}">${ic('x', 'sm')}</button>` : '';
+  function boardRows(){               // bảng tuần; số phút của chính mình cộng thêm phần đang chờ ghi, nên luôn mới nhất
+    const id = state.user.uid, p = me() ? pend() : 0, o = Object.entries(board).map(([k, e]) => ({ k, n:(e && e.n) || '?', mins:((e && e.mins) | 0) + (k === id ? p : 0) }));
+    if (p > 0 && !board[id]) o.push({ k:id, n:me().n, mins:p });
+    return o.filter(x => x.mins > 0).sort((a, b) => b.mins - a.mins);
+  }
   function boardHTML(){
-    const id = state.user.uid, all = Object.entries(board).map(([k, e]) => ({ k, n:(e && e.n) || '?', mins:(e && e.mins) | 0 })).filter(x => x.mins > 0).sort((a, b) => b.mins - a.mins);
+    const id = state.user.uid, all = boardRows();
     const top = all.slice(0, TOP), mine = all.findIndex(x => x.k === id), row = (x, i) => `<li class="grp-row ${x.k === id ? 'me' : ''}"><span class="grp-rank r${i < 3 ? i + 1 : 0}">${i + 1}</span>${avatar(x.n)}<b class="grp-n">${esc(x.n)}${x.k === id ? ` <span class="badge">${esc(t('grp_you'))}</span>` : ''}</b><span class="grp-t">${esc(fmt(x.mins * 60000))}</span>${kick(x.k)}</li>`;
     return `<h3 class="grp-h">${esc(t('grp_board'))}</h3>` + (all.length
       ? `<ol class="grp-list">${top.map(row).join('')}${mine >= TOP ? `<li class="grp-gap" aria-hidden="true">…</li>${row(all[mine], mine)}` : ''}</ol>` : `<p class="muted small">${esc(t('grp_board_none'))}</p>`) + `<p class="small faint mt-s">${esc(t('grp_reset'))}</p>`;
@@ -150,7 +189,7 @@ Object.assign(I18N.vi, {
       <details class="grp-opts mt"><summary class="small muted">${esc(m.n)} · ${esc(t('grp_save_nick'))}</summary><div class="mt-s">${nickForm(true, m.n)}</div></details>
       <div class="mt-s">${leaving ? `<p class="small">${esc(t('grp_leave_ask'))}</p><div class="row mt-s"><button type="button" class="btn danger sm" data-act="grpLeaveYes">${esc(t('grp_leave_yes'))}</button><button type="button" class="btn secondary sm" data-act="grpLeaveNo">${esc(t('grp_cancel'))}</button></div>` : `<button type="button" class="btn ghost sm" data-act="grpLeave">${esc(t('grp_leave'))}</button>`}</div>`;
   }
-  const rankOf = () => { const id = state.user.uid, all = Object.entries(board).map(([k, e]) => ({ k, mins:(e && e.mins) | 0 })).filter(x => x.mins > 0).sort((a, b) => b.mins - a.mins), i = all.findIndex(x => x.k === id); return i < 0 ? null : { r:i + 1, mins:all[i].mins }; };
+  const rankOf = () => { const id = state.user.uid, all = boardRows(), i = all.findIndex(x => x.k === id); return i < 0 ? null : { r:i + 1, mins:all[i].mins }; };
   function renderStrip(){            // dải nhỏ ngay dưới đồng hồ: ai đang học + hạng tuần của mình
     const el = document.getElementById('grp-strip'); if (!el) return;
     if (!state.user || !on()) { el.innerHTML = ''; return; }
@@ -182,7 +221,7 @@ Object.assign(I18N.vi, {
     renderBox(); if (on()) load(true);
     if (!timers) {
       timers = true;
-      setInterval(() => { sync(); flush(); }, 30e3);                                                   // báo nhịp + cộng phút còn chờ
+      setInterval(() => { sync(); flush(); }, 30e3);                                                   // báo nhịp + cộng dồn phút đang học + ghi phút còn chờ
       let act = Date.now(), idle = false;                                                              // không đụng vào gì 10 phút (và đồng hồ không chạy) thì ngừng tải lại cho đỡ tốn lượt đọc
       const wake = () => { act = Date.now(); if (idle) { idle = false; if (document.visibilityState === 'visible') load(); } };
       ['pointerdown', 'keydown', 'scroll', 'touchstart'].forEach(ev => addEventListener(ev, wake, { passive:true, capture:true }));

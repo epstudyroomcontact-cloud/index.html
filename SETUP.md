@@ -587,6 +587,12 @@ Làm một lần, sau đó mỗi buổi chỉ cần bấm Start Streaming trong 
 - Bong bóng Ủng hộ ở mục Ủng hộ đã được thay bằng ghế sofa của Moon hiện ở mọi trang (xem 22.q).
 - Mẹo hiện một lần "Việc của bạn, gom về một chỗ" thay cho mẹo cũ về Planner trong Phòng tập trung; đủ 8 ngôn ngữ.
 
+### 22.y. Nhóm học: sửa lỗi "không hiện đang học" và phút bị thiếu
+- **Nguyên nhân 1 (luật Firestore):** ai đã có phút trên bảng tuần thì mọi lần báo "đang học" đều bị luật từ chối (luật kiểm lại cả phần bảng xếp hạng dù không đổi), nên người đó không bao giờ hiện trong "Đang học" và web báo "Nhóm chưa sẵn sàng". Ngược lại, ghi phút cũng bị từ chối nếu nhịp báo cũ quá 10 phút. Luật mới chỉ kiểm phần có thay đổi. **Việc phải làm 1 lần: dán lại `firestore.rules` mới (4 bước ở mục 2.3).**
+- **Cách sửa phía web (không cần dán luật vẫn đỡ):** mỗi lần ghi gộp luôn cả trạng thái đang học lẫn phút tuần.
+- **Nguyên nhân 2 (phút chỉ cộng khi hết khối):** trước đây phút chỉ lên bảng khi hết trọn một khối tập trung; tạm dừng, đặt lại, bỏ qua hay đóng tab giữa chừng là mất, và đang học dở thì hạng không đổi. Giờ phút được cộng dần theo thời gian học thật (ghi lên mỗi 3 phút khi đang chạy, ngay khi tạm dừng hoặc hết khối), và số phút của chính bạn trên bảng luôn gồm cả phần chờ ghi.
+- **Nguyên nhân 3 (nhiều thiết bị):** việc "đã tham gia nhóm" chỉ nhớ trong từng trình duyệt, nên học trên máy khác thì không báo và không cộng phút. Giờ nếu bảng tuần đã có tên bạn, thiết bị mới tự nhận lại biệt danh.
+
 ### 22.u. Planner đổi tên thành "Kế hoạch tuần" và có hiệu suất khi tick việc
 - Tên cũ "My planner" / "Planner của tôi" dễ bị hiểu nhầm là sản phẩm Planner bản in đã mua trong Shop. Tên mới (đủ 8 ngôn ngữ): **Weekly Plan** (en), **Kế hoạch tuần** (vi), साप्ताहिक योजना (hi), 週間プラン (ja), 주간 계획표 (ko), 每周计划 (zh), Plan de la semaine (fr), Plan semanal (es). Đổi ở menu, tiêu đề trang, lời mời thử, hướng dẫn. Đường dẫn `#/planner` và dữ liệu cũ giữ nguyên, không ai mất gì. Các câu dài vẫn có chữ "Planner" như một danh từ chung.
 - Thẻ **Hôm nay** có khối **Hiệu suất hôm nay**: phần trăm số phút dự định đã xong (hoặc so với mục tiêu ngày nếu khách đã đặt), kèm cấp độ (Chưa bắt đầu, Khởi động, Ổn định, Rất tốt, Trọn vẹn). Mỗi lần khách **tick xong một việc**, khối này nháy lên và hiện thông báo ngay, ví dụ "Tốt lắm! Ổn định · 47% (2/4 việc). Lên hạng: Ổn định!". Việc không gắn ngày thì thông báo điểm tuần. Cách tính dùng đúng dữ liệu sẵn có nên **không thêm lượt ghi hay đọc Firestore nào**.
