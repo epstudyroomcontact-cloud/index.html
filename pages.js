@@ -349,7 +349,9 @@ Object.assign(ACTIONS, {
   musicClose: () => { musicSel = null; const b = $('mplayer-box'); if (b) b.innerHTML = ''; }
 });/* Nhóm học trực tiếp (group.js): chỉ chạy khi admin bật và khách đã tham gia. Báo trạng thái đồng hồ lên nhóm / cộng phút lên bảng xếp hạng tuần. */
 const grpJoined = () => !!(state.user && branding.groupOn === true && store.get('grp_' + state.user.uid, null));
-const grpPing = () => { if (grpJoined()) loadGroup().then(() => window.EPGroup.sync()).catch(() => {}); };
+const grpScroll = () => { const b = $('grp-box'); if (b) b.scrollIntoView({ block:'start', behavior:motionOff() ? 'auto' : 'smooth' }); };   // lối vào nhóm học (menu, Tổng quan): mở Phòng tập trung và kéo xuống khung nhóm học
+ACTIONS.grpOpen = () => { store.set('grp_seen', 1); document.body.classList.remove('nav-open'); document.querySelectorAll('.sb-new').forEach(e => e.remove()); if (route.name === 'focus') grpScroll(); else store.set('grp_goto', 1); };
+const grpPing = () =>  { if (grpJoined()) loadGroup().then(() => window.EPGroup.sync()).catch(() => {}); };
 const grpCredit = m => { if (grpJoined()) loadGroup().then(() => window.EPGroup.credit(m)).catch(() => {}); };
 function addFocus(min){
   const k = DT.now().setZone(userTZ).toISODate(), fl = localFocus(), o = fl[k] || { m:0, s:0 };
