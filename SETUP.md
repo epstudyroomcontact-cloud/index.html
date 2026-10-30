@@ -561,6 +561,7 @@ Làm một lần, sau đó mỗi buổi chỉ cần bấm Start Streaming trong 
 2. **Tạo khoá:** vào Admin → Tổng quan → ô **Bắt đầu buổi live** → kéo xuống phần **Tự báo live theo OBS** → bấm **Tạo khoá OBS** → bấm **Chép**.
 3. **Sửa link trong OBS:** ở mỗi nguồn Browser của bảng lịch và bộ đếm (Properties → URL), thêm đoạn vừa chép vào **cuối** link, ví dụ `…/overlay.html?view=timer&k=abc123…`, rồi OK. Nguồn nào đã có `autostart=0` thì không tự báo.
 4. **Điều kiện:** OBS vẫn cần Properties → Page permissions ≥ "Read access to OBS status information" (như cho bộ đếm). Admin phải đang mở web (đăng nhập tài khoản admin) lúc bấm Start Streaming để web tự ghi; nếu không, lúc bạn mở web sau đó, bấm nút đỏ **Bắt đầu live** là web tự điền sẵn "OBS báo bạn đã bắt đầu N phút trước".
+- **Thêm khoá khi đang live rồi:** sự kiện Start Streaming đã qua nên không có gì được gửi. Bản mới của `overlay.js` tự báo web một lần khi nguồn Browser được nạp lại lúc OBS đang stream (bấm **Refresh cache of current page** trên nguồn), dùng giờ bắt đầu OBS đã nhớ. Nếu buổi đó đã được báo live thì bỏ qua.
 - Vì sao cần khoá: bảng lịch trong OBS là trang công khai không đăng nhập; không có khoá thì ai cũng giả được trạng thái live (và gửi thông báo đẩy giả). Khoá nằm ở `private/obs`, người ngoài không đọc được; lộ khoá thì bấm **Tạo khoá mới** rồi sửa lại link trong OBS.
 - Chi phí Firebase: mỗi lần bấm Start Streaming ghi 1 lần, admin đọc 1 lần khi tín hiệu đổi. Không đáng kể.
 
