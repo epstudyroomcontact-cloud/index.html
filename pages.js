@@ -20,7 +20,8 @@ const stars = n => `<span class="stars" aria-label="${n}/5">${[1,2,3,4,5].map(i 
 const emptyBox = (icon, title, sub) => `<div class="empty"><div class="ico">${ic(icon, 'lg')}</div><h3>${esc(title)}</h3><p>${esc(sub || '')}</p></div>`;
 /* tranh: ảnh do admin đặt (cimg) hoặc tranh vẽ sẵn bằng paint(cảnh, {crop, seed}) */
 const artOr = (key, scene, opt) => { const u = cimg(key); return u ? `<img class="art" alt="" src="${esc(u)}">` : paint(scene, opt); };
-const head = (titleKey, subKey, right = '', scene = 'moonwalk', seed = 1) => `<section class="art-head" data-cms-img="banner_${titleKey}">${artOr('banner_' + titleKey, scene, { crop:'banner', seed })}<div class="glass"><h1 ${cms(titleKey)}>${esc(ctext(titleKey))}</h1>${subKey ? `<p ${cms(subKey)}>${esc(ctext(subKey))}</p>` : ''}</div></section>${right ? `<div class="row between" style="margin-bottom:18px">${right}</div>` : ''}`;
+const helpBtn = () => `<button type="button" class="moon-help" data-act="pageHelp" data-p="${route.name}" title="${esc(t('nav_guide'))}" aria-label="${esc(t('nav_guide'))}">${ic('info', 'sm')}<span>${esc(t('nav_guide'))}</span></button>`;   // nút hướng dẫn riêng của trang, Moon chỉ nhanh bằng hình (guide.js)
+const head = (titleKey, subKey, right = '', scene = 'moonwalk', seed = 1) => `<section class="art-head" data-cms-img="banner_${titleKey}">${artOr('banner_' + titleKey, scene, { crop:'banner', seed })}${helpBtn()}<div class="glass"><h1 ${cms(titleKey)}>${esc(ctext(titleKey))}</h1>${subKey ? `<p ${cms(subKey)}>${esc(ctext(subKey))}</p>` : ''}</div></section>${right ? `<div class="row between" style="margin-bottom:18px">${right}</div>` : ''}`;
 const labelOf = s => s.name || (s.type === 'focus' ? `${t('focus')} ${s.n}` : s.type === 'short' ? t('short_break') : s.type === 'prep' ? t('prep_break') : t('long_break'));
 const segBar = (segs, total) => `<div class="pomo-bar">${segs.map(s => `<i class="${s.type[0]}" style="width:${(s.min / total * 100).toFixed(2)}%" title="${esc(labelOf(s))} · ${s.min}′"></i>`).join('')}</div>`;
 const expanded = new Set();
@@ -123,7 +124,7 @@ PAGES.home = function(){
   const heroImg = cimg('hero_img') || branding.mascotUrl;
   const S = {}; let html = '';   // mỗi khối vào S[khoá] rồi ghép theo thứ tự admin chọn (branding.homeOrder)
   if (on('about')) { html += `<div class="home-about">${aboutIntroHTML()}</div>`; S.about = html; html = ''; }   // giới thiệu về chủ kênh (mặc định ngay dưới khối chào)
-  if (on('hero')) html += `<section class="hero" data-cms-img="hero_img">${heroImg ? `<img class="art" alt="" src="${esc(heroImg)}">` : paint('moonwalk', { crop:'full', seed:1 })}<div class="hero-copy">
+  if (on('hero')) html += `<section class="hero" data-cms-img="hero_img">${heroImg ? `<img class="art" alt="" src="${esc(heroImg)}">` : paint('moonwalk', { crop:'full', seed:1 })}${helpBtn()}<div class="hero-copy">
       <span class="badge">${esc(hello)}</span>
       <h1 ${cms('home_title')}>${esc(ctext('home_title'))}</h1>
       <p class="lead" ${cms('home_sub')}>${esc(ctext('home_sub'))}</p>
@@ -350,6 +351,7 @@ Object.assign(ACTIONS, {
 });/* Nhóm học trực tiếp (group.js): chỉ chạy khi admin bật và khách đã tham gia. Báo trạng thái đồng hồ lên nhóm / cộng phút lên bảng xếp hạng tuần. */
 const grpJoined = () => !!(state.user && branding.groupOn === true && store.get('grp_' + state.user.uid, null));
 const grpScroll = () => { const b = $('grp-box'); if (b) b.scrollIntoView({ block:'start', behavior:motionOff() ? 'auto' : 'smooth' }); };   // lối vào nhóm học (menu, Tổng quan): mở Phòng tập trung và kéo xuống khung nhóm học
+ACTIONS.pageHelp = el => { loadGuide().then(() => EPTour.page(el.dataset.p)).catch(() => {}); };
 ACTIONS.grpSeen = () => { store.set('grp_seen', 1); document.body.classList.remove('nav-open'); document.querySelectorAll('.sb-new').forEach(e => e.remove()); };   // bấm Phòng tập trung ở menu: chấm "mới" của nhóm học tắt
 ACTIONS.grpOpen = () => { store.set('grp_seen', 1); document.body.classList.remove('nav-open'); document.querySelectorAll('.sb-new').forEach(e => e.remove()); if (route.name === 'focus') grpScroll(); else store.set('grp_goto', 1); };
 const grpPing = () =>  { if (grpJoined()) loadGroup().then(() => window.EPGroup.sync()).catch(() => {}); };

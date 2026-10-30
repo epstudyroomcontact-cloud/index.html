@@ -180,6 +180,314 @@ const TOUR_T = {
   }
 };
 
+/* Hướng dẫn riêng từng trang (nút ? ở đầu mỗi trang): gt = lời của Moon, còn lại là chữ ngắn dưới ba hình của từng trang (Phòng tập trung / Hành trình trăng / Kế hoạch tuần dùng lại fi / ci / pi ở trên) */
+const TOUR_PG = {
+ "en": {
+  "gt": "Moon's quick tour of this page",
+  "gh": [
+   "Watch the live study room",
+   "See today's schedule",
+   "Study with others"
+  ],
+  "gs": [
+   "Pick a day this week",
+   "Times fit your timezone",
+   "Tap the bell for a reminder"
+  ],
+  "gw": [
+   "Join the live room here",
+   "Missed it? Watch a replay",
+   "Start your own timer too"
+  ],
+  "gb": [
+   "Pick a topic",
+   "Search or tap a #tag",
+   "Read, then come back"
+  ],
+  "gsh": [
+   "Browse desk goodies",
+   "Add what you like",
+   "Download or get it delivered"
+  ],
+  "gg": [
+   "Gear I really use",
+   "Filter by type",
+   "Tap to open the link"
+  ],
+  "gd": [
+   "Everything is free to watch",
+   "Chip in any amount",
+   "Become a Companion"
+  ]
+ },
+ "vi": {
+  "gt": "Moon chỉ nhanh trang này",
+  "gh": [
+   "Xem phòng học live",
+   "Xem lịch hôm nay",
+   "Học cùng mọi người"
+  ],
+  "gs": [
+   "Chọn một ngày trong tuần",
+   "Giờ tự đổi theo múi giờ bạn",
+   "Bấm chuông để được nhắc"
+  ],
+  "gw": [
+   "Vào phòng live ngay tại đây",
+   "Lỡ rồi? Xem lại video",
+   "Bật đồng hồ của bạn luôn"
+  ],
+  "gb": [
+   "Chọn một chủ đề",
+   "Tìm hoặc bấm #thẻ",
+   "Đọc xong nhớ quay lại"
+  ],
+  "gsh": [
+   "Xem đồ cho góc học",
+   "Thêm món bạn thích",
+   "Tải ngay hoặc giao tận nơi"
+  ],
+  "gg": [
+   "Đồ mình thật sự dùng",
+   "Lọc theo loại",
+   "Bấm để mở liên kết"
+  ],
+  "gd": [
+   "Mọi thứ xem miễn phí",
+   "Góp bao nhiêu cũng được",
+   "Trở thành Người đồng hành"
+  ]
+ },
+ "hi": {
+  "gt": "इस पेज का मून के साथ छोटा टूर",
+  "gh": [
+   "लाइव स्टडी रूम देखें",
+   "आज का शेड्यूल देखें",
+   "दूसरों के साथ पढ़ें"
+  ],
+  "gs": [
+   "इस हफ़्ते का दिन चुनें",
+   "समय आपके टाइमज़ोन में",
+   "घंटी दबाकर रिमाइंडर पाएँ"
+  ],
+  "gw": [
+   "यहीं लाइव रूम में जुड़ें",
+   "छूट गया? रीप्ले देखें",
+   "अपना टाइमर भी चलाएँ"
+  ],
+  "gb": [
+   "कोई विषय चुनें",
+   "खोजें या #टैग दबाएँ",
+   "पढ़ें, फिर लौटकर आएँ"
+  ],
+  "gsh": [
+   "स्टडी डेस्क का सामान देखें",
+   "पसंद की चीज़ जोड़ें",
+   "डाउनलोड करें या घर मँगवाएँ"
+  ],
+  "gg": [
+   "जो सामान मैं सच में इस्तेमाल करता/करती हूँ",
+   "प्रकार से छाँटें",
+   "लिंक खोलने के लिए दबाएँ"
+  ],
+  "gd": [
+   "देखना सब मुफ़्त है",
+   "जितना चाहें सहयोग दें",
+   "साथी बनें"
+  ]
+ },
+ "ja": {
+  "gt": "このページをMoonが案内するよ",
+  "gh": [
+   "ライブの勉強部屋を見る",
+   "今日の予定を見る",
+   "みんなと一緒に勉強"
+  ],
+  "gs": [
+   "今週の日を選ぶ",
+   "時間はあなたの時間帯に変換",
+   "ベルで通知をもらう"
+  ],
+  "gw": [
+   "ここでライブ部屋に参加",
+   "見逃した?アーカイブへ",
+   "自分のタイマーも開始"
+  ],
+  "gb": [
+   "トピックを選ぶ",
+   "検索か#タグをタップ",
+   "読んだらまた来てね"
+  ],
+  "gsh": [
+   "勉強机のグッズを見る",
+   "気に入ったものを追加",
+   "ダウンロードか配送で受け取り"
+  ],
+  "gg": [
+   "本当に使っている道具",
+   "種類で絞り込む",
+   "タップでリンクを開く"
+  ],
+  "gd": [
+   "視聴はすべて無料",
+   "いくらでも応援できる",
+   "コンパニオンになる"
+  ]
+ },
+ "ko": {
+  "gt": "Moon이 이 페이지를 안내해요",
+  "gh": [
+   "라이브 공부방 보기",
+   "오늘 일정 보기",
+   "다 함께 공부하기"
+  ],
+  "gs": [
+   "이번 주 날짜 고르기",
+   "시간은 내 시간대로 변환",
+   "벨을 눌러 알림 받기"
+  ],
+  "gw": [
+   "여기서 라이브에 참여",
+   "놓쳤나요? 다시보기",
+   "내 타이머도 시작"
+  ],
+  "gb": [
+   "주제 고르기",
+   "검색하거나 #태그 누르기",
+   "읽고 또 놀러 오기"
+  ],
+  "gsh": [
+   "책상 굿즈 둘러보기",
+   "마음에 드는 것 담기",
+   "다운로드 또는 배송 받기"
+  ],
+  "gg": [
+   "내가 진짜 쓰는 장비",
+   "종류별로 거르기",
+   "눌러서 링크 열기"
+  ],
+  "gd": [
+   "시청은 모두 무료",
+   "원하는 만큼 후원",
+   "동반자 되기"
+  ]
+ },
+ "zh": {
+  "gt": "Moon 带你快速逛一遍这一页",
+  "gh": [
+   "观看直播自习室",
+   "查看今天的安排",
+   "和大家一起学习"
+  ],
+  "gs": [
+   "选本周的某一天",
+   "时间自动转成你的时区",
+   "点铃铛获取提醒"
+  ],
+  "gw": [
+   "在这里加入直播间",
+   "错过了?看回放",
+   "也开始你的计时器"
+  ],
+  "gb": [
+   "选一个主题",
+   "搜索或点 #标签",
+   "读完记得再来"
+  ],
+  "gsh": [
+   "逛逛书桌小物",
+   "加入喜欢的商品",
+   "下载或配送到家"
+  ],
+  "gg": [
+   "我真正在用的装备",
+   "按类型筛选",
+   "点击打开链接"
+  ],
+  "gd": [
+   "观看全部免费",
+   "随心支持任意金额",
+   "成为同伴"
+  ]
+ },
+ "fr": {
+  "gt": "Moon te montre cette page en un clin d'œil",
+  "gh": [
+   "Regarder la salle d'étude en direct",
+   "Voir le programme du jour",
+   "Étudier avec les autres"
+  ],
+  "gs": [
+   "Choisir un jour de la semaine",
+   "Heures dans ton fuseau",
+   "Touche la cloche pour un rappel"
+  ],
+  "gw": [
+   "Rejoindre le direct ici",
+   "Raté ? Regarde le replay",
+   "Lance aussi ton minuteur"
+  ],
+  "gb": [
+   "Choisir un sujet",
+   "Chercher ou toucher un #tag",
+   "Lire, puis revenir"
+  ],
+  "gsh": [
+   "Parcourir les objets de bureau",
+   "Ajouter ce qui te plaît",
+   "Télécharger ou se faire livrer"
+  ],
+  "gg": [
+   "Le matériel que j'utilise vraiment",
+   "Filtrer par type",
+   "Toucher pour ouvrir le lien"
+  ],
+  "gd": [
+   "Tout se regarde gratuitement",
+   "Soutenir du montant que tu veux",
+   "Devenir Compagnon"
+  ]
+ },
+ "es": {
+  "gt": "Moon te muestra esta página rápido",
+  "gh": [
+   "Ver la sala de estudio en vivo",
+   "Ver el horario de hoy",
+   "Estudiar con otros"
+  ],
+  "gs": [
+   "Elige un día de esta semana",
+   "Horas en tu zona horaria",
+   "Toca la campana para un aviso"
+  ],
+  "gw": [
+   "Únete al directo aquí",
+   "¿Te lo perdiste? Mira la repetición",
+   "Inicia también tu temporizador"
+  ],
+  "gb": [
+   "Elige un tema",
+   "Busca o toca una #etiqueta",
+   "Lee y vuelve"
+  ],
+  "gsh": [
+   "Mira los objetos para tu escritorio",
+   "Añade lo que te guste",
+   "Descarga o recibe en casa"
+  ],
+  "gg": [
+   "El equipo que de verdad uso",
+   "Filtra por tipo",
+   "Toca para abrir el enlace"
+  ],
+  "gd": [
+   "Todo es gratis de ver",
+   "Aporta la cantidad que quieras",
+   "Hazte Acompañante"
+  ]
+ }
+};
+Object.keys(TOUR_PG).forEach(l => Object.assign(TOUR_T[l], TOUR_PG[l]));
 const EPTour = (() => {
   /* ---------- Moon đổi nét mặt, cử chỉ và đạo cụ theo từng bước ----------
      TOUR_CAT là ảnh chụp sẵn của mjCat; ở đây thay mắt/miệng (hoặc vẽ thêm) và thêm tay, đạo cụ. Toạ độ cùng hệ với mjCat: tâm đầu (0,-16.8), mắt (±2.48,-16.4). */
@@ -225,6 +533,7 @@ const EPTour = (() => {
     cal:    `<rect x="9.9" y="-11.4" width="7.2" height="7.8" rx="1.1" fill="#fff" stroke="${EDGE}" stroke-width=".4"/><path d="M9.9 -10.3Q9.9 -11.4 11 -11.4H16Q17.1 -11.4 17.1 -10.3V-9.4H9.9Z" fill="#f2a15c"/><path d="M11.8 -6.6L13 -5.3L15.4 -8" stroke="#3fae6a" stroke-width=".8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`,
     gear:   `<g class="tc-spin"><circle cx="14" cy="-7" r="2.9" fill="none" stroke="#8a94a6" stroke-width="1.5" stroke-dasharray=".95 .95"/><circle cx="14" cy="-7" r="1.9" fill="none" stroke="#8a94a6" stroke-width=".9"/></g>`,
     book:   `<rect x="9.8" y="-11.6" width="7.4" height="8.8" rx="1" fill="#7c6cf0"/><path d="M11.2 -9.6H15.8M11.2 -8H15.8M11.2 -6.4H14" stroke="#fff" stroke-width=".5" stroke-linecap="round" opacity=".85"/><path d="M16.4 -12.3L12.6 -4.4" stroke="${GOLD}" stroke-width=".8" stroke-linecap="round"/>`,
+    bag:    `<path d="M10.4 -9.4H17.4L18.4 -3.4H9.4Z" fill="#f2a15c" stroke="#c97c34" stroke-width=".4" stroke-linejoin="round"/><path d="M12 -9.4Q12 -12 13.9 -12Q15.8 -12 15.8 -9.4" stroke="#c97c34" stroke-width=".6" fill="none" stroke-linecap="round"/>`,
     hearts: heart(-12.5, -24, 1.1, RED, 'tc-float') + heart(13.5, -25, 1, PINK, 'tc-float d2') + heart(15, -17.5, .8, RED, 'tc-float d3'),
     heart:  heart(13.4, -6.4, 3, RED) + `<circle cx="16.6" cy="-10.2" r="1.7" fill="${GOLD}" stroke="#d49a1a" stroke-width=".3"/><path d="M16.6 -11.2V-9.2" stroke="#d49a1a" stroke-width=".4"/>`,
     confetti: [[-12, -26, '#ef4b5f'], [-9, -29, GOLD], [11, -27, '#4fae5a'], [14, -22, '#7c6cf0'], [-13.5, -17, PINK], [8.5, -29, '#f2a15c'], [16, -14, GOLD]].map((c, i) => `<g class="tc-float d${i % 3 + 1}"><rect x="${c[0]}" y="${c[1]}" width="1.5" height="1.5" rx=".3" fill="${c[2]}" transform="rotate(${i * 40} ${c[0]} ${c[1]})"/></g>`).join('') + star(-10.5, -21, 1, GOLD, 'tc-float')
@@ -235,6 +544,7 @@ const EPTour = (() => {
     a:{ f:'wink', a:'pointL' }, v:{ f:'wow', a:'pointL', p:'live' }, f:{ f:'det', a:'pointL', p:'tomato' }, c:{ f:'love', a:'pointL', p:'cal' },
     o:{ f:'think', a:'pointU', p:'gear' }, b:{ f:'ding', a:'bell' },
     p:{ f:'proud', a:'pointL', p:'book', crown:1 }, g:{ f:'cheer', a:'cheer', p:'hearts', crown:1 }, u:{ f:'cool', a:'cheer', crown:1 },
+    pgb:{ f:'proud', a:'pointL', p:'book' }, pgsh:{ f:'wink', a:'pointL', p:'bag' },
     z:{ f:'sleep', a:'wave' }, s:{ f:'love', a:'pointL', p:'heart', crown:1 }, e:{ f:'party', a:'cheer', p:'confetti', hat:1 }
   };
   const EYES_RE = /<g class="mja mja-blink">[\s\S]*?<\/g>/, MOUTH_RE = /<path d="M-1\.1159[^>]*stroke="#9b7b80"[^>]*\/>/, TAIL = '</g></g></g></svg>';
@@ -281,11 +591,13 @@ const EPTour = (() => {
     { k:'s', sel:'#sidebar a[href="#/donate"]', nav:true },
     { k:'e' }
   ];
+  const PG = { home:['w', 'nav_home', 'gh', ['h1', 'h2', 'h3']], schedule:['a', 'nav_schedule', 'gs', ['s1', 's2', 's3']], watch:['v', 'nav_watch', 'gw', ['w1', 'w2', 'w3']], focus:['f', 'nav_focus', 'fi', ['f1', 'f2', 'f3']], blog:['pgb', 'nav_blog', 'gb', ['b1', 'b2', 'b3']], club:['c', 'nav_club', 'ci', ['c1', 'c2', 'c3']], planner:['p', 'nav_planner', 'pi', ['p1', 'p2', 'p3']], shop:['pgsh', 'nav_shop', 'gsh', ['sh1', 'sh2', 'sh3']], gear:['o', 'nav_gear', 'gg', ['g1', 'g2', 'g3']], donate:['s', 'nav_donate', 'gd', ['d1', 'd2', 'd3']] };   // trang → [dáng Moon, tên trang, chữ dưới hình, ba hình]
   const lim = () => Math.round(+branding.focusLimit) || 0;
   const L = () => TOUR_T[state.lang] || TOUR_T.en, tx = k => String(L()[k] != null ? L()[k] : TOUR_T.en[k]).replace('{m}', lim());
   const ta = k => (L()[k] || TOUR_T.en[k]).map(x => String(x).replace('{m}', lim()));
   // nội dung một bước: { pose, h:tiêu đề, d:mô tả, l:[các ý], pv:có xem thử nhóm học } hoặc null nếu bước không còn nội dung
   function content(s){
+    if (s.pg) { const g = PG[s.pg]; return { pose:g[0], h:t(g[1]), d:tx('gt'), l:[], how:ta(g[2]), hk:g[3] }; }   // hướng dẫn riêng của một trang
     if (s.k === 'g') {
       const grp = branding.groupOn === true, lm = lim() > 0;
       if (!grp && !lm) return null;
@@ -321,6 +633,28 @@ const EPTour = (() => {
       p1: svg(`${grid}<g transform="translate(112 64)"><circle r="12" fill="var(--accent)"/><path d="M-5 0h10M0 -5v10" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/></g>${Array.from({ length:7 }, (_, i) => `<circle cx="${23 + i * 19.2}" cy="14" r="2.4" fill="${i === 2 ? 'var(--accent)' : 'var(--ink3)'}" opacity="${i === 2 ? 1 : .45}"/>`).join('')}`),
       p2: svg(`${tick(26, 26, 7)}${bar(40, 23, 56)}${tick(26, 48, 7)}${bar(40, 45, 44)}<circle cx="26" cy="70" r="7" fill="#fff" stroke="var(--line2,var(--line))" stroke-width="1.6"/>${bar(40, 67, 50)}<g transform="translate(120 56)"><circle r="19" fill="none" stroke="var(--line)" stroke-width="6"/><circle r="19" fill="none" stroke="var(--accent)" stroke-width="6" stroke-linecap="round" stroke-dasharray="80 40" transform="rotate(-90)"/><text y="4" text-anchor="middle" font-size="11" font-weight="800" fill="var(--ink)">67%</text></g>`),
       p3: svg(`${[22, 34, 18, 44, 30, 12, 38].map((h, i) => `<rect x="${16 + i * 19.2}" y="${76 - h}" width="14" height="${h}" rx="4" fill="${i === 3 ? 'var(--accent)' : W[i % 6]}"/>`).join('')}<path d="M14 78h132" stroke="var(--line)" stroke-width="1.5"/><g transform="translate(120 20)"><rect x="-26" y="-9" width="52" height="18" rx="9" fill="var(--surface)" stroke="var(--line)"/><path d="M-16 -2l4 4 7-8" stroke="#2dc76d" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect x="-4" y="-3" width="20" height="6" rx="3" fill="var(--ink3)" opacity=".4"/></g>`)
+      ,
+      h1: svg(`${video(14, 10, 132, 54)}<rect x="46" y="70" width="68" height="18" rx="9" fill="var(--accent)"/><path d="M74 74.5l9 4.5-9 4.5z" fill="#fff"/>`),
+      h2: svg([[16, 0], [40, 2], [64, 4]].map(([y, k], i) => `<rect x="14" y="${y}" width="132" height="20" rx="8" fill="var(--surface)" stroke="${i ? 'var(--line)' : 'var(--accent)'}" stroke-width="${i ? 1 : 1.6}"/><rect x="20" y="${y + 5}" width="32" height="10" rx="5" fill="${W[k]}"/>${bar(60, y + 7, 62)}${i ? '' : '<circle cx="136" cy="' + (y + 10) + '" r="4" fill="#ef4b5f"/>'}`).join('')),
+      h3: svg(`${av(30, 28, '#f2a15c', 'K')}${bar(44, 25, 30)}${av(30, 52, '#7c6cf0', 'S')}${bar(44, 49, 24)}${av(30, 76, '#4fae5a', 'M')}${bar(44, 73, 34)}<g transform="translate(118 48)"><circle r="22" fill="none" stroke="var(--line)" stroke-width="6"/><circle r="22" fill="none" stroke="var(--accent)" stroke-width="6" stroke-linecap="round" stroke-dasharray="92 46" transform="rotate(-90)"/><text y="4" text-anchor="middle" font-size="11" font-weight="800" fill="var(--ink)">25:00</text></g>`),
+      s1: svg(`${grid}${Array.from({ length:7 }, (_, i) => `<circle cx="${23 + i * 19.2}" cy="14" r="2.4" fill="${i === 3 ? 'var(--accent)' : 'var(--ink3)'}" opacity="${i === 3 ? 1 : .45}"/>`).join('')}<rect x="${15 + 3 * 19.2 - 2}" y="9" width="20" height="82" rx="8" fill="none" stroke="var(--accent)" stroke-width="1.6"/>`),
+      s2: svg(`<g transform="translate(46 48)"><circle r="26" fill="var(--surface)" stroke="var(--ink3)" stroke-width="2"/><path d="M0 -17V0L11 7" stroke="var(--ink)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g><path d="M80 48h22M96 42l6 6-6 6" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/><g transform="translate(124 48)"><circle r="20" fill="#a8cdee" stroke="#5b8fc4" stroke-width="1.6"/><ellipse rx="8" ry="20" fill="none" stroke="#5b8fc4" stroke-width="1.4"/><path d="M-20 0H20M-17 -9H17M-17 9H17" stroke="#5b8fc4" stroke-width="1.2"/></g>`),
+      s3: svg(`<rect x="12" y="26" width="76" height="44" rx="10" fill="var(--surface)" stroke="var(--line)"/><rect x="20" y="34" width="30" height="10" rx="5" fill="${W[1]}"/>${bar(20, 52, 54)}${bar(20, 61, 36, .2)}<g transform="translate(122 46) scale(1.5)"><path d="M-9 6Q-9 -2 -6 -6Q-4 -9 0 -10Q4 -9 6 -6Q9 -2 9 6Z" fill="#f6c744" stroke="#d49a1a" stroke-width="1"/><circle cy="9" r="2.6" fill="#d49a1a"/><circle cx="8" cy="-9" r="4" fill="#ef4b5f"/></g>`),
+      w1: svg(`${video(14, 10, 132, 62)}${bar(14, 80, 60)}${bar(80, 80, 30, .2)}`),
+      w2: svg([0, 1, 2].map(i => `<rect x="${14 + i * 46}" y="18" width="40" height="30" rx="6" fill="#2b2540" opacity="${i === 0 ? 1 : .75}"/><path d="M${30 + i * 46} 27l9 6-9 6z" fill="#fff" opacity=".9"/>${bar(14 + i * 46, 55, 34)}${bar(14 + i * 46, 66, 22, .2)}`).join('') + `<path d="M22 84h116" stroke="var(--line)" stroke-width="4" stroke-linecap="round"/><path d="M22 84h42" stroke="var(--accent)" stroke-width="4" stroke-linecap="round"/>`),
+      w3: svg(`${video(10, 18, 74, 46)}<g transform="translate(120 46)"><circle r="22" fill="none" stroke="var(--line)" stroke-width="6"/><circle r="22" fill="none" stroke="var(--accent)" stroke-width="6" stroke-linecap="round" stroke-dasharray="100 38" transform="rotate(-90)"/><path d="M-5 -8l12 8-12 8z" fill="var(--accent)"/></g>${bar(10, 74, 74, .2)}`),
+      b1: svg(`${chip(12, 12, 40, '', 1)}${chip(56, 12, 46, '')}${chip(106, 12, 42, '')}${[0, 1].map(i => `<rect x="${12 + i * 70}" y="40" width="64" height="48" rx="9" fill="var(--surface)" stroke="var(--line)"/><rect x="${18 + i * 70}" y="46" width="52" height="20" rx="5" fill="${W[i * 2 + 1]}"/>${bar(18 + i * 70, 72, 46)}${bar(18 + i * 70, 81, 30, .2)}`).join('')}`),
+      b2: svg(`<rect x="12" y="14" width="136" height="26" rx="13" fill="var(--surface)" stroke="var(--line)"/><circle cx="30" cy="27" r="6" fill="none" stroke="var(--ink3)" stroke-width="2"/><path d="M35 32l5 5" stroke="var(--ink3)" stroke-width="2" stroke-linecap="round"/>${bar(46, 24, 56)}<rect x="12" y="52" width="58" height="26" rx="13" fill="var(--accent)"/><text x="41" y="69" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">#</text><rect x="78" y="52" width="40" height="26" rx="13" fill="var(--surface)" stroke="var(--line)"/><text x="98" y="69" text-anchor="middle" font-size="12" font-weight="800" fill="var(--ink2)">#</text>`),
+      b3: svg(`<rect x="26" y="10" width="108" height="76" rx="10" fill="var(--surface)" stroke="var(--line)"/><rect x="36" y="20" width="60" height="9" rx="4.5" fill="var(--ink)" opacity=".75"/>${bar(36, 38, 88)}${bar(36, 48, 80)}${bar(36, 58, 88)}${bar(36, 68, 52)}<g transform="translate(122 24)"><path d="M-6 -7h12v15l-6-4-6 4z" fill="var(--accent)"/></g>`),
+      sh1: svg([0, 1, 2].map(i => `<rect x="${12 + i * 47}" y="14" width="42" height="68" rx="9" fill="var(--surface)" stroke="var(--line)"/><rect x="${16 + i * 47}" y="18" width="34" height="34" rx="6" fill="${W[i * 2]}"/>${bar(16 + i * 47, 58, 30)}<rect x="${16 + i * 47}" y="68" width="22" height="7" rx="3.5" fill="var(--accent)" opacity=".8"/>`).join('')),
+      sh2: svg(`<rect x="14" y="22" width="52" height="52" rx="10" fill="var(--surface)" stroke="var(--line)"/><rect x="20" y="28" width="40" height="26" rx="6" fill="${W[0]}"/>${bar(20, 60, 30)}<g transform="translate(70 48)"><circle r="11" fill="var(--accent)"/><path d="M-5 0h10M0 -5v10" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/></g><g transform="translate(118 48)"><path d="M-18 -16h7l5 22h20l4-15H-9" stroke="var(--ink)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="-2" cy="14" r="3" fill="var(--ink)"/><circle cx="14" cy="14" r="3" fill="var(--ink)"/></g>`),
+      sh3: svg(`<g transform="translate(46 44)"><circle r="22" fill="var(--accent)"/><path d="M0 -10V8M-8 0l8 9 8-9" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g><path d="M28 80h36" stroke="var(--ink3)" stroke-width="3" stroke-linecap="round"/><g transform="translate(116 44)"><path d="M-20 -12L0 -22 20 -12V12L0 22 -20 12Z" fill="${W[2]}" stroke="#c98a4c" stroke-width="1.6"/><path d="M-20 -12L0 -2 20 -12M0 -2V22" stroke="#c98a4c" stroke-width="1.6" fill="none"/></g>`),
+      g1: svg([0, 1, 2].map(i => `<rect x="${12 + i * 47}" y="18" width="42" height="60" rx="9" fill="var(--surface)" stroke="var(--line)"/><rect x="${17 + i * 47}" y="23" width="32" height="30" rx="6" fill="${W[i * 2 + 1]}"/>${bar(17 + i * 47, 60, 30)}${bar(17 + i * 47, 69, 20, .2)}`).join('')),
+      g2: svg(`${chip(12, 14, 36, '', 1)}${chip(52, 14, 46, '')}${chip(102, 14, 46, '')}${[0, 1].map(i => `<rect x="${12 + i * 70}" y="46" width="64" height="40" rx="9" fill="var(--surface)" stroke="${i ? 'var(--line)' : 'var(--accent)'}" stroke-width="${i ? 1 : 1.6}"/><rect x="${18 + i * 70}" y="52" width="24" height="24" rx="5" fill="${W[i * 3]}"/>${bar(48 + i * 70, 56, 22)}${bar(48 + i * 70, 66, 14, .2)}`).join('')}`),
+      g3: svg(`<rect x="14" y="18" width="70" height="60" rx="10" fill="var(--surface)" stroke="var(--line)"/><rect x="20" y="24" width="58" height="30" rx="6" fill="${W[4]}"/>${bar(20, 60, 44)}<g transform="translate(116 48)"><circle r="20" fill="var(--accent)"/><path d="M-7 7L7 -7M-1 -7H7V1" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>`),
+      d1: svg(`${video(10, 16, 84, 52)}<g transform="translate(124 44)"><path d="M0 14C-24 -2 -18 -20 -7 -20C-3 -20 0 -17 0 -14C0 -17 3 -20 7 -20C18 -20 24 -2 0 14Z" fill="#ef4b5f"/></g>${bar(10, 76, 84, .2)}`),
+      d2: svg([0, 1, 2].map(i => `<g transform="translate(${34 + i * 46} 46)"><circle r="${12 + i * 3}" fill="${['#f9d6dd', '#f4b3c0', '#ef4b5f'][i]}"/><path transform="scale(${.55 + i * .18})" d="M0 9C-14 -1 -11 -12 -4 -12C-2 -12 0 -10 0 -8C0 -10 2 -12 4 -12C11 -12 14 -1 0 9Z" fill="#fff"/></g>`).join('') + `${bar(30, 82, 100, .2)}`),
+      d3: svg(`<g transform="translate(80 54)"><circle r="22" fill="#fdfaf3" stroke="#aab4d0" stroke-width="1.6"/><path d="M-10 -8l-1-13 8 6 3-9 3 9 8-6-1 13z" transform="translate(-0 -10)" fill="#f6c744" stroke="#d49a1a" stroke-width="1.2" stroke-linejoin="round"/><path d="M-7 4Q0 11 7 4" stroke="#9b7b80" stroke-width="2" stroke-linecap="round" fill="none"/></g><path d="M26 24l2 5 5 2-5 2-2 5-2-5-5-2 5-2zM132 70l2 4 4 2-4 2-2 4-2-4-4-2 4-2z" fill="#f6c744"/>`)
     };
   })();
   const howHTML = (caps, keys) => caps && keys ? `<ol class="tour-how">${keys.map((k, i) => `<li>${HOW_ILL[k]}<span><b>${i + 1}</b>${esc(caps[i] || '')}</span></li>`).join('')}</ol>` : '';
@@ -356,8 +690,8 @@ const EPTour = (() => {
     if (mobile()) document.body.classList.toggle('nav-open', !!s.nav); else document.body.classList.remove('nav-open');
     if (s.k === 'b' || s.k === 'o') { $('prefs').classList.remove('open'); $('live-rem').classList.remove('open'); }
     el('tour-card').innerHTML = `${cat(c.pose)}<div class="tour-body"><h4 class="tour-h">${esc(c.h)}</h4><p class="tour-tx">${esc(c.d)}</p>${illHTML(c.ill)}${howHTML(c.how, c.hk)}${c.pv ? preview() : ''}${c.l.length ? `<ul class="tour-ul">${c.l.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}</div>
-      <div class="tour-foot"><span class="tour-dots" aria-hidden="true">${cur.steps.map((_, j) => `<i class="${j === cur.i ? 'on' : ''}"></i>`).join('')}</span>
-      <span class="row" style="gap:6px">${first ? `<button type="button" class="btn ghost sm" data-tour="skip">${esc(tx('skip'))}</button>` : `<button type="button" class="btn ghost sm" data-tour="back">${esc(tx('back'))}</button>`}<button type="button" class="btn primary sm" data-tour="next" id="tour-next">${esc(last ? tx('done') : tx('next'))}</button></span></div>`;
+      <div class="tour-foot"><span class="tour-dots" aria-hidden="true">${cur.page ? '' : cur.steps.map((_, j) => `<i class="${j === cur.i ? 'on' : ''}"></i>`).join('')}</span>
+      <span class="row" style="gap:6px">${cur.page ? '' : first ? `<button type="button" class="btn ghost sm" data-tour="skip">${esc(tx('skip'))}</button>` : `<button type="button" class="btn ghost sm" data-tour="back">${esc(tx('back'))}</button>`}<button type="button" class="btn primary sm" data-tour="next" id="tour-next">${esc(last ? tx('done') : tx('next'))}</button></span></div>`;
     place(); setTimeout(place, 140); setTimeout(place, 420);   // thanh bên trượt ra trên điện thoại: đo lại sau khi xong
     const nb = el('tour-next'); if (nb) nb.focus({ preventScroll:true });
   }
@@ -365,13 +699,13 @@ const EPTour = (() => {
     if (!cur) return;
     const i = cur.i + d;
     if (i < 0) return;
-    if (i >= cur.steps.length) return close('done');
+    if (i >= cur.steps.length) return close(cur.page ? undefined : 'done');
     cur.i = i;
     if (!content(cur.steps[i])) return go(d || 1);   // bước không còn nội dung (cài đặt đổi giữa chừng): bỏ qua
     show();
   }
-  function onKey(e){ if (!cur) return; if (e.key === 'Escape') { e.stopPropagation(); close('skip'); } else if (e.key === 'ArrowRight') go(1); else if (e.key === 'ArrowLeft') go(-1); }
-  function start(){
+  function onKey(e){ if (!cur) return; if (e.key === 'Escape') { e.stopPropagation(); close(cur.page ? undefined : 'skip'); } else if (e.key === 'ArrowRight') go(1); else if (e.key === 'ArrowLeft') go(-1); }
+  function start(opt){
     close();
     if (route.name === 'admin') return;
     $('prefs').classList.remove('open'); $('live-rem').classList.remove('open'); closeModal();
@@ -380,13 +714,13 @@ const EPTour = (() => {
     document.body.append(sh, ring, card);
     // thanh bên phải mở ra (điện thoại) thì mới đo được các mục trong đó
     if (mobile()) document.body.classList.add('nav-open');
-    cur = { i:0, steps:[] };
+    cur = { i:0, steps:[], page:!!(opt && opt.page) };
     setTimeout(() => {
-      cur.steps = STEPS.filter(s => (!s.sel || (target(s) && target(s).getClientRects().length)) && content(s)); // bỏ bước nếu admin đã ẩn mục đó khỏi menu
+      if (cur.page) cur.steps = [{ k:'pg', pg:opt.page }]; else cur.steps = STEPS.filter(s => (!s.sel || (target(s) && target(s).getClientRects().length)) && content(s)); // bỏ bước nếu admin đã ẩn mục đó khỏi menu
       show();
     }, mobile() ? 320 : 0);
     sh.addEventListener('click', e => e.stopPropagation());
-    card.addEventListener('click', e => { const b = e.target.closest('[data-tour]'); if (!b) return; const a = b.dataset.tour; if (a === 'next') go(1); else if (a === 'back') go(-1); else close('skip'); });
+    card.addEventListener('click', e => { const b = e.target.closest('[data-tour]'); if (!b) return; const a = b.dataset.tour; if (a === 'next') go(1); else if (a === 'back') go(-1); else close(cur.page ? undefined : 'skip'); });
     window.addEventListener('resize', place); window.addEventListener('keydown', onKey, true);
   }
   // khách cũ: đã đăng nhập, hoặc đã có việc / giờ tập trung lưu trên máy này
@@ -412,6 +746,7 @@ const EPTour = (() => {
     if (!state.authReady && tries++ < 6) return setTimeout(auto, 1000);   // đợi biết đã đăng nhập chưa để chọn "tự chạy" hay "hỏi trước"
     returning() ? ask() : start();
   }
-  return { start, auto, close, preview };
+  const page = name => { if (PG[name]) start({ page:name }); };   // nút ? ở đầu trang: Moon chỉ nhanh trang đang xem, không đụng tới cờ "đã xem hướng dẫn"
+  return { start, auto, close, preview, page };
 })();
 PAGES.guide = function(){ location.replace('#/'); setTimeout(() => EPTour.start(), 400); };   // mục "Hướng dẫn" trên menu: về Tổng quan rồi chạy lại từ đầu

@@ -1181,3 +1181,8 @@ body:has(#tour-ask) .sofa{display:none}
 @keyframes sbNew{70%{box-shadow:0 0 0 7px rgba(var(--accent-rgb),0)}100%{box-shadow:0 0 0 0 rgba(var(--accent-rgb),0)}}
 .grp-home{border:1px solid rgba(var(--accent-rgb),.35);background:linear-gradient(135deg,var(--accent-soft),transparent 70%)}
 .grp-prev{margin-top:16px}
+/* Nút hướng dẫn riêng của từng trang (Moon chỉ bằng hình) */
+.moon-help{position:absolute;top:12px;right:12px;z-index:4;display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:99px;background:rgba(10,12,24,.55);color:#fff;border:1px solid rgba(255,255,255,.28);backdrop-filter:blur(8px);font:inherit;font-weight:700;font-size:.8rem;cursor:pointer;transition:.15s}
+.moon-help:hover{background:var(--accent);border-color:transparent}
+.moon-help .ic{width:15px;height:15px}
+@media(max-width:640px){.moon-help span{display:none}.moon-help{padding:8px}}
