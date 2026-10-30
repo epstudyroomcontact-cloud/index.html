@@ -217,8 +217,7 @@ Object.assign(I18N.vi, {
   }
 
   /* ---------- mở / đóng ---------- */
-  function mount(){
-    renderBox(); if (on()) load(true);
+  function startTimers(){            // chạy ngay khi group.js được tải (không chờ mở Phòng tập trung): đang học ở trang khác vẫn báo nhịp và cộng phút
     if (!timers) {
       timers = true;
       setInterval(() => { sync(); flush(); }, 30e3);                                                   // báo nhịp + cộng dồn phút đang học + ghi phút còn chờ
@@ -233,6 +232,7 @@ Object.assign(I18N.vi, {
       setInterval(() => { const now = Date.now(); document.querySelectorAll('#grp-box [data-s], #grp-home [data-s]').forEach(e => { e.textContent = fmt(now - +e.dataset.s); }); }, 20e3);
     }
   }
+  function mount(){ renderBox(); if (on()) load(true); startTimers(); }
   FORMS.grpJoin = () => {
     const n = nameOk($('grp-nick').value); if (!n) return toast(t('grp_nick_bad'));
     const id = state.user.uid, first = !me(); store.set(key(), { n }); leaving = false; renderBox(); toast(t(first ? 'grp_joined_toast' : 'grp_saved'));
@@ -251,5 +251,6 @@ Object.assign(I18N.vi, {
     },
     grpKick: async el => { const id = el.dataset.id; if (!state.isAdmin || !id) return; delete live[id]; delete board[id]; renderBox(); try { await ref().update({ ['live.' + id]: DEL(), ['board.' + id]: DEL() }); } catch (e) { toast(t('grp_err')); } }
   });
+  startTimers();
   window.EPGroup = { mount, sync, credit };
 })();

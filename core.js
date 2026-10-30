@@ -494,6 +494,7 @@ auth.onAuthStateChanged(async u => {
     if (cc && Date.now() - cc.t < 30 * 60e3) { state.companion = !!cc.v; state.companionUntil = cc.u || ''; state.companionSince = cc.s || ''; }
     else { try { const cd = await db.collection('companions').doc(u.uid).get(); state.companion = cd.exists && !(cd.data().until && cd.data().until < DT.now().toISODate()); state.companionUntil = cd.exists && cd.data().until || ''; state.companionSince = cd.exists && sinceISO(cd.data().since) || ''; store.set('comp_' + u.uid, { t:Date.now(), v:state.companion, u:state.companionUntil, s:state.companionSince }); } catch (e) {} }
     await loadTrial(u);
+    if (typeof grpPing === 'function') grpPing();                   // đã biết là Người đồng hành: báo lại trạng thái nhóm học (lần gọi trước còn chạy trước khi biết quyền)
     startLibrary();
     if (state.companion || state.isAdmin || trialActive()) loadPlanner().then(() => plPrefetch()).catch(() => {});     // tải sẵn planner.js lúc rảnh để mở Planner không phải chờ tải file
   }
