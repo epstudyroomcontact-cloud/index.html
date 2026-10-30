@@ -142,12 +142,18 @@ const pushCard = () => aCard(`${ic('bell', 'sm')} Thông báo đẩy khi live`, 
     <p class="hint">Nút <b>Gửi thông báo live ngay</b> đến tay khách sau khoảng 5–15 phút (lần chạy kế tiếp của máy gửi). Cần nhanh hơn: bấm <b>Gửi nhanh qua GitHub</b> → <b>Run workflow</b> (khoảng 1 phút). Nội dung tự nhập chỉ có một ngôn ngữ, nên viết ngắn bằng tiếng Anh hoặc cả hai thứ tiếng.</p>`);
 async function tabOverview(){
   A('<p class="muted">Đang tải…</p>');
-  let orders = [], users = [], signups = [], revs = [];
-  try { [orders, users, signups, revs] = await Promise.all([getAll('orders', 'createdAt', 200), countDocs('users'), countDocs('challenge_signups'), getAll('reviews')]); } catch (e) { console.warn(e); }
+  let orders = [], users = null, signups = null, revs = [];   // null = chưa tải được (hiện dấu –, không hiện 0 làm bạn tưởng là không có ai)
+  const R = await Promise.allSettled([getAll('orders', 'createdAt', 200), countDocs('users'), countDocs('challenge_signups'), getAll('reviews')]);
+  const got = i => R[i].status === 'fulfilled' ? R[i].value : null;
+  orders = got(0) || []; users = got(1); signups = got(2); revs = got(3) || [];
+  const bad = R.filter(r => r.status !== 'fulfilled').length; R.forEach(r => { if (r.status !== 'fulfilled') console.warn('overview', r.reason && (r.reason.code || r.reason.message || r.reason)); });
+  clearTimeout(tabOverview.t);
+  if (bad && (tabOverview.tries = (tabOverview.tries || 0) + 1) <= 3) tabOverview.t = setTimeout(() => { if (route.name === 'admin' && $('ov-bad')) tabOverview(); }, 4000 * tabOverview.tries);   // mạng chậm: tự thử lại tối đa 3 lần
+  else if (!bad) tabOverview.tries = 0;
   if (DEMO) { orders = [{ code:'EP-DEMO1', total:79000, currency:'VND', status:'paid', buyer:{ name:'Linh', email:'linh@mail.com' }, items:[{ name:'30-Day Study Planner (PDF)', qty:1 }], createdAt:Date.now() }, { code:'EP-DEMO2', total:2.5, currency:'USD', status:'pending', buyer:{ name:'Daniel', email:'d@mail.com' }, items:[{ name:'Mascot sticker pack', qty:1 }], createdAt:Date.now() - 3600000 }]; users = [{}, {}, {}]; signups = [{}, {}]; revs = [{ approved:false }]; }
   const paid = orders.filter(o => ['paid', 'shipped'].includes(o.status)), rev = cur => paid.filter(o => o.currency === cur).reduce((a, o) => a + (+o.total || 0), 0);
   const kpi = (icn, l, v, s = '') => `<div class="card tile"><span class="t-ic">${ic(icn)}</span><span class="t-l">${l}</span><span class="t-v">${v}</span><span class="t-s">${s}</span></div>`;
-  A(`${state.compPending ? `<div class="card pad row between" style="margin-bottom:14px;border-color:var(--accent)"><b>${ic('heart', 'sm')} ${state.compPending} yêu cầu Người đồng hành đang chờ bạn duyệt</b><a class="btn primary sm" href="#/admin/members">Xem và duyệt</a></div>` : ''}<div class="grid g4 keep2">${kpi('credit', 'Doanh thu (đã thanh toán)', money(rev('VND'), 'VND'), rev('USD') ? money(rev('USD'), 'USD') : '')}${kpi('box', 'Đơn chờ xác nhận', orders.filter(o => o.status === 'pending').length, orders.length + ' đơn gần đây')}${kpi('users', 'Thành viên', users.length + (users.more ? '+' : ''), signups.length + (signups.more ? '+' : '') + ' đăng ký Challenge')}${kpi('star', 'Đánh giá chờ duyệt', revs.filter(r => !r.approved).length, revs.length + ' tổng')}</div>
+  A(`${bad ? `<div class="card pad row between" id="ov-bad" style="margin-bottom:14px;border-color:#f59e0b;gap:10px;flex-wrap:wrap"><span class="small">⚠ ${bad} mục số liệu chưa tải được (mạng chậm hoặc Firebase đang bận). Ô hiện dấu <b>–</b> là chưa có số liệu, không phải bằng 0. Web tự thử lại vài lần.</span><button class="btn secondary sm" data-act="adminReload">Tải lại ngay</button></div>` : ''}<div class="row between small faint" style="margin:-4px 0 8px"><span>Số liệu lúc ${DT.now().setZone(VN).toFormat('HH:mm:ss')}</span><button class="btn ghost sm" data-act="adminReload">${ic('reset', 'sm')} Tải lại</button></div>${state.compPending ? `<div class="card pad row between" style="margin-bottom:14px;border-color:var(--accent)"><b>${ic('heart', 'sm')} ${state.compPending} yêu cầu Người đồng hành đang chờ bạn duyệt</b><a class="btn primary sm" href="#/admin/members">Xem và duyệt</a></div>` : ''}<div class="grid g4 keep2">${kpi('credit', 'Doanh thu (đã thanh toán)', money(rev('VND'), 'VND'), rev('USD') ? money(rev('USD'), 'USD') : '')}${kpi('box', 'Đơn chờ xác nhận', orders.filter(o => o.status === 'pending').length, orders.length + ' đơn gần đây')}${kpi('users', 'Thành viên', users ? users.length + (users.more ? '+' : '') : '–', (signups ? signups.length + (signups.more ? '+' : '') : '–') + ' đăng ký Challenge')}${kpi('star', 'Đánh giá chờ duyệt', revs.filter(r => !r.approved).length, revs.length + ' tổng')}</div>
     <div class="grid g2 mt">${aCard('Đơn hàng mới nhất', orders.length ? `<div class="tbl-wrap"><table class="table"><tr><th>Mã</th><th>Khách</th><th>Tổng</th><th>Trạng thái</th></tr>${orders.slice(0, 8).map(o => `<tr><td class="mono">${esc(o.code)}</td><td>${esc(o.buyer && o.buyer.name || '')}<div class="small"><b>${esc(o.buyer && o.buyer.email || '')}</b></div></td><td>${money(o.total, o.currency)}</td><td><span class="badge ${['paid', 'shipped'].includes(o.status) ? 'live' : o.status === 'cancelled' ? 'danger' : 'warn'}">${esc(o.status)}</span></td></tr>`).join('')}</table></div>` : '<p class="muted">Chưa có đơn hàng.</p>', '<a class="link" href="#/admin/orders">Xem tất cả</a>')}
     ${aCard('Dữ liệu cho người xem & bản sao dự phòng', `<p class="hint" style="margin-bottom:10px">Để web chạy nhanh và <b>không vượt hạn mức miễn phí của Firebase</b>, dữ liệu công khai (giao diện, chữ, bài viết, sản phẩm, lịch live, nhạc…) được gộp thành một bản cho người xem. Bản này <b>tự cập nhật vài giây sau mỗi lần bạn bấm Lưu</b>. Người xem thấy thay đổi trong vòng khoảng 10 phút (hoặc ngay khi họ tải lại sau đó). Bạn không cần làm gì thêm.</p>
       <p class="small muted" id="pub-status">Đang kiểm tra…</p>
@@ -265,7 +271,8 @@ function onairCard(){
       <div class="row mt-s"><button class="btn secondary sm" data-act="onairStart">Bắt đầu lại từ bây giờ</button><button class="btn ghost sm" data-act="onairClear">Huỷ bắt đầu (chưa live)</button></div>` + undo;
   } else body = `<p>${now >= x.start.toMillis() ? `Đã tới giờ lịch nhưng <b>chưa bắt đầu</b>` : 'Buổi tiếp theo theo lịch'}: <b>${hm(x.start)} – ${hm(x.end)}</b>${x.slot.title ? ` · ${esc(x.slot.title)}` : ''}.</p>
       <p class="hint">${now >= x.start.toMillis() ? 'Web đang hiện <b>Sắp bắt đầu</b> (chưa báo đang live). ' : ''}Lúc thật sự lên sóng thì bấm nút dưới: web mới báo <b>Đang live</b> và gửi thông báo, lịch trên web và bộ đếm OBS tính lại cả buổi từ lúc bấm (khoảng 10 giây). Start Streaming trong OBS chỉ dời bộ đếm OBS, không báo live trên web.</p>
-      <button class="btn primary mt-s" data-act="onairStart">${ic('play', 'sm')} Bắt đầu buổi live bây giờ</button>` + undo;
+      <button class="btn primary mt-s" data-act="onairStart">${ic('play', 'sm')} Bắt đầu buổi live bây giờ</button>
+      <div class="row mt-s" style="align-items:center"><span class="small muted">Đã bấm Start Streaming trong OBS cách đây</span><input class="input" id="onairAgo" type="number" min="0" max="180" value="0" style="width:84px"><span class="small muted">phút</span><button class="btn secondary sm" data-act="onairStartAgo">Bắt đầu, tính từ lúc đó</button></div>` + undo;
   const note = (onair && onair.note) || '';
   body += `<div class="mt" style="border-top:1px dashed var(--line,#ddd);padding-top:12px"><label class="small"><b>Thông báo trên OBS</b> <span class="muted">(hiện nổi bật trên bảng lịch cho người xem, ví dụ mục tiêu hôm nay, nội quy, lời nhắn; để trống là ẩn)</span></label>
       <textarea class="textarea" id="onairNote" maxlength="300" style="min-height:60px;margin-top:6px" placeholder="VD: Mục tiêu hôm nay: xong 10 phiên 🔥  ·  Nhớ uống nước nha!">${esc(note)}</textarea>
@@ -352,6 +359,9 @@ Object.assign(ACTIONS, {
     const running = !!m && now >= onair.start && now < onair.start + x.mins * 60e3;
     if (running && !confirm('Buổi live đang chạy. Bắt đầu lại sẽ tính lại cả buổi từ bây giờ (bảng lịch và bộ đếm trên OBS chạy lại từ đầu). Tiếp tục?\n\nLỡ bấm nhầm thì có nút "Quay về giờ trước đó".')) return;
     if (await onairSave({ start:now, sched:x.sched.toMillis(), prev:onairSnap() })) toast('✓ Đã bắt đầu. Web báo đang live ngay, OBS tự theo trong khoảng 10 giây.', 3500); },
+  onairStartAgo: async () => { const x = onairMatch() || onairNext(); if (!x) return toast('Không có buổi live nào sắp tới trong lịch.');
+    const ago = Math.max(0, Math.min(180, Math.round(+($('onairAgo') || {}).value || 0), Math.max(0, x.mins - 1)));   // web và bộ đếm OBS tính cả buổi từ đúng lúc bạn bấm Start Streaming
+    if (await onairSave({ start:Date.now() - ago * 60e3, sched:x.sched.toMillis(), prev:onairSnap() })) toast(`✓ Đã bắt đầu${ago ? ` (tính từ ${ago} phút trước)` : ''}. Web báo đang live ngay, OBS tự theo trong khoảng 10 giây.`, 3500); },
   onairShift: async el => { if (!onairMatch()) return; await onairSave({ start:onair.start + (+el.dataset.m) * 60e3, sched:onair.sched, prev:(onair.prev && Date.now() - onair.at < 600e3) ? onair.prev : onairSnap() }); },
   onairClear: async () => { if (await onairSave({ start:0, sched:0, prev:onairSnap() })) toast('Đã huỷ bắt đầu: web thôi báo đang live, lịch về giờ dự kiến.'); },
   onairNote: async () => { const v = ($('onairNote').value || '').trim().slice(0, 300);
@@ -1099,6 +1109,7 @@ Object.assign(ACTIONS, {
 });
 
 Object.assign(ACTIONS, {
+  adminReload: () => { tabOverview.tries = 0; tabOverview(); },
   publishNow: el => withTranslate(el, () => publishSite(false)).catch(fail),
   pushNow: el => {
     if (!confirm('Gửi thông báo "Đang live" tới mọi người đã bật thông báo?')) return;
