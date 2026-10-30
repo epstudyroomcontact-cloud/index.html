@@ -1306,14 +1306,17 @@ const SOFA_SVG = `<svg class="sofa-svg" viewBox="0 0 150 96" aria-hidden="true">
     <ellipse cx="84" cy="60" rx="31" ry="14" fill="#fdfaf3" stroke="#aab4d0" stroke-width="1"/><path d="M96 48Q112 56 108 70Q100 72 92 72Q100 62 96 48Z" fill="#c9d1e6" opacity=".7"/>
     <ellipse cx="101" cy="67" rx="10" ry="6" fill="#fdfaf3" stroke="#aab4d0" stroke-width="1"/>
     <ellipse cx="64" cy="68" rx="8.5" ry="4" fill="#fdfaf3" stroke="#aab4d0" stroke-width="1"/>
-    <g transform="translate(51 55) rotate(-7)">
-      <path d="M-12 -6L-10.5 -18L-2 -10.5Z" fill="#fdfaf3" stroke="#aab4d0" stroke-width="1"/><path d="M-10.6 -8.4L-9.8 -14.6L-5 -10.4Z" fill="#f4a9b6"/>
-      <path d="M12 -6L10.5 -18L2 -10.5Z" fill="#fdfaf3" stroke="#aab4d0" stroke-width="1"/><path d="M10.6 -8.4L9.8 -14.6L5 -10.4Z" fill="#f4a9b6"/>
-      <ellipse cx="0" cy="0" rx="14.5" ry="12.5" fill="#fdfaf3" stroke="#aab4d0" stroke-width="1"/>
-      <ellipse cx="-8.4" cy="4" rx="3" ry="1.9" fill="#f4a9b6" opacity=".8"/><ellipse cx="8.4" cy="4" rx="3" ry="1.9" fill="#f4a9b6" opacity=".8"/>
-      <g class="sofa-eyes-z"><path d="M-8.6 -.6Q-5.9 2.6 -3.2 -.6M3.2 -.6Q5.9 2.6 8.6 -.6" stroke="#29203a" stroke-width="1.3" stroke-linecap="round" fill="none"/></g>
-      <g class="sofa-eyes-o"><ellipse cx="-5.8" cy="-.8" rx="1.9" ry="2.4" fill="#29203a"/><ellipse cx="5.8" cy="-.8" rx="1.9" ry="2.4" fill="#29203a"/><circle cx="-5.2" cy="-1.7" r=".7" fill="#fff"/><circle cx="6.4" cy="-1.7" r=".7" fill="#fff"/></g>
-      <path d="M-1.3 3.4h2.6L0 4.9Z" fill="#f08aa0"/><path d="M-2.6 5.8Q0 8 2.6 5.8" stroke="#9b7b80" stroke-width=".9" stroke-linecap="round" fill="none"/>
+    <g transform="translate(51 55) rotate(-7) scale(2.2 2.15) translate(0 16.8)">
+      <defs><clipPath id="sofaHc"><ellipse cx="0" cy="-16.8" rx="6.448" ry="5.828"/></clipPath></defs>
+      <path d="M-5.7 -18L-5.3 -25.2L-1.2 -21.6Z" fill="#f2a15c"/><path d="M5.7 -18L5.3 -25.2L1.2 -21.6Z" fill="#f2a15c"/>
+      <path d="M-3.844 -20.21L-4.712 -23.744L-2.108 -21.388Z" fill="#f4a9b6"/><path d="M3.844 -20.21L4.712 -23.744L2.108 -21.388Z" fill="#f4a9b6"/>
+      <ellipse cx="0" cy="-16.8" rx="6.448" ry="5.828" fill="#fdfaf3"/>
+      <g clip-path="url(#sofaHc)"><path d="M-8.1 -15.6L-8.1 -25.5L8.1 -25.5L8.1 -18.7Q5.3 -19.7 3.1 -19Q1.5 -18.8 .7 -20.3Q0 -22 -.7 -20.4Q-1.4 -18.7 -3 -18.4Q-4.6 -18 -4.8 -16.1Q-5.3 -14.7 -8.1 -15.6Z" fill="#f2a15c"/><path d="M-3.1 -22.1q.5 1 .1 1.9M2.9 -22.3q-.5 1-.1 1.9M-5 -19.9q.9 .4 1.4 1.2" stroke="#d9823f" stroke-width=".56" stroke-linecap="round" fill="none" opacity=".55"/></g>
+      <ellipse cx="0" cy="-16.8" rx="6.448" ry="5.828" fill="none" stroke="#aab4d0" stroke-width=".45"/>
+      <g class="sofa-eyes-z"><path d="M-3.7 -16.5Q-2.5 -15.2 -1.3 -16.5M1.3 -16.5Q2.5 -15.2 3.7 -16.5" stroke="#29203a" stroke-width=".6" stroke-linecap="round" fill="none"/></g>
+      <g class="sofa-eyes-o"><ellipse cx="-2.48" cy="-16.43" rx=".93" ry="1.18" fill="#29203a"/><ellipse cx="2.48" cy="-16.43" rx=".93" ry="1.18" fill="#29203a"/><circle cx="-2.17" cy="-16.92" r=".37" fill="#fff"/><circle cx="2.79" cy="-16.92" r=".37" fill="#fff"/></g>
+      <ellipse cx="-3.844" cy="-14.444" rx="1.116" ry=".682" fill="#f4a9b6" opacity=".75"/><ellipse cx="3.844" cy="-14.444" rx="1.116" ry=".682" fill="#f4a9b6" opacity=".75"/>
+      <path d="M-.62 -15.126h1.24l-.62 .682z" fill="#ee8fa1"/><path d="M-1.116 -14.01q.558 .496 1.116 0q.558 .496 1.116 0" stroke="#9b7b80" stroke-width=".372" stroke-linecap="round" fill="none"/>
     </g>
   </g></g>
   <g class="sofa-zz" fill="var(--accent-strong)" font-weight="800"><text class="z1" x="34" y="24" font-size="11">z</text><text class="z2" x="26" y="14" font-size="9">z</text><text class="z3" x="20" y="6" font-size="7">z</text></g>
