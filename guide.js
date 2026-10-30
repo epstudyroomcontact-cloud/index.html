@@ -28,7 +28,7 @@ const TOUR_T = {
     s:["Become a Companion","Your support keeps the lights on in this study room. And my snacks stocked.","A private weekly planner with an automatic review.","A small badge and early access to new planners. Have a trial code? Enter it here to try it free."],
     sg:"The live study group and weekly leaderboard.",
     e:["That's the tour!","You now know this room better than a cat knows its own tail.","Replay it any time from “Guide” in the menu.","See you at the next live. I'll save you a spot by the sofa."],
-    next:"Next", back:"Back", skip:"Skip", done:"Got it", ask:"Welcome back! I've learned some new tricks. Would you like a quick tour of how things work?", yes:"Show me", no:"I know it",
+    next:"Next", back:"Back", skip:"Skip", done:"Got it", ask:"Welcome back! I've learned some new tricks. Would you like a quick tour of how things work?", yes:"Show me", no:"I know it", later:"Not now", never:"Don't ask again",
     pv:"Preview", pn:"Studying now", pw:"This week", pf:"Focus", pb:"Break", hm:"{h} h {m} min", mm:"{m} min"
   },
   vi: {
@@ -49,7 +49,7 @@ const TOUR_T = {
     s:["Trở thành Người đồng hành","Sự ủng hộ của bạn giữ đèn phòng học luôn sáng. Và giữ cho kho đồ ăn vặt của mình không cạn.","Planner tuần riêng tư cùng tổng kết tự động.","Huy hiệu nhỏ và được dùng sớm các planner mới. Có mã dùng thử? Nhập ở đây để dùng thử miễn phí."],
     sg:"Nhóm học trực tiếp và bảng xếp hạng tuần.",
     e:["Xong rồi!","Giờ bạn hiểu căn phòng này hơn cả việc mèo hiểu cái đuôi của chính nó.","Xem lại bất cứ lúc nào ở mục “Hướng dẫn” trên menu.","Hẹn gặp bạn ở buổi live tới. Mình giữ chỗ cạnh sofa."],
-    next:"Tiếp", back:"Quay lại", skip:"Bỏ qua", done:"Đã hiểu", ask:"Chào mừng bạn quay lại! Mình mới học thêm vài trò mới. Bạn có muốn xem nhanh cách web hoạt động không?", yes:"Xem hướng dẫn", no:"Tôi hiểu rồi",
+    next:"Tiếp", back:"Quay lại", skip:"Bỏ qua", done:"Đã hiểu", ask:"Chào mừng bạn quay lại! Mình mới học thêm vài trò mới. Bạn có muốn xem nhanh cách web hoạt động không?", yes:"Xem hướng dẫn", no:"Tôi hiểu rồi", later:"Để sau", never:"Đừng hỏi lại",
     pv:"Xem thử", pn:"Đang học", pw:"Tuần này", pf:"Tập trung", pb:"Nghỉ", hm:"{h} giờ {m} phút", mm:"{m} phút"
   },
   hi: {
@@ -70,7 +70,7 @@ const TOUR_T = {
     s:["साथी बनिए","आपका सहयोग इस स्टडी रूम की बत्ती जलाए रखता है, और मेरे स्नैक्स का स्टॉक भी।","निजी साप्ताहिक प्लानर और अपने आप बनने वाली समीक्षा।","एक छोटा बैज और नए प्लानर पहले इस्तेमाल करने का मौका। ट्रायल कोड है? यहीं डालकर मुफ़्त आज़माइए।"],
     sg:"लाइव स्टडी ग्रुप और साप्ताहिक लीडरबोर्ड।",
     e:["बस इतना ही!","अब आप इस कमरे को उतना जानते हैं जितना बिल्ली अपनी पूँछ को भी नहीं जानती।","मेनू के “गाइड” से इसे कभी भी दोबारा देखें।","अगली लाइव में मिलते हैं। सोफ़े के पास आपकी जगह रखी है।"],
-    next:"आगे", back:"पीछे", skip:"छोड़ें", done:"समझ गया", ask:"वापसी पर स्वागत है! कुछ नई चालें सीखी हैं। क्या सब कुछ कैसे चलता है, इसका छोटा परिचय देखना चाहेंगे?", yes:"दिखाइए", no:"मुझे पता है",
+    next:"आगे", back:"पीछे", skip:"छोड़ें", done:"समझ गया", ask:"वापसी पर स्वागत है! कुछ नई चालें सीखी हैं। क्या सब कुछ कैसे चलता है, इसका छोटा परिचय देखना चाहेंगे?", yes:"दिखाइए", no:"मुझे पता है", later:"अभी नहीं", never:"दोबारा न पूछें",
     pv:"नमूना", pn:"अभी पढ़ रहे हैं", pw:"इस हफ़्ते", pf:"फ़ोकस", pb:"ब्रेक", hm:"{h} घं {m} मि", mm:"{m} मि"
   },
   ja: {
@@ -91,7 +91,7 @@ const TOUR_T = {
     s:["仲間になる","あなたの支援がこの自習室の灯りを守ります。私のおやつ棚も。","自分だけの週間プランナーと自動レビュー。","小さなバッジと、新しいプランナーの先行利用。トライアルコードをお持ちなら、ここで入力して無料で試せます。"],
     sg:"ライブ勉強グループと週間ランキング。",
     e:["以上です！","これでこの部屋のことは、猫が自分のしっぽを知っているより詳しくなりました。","メニューの「ガイド」からいつでも見直せます。","次のライブで会いましょう。ソファの隣を空けておきます。"],
-    next:"次へ", back:"戻る", skip:"スキップ", done:"わかった", ask:"おかえりなさい！ 新しい芸も覚えました。使い方をさっと案内しましょうか？", yes:"見てみる", no:"わかってる",
+    next:"次へ", back:"戻る", skip:"スキップ", done:"わかった", ask:"おかえりなさい！ 新しい芸も覚えました。使い方をさっと案内しましょうか？", yes:"見てみる", no:"わかってる", later:"あとで", never:"今後は表示しない",
     pv:"サンプル", pn:"勉強中", pw:"今週", pf:"集中", pb:"休憩", hm:"{h}時間{m}分", mm:"{m}分"
   },
   ko: {
@@ -112,7 +112,7 @@ const TOUR_T = {
     s:["동반자 되기","여러분의 후원이 이 공부방의 불을 켜 두고, 제 간식 창고도 채워 줘요.","나만의 주간 플래너와 자동 리뷰.","작은 배지와 새 플래너 먼저 쓰기. 체험 코드가 있나요? 여기에 입력하면 무료로 써 볼 수 있어요."],
     sg:"실시간 스터디 그룹과 주간 순위.",
     e:["이상이에요!","이제 이 방을 고양이가 자기 꼬리를 아는 것보다 잘 알게 됐어요.","메뉴의 ‘안내’에서 언제든 다시 볼 수 있어요.","다음 라이브에서 만나요. 소파 옆자리 맡아 둘게요."],
-    next:"다음", back:"이전", skip:"건너뛰기", done:"알겠어요", ask:"다시 오신 걸 환영해요! 새 재주도 배웠어요. 어떻게 쓰는지 빠르게 안내해 드릴까요?", yes:"보여 주세요", no:"알고 있어요",
+    next:"다음", back:"이전", skip:"건너뛰기", done:"알겠어요", ask:"다시 오신 걸 환영해요! 새 재주도 배웠어요. 어떻게 쓰는지 빠르게 안내해 드릴까요?", yes:"보여 주세요", no:"알고 있어요", later:"나중에", never:"다시 묻지 않기",
     pv:"미리보기", pn:"공부 중", pw:"이번 주", pf:"집중", pb:"휴식", hm:"{h}시간 {m}분", mm:"{m}분"
   },
   zh: {
@@ -133,7 +133,7 @@ const TOUR_T = {
     s:["成为同伴","你的支持让这间自习室一直亮着灯，也让我的零食柜不空。","专属的每周计划本和自动周报。","一枚小徽章，还能抢先用上新的计划本。有试用码？在这里输入，免费体验。"],
     sg:"实时学习小组和每周排行榜。",
     e:["导览结束！","现在你对这间屋子的了解，比猫对自己尾巴的了解还多。","随时可以在菜单的“使用指南”里重看。","下次直播见，沙发旁边给你留了位置。"],
-    next:"下一步", back:"上一步", skip:"跳过", done:"明白了", ask:"欢迎回来！我又学会了几招。想快速了解一下这里是怎么用的吗？", yes:"带我看看", no:"我知道了",
+    next:"下一步", back:"上一步", skip:"跳过", done:"明白了", ask:"欢迎回来！我又学会了几招。想快速了解一下这里是怎么用的吗？", yes:"带我看看", no:"我知道了", later:"以后再说", never:"不再询问",
     pv:"预览", pn:"正在学习", pw:"本周", pf:"专注", pb:"休息", hm:"{h} 小时 {m} 分", mm:"{m} 分钟"
   },
   fr: {
@@ -154,7 +154,7 @@ const TOUR_T = {
     s:["Devenir Compagnon","Ton soutien garde la salle d'étude allumée, et mon placard à croquettes rempli.","Un planner hebdo privé avec bilan automatique.","Un petit badge et un accès anticipé aux nouveaux planners. Un code d'essai ? Saisis-le ici pour essayer gratuitement."],
     sg:"Le groupe d'étude en direct et le classement hebdo.",
     e:["C'est fini !","Tu connais maintenant cette salle mieux qu'un chat ne connaît sa queue.","Reviens ici quand tu veux via « Guide » dans le menu.","À bientôt pour le prochain live. Je te garde une place près du canapé."],
-    next:"Suivant", back:"Retour", skip:"Passer", done:"Compris", ask:"Content de te revoir ! J'ai appris de nouveaux tours. Veux-tu un petit tour pour voir comment tout fonctionne ?", yes:"Montre-moi", no:"Je connais",
+    next:"Suivant", back:"Retour", skip:"Passer", done:"Compris", ask:"Content de te revoir ! J'ai appris de nouveaux tours. Veux-tu un petit tour pour voir comment tout fonctionne ?", yes:"Montre-moi", no:"Je connais", later:"Plus tard", never:"Ne plus demander",
     pv:"Aperçu", pn:"En train d'étudier", pw:"Cette semaine", pf:"Focus", pb:"Pause", hm:"{h} h {m} min", mm:"{m} min"
   },
   es: {
@@ -175,7 +175,7 @@ const TOUR_T = {
     s:["Hazte Acompañante","Tu apoyo mantiene encendida la luz de la sala de estudio, y mi despensa de golosinas llena.","Un planificador semanal privado con resumen automático.","Una pequeña insignia y acceso anticipado a los nuevos planificadores. ¿Tienes un código de prueba? Introdúcelo aquí para probar gratis."],
     sg:"El grupo de estudio en vivo y el ranking semanal.",
     e:["¡Eso es todo!","Ahora conoces esta sala mejor que un gato su propia cola.","Vuelve a verlo cuando quieras en «Guía», en el menú.","Nos vemos en el próximo directo. Te guardo sitio junto al sofá."],
-    next:"Siguiente", back:"Atrás", skip:"Saltar", done:"Entendido", ask:"¡Qué bueno verte de nuevo! He aprendido trucos nuevos. ¿Quieres un recorrido rápido de cómo funciona todo?", yes:"Enséñame", no:"Ya lo sé",
+    next:"Siguiente", back:"Atrás", skip:"Saltar", done:"Entendido", ask:"¡Qué bueno verte de nuevo! He aprendido trucos nuevos. ¿Quieres un recorrido rápido de cómo funciona todo?", yes:"Enséñame", no:"Ya lo sé", later:"Ahora no", never:"No volver a preguntar",
     pv:"Vista previa", pn:"Estudiando ahora", pw:"Esta semana", pf:"Enfoque", pb:"Descanso", hm:"{h} h {m} min", mm:"{m} min"
   }
 };
@@ -398,13 +398,17 @@ const EPTour = (() => {
   function ask(){
     if (el('tour-ask')) return;
     const d = document.createElement('div'); d.id = 'tour-ask'; d.setAttribute('role', 'dialog');
-    d.innerHTML = `${cat('ask')}<p class="tour-tx">${esc(tx('ask'))}</p><div class="tour-foot"><span></span><span class="row" style="gap:6px"><button type="button" class="btn ghost sm" data-ask="no">${esc(tx('no'))}</button><button type="button" class="btn primary sm" data-ask="yes">${esc(tx('yes'))}</button></span></div>`;
-    d.addEventListener('click', e => { const b = e.target.closest('[data-ask]'); if (!b) return; if (b.dataset.ask === 'yes') start(); else close('skip'); });
+    d.innerHTML = `${cat('ask')}<p class="tour-tx">${esc(tx('ask'))}</p><div class="tour-foot ask-foot"><button type="button" class="btn ghost sm" data-ask="never">${esc(tx('never'))}</button><span class="row" style="gap:6px"><button type="button" class="btn ghost sm" data-ask="later">${esc(tx('later'))}</button><button type="button" class="btn primary sm" data-ask="yes">${esc(tx('yes'))}</button></span></div>`;
+    d.addEventListener('click', e => {   // Để sau: chỉ ẩn trong lần mở này; Đừng hỏi lại: nhớ luôn, khách cũ không bị hỏi nữa
+      const b = e.target.closest('[data-ask]'); if (!b) return;
+      if (b.dataset.ask === 'yes') start(); else if (b.dataset.ask === 'later') { try { sessionStorage.setItem('ep_tour_later', '1'); } catch (er) {} close(); } else close('skip');
+    });
     document.body.appendChild(d);
   }
   let tries = 0;
   function auto(){
     if (store.get('tour', null) !== null || cur || el('tour-ask') || route.name === 'admin') return;
+    try { if (sessionStorage.getItem('ep_tour_later') && returning()) return; } catch (e) {}
     if (!state.authReady && tries++ < 6) return setTimeout(auto, 1000);   // đợi biết đã đăng nhập chưa để chọn "tự chạy" hay "hỏi trước"
     returning() ? ask() : start();
   }

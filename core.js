@@ -61,7 +61,7 @@ function toast(msg, ms){ const el = $('toast'); el.textContent = msg; el.classLi
 /* ---------- state ---------- */
 const state = {
   lang: store.get('lang', null) || 'en',      // tiếng Anh là mặc định; khách tự đổi bằng nút ⚙️
-  tz: store.get('tz', 'auto'), theme: store.get('theme', null), calm: store.get('calm', false), sky: store.get('sky', 'galaxy'),
+  tz: store.get('tz', 'auto'), theme: store.get('theme', null), calm: store.get('calm', false), motion: store.get('motion', null), sky: store.get('sky', 'galaxy'),
   currency: store.get('currency', null), user: null, isAdmin: false, editMode: false
 };
 if (!['galaxy', 'clouds', 'petals', 'fireflies', 'off'].includes(state.sky)) state.sky = 'galaxy';
@@ -148,6 +148,7 @@ function applyLook(){
   const root = document.documentElement, th = effTheme();
   root.dataset.theme = th;
   if (state.calm) root.dataset.calm = '1'; else delete root.dataset.calm;
+  if (state.motion === 'on') root.dataset.motion = 'on'; else delete root.dataset.motion;   // khách chọn vẫn hiện hiệu ứng dù máy đang tắt animation (welcome.js)
   root.dataset.sky = state.sky;
   if (th === 'rain' || th === 'pop') {          // màu chủ đạo do chủ trang chọn áp dụng cho theme "Đêm mưa" và "Rực rỡ"
     const c = branding.themeColor || '#ff3d9a', rgb = hexToRgb(c);
@@ -658,6 +659,7 @@ function renderPrefs(){
   $('fx-grid').innerHTML = SKY_FX.map(([k, bg]) => `<button type="button" class="theme-chip ${state.sky === k ? 'on' : ''}" data-act="sky" data-sky="${k}"><i style="background:${bg}"></i>${esc(t('fx_' + k))}</button>`).join('');
   document.querySelectorAll('[data-i18n]').forEach(el => el.textContent = t(el.dataset.i18n));
   document.documentElement.lang = state.lang;
+  if (typeof motionRow === 'function') motionRow();
 }
 
 /* =========================================================
@@ -1162,7 +1164,7 @@ $('sel-lang').addEventListener('change', e => { state.lang = e.target.value; sto
 $('sel-tz').addEventListener('change', e => { state.tz = e.target.value; store.set('tz', state.tz); userTZ = state.tz === 'auto' ? DT.local().zoneName : state.tz; listenWeeks(); render(true); pushResync(); });
 $('chk-calm').addEventListener('change', e => { state.calm = e.target.checked; store.set('calm', state.calm); applyLook(); });
 // Bấm vào nút, link, ô chọn…: một ngôi sao nhỏ loé lên đúng chỗ bấm (không chạy khi bật giảm chuyển động)
-const motionOff = () => state.calm || !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+const motionOff = () => state.calm || !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches && state.motion !== 'on');
 document.addEventListener('pointerdown', e => {
   if (e.button || motionOff() || !e.target.closest || !e.target.closest('a,button,select,label,[data-act],input[type=checkbox],input[type=radio]')) return;
   const d = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); d.setAttribute('class', 'tap-star'); d.setAttribute('viewBox', '0 0 20 20');
@@ -1173,10 +1175,10 @@ window.addEventListener('hashchange', () => { document.body.classList.remove('na
 
 function boot(){
   state.booted = true; setTimeout(bellHintShow, 3000);
-  setTimeout(() => { if (store.get('tour', null) === null) loadGuide().then(() => typeof EPTour !== 'undefined' && EPTour.auto()).catch(() => {}); }, 3500);   // khách mới: hướng dẫn tự chạy; khách cũ: được hỏi trước
+  setTimeout(() => { if (store.get('tour', null) === null && !$('lang-ask')) tourAuto(); }, 3500);   // khách mới: hướng dẫn tự chạy (sau khi chọn ngôn ngữ); khách cũ: được hỏi trước
   // Từng bước bắt lỗi riêng: một phần lỗi (giao diện, ngôn ngữ, dữ liệu…) không làm cả trang trắng. Chỉ khi không vẽ nổi trang thì báo cho lưới an toàn trong index.html (tự sửa + tải lại).
   const step = (nm, fn) => { try { const r = fn(); if (r && r.catch) r.catch(e => console.error('[EP] ' + nm, e)); } catch (e) { console.error('[EP] ' + nm, e); } };
-  step('look', applyLook); step('prefs', renderPrefs); step('data', listenAll);
+  step('look', applyLook); step('prefs', renderPrefs); step('data', listenAll); step('welcome', welcomeInit);
   try { readRoute(); doRender(); }
   catch (e) {                                                        // trang đang mở bị lỗi: thử về Trang chủ trước khi coi là hỏng
     console.error('[EP] render ' + location.hash, e);

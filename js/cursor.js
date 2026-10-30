@@ -14,7 +14,7 @@
 (function(){
   if (!window.matchMedia) return;
   const rm = matchMedia('(prefers-reduced-motion: reduce)');
-  const root = document.documentElement, off = () => rm.matches || root.dataset.calm === '1';
+  const root = document.documentElement, off = () => (rm.matches && root.dataset.motion !== 'on') || root.dataset.calm === '1';
   const STEP = 38, LIFE = 1.3, RIP = .6, MAXP = 12, MAXD = 24, SIZE = 20;   // quãng đi giữa hai dấu (px), tuổi dấu chân (giây), tuổi gợn nhấp (giây), số dấu / hạt tối đa, cỡ dấu (px)
   const HOT = 'a,button,summary,label,select,[role=button],[data-act],.pcard,.gal-th img,.mj-stop,input[type=checkbox],input[type=radio],input[type=range],input[type=submit],input[type=button]';
   const TXT = 'textarea,input:not([type=checkbox],[type=radio],[type=range],[type=submit],[type=button],[type=file],[type=color]),[contenteditable=""],[contenteditable="true"],body.editing [data-cms],iframe';
