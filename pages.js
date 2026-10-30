@@ -340,7 +340,6 @@ Object.assign(ACTIONS, {
     const box = el.closest('[data-tabs]'), k = el.dataset.k; TABS[el.dataset.g] = k;
     box.querySelectorAll(':scope > .tab-bar > [data-k]').forEach(b => { b.classList.toggle('on', b.dataset.k === k); b.setAttribute('aria-selected', b.dataset.k === k); });
     box.querySelectorAll(':scope > .tab-pane').forEach(x => { x.hidden = x.dataset.k !== k; });
-    if (el.dataset.g === 'don') sbRefresh();
   },
   passToggle: el => { const i = el.closest('.pass-wrap').querySelector('input'), show = i.type === 'password'; i.type = show ? 'text' : 'password'; el.setAttribute('aria-pressed', show); el.setAttribute('aria-label', t(show ? 'pass_hide' : 'pass_show')); el.title = t(show ? 'pass_hide' : 'pass_show'); el.innerHTML = ic(show ? 'eye-off' : 'eye'); i.focus(); },
   hintOff: el => { store.set('hint_' + el.dataset.key, true); const n = el.closest('.hint-note'); if (n && !el.href) n.remove(); },
@@ -1281,37 +1280,74 @@ const donateHTML = function(){
 })();
 document.addEventListener('toggle', e => { if (e.target.classList && e.target.classList.contains('tm-cfg')) store.set('fx_cfg', e.target.open); }, true);   // nhớ khách mở hay gập cài đặt bộ đếm
 
-/* Bong bóng Ủng hộ: hiện ở góc màn hình khi khách đang xem mục Ủng hộ (trang #/donate và phần Ủng hộ ở cuối Phòng tập trung), luôn thấy gói đang chọn và nút Thanh toán dù cuộn tới đâu.
-   Bấm để thu nhỏ thành trái tim, bấm lại để mở. Chỉ chữ và nút, không đọc Firebase. */
-let sbIO = null;
-function sbRefresh(){
-  const b = $('sb-bubble'), card = document.querySelector('.don-card'); if (!b || !card) return;
-  const pane = card.querySelector('.tab-pane:not([hidden])'), chip = pane && pane.querySelector('.chip.on'), comp = !pane || pane.dataset.k === 'comp';
-  let label = '';
-  if (chip) { const c = chip.cloneNode(true); c.querySelectorAll('small').forEach(x => x.remove()); label = c.textContent.replace(/\s+/g, ' ').trim(); }
-  b.classList.toggle('nopay', !(pane && pane.querySelectorAll('.don-step').length >= 2));        // không có bước thanh toán (đã là Người đồng hành, chưa đăng nhập…): không hiện bong bóng
-  b.querySelector('.sb-t').textContent = comp ? ctext('comp_title') : t('donate_once');
-  b.querySelector('.sb-s').textContent = label || t('nav_donate');
+/* Ghế sofa của Moon: góc dưới bên phải MỌI trang, Moon ngủ trên đó. Chạm vào thì Moon tỉnh dậy và gợi ý gói Người đồng hành (giá, quyền lợi, nút xem gói).
+   Hiện cho khách chưa là Người đồng hành khi web có cách thanh toán; ẩn ở trang Ủng hộ và Admin. Bấm "Ẩn 7 ngày" thì nghỉ một tuần. Chỉ chữ, hình vẽ và nút: không đọc Firebase. */
+(function(){
+  const G = {
+    en:{ sofa_t:'Moon saved you a seat', sofa_x:'Become a Companion and get comfy. Your support keeps the stream and this study room running.', sofa_p1:'Your own weekly Planner with an automatic review', sofa_p2:'Unlimited focus time in the Focus room', sofa_p3:'Live study group and weekly leaderboard', sofa_p4:'A small badge next to your name', sofa_hide:'Hide for 7 days', sofa_aria:'Moon is napping on the sofa. Tap to see the Companion plan.' },
+    vi:{ sofa_t:'Moon giữ chỗ cho bạn rồi', sofa_x:'Trở thành Người đồng hành và ngồi cho thoải mái nhé. Sự ủng hộ của bạn giữ cho buổi live và phòng học này luôn sáng đèn.', sofa_p1:'Planner tuần riêng kèm tổng kết tự động', sofa_p2:'Không giới hạn thời gian tập trung ở Phòng tập trung', sofa_p3:'Nhóm học trực tiếp và bảng xếp hạng tuần', sofa_p4:'Huy hiệu nhỏ cạnh tên bạn', sofa_hide:'Ẩn 7 ngày', sofa_aria:'Moon đang ngủ trên sofa. Chạm để xem gói Người đồng hành.' },
+    hi:{ sofa_t:'मून ने आपके लिए जगह रखी है', sofa_x:'साथी बनिए और आराम से बैठिए। आपका सहयोग स्ट्रीम और इस स्टडी रूम को चलाए रखता है।', sofa_p1:'अपना साप्ताहिक प्लानर और अपने आप बनने वाली समीक्षा', sofa_p2:'फ़ोकस रूम में असीमित फ़ोकस समय', sofa_p3:'लाइव स्टडी ग्रुप और साप्ताहिक लीडरबोर्ड', sofa_p4:'आपके नाम के पास एक छोटा बैज', sofa_hide:'7 दिन के लिए छिपाएँ', sofa_aria:'मून सोफ़े पर झपकी ले रही है। साथी योजना देखने के लिए छुएँ।' },
+    ja:{ sofa_t:'Moonがあなたの席を取っておきました', sofa_x:'仲間になって、ゆっくりくつろいでください。あなたの支援が配信とこの自習室を支えます。', sofa_p1:'自動レビュー付きの自分だけの週間プランナー', sofa_p2:'集中ルームで集中時間が無制限', sofa_p3:'ライブ自習グループと週間ランキング', sofa_p4:'名前の横に小さなバッジ', sofa_hide:'7日間非表示', sofa_aria:'Moonがソファで昼寝中です。タップして仲間プランを見る。' },
+    ko:{ sofa_t:'Moon이 자리를 맡아 뒀어요', sofa_x:'동반자가 되어 편히 앉으세요. 여러분의 후원이 방송과 이 공부방을 이어 가요.', sofa_p1:'자동 리뷰가 있는 나만의 주간 플래너', sofa_p2:'집중 방에서 집중 시간 무제한', sofa_p3:'실시간 스터디 그룹과 주간 순위', sofa_p4:'이름 옆의 작은 배지', sofa_hide:'7일간 숨기기', sofa_aria:'Moon이 소파에서 낮잠 중이에요. 눌러서 동반자 플랜 보기.' },
+    zh:{ sofa_t:'Moon给你留了个座', sofa_x:'成为同伴，舒舒服服坐下吧。你的支持让直播和这间自习室一直运转。', sofa_p1:'专属每周计划本，附自动周报', sofa_p2:'专注室里专注时间不限', sofa_p3:'实时学习小组和每周排行榜', sofa_p4:'名字旁的小徽章', sofa_hide:'隐藏7天', sofa_aria:'Moon正在沙发上打盹。点一下查看同伴计划。' },
+    fr:{ sofa_t:"Moon t'a gardé une place", sofa_x:"Deviens Compagnon et installe-toi. Ton soutien fait tourner le live et cette salle d'étude.", sofa_p1:'Ton Planner hebdo privé avec bilan automatique', sofa_p2:'Concentration illimitée dans la salle de concentration', sofa_p3:'Groupe d\'étude en direct et classement hebdo', sofa_p4:'Un petit badge à côté de ton nom', sofa_hide:'Masquer 7 jours', sofa_aria:'Moon fait la sieste sur le canapé. Touche pour voir la formule Compagnon.' },
+    es:{ sofa_t:'Moon te ha guardado un sitio', sofa_x:'Hazte Acompañante y ponte cómodo. Tu apoyo mantiene el directo y esta sala de estudio.', sofa_p1:'Tu planificador semanal privado con resumen automático', sofa_p2:'Tiempo de enfoque ilimitado en la sala de enfoque', sofa_p3:'Grupo de estudio en vivo y clasificación semanal', sofa_p4:'Una pequeña insignia junto a tu nombre', sofa_hide:'Ocultar 7 días', sofa_aria:'Moon duerme la siesta en el sofá. Toca para ver el plan de Acompañante.' }
+  };
+  Object.keys(G).forEach(l => { I18N[l] = I18N[l] || {}; Object.keys(G[l]).forEach(k => { if (I18N[l][k] === undefined) I18N[l][k] = G[l][k]; }); });
+})();
+const SOFA_OFF = 7 * 864e5;
+const SOFA_SVG = `<svg class="sofa-svg" viewBox="0 0 150 96" aria-hidden="true">
+  <ellipse cx="75" cy="91" rx="64" ry="4.5" fill="rgba(0,0,0,.22)"/>
+  <rect x="22" y="79" width="8" height="11" rx="2.5" fill="#4a2f3a"/><rect x="120" y="79" width="8" height="11" rx="2.5" fill="#4a2f3a"/>
+  <rect x="18" y="20" width="114" height="54" rx="22" fill="#b9577e"/><path d="M32 29Q75 21 118 29" stroke="#d9789c" stroke-width="3" stroke-linecap="round" fill="none" opacity=".65"/>
+  <g transform="rotate(10 124 44)"><rect x="113" y="31" width="22" height="22" rx="7" fill="#f4d58a"/><path d="M124 36.5l1.7 3.6 3.9.4-2.9 2.6.8 3.8-3.5-1.9-3.5 1.9.8-3.8-2.9-2.6 3.9-.4z" fill="#e9a94a"/></g>
+  <g class="sofa-cat"><g class="sofa-breath">
+    <path d="M106 66Q128 67 125 53Q123 45 114 48" stroke="#aab4d0" stroke-width="7" stroke-linecap="round" fill="none"/><path d="M106 66Q128 67 125 53Q123 45 114 48" stroke="#fdfaf3" stroke-width="5.6" stroke-linecap="round" fill="none"/>
+    <ellipse cx="84" cy="60" rx="31" ry="14" fill="#fdfaf3" stroke="#aab4d0" stroke-width="1"/><path d="M96 48Q112 56 108 70Q100 72 92 72Q100 62 96 48Z" fill="#c9d1e6" opacity=".7"/>
+    <ellipse cx="101" cy="67" rx="10" ry="6" fill="#fdfaf3" stroke="#aab4d0" stroke-width="1"/>
+    <ellipse cx="64" cy="68" rx="8.5" ry="4" fill="#fdfaf3" stroke="#aab4d0" stroke-width="1"/>
+    <g transform="translate(51 55) rotate(-7) scale(2.2 2.15) translate(0 16.8)">
+      <defs><clipPath id="sofaHc"><ellipse cx="0" cy="-16.8" rx="6.448" ry="5.828"/></clipPath></defs>
+      <path d="M-5.7 -18L-5.3 -25.2L-1.2 -21.6Z" fill="#f2a15c"/><path d="M5.7 -18L5.3 -25.2L1.2 -21.6Z" fill="#f2a15c"/>
+      <path d="M-3.844 -20.21L-4.712 -23.744L-2.108 -21.388Z" fill="#f4a9b6"/><path d="M3.844 -20.21L4.712 -23.744L2.108 -21.388Z" fill="#f4a9b6"/>
+      <ellipse cx="0" cy="-16.8" rx="6.448" ry="5.828" fill="#fdfaf3"/>
+      <g clip-path="url(#sofaHc)"><path d="M-8.1 -15.6L-8.1 -25.5L8.1 -25.5L8.1 -18.7Q5.3 -19.7 3.1 -19Q1.5 -18.8 .7 -20.3Q0 -22 -.7 -20.4Q-1.4 -18.7 -3 -18.4Q-4.6 -18 -4.8 -16.1Q-5.3 -14.7 -8.1 -15.6Z" fill="#f2a15c"/><path d="M-3.1 -22.1q.5 1 .1 1.9M2.9 -22.3q-.5 1-.1 1.9M-5 -19.9q.9 .4 1.4 1.2" stroke="#d9823f" stroke-width=".56" stroke-linecap="round" fill="none" opacity=".55"/></g>
+      <ellipse cx="0" cy="-16.8" rx="6.448" ry="5.828" fill="none" stroke="#aab4d0" stroke-width=".45"/>
+      <g class="sofa-eyes-z"><path d="M-3.7 -16.5Q-2.5 -15.2 -1.3 -16.5M1.3 -16.5Q2.5 -15.2 3.7 -16.5" stroke="#29203a" stroke-width=".6" stroke-linecap="round" fill="none"/></g>
+      <g class="sofa-eyes-o"><ellipse cx="-2.48" cy="-16.43" rx=".93" ry="1.18" fill="#29203a"/><ellipse cx="2.48" cy="-16.43" rx=".93" ry="1.18" fill="#29203a"/><circle cx="-2.17" cy="-16.92" r=".37" fill="#fff"/><circle cx="2.79" cy="-16.92" r=".37" fill="#fff"/></g>
+      <ellipse cx="-3.844" cy="-14.444" rx="1.116" ry=".682" fill="#f4a9b6" opacity=".75"/><ellipse cx="3.844" cy="-14.444" rx="1.116" ry=".682" fill="#f4a9b6" opacity=".75"/>
+      <path d="M-.62 -15.126h1.24l-.62 .682z" fill="#ee8fa1"/><path d="M-1.116 -14.01q.558 .496 1.116 0q.558 .496 1.116 0" stroke="#9b7b80" stroke-width=".372" stroke-linecap="round" fill="none"/>
+    </g>
+  </g></g>
+  <g class="sofa-zz" fill="var(--accent-strong)" font-weight="800"><text class="z1" x="34" y="24" font-size="11">z</text><text class="z2" x="26" y="14" font-size="9">z</text><text class="z3" x="20" y="6" font-size="7">z</text></g>
+  <rect x="12" y="63" width="126" height="22" rx="11" fill="#d46a93"/><path d="M26 72h98" stroke="#e58aab" stroke-width="1.6" stroke-linecap="round" opacity=".7"/>
+  <rect x="3" y="38" width="26" height="46" rx="13" fill="#c4608a"/><rect x="121" y="38" width="26" height="46" rx="13" fill="#c4608a"/>
+  <path d="M10 48Q16 43 22 48" stroke="#e58aab" stroke-width="2" stroke-linecap="round" fill="none" opacity=".6"/><path d="M128 48Q134 43 140 48" stroke="#e58aab" stroke-width="2" stroke-linecap="round" fill="none" opacity=".6"/>
+</svg>`;
+const sofaOn = () => !!(compPayMode() && !state.companion && !state.editMode && !['donate', 'admin'].includes(route.name) && Date.now() - (+store.get('sofa_off', 0) || 0) > SOFA_OFF);
+function sofaPrice(){ return compPayMode() === 'vnd' ? money(compPrice(1), 'VND') : money(compPriceUSD(1), 'USD'); }
+function sofaCard(){
+  const perks = ['sofa_p1', ...(Math.round(+branding.focusLimit) > 0 ? ['sofa_p2'] : []), ...(branding.groupOn === true ? ['sofa_p3'] : []), 'sofa_p4'];
+  return `<button type="button" class="sofa-x" data-act="sofaToggle" aria-label="${esc(t('close'))}">${ic('x', 'sm')}</button><b class="sofa-t">${esc(t('sofa_t'))}</b><p class="small muted sofa-tx">${esc(t('sofa_x'))}</p>
+    <ul class="sofa-ul">${perks.map(k => `<li>${esc(t(k))}</li>`).join('')}</ul><div class="sofa-price">${esc(t('comp_plan_1'))} · <b>${esc(sofaPrice())}</b></div>
+    <a class="btn primary sm" href="#/donate" data-act="sofaGo">${ic('heart', 'sm')} ${esc(t('don_see_comp'))}</a><button type="button" class="link small sofa-hide" data-act="sofaHide">${esc(t('sofa_hide'))}</button>`;
 }
-function sbSync(){
-  if (sbIO) { sbIO.disconnect(); sbIO = null; }
-  const card = document.querySelector('.don-card'); let b = $('sb-bubble');
-  if (!card || state.editMode) { if (b) b.remove(); return; }
-  if (!b) {
-    b = document.createElement('div'); b.id = 'sb-bubble'; b.className = 'sb-bubble'; b.hidden = true;
-    b.innerHTML = `<button type="button" class="sb-heart" data-act="sbToggle" title="${esc(t('nav_donate'))}" aria-label="${esc(t('nav_donate'))}">${ic('heart')}</button>
-      <div class="sb-card"><button type="button" class="sb-x" data-act="sbToggle" aria-label="${esc(t('close'))}">${ic('x', 'sm')}</button><b class="sb-t"></b><span class="sb-s"></span><button type="button" class="btn primary sm" data-act="sbGo">${esc(t('don_pay'))}</button></div>`;
-    document.body.appendChild(b);
-  }
-  b.classList.toggle('min', !!store.get('sb_min', false));
-  { const h = b.querySelector('.sb-heart'); h.title = t('nav_donate'); h.setAttribute('aria-label', t('nav_donate')); } b.querySelector('.sb-card .btn').textContent = t('don_pay');
-  sbRefresh();
-  if ('IntersectionObserver' in window) { sbIO = new IntersectionObserver(es => { b.hidden = !es.some(e => e.isIntersecting); }); sbIO.observe(card); } else b.hidden = false;
+function sofaSync(){
+  let b = $('sofa'); const on = sofaOn();
+  document.body.classList.toggle('has-sofa', on);
+  if (!on) { if (b) b.remove(); return; }
+  if (!b) { b = document.createElement('div'); b.id = 'sofa'; b.className = 'sofa'; document.body.appendChild(b); }
+  const open = b.classList.contains('open'), key = state.lang + '|' + compPayMode() + '|' + (branding.groupOn === true) + '|' + Math.round(+branding.focusLimit) + '|' + sofaPrice();
+  if (b.dataset.key === key) return;                              // không vẽ lại khi không có gì đổi (giữ hiệu ứng ngủ và thẻ đang mở)
+  b.dataset.key = key;
+  b.innerHTML = `<div class="sofa-card" id="sofa-card" role="dialog" aria-label="${esc(t('sofa_t'))}"${open ? '' : ' hidden'}>${sofaCard()}</div><button type="button" id="sofa-btn" class="sofa-btn" data-act="sofaToggle" aria-expanded="${open}" aria-controls="sofa-card" aria-label="${esc(t('sofa_aria'))}" title="${esc(t('sofa_t'))}">${SOFA_SVG}</button>`;
 }
 Object.assign(ACTIONS, {
-  sbToggle: () => { const b = $('sb-bubble'); if (!b) return; const m = !b.classList.contains('min'); b.classList.toggle('min', m); store.set('sb_min', m); },
-  sbGo: () => { const card = document.querySelector('.don-card'); if (!card) return; const pane = card.querySelector('.tab-pane:not([hidden])'), st = pane ? pane.querySelectorAll('.don-step') : []; (st[1] || card).scrollIntoView({ block:'start', behavior:'smooth' }); }
+  sofaToggle: () => { const b = $('sofa'); if (!b) return; const o = !b.classList.contains('open'); b.classList.toggle('open', o); $('sofa-card').hidden = !o; $('sofa-btn').setAttribute('aria-expanded', o); if (o) $('sofa-card').querySelector('.btn').focus({ preventScroll:true }); },
+  sofaGo: () => { TABS.don = 'comp'; const b = $('sofa'); if (b) { b.classList.remove('open'); $('sofa-card').hidden = true; $('sofa-btn').setAttribute('aria-expanded', false); } },
+  sofaHide: () => { store.set('sofa_off', Date.now()); sofaSync(); toast(t('sofa_hide') + ' ✓'); }
 });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { const b = $('sofa'); if (b && b.classList.contains('open')) { b.classList.remove('open'); $('sofa-card').hidden = true; $('sofa-btn').setAttribute('aria-expanded', false); } } });
 PAGES.donate = function(){ page(`${head('donate_title', 'donate_sub', '', 'lantern', 3)}${donateHTML()}${thanksCard()}`); };
 CHANGES.donMail = el => { donMail = el.value; render(true); };
 CHANGES.donCustom = el => { const v = Math.round(+el.value); if (v > 0) { donAmt = { cur:donCur || effCurrency(), v }; render(true); } };
