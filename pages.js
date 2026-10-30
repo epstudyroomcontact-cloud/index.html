@@ -436,7 +436,20 @@ function pomoComplete(natural, silent){
   grpPing();
   if (route.name === 'focus' || route.name === 'home') render(true); else updateTimerUI();
 }
-function pomoTick(){ if (!pomo.running) return; if (pomo.endAt - Date.now() <= 0) pomoComplete(true); else updateTimerUI(); }
+/* Nhiều tab cùng mở: đồng hồ là MỘT, lưu ở localStorage. Tab khác đổi (bắt đầu / dừng / hết khối) thì tab này nhận lại trạng thái, và chỉ một tab được "hoàn tất" khối
+   (trước đây tab nào cũng tự hoàn tất: cộng phút tập trung, 🍅 và điểm nhóm học hai lần). */
+function pomoAdopt(){
+  const s = store.get('pomo', null); if (!s || typeof s !== 'object') return false;
+  pomo = { ...pomoDefault(), ...s }; pomo.cfg = { ...pomoDefault().cfg, ...(pomo.cfg || {}) }; return true;
+}
+window.addEventListener('storage', e => { if (e.key === 'ep_pomo' && pomoAdopt()) { updateTimerUI(); grpPing(); } });
+function pomoTick(){
+  if (!pomo.running) return;
+  if (pomo.endAt - Date.now() > 0) { updateTimerUI(); return; }
+  const s = store.get('pomo', null);
+  if (s && (!s.running || s.endAt !== pomo.endAt || s.mode !== pomo.mode)) { if (pomoAdopt()) { updateTimerUI(); grpPing(); } return; }   // tab khác đã hoàn tất khối này rồi
+  pomoComplete(true);
+}
 const RING_C = 2 * Math.PI * 54;
 function updateTimerUI(){
   const left = pomo.running ? Math.max(0, pomo.endAt - Date.now()) : pomo.remaining, total = pomoDur(pomo.mode);
