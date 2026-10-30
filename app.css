@@ -1165,3 +1165,10 @@ body:has(#tour-ask) .sofa{display:none}
 #motion-note p{margin-bottom:10px;font-weight:600}
 #motion-note .row{display:flex;justify-content:flex-end;gap:6px}
 .ask-foot{flex-wrap:wrap}
+
+/* Nhóm học: leo hạng (group.js climb) */
+.grp-climb{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin:0 0 8px}
+.grp-trend{display:inline-block;margin-left:8px;font-size:.72rem;font-weight:800;padding:1px 7px;border-radius:99px}
+.grp-trend.up{background:rgba(34,197,94,.16);color:#16a34a}
+.grp-trend.dn{background:rgba(239,68,68,.14);color:#dc2626}
+.grp-climb .grp-trend{margin-left:0}

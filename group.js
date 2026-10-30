@@ -24,6 +24,7 @@ Object.assign(I18N.en, {
   grp_board:'This week', grp_board_none:'No focus time yet this week. Finish a focus session to appear here.', grp_reset:'Resets every Monday at 00:00 (Vietnam time, GMT+7).',
   grp_focus:'Focus', grp_break:'Break', grp_you:'You', grp_hm:'{h} h {m} min', grp_m:'{m} min', grp_refresh:'Refresh', grp_remove:'Remove from the group',
   grp_strip_join:'Join the study group to see who is studying and your weekly rank', grp_strip_n:'{n} studying now', grp_strip_0:'Nobody studying yet', grp_rank:'Rank #{r}', grp_rank_none:'No hours this week yet', grp_home_sub:'See who is studying right now.', grp_home_join:'Join the group in the Focus room', grp_home_open:'Open the Focus room', grp_home_up:'Companions can see who is studying right now, with live timers and a weekly leaderboard.',
+  grp_trend_up:'▲ {n} today', grp_trend_dn:'▼ {n} today', grp_climb_next:'{m} more to pass {n}', grp_climb_lead:'You lead {n} by {m}', grp_climb_alone:'You are the only one on the board so far', grp_moved:'You moved up to #{r} this week!', grp_top:'You are #1 this week!',
   grp_err:'Could not load the group. Try again in a moment.', grp_err_rules:'The group is not ready yet. The site owner still needs to publish the latest security rules.', grp_err_quota:'The group is resting for today. Please come back tomorrow.'
 });
 Object.assign(I18N.vi, {
@@ -38,6 +39,7 @@ Object.assign(I18N.vi, {
   grp_board:'Tuần này', grp_board_none:'Tuần này chưa ai có giờ tập trung. Xong một phiên tập trung là bạn sẽ có tên ở đây.', grp_reset:'Làm mới mỗi thứ Hai lúc 00:00 (giờ Việt Nam, GMT+7).',
   grp_focus:'Tập trung', grp_break:'Nghỉ', grp_you:'Bạn', grp_hm:'{h} giờ {m} phút', grp_m:'{m} phút', grp_refresh:'Tải lại', grp_remove:'Xoá khỏi nhóm',
   grp_strip_join:'Tham gia nhóm học để xem ai đang học và thứ hạng tuần của bạn', grp_strip_n:'{n} người đang học', grp_strip_0:'Chưa ai đang học', grp_rank:'Hạng {r}', grp_rank_none:'Tuần này chưa có giờ học', grp_home_sub:'Xem ai đang học ngay lúc này.', grp_home_join:'Tham gia nhóm ở Phòng tập trung', grp_home_open:'Mở Phòng tập trung', grp_home_up:'Người đồng hành xem được ai đang học ngay lúc này, kèm đồng hồ trực tiếp và bảng xếp hạng tuần.',
+  grp_trend_up:'▲ {n} hạng hôm nay', grp_trend_dn:'▼ {n} hạng hôm nay', grp_climb_next:'Học thêm {m} để vượt {n}', grp_climb_lead:'Bạn hơn {n} {m}', grp_climb_alone:'Hiện mới chỉ có bạn trên bảng', grp_moved:'Bạn vừa lên hạng {r} tuần này!', grp_top:'Bạn đang đứng đầu tuần này!',
   grp_err:'Chưa tải được nhóm. Bạn thử lại sau một lát nhé.', grp_err_rules:'Nhóm chưa sẵn sàng: chủ web cần dán luật bảo mật mới nhất lên Firebase.', grp_err_quota:'Hôm nay nhóm đang nghỉ. Bạn quay lại vào ngày mai nhé.'
 });
 /* Bản dịch cho khách chưa là Người đồng hành (lời mời ở Phòng tập trung và Tổng quan) bằng hi / ja / ko / zh / fr / es; phần dành cho thành viên nhóm còn en / vi, thiếu thì tự dùng tiếng Anh. */
@@ -92,7 +94,7 @@ Object.assign(I18N.vi, {
       await ref().set(o, { merge:true });
       if (entry) { live[id] = entry; lastSent = entry.k; lastBeat = entry.b; }
       if (inc > 0) { store.set('grp_pend', Math.max(0, pend() - inc)); const b0 = board[id] || { n:m.n, mins:0 }; board[id] = { ...b0, n:m.n, mins:(b0.mins | 0) + inc }; }
-      lastFlush = Date.now(); lastWeek = wkNow; err = ''; denied = 0; renderBox();
+      lastFlush = Date.now(); lastWeek = wkNow; err = ''; denied = 0; rankWatch(); renderBox();
     } catch (e) {
       if (entry) lastSent = '';
       const nope = e && (e.code === 'permission-denied' || e.code === 'invalid-argument');
@@ -139,7 +141,7 @@ Object.assign(I18N.vi, {
     if (!on() || busy || (!force && Date.now() - loadedAt < 15000)) return; busy = true; renderBox();
     try {
       const d = await ref().get(), x = d.exists ? d.data() : {};
-      live = x.live || {}; board = x.board || {}; loadedAt = Date.now(); err = '';
+      live = x.live || {}; board = x.board || {}; loadedAt = Date.now(); err = ''; rankWatch();
       const id = state.user.uid, mine = board[id] || live[id], nn = mine && nameOk(mine.n);
       if (nn && !me()) { store.set(key(), { n:nn }); sync(true); }                // đã tham gia ở thiết bị khác của tài khoản này: nhận lại biệt danh, nếu không thiết bị này không báo "đang học" và không cộng phút
       if (live[id] && !want()) clearLive();          // sót lại từ lần đóng web đột ngột
@@ -179,7 +181,8 @@ Object.assign(I18N.vi, {
   function boardHTML(){
     const id = state.user.uid, all = boardRows();
     const top = all.slice(0, TOP), mine = all.findIndex(x => x.k === id), row = (x, i) => `<li class="grp-row ${x.k === id ? 'me' : ''}"><span class="grp-rank r${i < 3 ? i + 1 : 0}">${i + 1}</span>${avatar(x.n)}<b class="grp-n">${esc(x.n)}${x.k === id ? ` <span class="badge">${esc(t('grp_you'))}</span>` : ''}</b><span class="grp-t">${esc(fmt(x.mins * 60000))}</span>${kick(x.k)}</li>`;
-    return `<h3 class="grp-h">${esc(t('grp_board'))}</h3>` + (all.length
+    const cl = climb(), sum = cl ? `<p class="grp-climb small"><b>${esc(t('grp_rank', { r:cl.r }))}</b>${trendHTML(cl)}<span class="muted">${esc(gapText(cl))}</span></p>` : '';
+    return `<h3 class="grp-h">${esc(t('grp_board'))}</h3>${sum}` + (all.length
       ? `<ol class="grp-list">${top.map(row).join('')}${mine >= TOP ? `<li class="grp-gap" aria-hidden="true">…</li>${row(all[mine], mine)}` : ''}</ol>` : `<p class="muted small">${esc(t('grp_board_none'))}</p>`) + `<p class="small faint mt-s">${esc(t('grp_reset'))}</p>`;
   }
   function renderMain(){
@@ -197,13 +200,29 @@ Object.assign(I18N.vi, {
       <div class="mt-s">${leaving ? `<p class="small">${esc(t('grp_leave_ask'))}</p><div class="row mt-s"><button type="button" class="btn danger sm" data-act="grpLeaveYes">${esc(t('grp_leave_yes'))}</button><button type="button" class="btn secondary sm" data-act="grpLeaveNo">${esc(t('grp_cancel'))}</button></div>` : `<button type="button" class="btn ghost sm" data-act="grpLeave">${esc(t('grp_leave'))}</button>`}</div>`;
   }
   const rankOf = () => { const id = state.user.uid, all = boardRows(), i = all.findIndex(x => x.k === id); return i < 0 ? null : { r:i + 1, mins:all[i].mins }; };
+  /* Leo hạng: hạng hiện tại, tăng/giảm so với lần đầu thấy trong ngày (giờ Việt Nam), và khoảng cách tới người đứng trên (cùng điểm thì ai đạt trước đứng trên, nên cần hơn 1 phút để vượt) */
+  function climb(){
+    const id = state.user.uid, all = boardRows(), i = all.findIndex(x => x.k === id); if (i < 0) return null;
+    const day = DT.now().setZone(TZ).toISODate(); let b = store.get('grp_rk0', null);
+    if (!b || b.day !== day || b.id !== id) { b = { day, id, r:i + 1 }; store.set('grp_rk0', b); }
+    const me0 = all[i], up = i > 0 ? all[i - 1] : null, dn = i === 0 ? all[1] : null;
+    return { r:i + 1, mins:me0.mins, trend:b.r - (i + 1), upN:up && up.n, upM:up ? up.mins - me0.mins + 1 : 0, leadN:dn && dn.n, leadM:dn ? me0.mins - dn.mins : 0 };
+  }
+  const trendHTML = c => !c ? '' : c.trend > 0 ? `<span class="grp-trend up">${esc(t('grp_trend_up', { n:c.trend }))}</span>` : c.trend < 0 ? `<span class="grp-trend dn">${esc(t('grp_trend_dn', { n:-c.trend }))}</span>` : '';
+  const gapText = c => !c ? '' : c.upN ? t('grp_climb_next', { m:fmt(c.upM * 60000), n:c.upN }) : c.leadN ? t('grp_climb_lead', { n:c.leadN, m:fmt(c.leadM * 60000) }) : t('grp_climb_alone');
+  function rankWatch(){                  // lên hạng (so với lần thấy trước) thì chúc mừng một lần
+    if (!state.user || !me() || !on()) return; const c = rankOf(); if (!c) return;
+    const w = wk(), p = store.get('grp_rk', null);
+    if (p && p.wk === w && p.id === state.user.uid && c.r < p.r && document.visibilityState === 'visible') toast(t(c.r === 1 ? 'grp_top' : 'grp_moved', { r:c.r }));
+    if (!p || p.wk !== w || p.id !== state.user.uid || p.r !== c.r) store.set('grp_rk', { wk:w, id:state.user.uid, r:c.r });
+  }
   function renderStrip(){            // dải nhỏ ngay dưới đồng hồ: ai đang học + hạng tuần của mình
     const el = document.getElementById('grp-strip'); if (!el) return;
     if (!state.user || !on()) { el.innerHTML = ''; return; }
     if (!me()) { el.innerHTML = `<button type="button" class="grp-strip-join" data-act="grpGo">${ic('users', 'sm')} ${esc(t('grp_strip_join'))}</button>`; return; }
-    const rows = liveRows(), rk = rankOf();
+    const rows = liveRows(), rk = rankOf(), cl = climb();
     el.innerHTML = `<div class="grp-strip"><div class="grp-strip-l"><span class="grp-avs">${rows.slice(0, 5).map(r => avatar(r.n)).join('')}</span><span class="small">${esc(rows.length ? t('grp_strip_n', { n:rows.length }) : t('grp_strip_0'))}</span></div>
-      <button type="button" class="grp-strip-r small" data-act="grpGo">${rk ? `<b>${esc(t('grp_rank', { r:rk.r }))}</b> · ${esc(fmt(rk.mins * 60000))}` : esc(t('grp_rank_none'))}</button></div>`;
+      <button type="button" class="grp-strip-r small" data-act="grpGo" title="${esc(gapText(cl))}">${rk ? `<b>${esc(t('grp_rank', { r:rk.r }))}</b> · ${esc(fmt(rk.mins * 60000))}${trendHTML(cl)}` : esc(t('grp_rank_none'))}</button></div>`;
   }
   function renderHome(){             // thẻ ở trang Tổng quan: ai đang học (khách chưa là Người đồng hành chỉ thấy lời mời)
     const el = document.getElementById('grp-home'); if (!el) return;
