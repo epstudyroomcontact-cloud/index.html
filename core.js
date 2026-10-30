@@ -85,6 +85,8 @@ const sinceISO = s => !s ? '' : typeof s === 'string' ? s.slice(0, 10) : (s.toMi
 const compAgeMonths = s => { const d = s ? DT.fromISO(sinceISO(s)) : null; return d && d.isValid ? Math.max(0, Math.floor(DT.now().diff(d, 'months').months)) : 0; };
 const compTier = s => { const m = compAgeMonths(s), x = COMP_TIERS.find(x => m >= x[0]); return x ? { m, tier:x[1], moon:x[2], len:m >= 12 ? t(m < 24 ? 'ct_y1' : 'ct_y', { n:Math.floor(m / 12) }) : t('ct_m', { n:m }) } : null; };
 const compBadge = (extra = '') => { const c = compTier(state.companionSince); return `<span class="badge${c ? ' ct' + c.tier : ''}"${c ? ` title="${esc(t('ct_for', { d:c.len }))}"` : ''}>${ic('heart', 'sm')} ${esc(t('comp_badge'))}${c ? ` · ${c.moon} ${esc(c.len)}` : ''}${extra}</span>`; };
+/* Huy hiệu nhỏ cạnh tên Người đồng hành (thanh bên, trang tài khoản): trăng nhỏ, viền đổi theo mốc 3 / 6 / 12 tháng. Chỉ đọc dữ liệu sẵn có. */
+const nameBadge = () => { if (!state.companion) return ''; const c = compTier(state.companionSince); return `<span class="nbadge${c ? ' ct' + c.tier : ''}" title="${esc(t('comp_badge') + (c ? ' · ' + c.len : ''))}">${ic('moon', 'sm')}</span>`; };
 const thanksList = () => (supporters.items || []).filter(x => x && x.show !== false && x.name && (!x.until || x.until >= DT.now().toISODate())).sort((a, b) => String(a.since || '').localeCompare(String(b.since || '')));
 /* Tự thêm https:// cho các link thanh toán nếu người dùng quên */
 function fixPayUrls(p) { const o = { ...p }; ['stripe', 'paypal', 'kofi', 'companionUrl'].forEach(k => { const v = (o[k] || '').trim(); o[k] = v && !/^(https?:)?\/\//i.test(v) && !/^data:/i.test(v) ? 'https://' + v : v; }); return o; }
@@ -635,7 +637,7 @@ function renderChrome(){
     ${pwaStandalone() ? '' : `<button type="button" class="sb-item sb-install" data-act="pwaInstall">${ic('download')}<span>${esc(t('pwa_install'))}</span></button>`}
     ${state.isAdmin ? `<div class="sb-label">Admin</div><a class="sb-item ${route.name === 'admin' ? 'active' : ''}" href="#/admin" data-act="closeNav">${ic('shield')}<span>${esc(t('nav_admin'))}</span>${state.compPending ? `<span class="count">${state.compPending}</span>` : ''}</a>` : ''}
     <div class="sb-foot">${state.user
-      ? `<a class="sb-user" href="#/account" data-act="closeNav"><span class="avatar">${esc((displayName() || '?').slice(0, 1).toUpperCase())}</span><div><b>${esc(displayName())}</b><small>${esc(state.isAdmin ? 'Admin' : t('nav_account'))}</small></div></a>`
+      ? `<a class="sb-user" href="#/account" data-act="closeNav"><span class="avatar">${esc((displayName() || '?').slice(0, 1).toUpperCase())}</span><div><span class="sb-name"><b>${esc(displayName())}</b>${nameBadge()}</span><small>${esc(state.isAdmin ? 'Admin' : t('nav_account'))}</small></div></a>`
       : `<a class="btn primary" style="width:100%" href="#/account" data-act="closeNav">${ic('user', 'sm')} ${esc(t('nav_signin'))}</a>`}</div>`;
   const titles = { home:'nav_home', schedule:'nav_schedule', watch:'nav_watch', focus:'nav_focus', blog:'nav_blog', club:'nav_club', planner:'nav_planner', shop:'nav_shop', gear:'nav_gear', donate:'nav_donate', about:'nav_about', account:'nav_account', admin:'nav_admin' };
   $('tb-title').textContent = t(titles[route.name] || 'nav_home');
