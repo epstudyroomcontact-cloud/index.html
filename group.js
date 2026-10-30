@@ -60,7 +60,11 @@ Object.assign(I18N.vi, {
   const me = () => state.user ? store.get(key(), null) : null;                    // { n:biệt danh } khi đã tham gia
   const access = () => !!state.user && !DEMO && typeof plLinked === 'function' && plLinked();   // cùng điều kiện với Planner (chốt cuối cùng ở firestore.rules)
   const on = () => branding.groupOn === true && access();
-  let live = {}, board = {}, loadedAt = 0, err = '', busy = false, leaving = false, lastSent = '', lastBeat = 0, timers = false, acc = 0, lastTick = 0, lastFlush = 0;
+  let live = {}, board = {}, loadedAt = 0, err = '', busy = false, leaving = false, lastSent = '', lastBeat = 0, lastWeek = '', denied = 0, timers = false, lastFlush = 0;
+  const TAB = Math.random().toString(36).slice(2), LEASE = 90e3;
+  /* Mở nhiều tab cùng lúc: chỉ MỘT tab được ghi lên nhóm (tab giữ "quyền ghi" trong localStorage, hết hạn sau 90 giây nếu tab đó đóng), còn phút đang học
+     được tính chung cho cả trình duyệt (grp_acc) nên không tab nào cộng thêm lần hai. Trước đây mỗi tab tự cộng, phút bị gấp đôi rồi bị luật Firestore từ chối. */
+  const lead = () => { const l = store.get('grp_lead', null), now = Date.now(); if (l && l.id !== TAB && now - l.t < LEASE) return false; if (!l || l.id !== TAB || now - l.t > 30e3) store.set('grp_lead', { id:TAB, t:now }); return true; };
 
   const fmt = ms => { const m = Math.max(0, Math.floor(ms / 60000)), h = Math.floor(m / 60); return h ? t('grp_hm', { h, m:m % 60 }) : t('grp_m', { m }); };
   const hue = s => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
@@ -80,7 +84,7 @@ Object.assign(I18N.vi, {
   const enqueue = fn => (q = q.then(fn, fn));
   const liveEntry = () => { const k = want(), m = me(); return k && m ? { n:m.n, s:sessStart(), k, b:Date.now() } : null; };
   async function write(entry, inc){      // MỘT lần ghi gộp trạng thái đang học + phút tuần: luật Firestore kiểm tra cả hai phần mỗi lần ghi
-    const id = state.user.uid, m = me(), o = {};
+    const id = state.user.uid, m = me(), o = {}, wkNow = wk();
     if (entry) o.live = { [id]: entry };
     if (inc > 0 || (entry && board[id])) o.board = { [id]: { n:m.n, mins:firebase.firestore.FieldValue.increment(inc), t:TS() } };
     if (!o.live && !o.board) return;
@@ -88,42 +92,44 @@ Object.assign(I18N.vi, {
       await ref().set(o, { merge:true });
       if (entry) { live[id] = entry; lastSent = entry.k; lastBeat = entry.b; }
       if (inc > 0) { store.set('grp_pend', Math.max(0, pend() - inc)); const b0 = board[id] || { n:m.n, mins:0 }; board[id] = { ...b0, n:m.n, mins:(b0.mins | 0) + inc }; }
-      lastFlush = Date.now(); err = ''; renderBox();
+      lastFlush = Date.now(); lastWeek = wkNow; err = ''; denied = 0; renderBox();
     } catch (e) {
       if (entry) lastSent = '';
-      if (inc > 0 && e && (e.code === 'permission-denied' || e.code === 'invalid-argument')) store.set('grp_pend', Math.max(0, pend() - inc));   // bị quy tắc từ chối thì bỏ phần này, không thử lại mãi
+      const nope = e && (e.code === 'permission-denied' || e.code === 'invalid-argument');
+      if (inc > 0 && nope) store.set('grp_pend', Math.max(0, pend() - inc));   // bị quy tắc từ chối thì bỏ phần này, không thử lại mãi
+      if (nope && ++denied < 2) { console.warn('[EP] study group write denied', e.code); renderBox(); return; }   // một lần bị từ chối (vd. quá tốc độ cộng phút) không đáng hiện lời báo "chưa dán luật"; từ lần thứ hai liên tiếp mới báo
       errNote(e);
     }
   }
   function sync(force){                  // gọi mỗi khi đồng hồ đổi trạng thái và mỗi 30 giây (để báo nhịp)
     accrue();
-    const m = me(); if (!m || !on()) return;
+    const m = me(); if (!m || !on() || !lead()) return;
     const k = want(), now = Date.now();
     if (!k) { flush(true); return enqueue(async () => { if (lastSent) { lastSent = ''; await clearLive(); renderBox(); } }); }
-    if (!force && k === lastSent && now - lastBeat < BEAT) return;
+    if (!force && k === lastSent && now - lastBeat < BEAT && lastWeek === wk()) return;   // sang tuần mới (thứ Hai 00:00) thì tài liệu mới còn trống: báo ngay, không đợi nhịp kế
     return enqueue(() => write(liveEntry(), Math.min(pend(), 180)));
   }
   const pend = () => Math.round(+store.get('grp_pend', 0)) || 0;     // phút đã học nhưng chưa ghi lên bảng
   const blkDone = () => Math.round(+store.get('grp_blk', 0)) || 0;   // phút của khối tập trung đang chạy đã được cộng sẵn
   const blkTotal = () => Math.max(1, Math.round(pomo.blockMin || pomo.cfg.focus));
   function accrue(){                    // cộng dồn phút đang học (không đợi hết khối), để hạng tuần cập nhật cả khi bạn đang giữa phiên
-    const now = Date.now();
+    const now = Date.now(), a = store.get('grp_acc', null) || { acc:0, last:0 };   // dùng chung mọi tab: nhiều tab cùng mở thì tổng vẫn đúng bằng thời gian thật
     const fresh = pomo.mode !== 'focus' || (!pomo.running && pomo.remaining >= blkTotal() * 60000 - 1000);   // khối mới tinh (vừa đặt lại / đổi chế độ)
     if (fresh && blkDone()) store.set('grp_blk', 0);
-    if (!me() || !on() || !pomo.running || pomo.mode !== 'focus') { lastTick = 0; acc = 0; return; }
-    if (lastTick) acc += Math.min(now - lastTick, 5 * 60e3);               // tab bị trình duyệt làm chậm vẫn không mất phút
-    lastTick = now;
-    let w = Math.floor(acc / 60000); if (w <= 0) return;
-    acc -= w * 60000; w = Math.min(w, Math.max(0, blkTotal() - blkDone())); if (w <= 0) return;
+    if (!me() || !on() || !pomo.running || pomo.mode !== 'focus') { if (a.last) store.set('grp_acc', { acc:a.acc, last:0 }); return; }   // tạm dừng: giữ phần lẻ dưới một phút cho lần sau, không bỏ mất
+    let acc = a.acc + (a.last ? Math.min(now - a.last, 5 * 60e3) : 0);        // tab bị trình duyệt làm chậm vẫn không mất phút
+    let w = Math.floor(acc / 60000); acc -= w * 60000;
+    store.set('grp_acc', { acc, last:now });
+    w = Math.min(w, Math.max(0, blkTotal() - blkDone())); if (w <= 0) return;
     store.set('grp_blk', blkDone() + w); store.set('grp_pend', pend() + w); renderBox();
   }
   function flush(force){                // ghi phút đã học lên bảng xếp hạng (phiên đang chạy: 3 phút một lần để đỡ tốn lượt ghi; hết khối / tạm dừng: ghi ngay)
-    if (!me() || !on() || pend() <= 0 || (!force && Date.now() - lastFlush < FLUSH)) return;
+    if (!me() || !on() || pend() <= 0 || (!force && Date.now() - lastFlush < FLUSH) || !lead()) return;
     return enqueue(() => { if (pend() > 0) return write(liveEntry(), Math.min(pend(), 180)); });
   }
   function credit(min){               // hết khối tập trung: chỉ cộng phần còn thiếu, vì phần đã học đã được cộng dần
     const m = Math.round(+min) || 0; if (m <= 0 || !me()) return;
-    const rest = Math.max(0, m - blkDone()); store.set('grp_blk', 0); acc = 0; lastTick = 0;
+    const rest = Math.max(0, m - blkDone()); store.set('grp_blk', 0); store.set('grp_acc', { acc:0, last:0 });
     if (rest > 0) store.set('grp_pend', pend() + rest);
     return flush(true);
   }
@@ -165,9 +171,10 @@ Object.assign(I18N.vi, {
   const avatar = n => `<i class="grp-av" style="--h:${hue(n)}">${esc(String(n).slice(0, 1).toUpperCase())}</i>`;
   const kick = id => state.isAdmin && id !== state.user.uid ? `<button type="button" class="grp-x" data-act="grpKick" data-id="${esc(id)}" title="${esc(t('grp_remove'))}" aria-label="${esc(t('grp_remove'))}">${ic('x', 'sm')}</button>` : '';
   function boardRows(){               // bảng tuần; số phút của chính mình cộng thêm phần đang chờ ghi, nên luôn mới nhất
-    const id = state.user.uid, p = me() ? pend() : 0, o = Object.entries(board).map(([k, e]) => ({ k, n:(e && e.n) || '?', mins:((e && e.mins) | 0) + (k === id ? p : 0) }));
-    if (p > 0 && !board[id]) o.push({ k:id, n:me().n, mins:p });
-    return o.filter(x => x.mins > 0).sort((a, b) => b.mins - a.mins);
+    const id = state.user.uid, p = me() ? pend() : 0, tms = e => e && e.t && typeof e.t.toMillis === 'function' ? e.t.toMillis() : 0, now = Date.now();
+    const o = Object.entries(board).map(([k, e]) => ({ k, n:(e && e.n) || '?', mins:((e && e.mins) | 0) + (k === id ? p : 0), at:k === id && p > 0 ? now : tms(e) }));
+    if (p > 0 && !board[id]) o.push({ k:id, n:me().n, mins:p, at:now });
+    return o.filter(x => x.mins > 0).sort((a, b) => b.mins - a.mins || a.at - b.at || a.k.localeCompare(b.k));   // cùng số phút: ai đạt trước đứng trên (không còn đổi chỗ lung tung mỗi lần tải lại)
   }
   function boardHTML(){
     const id = state.user.uid, all = boardRows();
