@@ -157,7 +157,14 @@ async function fetchOnair(){
 }
 function onairLoop(){
   const now = Date.now(), near = (base || []).some(s => now > s.start - 6 * 3600e3 && now < s.end + 6 * 3600e3);
-  fetchOnair().then(() => setTimeout(onairLoop, near ? 10e3 : 300e3));
+  fetchOnair().then(() => { resync(); setTimeout(onairLoop, near ? 10e3 : 300e3); });
+}
+// Nguồn được nạp lại (hoặc mới thêm khoá &k) khi OBS đã đang stream: sự kiện bắt đầu đã qua, nên báo web một lần với giờ bắt đầu đã nhớ. Admin vẫn bỏ qua nếu buổi này đã được báo live.
+let resynced = false;
+function resync(){
+  if (resynced || !Q.get('k') || !window.obsstudio || !obsstudio.getStatus || !okOnair(obsStart) || Date.now() - obsStart.start > 6 * 3600e3) return;
+  if (onair && onair.start && onair.sched === obsStart.sched) { resynced = true; return; }   // web đã được báo rồi
+  try { obsstudio.getStatus(st => { if (st && st.streaming && !resynced) { resynced = true; tellWeb({ start:obsStart.start, sched:obsStart.sched, at:Date.now() }); } }); } catch (e) {}
 }
 // Bấm Start Streaming trong OBS → buổi live gần nhất bắt đầu từ lúc này. Mất mạng rồi stream lại giữa buổi thì giữ nguyên giờ cũ.
 // Cần Properties của nguồn → Page permissions ≥ "Read access to OBS status information".
