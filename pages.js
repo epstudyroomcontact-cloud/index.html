@@ -340,6 +340,7 @@ Object.assign(ACTIONS, {
     const box = el.closest('[data-tabs]'), k = el.dataset.k; TABS[el.dataset.g] = k;
     box.querySelectorAll(':scope > .tab-bar > [data-k]').forEach(b => { b.classList.toggle('on', b.dataset.k === k); b.setAttribute('aria-selected', b.dataset.k === k); });
     box.querySelectorAll(':scope > .tab-pane').forEach(x => { x.hidden = x.dataset.k !== k; });
+    if (el.dataset.g === 'don') sbRefresh();
   },
   passToggle: el => { const i = el.closest('.pass-wrap').querySelector('input'), show = i.type === 'password'; i.type = show ? 'text' : 'password'; el.setAttribute('aria-pressed', show); el.setAttribute('aria-label', t(show ? 'pass_hide' : 'pass_show')); el.title = t(show ? 'pass_hide' : 'pass_show'); el.innerHTML = ic(show ? 'eye-off' : 'eye'); i.focus(); },
   hintOff: el => { store.set('hint_' + el.dataset.key, true); const n = el.closest('.hint-note'); if (n && !el.href) n.remove(); },
@@ -354,7 +355,9 @@ const grpCredit = m => { if (grpJoined()) loadGroup().then(() => window.EPGroup.
 function addFocus(min){
   const k = DT.now().setZone(userTZ).toISODate(), fl = localFocus(), o = fl[k] || { m:0, s:0 };
   fl[k] = { m:o.m + min, s:o.s + 1 }; store.set('focus', fl);
-  const cur = typeof curTodo === 'function' && curTodo(); if (cur) store.set('todos', todos().map(x => x.id === cur.id ? { ...x, p:(x.p || 0) + 1 } : x));      // phiên tập trung xong: cộng 1 🍅 cho việc đang chọn
+  const cur = typeof curTodo === 'function' && curTodo();      // phiên tập trung xong: cộng 1 🍅 cho việc đang chọn (việc của Planner thì đếm trong máy này, ô pl_pomos)
+  if (cur && cur.pl) { const m = plPomos(); m[cur.id] = (m[cur.id] || 0) + 1; store.set('pl_pomos', m); }
+  else if (cur) store.set('todos', todos().map(x => x.id === cur.id ? { ...x, p:(x.p || 0) + 1 } : x));
   saveProfileSoon(); if (typeof renderTodos === 'function') renderTodos();
   grpCredit(min);
   if (typeof plStudyCheck === 'function') plStudyCheck().catch(() => {});   // vừa đạt mục tiêu giờ học tuần (Planner) thì chúc mừng
@@ -453,25 +456,38 @@ setInterval(pomoTick, 250);
 const todos = () => store.get('todos', []);
 const saveTodos = l => { store.set('todos', l); saveProfileSoon(); };
 const dropTodos = ids => { const s = new Set(ids), l = todos(); store.set('todos_gone', [...new Set([...todosGone(), ...ids])].slice(-300)); store.set('todos', l.filter(x => !s.has(x.id))); if (store.get('todo_cur', '') && s.has(store.get('todo_cur', ''))) store.set('todo_cur', ''); saveProfileNow(); };   // xoá thật: ghi ngay lên hồ sơ, kèm dấu "đã xoá"
-const curTodo = () => { const id = store.get('todo_cur', ''); return id ? todos().find(x => x.id === id && !x.done) : null; };
+let FX_PL = [], fxEdit = '';          // việc hôm nay của Planner đang hiện trong Phòng tập trung (để chọn "đang làm" và cộng 🍅); id việc đang sửa
+const plPomos = () => store.get('pl_pomos', {});
+const curTodo = () => { const id = store.get('todo_cur', ''); if (!id) return null; const x = todos().find(v => v.id === id && !v.done); if (x) return x; const q = FX_PL.find(v => v.id === id && !v.done); return q ? { id:q.id, text:q.title, pl:true } : null; };
+const curLabel = () => { const cur = curTodo(), tmc = $('tm-cur'); if (tmc) tmc.innerHTML = cur ? `${ic('timer', 'sm')} ${esc(t('todo_cur_now'))}: <b>${esc(cur.text)}</b>` : ''; return cur; };
 if (pomo.running && pomo.endAt <= Date.now()) pomoComplete(true, true);     // hết giờ khi đang đóng tab (đặt sau todos/curTodo: gọi sớm hơn sẽ lỗi "before initialization")
 const plLinked = () => state.companion || state.isAdmin || trialActive() || DEMO;           // có quyền dùng Planner → Focus liên kết với Planner
 function renderTodos(){
   const box = $('todo-list'); if (!box) return;
   if (plLinked() && typeof plFocusEdit !== 'function') { loadPlanner().then(() => renderTodos()).catch(() => {}); }
   const l = todos(), toPl = plLinked() && typeof plFocusEdit === 'function';
-  const cur = curTodo(), nDone = l.filter(x => x.done).length, tmc = $('tm-cur'); if (tmc) tmc.innerHTML = cur ? `${ic('timer', 'sm')} ${esc(t('todo_cur_now'))}: <b>${esc(cur.text)}</b>` : '';
-  box.innerHTML = (l.length ? `<div class="todo-prog"><div class="row between small"><span class="muted">${esc(t('todo_progress', { d:nDone, n:l.length }))}</span>${nDone ? `<button type="button" class="btn ghost sm" data-act="todoClear">${esc(t('todo_clear'))}</button>` : ''}</div><div class="progress mt-s"><i style="width:${Math.round(nDone / l.length * 100)}%"></i></div></div>` : '') + (l.length ? l.map(x => `<div class="todo-item ${x.done ? 'done' : ''} ${cur && cur.id === x.id ? 'cur' : ''}"><label><input type="checkbox" data-change="todoToggle" data-id="${esc(x.id)}" ${x.done ? 'checked' : ''}><span>${esc(x.text)}${x.p ? ` <small class="faint" title="${esc(t('todo_pomos'))}">🍅×${x.p}</small>` : ''}</span></label>${x.done ? '' : `<button type="button" class="btn ghost icon sm ${cur && cur.id === x.id ? 'on' : ''}" data-act="todoCur" data-id="${esc(x.id)}" title="${esc(t('todo_cur'))}" aria-label="${esc(t('todo_cur'))}">${ic('timer', 'sm')}</button>`}${toPl ? `<button type="button" class="btn ghost icon sm" data-act="todoToPl" data-id="${esc(x.id)}" title="${esc(t('todo_to_pl'))}" aria-label="${esc(t('todo_to_pl'))}">${ic('calendar', 'sm')}</button>` : ''}<button type="button" class="btn ghost icon sm" data-act="todoDel" data-id="${esc(x.id)}" aria-label="${esc(t('remove'))}">${ic('trash', 'sm')}</button></div>`).join('') : `<div class="small faint" style="padding:12px 0">${esc(t('todo_empty'))}</div>`);
+  const cur = curLabel(), nDone = l.filter(x => x.done).length;
+  box.innerHTML = (l.length && plLinked() ? `<div class="small muted fx-sub">${esc(t('fx_local'))}</div>` : '') + (l.length ? `<div class="todo-prog"><div class="row between small"><span class="muted">${esc(t('todo_progress', { d:nDone, n:l.length }))}</span>${nDone ? `<button type="button" class="btn ghost sm" data-act="todoClear">${esc(t('todo_clear'))}</button>` : ''}</div><div class="progress mt-s"><i style="width:${Math.round(nDone / l.length * 100)}%"></i></div></div>` : '') + (l.length ? l.map(x => `<div class="todo-item ${x.done ? 'done' : ''} ${cur && cur.id === x.id ? 'cur' : ''}"><label><input type="checkbox" data-change="todoToggle" data-id="${esc(x.id)}" ${x.done ? 'checked' : ''}><span>${esc(x.text)}${x.p ? ` <small class="faint" title="${esc(t('todo_pomos'))}">🍅×${x.p}</small>` : ''}</span></label>${x.done ? '' : `<button type="button" class="btn ghost icon sm ${cur && cur.id === x.id ? 'on' : ''}" data-act="todoCur" data-id="${esc(x.id)}" title="${esc(t('todo_cur'))}" aria-label="${esc(t('todo_cur'))}">${ic('timer', 'sm')}</button>`}${toPl ? `<button type="button" class="btn ghost icon sm" data-act="todoToPl" data-id="${esc(x.id)}" title="${esc(t('todo_to_pl'))}" aria-label="${esc(t('todo_to_pl'))}">${ic('calendar', 'sm')}</button>` : ''}<button type="button" class="btn ghost icon sm" data-act="todoDel" data-id="${esc(x.id)}" aria-label="${esc(t('remove'))}">${ic('trash', 'sm')}</button></div>`).join('') : (plLinked() ? '' : `<div class="small faint" style="padding:12px 0">${esc(t('todo_empty'))}</div>`));
   renderFocusPl();
 }
 /* việc hôm nay của Planner hiện ngay dưới danh sách việc của Focus (chỉ cho người có quyền dùng Planner); tick ở đây = tick bên Planner */
 function renderFocusPl(){
   const box = $('todo-pl'); if (!box) return;
-  if (!plLinked() || typeof plTodayList !== 'function') { box.innerHTML = ''; return; }
-  plTodayList().then(l => {
+  if (!plLinked() || typeof plWeek0 !== 'function') { box.innerHTML = ''; FX_PL = []; return; }
+  plWeek0().then(wk => {
     const b = $('todo-pl'); if (!b) return;
-    b.innerHTML = `<div class="divider" style="margin:14px 0 10px"></div><div class="row between"><b class="small">${ic('calendar', 'sm')} ${esc(t('focus_pl_title'))}</b><a class="link small" href="#/planner">${esc(t('focus_pl_open'))}</a></div>`
-      + (l.length ? `<div class="mt-s">${l.map(x => `<div class="todo-item ${x.done ? 'done' : ''}"><label><input type="checkbox" data-change="focusPlToggle" data-id="${esc(x.id)}" ${x.done ? 'checked' : ''}><span>${esc(x.title || '—')}${x.start ? ` <small class="faint">${esc(x.start)}</small>` : ''}</span></label></div>`).join('')}</div>` : `<div class="small faint mt-s">${esc(t('focus_pl_empty'))}</div>`);
+    wk = wk || [];
+    const d0 = plToday0(), l = wk.filter(x => x.day === d0).sort((x, y) => (x.start || '99').localeCompare(y.start || '99')), pm = plPomos(), ids = new Set(wk.map(x => x.id));
+    FX_PL = l;
+    if (Object.keys(pm).some(k => !ids.has(k))) store.set('pl_pomos', Object.fromEntries(Object.entries(pm).filter(([k]) => ids.has(k))));   // việc đã xoá / tuần đã qua: bỏ đếm 🍅 cũ
+    const cur = curLabel(), nDone = l.filter(x => x.done).length;
+    const row = x => fxEdit === x.id
+      ? `<form class="todo-item fx-edit" data-form="fxPlEdit" data-id="${esc(x.id)}"><input class="input" name="ti" maxlength="80" value="${esc(x.title)}" aria-label="${esc(t('fx_edit'))}" autocomplete="off"><input class="input fx-time" type="time" name="st" value="${esc(x.start)}" aria-label="${esc(t('fx_time'))}"><button class="btn primary icon sm" type="submit" aria-label="${esc(t('save'))}">${ic('check', 'sm')}</button><button type="button" class="btn ghost icon sm" data-act="fxPlEditEnd" aria-label="${esc(t('cancel'))}">${ic('x', 'sm')}</button></form>`
+      : `<div class="todo-item ${x.done ? 'done' : ''} ${cur && cur.id === x.id ? 'cur' : ''}"><label><input type="checkbox" data-change="focusPlToggle" data-id="${esc(x.id)}" ${x.done ? 'checked' : ''}><span>${esc(x.title || '—')}${x.start ? ` <small class="faint">${esc(x.start)}</small>` : ''}${pm[x.id] ? ` <small class="faint" title="${esc(t('todo_pomos'))}">🍅×${pm[x.id]}</small>` : ''}</span></label>`
+        + `${x.done ? '' : `<button type="button" class="btn ghost icon sm ${cur && cur.id === x.id ? 'on' : ''}" data-act="todoCur" data-id="${esc(x.id)}" title="${esc(t('todo_cur'))}" aria-label="${esc(t('todo_cur'))}">${ic('timer', 'sm')}</button>`}`
+        + `<button type="button" class="btn ghost icon sm" data-act="fxPlEdit" data-id="${esc(x.id)}" title="${esc(t('fx_edit'))}" aria-label="${esc(t('fx_edit'))}">${ic('pen', 'sm')}</button><button type="button" class="btn ghost icon sm" data-act="fxPlDel" data-id="${esc(x.id)}" aria-label="${esc(t('remove'))}">${ic('trash', 'sm')}</button></div>`;
+    b.innerHTML = `<div class="row between fx-head"><b class="small">${ic('calendar', 'sm')} ${esc(t('focus_pl_title'))}</b><a class="link small" href="#/planner">${esc(t('focus_pl_open'))}</a></div>`
+      + (l.length ? `<div class="todo-prog"><div class="small muted">${esc(t('todo_progress', { d:nDone, n:l.length }))}</div><div class="progress mt-s"><i style="width:${Math.round(nDone / l.length * 100)}%"></i></div></div><div class="mt-s">${l.map(row).join('')}</div>` : `<div class="small faint mt-s">${esc(t('focus_pl_empty'))}</div>`);
   }).catch(() => { const b = $('todo-pl'); if (b) b.innerHTML = ''; });
 }
 /* ô xem stream nhỏ ngay trong Phòng tập trung (Watch live giữ nguyên) */
@@ -517,8 +533,10 @@ Object.assign(ACTIONS, {
 });
 PAGES.focus = function(){
   const fl = localFocus(), today = DT.now().setZone(userTZ), days = Array.from({ length:7 }, (_, i) => today.minus({ days:6 - i })), vals = days.map(d => (fl[d.toISODate()] || { m:0 }).m), mx = Math.max(30, ...vals), td = fl[today.toISODate()] || { m:0, s:0 };
+  const fxTabs = [['todo', t('fx_tab_todo'), 'check'], ['music', t('fx_tab_music'), 'volume'], ...(branding.groupOn === true ? [['group', t('fx_tab_group'), 'users']] : []), ['live', t('fx_tab_stream'), 'play']];
+  const fxCur = [TABS.fx, store.get('fx_tab', 'todo')].find(k => fxTabs.some(x => x[0] === k)) || 'todo', fxCfgOpen = store.get('fx_cfg', null) ?? matchMedia('(min-width:1101px)').matches;   // bộ đếm: cài đặt mở sẵn trên màn rộng, gập trên điện thoại để danh sách việc không bị đẩy xuống
   const c = pomo.cfg, num = (k, lab) => `<div class="field"><label class="label">${esc(lab)}</label><input class="input" type="number" min="1" max="180" value="${c[k]}" data-change="cfg" data-k="${k}"></div>`;
-  page(`${head('focus_title', 'focus_sub', '', 'umbrella', 4)}${state.user ? (plLinked() ? hintNote('new_focus') : hintNote('new_tease', '#/planner')) : ''}${trialNudge()}
+  page(`${head('focus_title', 'focus_sub', '', 'umbrella', 4)}${state.user ? (plLinked() ? hintNote('new_focus2') : hintNote('new_tease', '#/planner')) : ''}${trialNudge()}
     <div class="grid g-main"><section class="card timer-card">
       <div class="seg"><button type="button" data-seg="focus" data-act="pmode" data-m="focus">${esc(t('mode_focus'))}</button><button type="button" data-seg="short" data-act="pmode" data-m="short">${esc(t('mode_short'))}</button><button type="button" data-seg="long" data-act="pmode" data-m="long">${esc(t('mode_long'))}</button></div>
       <div class="ring" id="tm-ring"><svg viewBox="0 0 120 120"><circle class="bg" cx="60" cy="60" r="54" stroke-width="7"/><circle class="fg" id="tm-fg" cx="60" cy="60" r="54" stroke-width="7" stroke-dasharray="${RING_C.toFixed(2)}" stroke-dashoffset="0"/></svg><div class="center"><div class="tt" data-pomo-time>25:00</div><div class="md" data-pomo-mode></div></div></div>
@@ -526,16 +544,22 @@ PAGES.focus = function(){
       ${focusLimit() ? `<div class="limit-box"><div class="row between small"><b>${esc(t('focus_limit_used', { u:Math.min(focusUsed(), focusLimit()), l:focusLimit() }))}</b><span class="faint">${esc(t('focus_limit_note', { l:focusLimit() }))}</span></div><div class="progress mt-s"><i style="width:${Math.min(100, focusUsed() / focusLimit() * 100)}%"></i></div></div>` : (state.companion ? `<div class="limit-box">${compBadge(' · ' + esc(t('focus_nolimit')))}</div>` : '')}
       <div class="row"><button class="btn primary lg" id="tm-main" data-act="pstart"></button><button class="btn secondary icon" style="width:48px;height:48px" data-act="preset-reset" title="${esc(t('reset'))}">${ic('reset')}</button><button class="btn secondary icon" style="width:48px;height:48px" data-act="pskip" title="${esc(t('skip'))}">${ic('skip')}</button></div>
       ${branding.groupOn === true ? '<div id="grp-strip" class="grp-strip-wrap"></div>' : ''}
+      <details class="tm-cfg" ${fxCfgOpen ? 'open' : ''}><summary>${ic('sliders', 'sm')} ${esc(t('fx_cfg'))}</summary>
       <div class="divider" style="width:100%;margin:2px 0"></div>
       <div class="row" style="width:100%"><span class="small muted">${esc(t('presets'))}:</span>${Object.entries(PRESETS).map(([k, p]) => `<button type="button" class="chip" data-act="ppreset" data-p="${k}">${p.focus}/${p.short}/${p.long}</button>`).join('')}</div>
       <div class="cfg-grid">${num('focus', t('cfg_focus'))}${num('short', t('cfg_short'))}${num('long', t('cfg_long'))}${num('every', t('cfg_every'))}</div>
       <div class="row between" style="width:100%"><label class="row small" style="font-weight:600"><input type="checkbox" data-change="cfgAuto" ${c.auto ? 'checked' : ''}> ${esc(t('auto_start'))}</label></div>
+      </details>
     </section>
-    <div class="stack">${streamCard()}${branding.groupOn === true ? `<section class="card pad grp" id="grp-box"><div class="card-h"><h2>${ic('users', 'sm')} ${esc(t('grp_title'))}</h2></div><p class="muted">${esc(t('loading'))}</p></section>` : ''}<section class="card pad"><div class="card-h"><h2>${esc(t('todo_title'))}</h2></div>
-        <form class="row" style="flex-wrap:nowrap" data-form="todo"><input class="input" id="todo-in" placeholder="${esc(t('todo_ph'))}" maxlength="140" autocomplete="off"><button class="btn primary icon" type="submit" aria-label="add">${ic('plus')}</button></form>
-        <div id="todo-list" class="mt-s"></div><div id="todo-pl"></div>${!state.user ? `<p class="hint mt-s">${esc(t('sync_note'))} <a class="link" href="#/account">${esc(t('signin'))}</a></p>` : ''}</section>
+    <div class="stack"><div class="tabset fx-tabs" data-tabs="fx"><div class="tab-bar" role="tablist">${fxTabs.map(([k, l, i]) => `<button type="button" role="tab" class="chip ${k === fxCur ? 'on' : ''}" aria-selected="${k === fxCur}" data-act="fxTab" data-g="fx" data-k="${k}">${ic(i, 'sm')} ${esc(l)}</button>`).join('')}</div>
+      <div class="tab-pane" role="tabpanel" data-k="todo"${fxCur === 'todo' ? '' : ' hidden'}><section class="card pad ${plLinked() ? 'todo-linked' : ''}"><div class="card-h"><h2>${esc(t('todo_title'))}</h2></div>
+        <form class="row fx-add" style="flex-wrap:nowrap" data-form="todo"><input class="input" id="todo-in" placeholder="${esc(t('todo_ph'))}" maxlength="140" autocomplete="off">${plLinked() ? `<input class="input fx-time" type="time" id="todo-time" aria-label="${esc(t('fx_time'))}" title="${esc(t('fx_time'))}">` : ''}<button class="btn primary icon" type="submit" aria-label="add">${ic('plus')}</button></form>
+        <div id="todo-list" class="mt-s"></div><div id="todo-pl"></div>${!state.user ? `<p class="hint mt-s">${esc(t('sync_note'))} <a class="link" href="#/account">${esc(t('signin'))}</a></p>` : ''}</section></div>
+      <div class="tab-pane" role="tabpanel" data-k="music"${fxCur === 'music' ? '' : ' hidden'}>${musicCard()}</div>
+      ${branding.groupOn === true ? `<div class="tab-pane" role="tabpanel" data-k="group"${fxCur === 'group' ? '' : ' hidden'}><section class="card pad grp" id="grp-box"><div class="card-h"><h2>${ic('users', 'sm')} ${esc(t('grp_title'))}</h2></div><p class="muted">${esc(t('loading'))}</p></section></div>` : ''}
+      <div class="tab-pane" role="tabpanel" data-k="live"${fxCur === 'live' ? '' : ' hidden'}>${streamCard()}</div></div>
       ${focusNudge()}<div class="grid g2 keep2"><div class="card tile"><span class="t-l">${esc(t('sessions_today'))}</span><span class="t-v">${td.s}</span></div><div class="card tile"><span class="t-l">${esc(t('minutes_today'))}</span><span class="t-v">${td.m}</span></div></div>
-      <section class="card pad"><div class="card-h"><h2>${esc(t('week_chart'))}</h2></div><div class="bars">${days.map((d, i) => `<div><i style="height:${Math.max(3, vals[i] / mx * 100)}%" title="${vals[i]} ${esc(t('min'))}"></i><small>${esc(d.setLocale(state.lang).toFormat('ccc'))}</small></div>`).join('')}</div></section></div></div><div class="mt">${musicCard()}</div>
+      <section class="card pad"><div class="card-h"><h2>${esc(t('week_chart'))}</h2></div><div class="bars">${days.map((d, i) => `<div><i style="height:${Math.max(3, vals[i] / mx * 100)}%" title="${vals[i]} ${esc(t('min'))}"></i><small>${esc(d.setLocale(state.lang).toFormat('ccc'))}</small></div>`).join('')}</div></section></div></div>
     <h2 class="mt" style="font-size:1.3rem;margin:40px 0 14px">${ic('heart', 'sm')} ${esc(t('nav_donate'))}</h2>${donateHTML()}`);   // phần Support nằm ngay trong Focus room
   renderTodos();
   if (branding.groupOn === true) loadGroup().then(() => window.EPGroup.mount()).catch(() => { for (const id of ['grp-box', 'grp-strip']) { const b = $(id); if (b) b.remove(); } });
@@ -548,7 +572,24 @@ CHANGES.focusPlToggle = async el => {
   if (!await plFocusEdit(ts => { const x = ts.find(v => v.id === id); if (!x) return false; x.done = done; return true; })) toast(t('pl_err'));
   renderFocusPl();
 };
-FORMS.todo = () => { const i = $('todo-in'), v = i.value.trim(); if (!v) return; saveTodos([{ id:Date.now().toString(36), text:v, done:false }, ...todos()]); i.value = ''; renderTodos(); i.focus(); };
+FORMS.todo = async () => {
+  const i = $('todo-in'), v = i.value.trim(); if (!v) return;
+  if (plLinked()) {                                                // có Planner: thêm thẳng vào việc hôm nay của Planner (giờ không bắt buộc)
+    try { if (typeof plFocusEdit !== 'function') await loadPlanner(); } catch (e) {}
+    if (typeof plFocusEdit === 'function') {
+      const tm = $('todo-time'), start = tm ? tm.value : '';
+      const ok = await plFocusEdit(ts => { if (ts.length >= PL_MAX) return false; ts.push(plClean({ title:v, day:plToday0(), start, dur:0, c:0, done:false })); return true; });
+      if (ok) { i.value = ''; if (tm) tm.value = ''; renderFocusPl(); } else toast(t('pl_err'));
+      i.focus(); return;
+    }
+  }
+  saveTodos([{ id:Date.now().toString(36), text:v, done:false }, ...todos()]); i.value = ''; renderTodos(); i.focus();
+};
+FORMS.fxPlEdit = async f => {
+  const id = f.dataset.id, title = f.elements.ti.value.trim().slice(0, 80), start = f.elements.st.value; if (!title) { f.elements.ti.focus(); return; }
+  const ok = await plFocusEdit(ts => { const x = ts.find(v => v.id === id); if (!x) return false; x.title = title; x.start = start; return true; });
+  fxEdit = ''; if (!ok) toast(t('pl_err')); renderFocusPl();
+};
 
 /* =========================================================
    BLOG
@@ -845,6 +886,21 @@ Object.assign(ACTIONS, {
   todoDel: el => { dropTodos([el.dataset.id]); renderTodos(); },
   todoClear: () => { dropTodos(todos().filter(x => x.done).map(x => x.id)); renderTodos(); },
   todoCur: el => { store.set('todo_cur', store.get('todo_cur', '') === el.dataset.id ? '' : el.dataset.id); renderTodos(); },
+  fxTab: el => { ACTIONS.tabPick(el); store.set('fx_tab', el.dataset.k); },
+  fxPlEdit: el => { fxEdit = el.dataset.id; renderFocusPl(); setTimeout(() => { const f = document.querySelector('form.fx-edit input[name=ti]'); if (f) f.focus(); }, 30); },
+  fxPlEditEnd: () => { fxEdit = ''; renderFocusPl(); },
+  fxPlDel: el => {                                                  // như Planner: việc chưa xong của ngày đã bắt đầu thì hỏi ghi nhận "đã bỏ" hay xoá hẳn (nhập nhầm)
+    const id = el.dataset.id, x = FX_PL.find(v => v.id === id); if (!x) return;
+    if (x.done || x.carried) return ACTIONS.fxPlDelGo({ dataset:{ id, s:'' } });
+    openModal(`<h3 style="margin-bottom:6px;padding-right:32px">${esc(t('pl_del_q'))}</h3><p class="small muted">${esc(t('pl_del_sub'))}</p>
+      <div class="stack mt"><button type="button" class="btn primary" data-act="fxPlDelGo" data-id="${esc(id)}" data-s="x">${esc(t('pl_del_drop'))}</button><button type="button" class="btn ghost" data-act="fxPlDelGo" data-id="${esc(id)}" data-s="">${esc(t('pl_del_wipe'))}</button><button type="button" class="btn ghost" data-act="closeModal">${esc(t('cancel'))}</button></div>`, true);
+  },
+  fxPlDelGo: async el => {
+    closeModal(); const id = el.dataset.id;
+    if (!await plFocusRemove(id, el.dataset.s === 'x')) toast(t('pl_err'));
+    if (store.get('todo_cur', '') === id) store.set('todo_cur', '');
+    renderFocusPl();
+  },
   rate: el => { reviewRating = +el.dataset.n; document.querySelectorAll('#rev-stars button').forEach(b => b.classList.toggle('on', +b.dataset.n === reviewRating)); },
   authTab: el => { authTab = el.dataset.t; render(true); },
   forgot: async () => { const m = $('au-email').value.trim(); if (!m) return $('au-err').textContent = t('email') + '?'; try { await auth.sendPasswordResetEmail(m); toast(t('reset_sent')); } catch (e) { $('au-err').textContent = authErr(e); } },
@@ -1209,6 +1265,53 @@ const donateHTML = function(){
   return `<section class="card pad don-card"><div class="tabset" data-tabs="don"><div class="tab-bar don-pick" role="tablist">${list.map(([k, l]) => `<button type="button" role="tab" class="don-opt ${k === cur2 ? 'on' : ''}" aria-selected="${k === cur2}" data-act="tabPick" data-g="don" data-k="${k}">${l}${k === 'comp' && state.companion ? compBadge() : ''}</button>`).join('')}</div>
     ${list.map(([k, , h]) => `<div class="tab-pane" role="tabpanel" data-k="${k}"${k === cur2 ? '' : ' hidden'}>${h}</div>`).join('')}</div></section>`;
 };
+/* chữ mới của Phòng tập trung (các tab Việc / Nhạc / Nhóm / Live, gập cài đặt bộ đếm, giờ của việc) */
+(function(){
+  const G = {
+    en:{ fx_tab_todo:'Tasks', fx_tab_music:'Music', fx_tab_group:'Group', fx_tab_stream:'Live', fx_cfg:'Timer settings', fx_time:'Time (optional)', fx_edit:'Edit', fx_local:'Quick list (this device only)', new_focus2_title:'Your tasks, now in one place', new_focus2_text:"Add, edit and tick today's Planner tasks right here in the Focus room. Tasks, Music, Group and Live sit in tabs beside the timer, so you never have to scroll while studying." },
+    vi:{ fx_tab_todo:'Việc', fx_tab_music:'Nhạc', fx_tab_group:'Nhóm', fx_tab_stream:'Live', fx_cfg:'Tuỳ chỉnh bộ đếm', fx_time:'Giờ (không bắt buộc)', fx_edit:'Sửa', fx_local:'Việc nhanh (chỉ trong máy này)', new_focus2_title:'Việc của bạn, gom về một chỗ', new_focus2_text:'Thêm, sửa và tick việc hôm nay của Planner ngay trong Phòng tập trung. Việc, Nhạc, Nhóm và Live nằm thành tab cạnh bộ đếm, nên đang học không cần cuộn xuống.' },
+    hi:{ fx_tab_todo:'काम', fx_tab_music:'संगीत', fx_tab_group:'समूह', fx_tab_stream:'लाइव', fx_cfg:'टाइमर सेटिंग', fx_time:'समय (वैकल्पिक)', fx_edit:'बदलें', fx_local:'त्वरित सूची (सिर्फ़ इस डिवाइस पर)', new_focus2_title:'आपके काम, अब एक जगह', new_focus2_text:'फ़ोकस रूम में ही आज के Planner के काम जोड़ें, बदलें और टिक करें। काम, संगीत, समूह और लाइव टाइमर के बगल में टैब में हैं, इसलिए पढ़ते समय स्क्रॉल नहीं करना पड़ता।' },
+    ja:{ fx_tab_todo:'タスク', fx_tab_music:'音楽', fx_tab_group:'グループ', fx_tab_stream:'ライブ', fx_cfg:'タイマー設定', fx_time:'時刻(任意)', fx_edit:'編集', fx_local:'クイックリスト(この端末のみ)', new_focus2_title:'タスクがひとつの場所に', new_focus2_text:'集中ルームで今日のPlannerのタスクをそのまま追加・編集・チェックできます。タスク・音楽・グループ・ライブはタイマーの横のタブにあるので、勉強中にスクロールしなくて大丈夫です。' },
+    ko:{ fx_tab_todo:'할 일', fx_tab_music:'음악', fx_tab_group:'그룹', fx_tab_stream:'라이브', fx_cfg:'타이머 설정', fx_time:'시간(선택)', fx_edit:'수정', fx_local:'빠른 목록(이 기기에만)', new_focus2_title:'할 일이 한곳에', new_focus2_text:'집중 룸에서 오늘 플래너의 할 일을 바로 추가·수정·체크할 수 있어요. 할 일, 음악, 그룹, 라이브가 타이머 옆 탭에 있어서 공부 중에 스크롤하지 않아도 돼요.' },
+    zh:{ fx_tab_todo:'任务', fx_tab_music:'音乐', fx_tab_group:'小组', fx_tab_stream:'直播', fx_cfg:'计时器设置', fx_time:'时间（可选）', fx_edit:'编辑', fx_local:'快速清单（仅此设备）', new_focus2_title:'任务集中在一处', new_focus2_text:'在专注室里就能添加、编辑和勾选今日计划本的任务。任务、音乐、小组和直播以标签页放在计时器旁边，学习时不用再往下滚动。' },
+    fr:{ fx_tab_todo:'Tâches', fx_tab_music:'Musique', fx_tab_group:'Groupe', fx_tab_stream:'Live', fx_cfg:'Réglages du minuteur', fx_time:'Heure (facultatif)', fx_edit:'Modifier', fx_local:'Liste rapide (cet appareil seulement)', new_focus2_title:'Vos tâches, au même endroit', new_focus2_text:'Ajoutez, modifiez et cochez les tâches du jour du Planner directement dans la salle de focus. Tâches, Musique, Groupe et Live sont dans des onglets à côté du minuteur : plus besoin de défiler pendant que vous étudiez.' },
+    es:{ fx_tab_todo:'Tareas', fx_tab_music:'Música', fx_tab_group:'Grupo', fx_tab_stream:'En vivo', fx_cfg:'Ajustes del temporizador', fx_time:'Hora (opcional)', fx_edit:'Editar', fx_local:'Lista rápida (solo este dispositivo)', new_focus2_title:'Tus tareas, en un solo lugar', new_focus2_text:'Añade, edita y marca las tareas de hoy del Planner aquí mismo, en la sala de enfoque. Tareas, Música, Grupo y En vivo están en pestañas junto al temporizador, así no tienes que desplazarte mientras estudias.' }
+  };
+  Object.keys(G).forEach(l => { I18N[l] = I18N[l] || {}; Object.keys(G[l]).forEach(k => { if (I18N[l][k] === undefined) I18N[l][k] = G[l][k]; }); });
+})();
+document.addEventListener('toggle', e => { if (e.target.classList && e.target.classList.contains('tm-cfg')) store.set('fx_cfg', e.target.open); }, true);   // nhớ khách mở hay gập cài đặt bộ đếm
+
+/* Bong bóng Ủng hộ: hiện ở góc màn hình khi khách đang xem mục Ủng hộ (trang #/donate và phần Ủng hộ ở cuối Phòng tập trung), luôn thấy gói đang chọn và nút Thanh toán dù cuộn tới đâu.
+   Bấm để thu nhỏ thành trái tim, bấm lại để mở. Chỉ chữ và nút, không đọc Firebase. */
+let sbIO = null;
+function sbRefresh(){
+  const b = $('sb-bubble'), card = document.querySelector('.don-card'); if (!b || !card) return;
+  const pane = card.querySelector('.tab-pane:not([hidden])'), chip = pane && pane.querySelector('.chip.on'), comp = !pane || pane.dataset.k === 'comp';
+  let label = '';
+  if (chip) { const c = chip.cloneNode(true); c.querySelectorAll('small').forEach(x => x.remove()); label = c.textContent.replace(/\s+/g, ' ').trim(); }
+  b.classList.toggle('nopay', !(pane && pane.querySelectorAll('.don-step').length >= 2));        // không có bước thanh toán (đã là Người đồng hành, chưa đăng nhập…): không hiện bong bóng
+  b.querySelector('.sb-t').textContent = comp ? ctext('comp_title') : t('donate_once');
+  b.querySelector('.sb-s').textContent = label || t('nav_donate');
+}
+function sbSync(){
+  if (sbIO) { sbIO.disconnect(); sbIO = null; }
+  const card = document.querySelector('.don-card'); let b = $('sb-bubble');
+  if (!card || state.editMode) { if (b) b.remove(); return; }
+  if (!b) {
+    b = document.createElement('div'); b.id = 'sb-bubble'; b.className = 'sb-bubble'; b.hidden = true;
+    b.innerHTML = `<button type="button" class="sb-heart" data-act="sbToggle" title="${esc(t('nav_donate'))}" aria-label="${esc(t('nav_donate'))}">${ic('heart')}</button>
+      <div class="sb-card"><button type="button" class="sb-x" data-act="sbToggle" aria-label="${esc(t('close'))}">${ic('x', 'sm')}</button><b class="sb-t"></b><span class="sb-s"></span><button type="button" class="btn primary sm" data-act="sbGo">${esc(t('don_pay'))}</button></div>`;
+    document.body.appendChild(b);
+  }
+  b.classList.toggle('min', !!store.get('sb_min', false));
+  { const h = b.querySelector('.sb-heart'); h.title = t('nav_donate'); h.setAttribute('aria-label', t('nav_donate')); } b.querySelector('.sb-card .btn').textContent = t('don_pay');
+  sbRefresh();
+  if ('IntersectionObserver' in window) { sbIO = new IntersectionObserver(es => { b.hidden = !es.some(e => e.isIntersecting); }); sbIO.observe(card); } else b.hidden = false;
+}
+Object.assign(ACTIONS, {
+  sbToggle: () => { const b = $('sb-bubble'); if (!b) return; const m = !b.classList.contains('min'); b.classList.toggle('min', m); store.set('sb_min', m); },
+  sbGo: () => { const card = document.querySelector('.don-card'); if (!card) return; const pane = card.querySelector('.tab-pane:not([hidden])'), st = pane ? pane.querySelectorAll('.don-step') : []; (st[1] || card).scrollIntoView({ block:'start', behavior:'smooth' }); }
+});
 PAGES.donate = function(){ page(`${head('donate_title', 'donate_sub', '', 'lantern', 3)}${donateHTML()}${thanksCard()}`); };
 CHANGES.donMail = el => { donMail = el.value; render(true); };
 CHANGES.donCustom = el => { const v = Math.round(+el.value); if (v > 0) { donAmt = { cur:donCur || effCurrency(), v }; render(true); } };
