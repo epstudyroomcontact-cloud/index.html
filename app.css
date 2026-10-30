@@ -1113,3 +1113,15 @@ body.has-sofa .golive-fab{bottom:calc(200px + env(safe-area-inset-bottom))}
 @media(prefers-reduced-motion:reduce){.sofa-breath,.sofa-zz text{animation:none}.sofa-zz text{opacity:.9}.sofa-btn{transition:none}}
 @media print{.sofa{display:none}}
 body:has(#tour-ask) .sofa{display:none}
+
+/* Quyền lợi Người đồng hành có hình minh họa thay cho đoạn chữ dài */
+.pk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:8px}
+.pk{display:flex;flex-direction:column;gap:6px;padding:8px 8px 10px;border:1px solid var(--line);border-radius:16px;background:var(--surface)}
+.pk-ill{display:block;width:100%;height:auto}.pk-ill text{font-family:inherit}
+.pk b{font-size:.88rem;line-height:1.3;padding:0 4px}
+.pk details{padding:0 4px;font-size:.8rem;color:var(--ink3)}.pk summary{cursor:pointer;width:max-content;color:var(--ink3);text-decoration:underline;text-underline-offset:2px}
+.pk details p{margin:6px 0 0;line-height:1.45;color:var(--ink2)}
+.sofa-pks{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:100%}
+.sofa-pk{display:flex;flex-direction:column;gap:3px;align-items:center;text-align:center;font-size:.7rem;line-height:1.2;color:var(--ink2)}
+.sofa-pk .pk-ill{border-radius:10px}
+.tour-ill{display:flex;gap:6px;margin:8px 0 4px}.tour-ill .pk-ill{flex:1;min-width:0;max-height:118px}.tour-ill.n3 .pk-ill{max-height:70px}

@@ -282,12 +282,16 @@ const EPTour = (() => {
       const grp = branding.groupOn === true, lm = lim() > 0;
       if (!grp && !lm) return null;
       const a = ta(grp ? 'g' : 'u'), l = a.slice(2); if (grp && lm) l.push(tx('ub'));
-      return { pose:grp ? 'g' : 'u', h:a[0], d:a[1], l, pv:grp };
+      return { pose:grp ? 'g' : 'u', h:a[0], d:a[1], l, pv:grp, ill:grp ? null : ['focus'] };
     }
     if (s.k === 'z' && !document.getElementById('sofa-btn')) return null;
-    const a = ta(s.k), l = a.slice(2); if (s.k === 's' && branding.groupOn === true) l.splice(1, 0, tx('sg'));
-    return { pose:s.k, h:a[0], d:a[1], l };
+    const a = ta(s.k); let l = a.slice(2); if (s.k === 's' && branding.groupOn === true) l.splice(1, 0, tx('sg'));
+    // quyền lợi Người đồng hành: hình minh họa thay cho bớt chữ (p: giữ ý tổng kết tuần và ý thêm việc ở Phòng tập trung; s: bỏ ý Planner, đã có hình)
+    if (s.k === 'p') l = [l[1], l[3]].filter(Boolean); else if (s.k === 's') l = l.slice(1);
+    return { pose:s.k, h:a[0], d:a[1], l, ill:ILL[s.k] || null };
   }
+  const ILL = { p:['planner'], s:['badge', 'early', 'thanks'] };      // hình minh họa từng bước (COMP_ILL trong pages.js)
+  const illHTML = a => a && a.length && typeof COMP_ILL !== 'undefined' ? `<div class="tour-ill ${a.length > 1 ? 'n3' : ''}">${a.map(k => COMP_ILL[k]).join('')}</div>` : '';
   const mobile = () => window.innerWidth <= 960;
   let cur = null;   // { steps, i }
   const el = id => document.getElementById(id);
@@ -318,7 +322,7 @@ const EPTour = (() => {
     const s = cur.steps[cur.i], c = content(s), n = cur.steps.length, last = cur.i === n - 1, first = cur.i === 0;
     if (mobile()) document.body.classList.toggle('nav-open', !!s.nav); else document.body.classList.remove('nav-open');
     if (s.k === 'b' || s.k === 'o') { $('prefs').classList.remove('open'); $('live-rem').classList.remove('open'); }
-    el('tour-card').innerHTML = `${cat(c.pose)}<div class="tour-body"><h4 class="tour-h">${esc(c.h)}</h4><p class="tour-tx">${esc(c.d)}</p>${c.pv ? preview() : ''}${c.l.length ? `<ul class="tour-ul">${c.l.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}</div>
+    el('tour-card').innerHTML = `${cat(c.pose)}<div class="tour-body"><h4 class="tour-h">${esc(c.h)}</h4><p class="tour-tx">${esc(c.d)}</p>${illHTML(c.ill)}${c.pv ? preview() : ''}${c.l.length ? `<ul class="tour-ul">${c.l.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}</div>
       <div class="tour-foot"><span class="tour-dots" aria-hidden="true">${cur.steps.map((_, j) => `<i class="${j === cur.i ? 'on' : ''}"></i>`).join('')}</span>
       <span class="row" style="gap:6px">${first ? `<button type="button" class="btn ghost sm" data-tour="skip">${esc(tx('skip'))}</button>` : `<button type="button" class="btn ghost sm" data-tour="back">${esc(tx('back'))}</button>`}<button type="button" class="btn primary sm" data-tour="next" id="tour-next">${esc(last ? tx('done') : tx('next'))}</button></span></div>`;
     place(); setTimeout(place, 140); setTimeout(place, 420);   // thanh bên trượt ra trên điện thoại: đo lại sau khi xong

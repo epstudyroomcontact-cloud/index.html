@@ -1231,6 +1231,37 @@ const thanksCard = () => { const l = thanksList(); return l.length ? `<section c
   };
   Object.keys(G).forEach(l => { I18N[l] = I18N[l] || {}; Object.keys(G[l]).forEach(k => { if (I18N[l][k] === undefined) I18N[l][k] = G[l][k]; }); });
 })();
+/* Hình minh họa quyền lợi Người đồng hành (SVG, không chữ ngoài vài con số): dùng ở thẻ Người đồng hành trang Ủng hộ, hướng dẫn (guide.js) và thẻ sofa. Màu theo biến giao diện nên đẹp cả sáng lẫn tối. */
+(function(){
+  const G = {
+    en:{ cp_t_planner:'Weekly Planner + auto review', cp_t_group:'Live study group', cp_t_focus:'Unlimited focus time', cp_t_early:'Early access', cp_t_badge:'Badge by your name', cp_t_thanks:'On the supporters list', cp_more:'Details' },
+    vi:{ cp_t_planner:'Planner tuần kèm tổng kết', cp_t_group:'Nhóm học trực tiếp', cp_t_focus:'Tập trung không giới hạn', cp_t_early:'Xem sớm đồ mới', cp_t_badge:'Huy hiệu cạnh tên', cp_t_thanks:'Tên trong danh sách ủng hộ', cp_more:'Chi tiết' },
+    hi:{ cp_t_planner:'साप्ताहिक प्लानर + अपने आप समीक्षा', cp_t_group:'लाइव स्टडी ग्रुप', cp_t_focus:'असीमित फ़ोकस समय', cp_t_early:'पहले से एक्सेस', cp_t_badge:'नाम के पास बैज', cp_t_thanks:'सहयोगियों की सूची में नाम', cp_more:'विवरण' },
+    ja:{ cp_t_planner:'週間プランナー+自動レビュー', cp_t_group:'ライブ自習グループ', cp_t_focus:'集中時間が無制限', cp_t_early:'先行利用', cp_t_badge:'名前の横のバッジ', cp_t_thanks:'支援者リストに掲載', cp_more:'詳細' },
+    ko:{ cp_t_planner:'주간 플래너 + 자동 리뷰', cp_t_group:'실시간 스터디 그룹', cp_t_focus:'집중 시간 무제한', cp_t_early:'먼저 써 보기', cp_t_badge:'이름 옆 배지', cp_t_thanks:'후원자 목록에 이름', cp_more:'자세히' },
+    zh:{ cp_t_planner:'每周计划本+自动周报', cp_t_group:'实时学习小组', cp_t_focus:'专注时间不限', cp_t_early:'抢先体验', cp_t_badge:'名字旁的徽章', cp_t_thanks:'支持者名单上有你', cp_more:'详情' },
+    fr:{ cp_t_planner:'Planner hebdo + bilan auto', cp_t_group:"Groupe d'étude en direct", cp_t_focus:'Concentration illimitée', cp_t_early:'Accès anticipé', cp_t_badge:'Badge près de ton nom', cp_t_thanks:'Sur la liste des soutiens', cp_more:'Détails' },
+    es:{ cp_t_planner:'Planner semanal + resumen', cp_t_group:'Grupo de estudio en vivo', cp_t_focus:'Enfoque ilimitado', cp_t_early:'Acceso anticipado', cp_t_badge:'Insignia junto al nombre', cp_t_thanks:'En la lista de apoyos', cp_more:'Detalles' }
+  };
+  Object.keys(G).forEach(l => { I18N[l] = I18N[l] || {}; Object.keys(G[l]).forEach(k => { if (I18N[l][k] === undefined) I18N[l][k] = G[l][k]; }); });
+})();
+const COMP_ILL = (() => {
+  const svg = inner => `<svg class="pk-ill" viewBox="0 0 160 96" aria-hidden="true">${inner}</svg>`, bg = '<rect x="3" y="3" width="154" height="90" rx="14" fill="var(--surface2)" stroke="var(--line)"/>';
+  const W = ['#f2b8c6', '#c9b8ec', '#f6c9a0', '#f4e08c', '#a9dcc6', '#a8cdee'];
+  const cols = [[[28, 18, 0], [52, 14, 1]], [[30, 24, 2]], [[26, 14, 3], [46, 20, 4]], [[34, 16, 5]], [[28, 28, 0]], [[40, 14, 1]], [[32, 12, 3]]];
+  const grid = cols.map((c, i) => c.map(([y, h, k]) => `<rect x="${15 + i * 19.2}" y="${y}" width="16" height="${h}" rx="4" fill="${W[k]}"/>`).join('')).join('');
+  const dots = Array.from({ length:7 }, (_, i) => `<circle cx="${23 + i * 19.2}" cy="16" r="2.6" fill="${i === 2 ? 'var(--accent)' : 'var(--ink3)'}" opacity="${i === 2 ? 1 : .45}"/>`).join('');
+  const av = (y, c, l) => `<circle cx="26" cy="${y}" r="9" fill="${c}"/><text x="26" y="${y + 4}" text-anchor="middle" font-size="11" font-weight="800" fill="#fff">${l}</text>`;
+  const row = (y, w, t) => `<rect x="42" y="${y - 3}" width="${w}" height="6" rx="3" fill="var(--ink3)" opacity=".35"/><circle cx="104" cy="${y}" r="3" fill="#2dc76d"/><text x="148" y="${y + 4}" text-anchor="end" font-size="11" font-weight="800" fill="var(--ink)">${t}</text>`;
+  return {
+    planner: svg(`${bg}${dots}${grid}<g transform="translate(86 62)"><rect width="62" height="26" rx="13" fill="var(--surface)" stroke="var(--line)"/><circle cx="14" cy="13" r="8" fill="none" stroke="var(--line)" stroke-width="3.2"/><circle cx="14" cy="13" r="8" fill="none" stroke="var(--accent)" stroke-width="3.2" stroke-linecap="round" stroke-dasharray="39 51" transform="rotate(-90 14 13)"/><text x="40" y="17.5" text-anchor="middle" font-size="12" font-weight="800" fill="var(--ink)">78%</text></g><g transform="translate(40 31)"><circle r="5.4" fill="#fff" stroke="#2dc76d" stroke-width="1.4"/><path d="M-2.4 .2l1.7 1.8 3.2-3.6" stroke="#2dc76d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>`),
+    group: svg(`${bg}${av(22, '#f2a15c', 'K')}${row(22, 36, '1:18')}${av(48, '#7c6cf0', 'S')}${row(48, 30, '42:10')}${av(74, '#4fae5a', 'M')}${row(74, 42, '0:57')}`),
+    focus: svg(`${bg}<circle cx="80" cy="44" r="29" fill="none" stroke="var(--line)" stroke-width="7"/><circle cx="80" cy="44" r="29" fill="none" stroke="var(--accent)" stroke-width="7" stroke-linecap="round" stroke-dasharray="130 52" transform="rotate(-90 80 44)"/><path d="M62 44c0-8 9-8 18 0s18 8 18 0-9-8-18 0-18 8-18 0z" stroke="var(--accent-strong)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/><g fill="var(--accent)"><circle cx="62" cy="84" r="3.4"/><circle cx="74" cy="84" r="3.4"/><circle cx="86" cy="84" r="3.4"/></g><circle cx="98" cy="84" r="3.4" fill="none" stroke="var(--ink3)" stroke-width="1.4"/>`),
+    early: svg(`${bg}<g transform="rotate(-7 60 52)"><rect x="30" y="24" width="64" height="56" rx="8" fill="var(--surface)" stroke="var(--line)"/></g><g transform="rotate(5 90 50)"><rect x="56" y="18" width="64" height="60" rx="8" fill="var(--surface)" stroke="var(--line)"/><rect x="64" y="27" width="30" height="6" rx="3" fill="var(--accent)"/><rect x="64" y="40" width="48" height="5" rx="2.5" fill="var(--ink3)" opacity=".35"/><rect x="64" y="50" width="40" height="5" rx="2.5" fill="var(--ink3)" opacity=".35"/><rect x="64" y="60" width="26" height="5" rx="2.5" fill="var(--ink3)" opacity=".35"/></g><g transform="translate(112 24) rotate(8)"><rect x="-19" y="-9" width="38" height="18" rx="9" fill="#f6c744"/><text y="4" text-anchor="middle" font-size="10" font-weight="800" fill="#4a2f3a">NEW</text></g><path d="M30 18l1.8 4 4 1.8-4 1.8-1.8 4-1.8-4-4-1.8 4-1.8z" fill="#f6c744"/>`),
+    badge: svg(`${bg}<rect x="20" y="33" width="120" height="30" rx="15" fill="var(--surface)" stroke="var(--line)"/><circle cx="37" cy="48" r="9" fill="var(--accent)"/><text x="37" y="52" text-anchor="middle" font-size="11" font-weight="800" fill="#fff">L</text><text x="53" y="53" font-size="14" font-weight="800" fill="var(--ink)">Linh</text><g transform="translate(116 48)"><circle r="12" fill="#f6c744" stroke="#d49a1a" stroke-width="1.4"/><path d="M3.6 -6.4a7 7 0 1 0 0 12.8a5.6 5.6 0 0 1 0 -12.8z" fill="#7a4a10"/></g><path d="M134 28l1.4 3 3 1.4-3 1.4-1.4 3-1.4-3-3-1.4 3-1.4z" fill="#f6c744"/>`),
+    thanks: svg(`${bg}<g transform="translate(80 36) scale(2.6)"><path d="M0 7C-12-2-9-11-3.5-11C-1-11 0-9 0-8C0-9 1-11 3.5-11C9-11 12-2 0 7Z" fill="#ef4b5f"/></g><g fill="var(--surface)" stroke="var(--line)"><rect x="12" y="68" width="40" height="16" rx="8"/><rect x="58" y="68" width="44" height="16" rx="8"/><rect x="108" y="68" width="40" height="16" rx="8"/></g><g fill="var(--ink3)" opacity=".4"><rect x="22" y="74" width="22" height="4" rx="2"/><rect x="68" y="74" width="26" height="4" rx="2"/><rect x="118" y="74" width="20" height="4" rx="2"/></g>`)
+  };
+})();
 const donateHTML = function(){
   if (state.user) { refreshCompanion().then(ch => ch && render(true)); loadMoonReward(); }
   const cur = donCur || effCurrency(), amts = cur === 'VND' ? parseAmts(payments.donateVND, [20000, 50000, 100000, 200000]) : parseAmts(payments.donateUSD, [3, 5, 10, 25]);
@@ -1254,7 +1285,7 @@ const donateHTML = function(){
     <div class="stack">${step(2, t('don_pay'), `${pay || `<p class="muted">${esc(t('donate_none'))}</p>`}<p class="small faint">${esc(t('donate_thanks'))}</p>`)}</div></div>`;
   /* Người đồng hành: bên trái là quyền lợi, bên phải là 3 bước (chọn gói, thanh toán, báo đã trả) */
   const cp = state.companion && !compRenewOpen() ? null : compPayHTML(), claim = compClaimHTML(!!cp);
-  const info = `<div class="stack">${goalBar()}<p class="muted" ${cms('comp_text')}>${esc(ctext('comp_text'))}</p><div><div class="label">${esc(t('comp_perks'))}</div><ul class="perks">${branding.groupOn === true ? `<li ${cms('comp_perk5')}>${esc(ctext('comp_perk5'))}</li>` : ''}<li ${cms('comp_perk4')}>${esc(ctext('comp_perk4'))}</li>${Math.round(+branding.focusLimit) > 0 ? `<li ${cms('comp_perk6')}>${esc(ctext('comp_perk6'))}</li>` : ''}<li ${cms('comp_perk3')}>${esc(ctext('comp_perk3'))}</li><li ${cms('comp_perk1')}>${esc(ctext('comp_perk1'))}</li><li ${cms('comp_perk2')}>${esc(ctext('comp_perk2'))}</li></ul></div>
+  const info = `<div class="stack">${goalBar()}<p class="muted" ${cms('comp_text')}>${esc(ctext('comp_text'))}</p><div><div class="label">${esc(t('comp_perks'))}</div><div class="pk-grid">${[['planner', 'comp_perk4'], ...(branding.groupOn === true ? [['group', 'comp_perk5']] : []), ...(Math.round(+branding.focusLimit) > 0 ? [['focus', 'comp_perk6']] : []), ['early', 'comp_perk3'], ['badge', 'comp_perk1'], ['thanks', 'comp_perk2']].map(([k, key]) => `<div class="pk">${COMP_ILL[k]}<b>${esc(t('cp_t_' + k))}</b><details><summary>${esc(t('cp_more'))}</summary><p ${cms(key)}>${esc(ctext(key))}</p></details></div>`).join('')}</div></div>
       ${state.companion || !state.user ? '' : trialBox()}</div>`;
   const steps = cp ? `${step(1, t('don_plan'), cp.plan)}${step(2, t('don_pay'), cp.pay)}${cp.login ? '' : step(3, t('cc_title'), claim)}` : claim;
   const comp = `<div class="don-cols">${info}<div class="stack">${steps}</div></div>`;
@@ -1326,9 +1357,9 @@ const SOFA_SVG = `<svg class="sofa-svg" viewBox="0 0 150 96" aria-hidden="true">
 const sofaOn = () => !!(compPayMode() && !state.companion && !state.editMode && !['donate', 'admin'].includes(route.name));
 function sofaPrice(){ return compPayMode() === 'vnd' ? money(compPrice(1), 'VND') : money(compPriceUSD(1), 'USD'); }
 function sofaCard(){
-  const perks = ['sofa_p1', ...(Math.round(+branding.focusLimit) > 0 ? ['sofa_p2'] : []), ...(branding.groupOn === true ? ['sofa_p3'] : []), 'sofa_p4'];
+  const perks = ['planner', ...(Math.round(+branding.focusLimit) > 0 ? ['focus'] : []), ...(branding.groupOn === true ? ['group'] : []), 'badge'].slice(0, 3);
   return `<button type="button" class="sofa-x" data-act="sofaToggle" aria-label="${esc(t('close'))}">${ic('x', 'sm')}</button><b class="sofa-t">${esc(t('sofa_t'))}</b><p class="small muted sofa-tx">${esc(t('sofa_x'))}</p>
-    <ul class="sofa-ul">${perks.map(k => `<li>${esc(t(k))}</li>`).join('')}</ul><div class="sofa-price">${esc(t('comp_plan_1'))} · <b>${esc(sofaPrice())}</b></div>
+    <div class="sofa-pks">${perks.map(k => `<div class="sofa-pk">${COMP_ILL[k]}<span>${esc(t('cp_t_' + k))}</span></div>`).join('')}</div><div class="sofa-price">${esc(t('comp_plan_1'))} · <b>${esc(sofaPrice())}</b></div>
     <a class="btn primary sm" href="#/donate" data-act="sofaGo">${ic('heart', 'sm')} ${esc(t('don_see_comp'))}</a>`;
 }
 function sofaSync(){
