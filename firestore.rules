@@ -62,8 +62,8 @@ service cloud.firestore {
         || trialOk(request.auth.uid));
     }
     // live[uid] = { n:tên, s:lúc bắt đầu học (ms), k:'f' tập trung | 'b' nghỉ, b:nhịp báo gần nhất (ms, lệch giờ máy chủ tối đa 10 phút) }
-    function grpLiveOk(uid, m) {
-      return !(uid in m) || (
+    function grpLiveOk(uid, m, old) {
+      return !(uid in m) || (uid in old && m[uid] == old[uid]) || (   // phần không đổi thì không kiểm lại (nếu không, ghi phút tuần sẽ bị từ chối khi nhịp báo cũ quá 10 phút)
         m[uid].keys().hasOnly(['n', 's', 'k', 'b'])
         && m[uid].n is string && m[uid].n.size() >= 1 && m[uid].n.size() <= 20
         && m[uid].s is int && m[uid].b is int
@@ -74,7 +74,7 @@ service cloud.firestore {
     // board[uid] = { n:tên, mins:tổng phút tập trung trong tuần, t:giờ máy chủ lần ghi cuối }
     // Số phút chỉ tăng, mỗi lần tối đa 180 phút và không nhanh hơn thời gian thật đã trôi qua từ lần ghi trước (chống khai khống); tối đa 112 giờ/tuần.
     function grpBoardOk(uid, nw, old) {
-      return !(uid in nw) || (
+      return !(uid in nw) || (uid in old && nw[uid] == old[uid]) || (   // phần không đổi thì không kiểm lại (nếu không, ghi trạng thái "đang học" sẽ bị từ chối khi người đó đã có phút trên bảng)
         nw[uid].keys().hasOnly(['n', 'mins', 't'])
         && nw[uid].n is string && nw[uid].n.size() >= 1 && nw[uid].n.size() <= 20
         && nw[uid].mins is int && nw[uid].mins >= 0 && nw[uid].mins <= 6720
@@ -96,7 +96,7 @@ service cloud.firestore {
         && live.diff(ol).affectedKeys().hasOnly([uid])
         && board.diff(ob).affectedKeys().hasOnly([uid])
         && live.size() <= 400 && board.size() <= 400
-        && grpLiveOk(uid, live) && grpBoardOk(uid, board, ob);
+        && grpLiveOk(uid, live, ol) && grpBoardOk(uid, board, ob);
     }
     // Giao diện, nội dung chữ/ảnh, thông tin thanh toán hiển thị cho khách, lịch live: ai cũng xem, chỉ admin sửa
     match /settings/{id}         { allow read: if true; allow write: if isAdmin(); }
