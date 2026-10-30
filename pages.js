@@ -1281,21 +1281,20 @@ const donateHTML = function(){
 document.addEventListener('toggle', e => { if (e.target.classList && e.target.classList.contains('tm-cfg')) store.set('fx_cfg', e.target.open); }, true);   // nhớ khách mở hay gập cài đặt bộ đếm
 
 /* Ghế sofa của Moon: góc dưới bên phải MỌI trang, Moon ngủ trên đó. Chạm vào thì Moon tỉnh dậy và gợi ý gói Người đồng hành (giá, quyền lợi, nút xem gói).
-   Hiện cho khách chưa là Người đồng hành khi web có cách thanh toán; ẩn ở trang Ủng hộ và Admin. Bấm "Ẩn 7 ngày" thì nghỉ một tuần. Chỉ chữ, hình vẽ và nút: không đọc Firebase. */
+   Hiện cho khách chưa là Người đồng hành khi web có cách thanh toán; ẩn ở trang Ủng hộ và Admin. Luôn hiện, khách không ẩn được. Chỉ chữ, hình vẽ và nút: không đọc Firebase. */
 (function(){
   const G = {
-    en:{ sofa_t:'Moon saved you a seat', sofa_x:'Become a Companion and get comfy. Your support keeps the stream and this study room running.', sofa_p1:'Your own weekly Planner with an automatic review', sofa_p2:'Unlimited focus time in the Focus room', sofa_p3:'Live study group and weekly leaderboard', sofa_p4:'A small badge next to your name', sofa_hide:'Hide for 7 days', sofa_aria:'Moon is napping on the sofa. Tap to see the Companion plan.' },
-    vi:{ sofa_t:'Moon giữ chỗ cho bạn rồi', sofa_x:'Trở thành Người đồng hành và ngồi cho thoải mái nhé. Sự ủng hộ của bạn giữ cho buổi live và phòng học này luôn sáng đèn.', sofa_p1:'Planner tuần riêng kèm tổng kết tự động', sofa_p2:'Không giới hạn thời gian tập trung ở Phòng tập trung', sofa_p3:'Nhóm học trực tiếp và bảng xếp hạng tuần', sofa_p4:'Huy hiệu nhỏ cạnh tên bạn', sofa_hide:'Ẩn 7 ngày', sofa_aria:'Moon đang ngủ trên sofa. Chạm để xem gói Người đồng hành.' },
-    hi:{ sofa_t:'मून ने आपके लिए जगह रखी है', sofa_x:'साथी बनिए और आराम से बैठिए। आपका सहयोग स्ट्रीम और इस स्टडी रूम को चलाए रखता है।', sofa_p1:'अपना साप्ताहिक प्लानर और अपने आप बनने वाली समीक्षा', sofa_p2:'फ़ोकस रूम में असीमित फ़ोकस समय', sofa_p3:'लाइव स्टडी ग्रुप और साप्ताहिक लीडरबोर्ड', sofa_p4:'आपके नाम के पास एक छोटा बैज', sofa_hide:'7 दिन के लिए छिपाएँ', sofa_aria:'मून सोफ़े पर झपकी ले रही है। साथी योजना देखने के लिए छुएँ।' },
-    ja:{ sofa_t:'Moonがあなたの席を取っておきました', sofa_x:'仲間になって、ゆっくりくつろいでください。あなたの支援が配信とこの自習室を支えます。', sofa_p1:'自動レビュー付きの自分だけの週間プランナー', sofa_p2:'集中ルームで集中時間が無制限', sofa_p3:'ライブ自習グループと週間ランキング', sofa_p4:'名前の横に小さなバッジ', sofa_hide:'7日間非表示', sofa_aria:'Moonがソファで昼寝中です。タップして仲間プランを見る。' },
-    ko:{ sofa_t:'Moon이 자리를 맡아 뒀어요', sofa_x:'동반자가 되어 편히 앉으세요. 여러분의 후원이 방송과 이 공부방을 이어 가요.', sofa_p1:'자동 리뷰가 있는 나만의 주간 플래너', sofa_p2:'집중 방에서 집중 시간 무제한', sofa_p3:'실시간 스터디 그룹과 주간 순위', sofa_p4:'이름 옆의 작은 배지', sofa_hide:'7일간 숨기기', sofa_aria:'Moon이 소파에서 낮잠 중이에요. 눌러서 동반자 플랜 보기.' },
-    zh:{ sofa_t:'Moon给你留了个座', sofa_x:'成为同伴，舒舒服服坐下吧。你的支持让直播和这间自习室一直运转。', sofa_p1:'专属每周计划本，附自动周报', sofa_p2:'专注室里专注时间不限', sofa_p3:'实时学习小组和每周排行榜', sofa_p4:'名字旁的小徽章', sofa_hide:'隐藏7天', sofa_aria:'Moon正在沙发上打盹。点一下查看同伴计划。' },
-    fr:{ sofa_t:"Moon t'a gardé une place", sofa_x:"Deviens Compagnon et installe-toi. Ton soutien fait tourner le live et cette salle d'étude.", sofa_p1:'Ton Planner hebdo privé avec bilan automatique', sofa_p2:'Concentration illimitée dans la salle de concentration', sofa_p3:'Groupe d\'étude en direct et classement hebdo', sofa_p4:'Un petit badge à côté de ton nom', sofa_hide:'Masquer 7 jours', sofa_aria:'Moon fait la sieste sur le canapé. Touche pour voir la formule Compagnon.' },
-    es:{ sofa_t:'Moon te ha guardado un sitio', sofa_x:'Hazte Acompañante y ponte cómodo. Tu apoyo mantiene el directo y esta sala de estudio.', sofa_p1:'Tu planificador semanal privado con resumen automático', sofa_p2:'Tiempo de enfoque ilimitado en la sala de enfoque', sofa_p3:'Grupo de estudio en vivo y clasificación semanal', sofa_p4:'Una pequeña insignia junto a tu nombre', sofa_hide:'Ocultar 7 días', sofa_aria:'Moon duerme la siesta en el sofá. Toca para ver el plan de Acompañante.' }
+    en:{ sofa_t:'Moon saved you a seat', sofa_x:'Become a Companion and get comfy. Your support keeps the stream and this study room running.', sofa_p1:'Your own weekly Planner with an automatic review', sofa_p2:'Unlimited focus time in the Focus room', sofa_p3:'Live study group and weekly leaderboard', sofa_p4:'A small badge next to your name', sofa_aria:'Moon is napping on the sofa. Tap to see the Companion plan.' },
+    vi:{ sofa_t:'Moon giữ chỗ cho bạn rồi', sofa_x:'Trở thành Người đồng hành và ngồi cho thoải mái nhé. Sự ủng hộ của bạn giữ cho buổi live và phòng học này luôn sáng đèn.', sofa_p1:'Planner tuần riêng kèm tổng kết tự động', sofa_p2:'Không giới hạn thời gian tập trung ở Phòng tập trung', sofa_p3:'Nhóm học trực tiếp và bảng xếp hạng tuần', sofa_p4:'Huy hiệu nhỏ cạnh tên bạn', sofa_aria:'Moon đang ngủ trên sofa. Chạm để xem gói Người đồng hành.' },
+    hi:{ sofa_t:'मून ने आपके लिए जगह रखी है', sofa_x:'साथी बनिए और आराम से बैठिए। आपका सहयोग स्ट्रीम और इस स्टडी रूम को चलाए रखता है।', sofa_p1:'अपना साप्ताहिक प्लानर और अपने आप बनने वाली समीक्षा', sofa_p2:'फ़ोकस रूम में असीमित फ़ोकस समय', sofa_p3:'लाइव स्टडी ग्रुप और साप्ताहिक लीडरबोर्ड', sofa_p4:'आपके नाम के पास एक छोटा बैज', sofa_aria:'मून सोफ़े पर झपकी ले रही है। साथी योजना देखने के लिए छुएँ।' },
+    ja:{ sofa_t:'Moonがあなたの席を取っておきました', sofa_x:'仲間になって、ゆっくりくつろいでください。あなたの支援が配信とこの自習室を支えます。', sofa_p1:'自動レビュー付きの自分だけの週間プランナー', sofa_p2:'集中ルームで集中時間が無制限', sofa_p3:'ライブ自習グループと週間ランキング', sofa_p4:'名前の横に小さなバッジ', sofa_aria:'Moonがソファで昼寝中です。タップして仲間プランを見る。' },
+    ko:{ sofa_t:'Moon이 자리를 맡아 뒀어요', sofa_x:'동반자가 되어 편히 앉으세요. 여러분의 후원이 방송과 이 공부방을 이어 가요.', sofa_p1:'자동 리뷰가 있는 나만의 주간 플래너', sofa_p2:'집중 방에서 집중 시간 무제한', sofa_p3:'실시간 스터디 그룹과 주간 순위', sofa_p4:'이름 옆의 작은 배지', sofa_aria:'Moon이 소파에서 낮잠 중이에요. 눌러서 동반자 플랜 보기.' },
+    zh:{ sofa_t:'Moon给你留了个座', sofa_x:'成为同伴，舒舒服服坐下吧。你的支持让直播和这间自习室一直运转。', sofa_p1:'专属每周计划本，附自动周报', sofa_p2:'专注室里专注时间不限', sofa_p3:'实时学习小组和每周排行榜', sofa_p4:'名字旁的小徽章', sofa_aria:'Moon正在沙发上打盹。点一下查看同伴计划。' },
+    fr:{ sofa_t:"Moon t'a gardé une place", sofa_x:"Deviens Compagnon et installe-toi. Ton soutien fait tourner le live et cette salle d'étude.", sofa_p1:'Ton Planner hebdo privé avec bilan automatique', sofa_p2:'Concentration illimitée dans la salle de concentration', sofa_p3:'Groupe d\'étude en direct et classement hebdo', sofa_p4:'Un petit badge à côté de ton nom', sofa_aria:'Moon fait la sieste sur le canapé. Touche pour voir la formule Compagnon.' },
+    es:{ sofa_t:'Moon te ha guardado un sitio', sofa_x:'Hazte Acompañante y ponte cómodo. Tu apoyo mantiene el directo y esta sala de estudio.', sofa_p1:'Tu planificador semanal privado con resumen automático', sofa_p2:'Tiempo de enfoque ilimitado en la sala de enfoque', sofa_p3:'Grupo de estudio en vivo y clasificación semanal', sofa_p4:'Una pequeña insignia junto a tu nombre', sofa_aria:'Moon duerme la siesta en el sofá. Toca para ver el plan de Acompañante.' }
   };
   Object.keys(G).forEach(l => { I18N[l] = I18N[l] || {}; Object.keys(G[l]).forEach(k => { if (I18N[l][k] === undefined) I18N[l][k] = G[l][k]; }); });
 })();
-const SOFA_OFF = 7 * 864e5;
 const SOFA_SVG = `<svg class="sofa-svg" viewBox="0 0 150 96" aria-hidden="true">
   <ellipse cx="75" cy="91" rx="64" ry="4.5" fill="rgba(0,0,0,.22)"/>
   <rect x="22" y="79" width="8" height="11" rx="2.5" fill="#4a2f3a"/><rect x="120" y="79" width="8" height="11" rx="2.5" fill="#4a2f3a"/>
@@ -1324,13 +1323,13 @@ const SOFA_SVG = `<svg class="sofa-svg" viewBox="0 0 150 96" aria-hidden="true">
   <rect x="3" y="38" width="26" height="46" rx="13" fill="#c4608a"/><rect x="121" y="38" width="26" height="46" rx="13" fill="#c4608a"/>
   <path d="M10 48Q16 43 22 48" stroke="#e58aab" stroke-width="2" stroke-linecap="round" fill="none" opacity=".6"/><path d="M128 48Q134 43 140 48" stroke="#e58aab" stroke-width="2" stroke-linecap="round" fill="none" opacity=".6"/>
 </svg>`;
-const sofaOn = () => !!(compPayMode() && !state.companion && !state.editMode && !['donate', 'admin'].includes(route.name) && Date.now() - (+store.get('sofa_off', 0) || 0) > SOFA_OFF);
+const sofaOn = () => !!(compPayMode() && !state.companion && !state.editMode && !['donate', 'admin'].includes(route.name));
 function sofaPrice(){ return compPayMode() === 'vnd' ? money(compPrice(1), 'VND') : money(compPriceUSD(1), 'USD'); }
 function sofaCard(){
   const perks = ['sofa_p1', ...(Math.round(+branding.focusLimit) > 0 ? ['sofa_p2'] : []), ...(branding.groupOn === true ? ['sofa_p3'] : []), 'sofa_p4'];
   return `<button type="button" class="sofa-x" data-act="sofaToggle" aria-label="${esc(t('close'))}">${ic('x', 'sm')}</button><b class="sofa-t">${esc(t('sofa_t'))}</b><p class="small muted sofa-tx">${esc(t('sofa_x'))}</p>
     <ul class="sofa-ul">${perks.map(k => `<li>${esc(t(k))}</li>`).join('')}</ul><div class="sofa-price">${esc(t('comp_plan_1'))} · <b>${esc(sofaPrice())}</b></div>
-    <a class="btn primary sm" href="#/donate" data-act="sofaGo">${ic('heart', 'sm')} ${esc(t('don_see_comp'))}</a><button type="button" class="link small sofa-hide" data-act="sofaHide">${esc(t('sofa_hide'))}</button>`;
+    <a class="btn primary sm" href="#/donate" data-act="sofaGo">${ic('heart', 'sm')} ${esc(t('don_see_comp'))}</a>`;
 }
 function sofaSync(){
   let b = $('sofa'); const on = sofaOn();
@@ -1344,8 +1343,7 @@ function sofaSync(){
 }
 Object.assign(ACTIONS, {
   sofaToggle: () => { const b = $('sofa'); if (!b) return; const o = !b.classList.contains('open'); b.classList.toggle('open', o); $('sofa-card').hidden = !o; $('sofa-btn').setAttribute('aria-expanded', o); if (o) $('sofa-card').querySelector('.btn').focus({ preventScroll:true }); },
-  sofaGo: () => { TABS.don = 'comp'; const b = $('sofa'); if (b) { b.classList.remove('open'); $('sofa-card').hidden = true; $('sofa-btn').setAttribute('aria-expanded', false); } },
-  sofaHide: () => { store.set('sofa_off', Date.now()); sofaSync(); toast(t('sofa_hide') + ' ✓'); }
+  sofaGo: () => { TABS.don = 'comp'; const b = $('sofa'); if (b) { b.classList.remove('open'); $('sofa-card').hidden = true; $('sofa-btn').setAttribute('aria-expanded', false); } }
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { const b = $('sofa'); if (b && b.classList.contains('open')) { b.classList.remove('open'); $('sofa-card').hidden = true; $('sofa-btn').setAttribute('aria-expanded', false); } } });
 PAGES.donate = function(){ page(`${head('donate_title', 'donate_sub', '', 'lantern', 3)}${donateHTML()}${thanksCard()}`); };
