@@ -1133,14 +1133,16 @@ body:has(#tour-ask) .sofa{display:none}
 .nbadge.ct2{border-color:#e0b04f;box-shadow:0 0 0 2px rgba(224,176,79,.25)}
 .nbadge.ct3{border-color:#f2c14e;box-shadow:0 0 0 2px rgba(242,193,78,.3),0 0 10px rgba(242,193,78,.4)}
 .sb-user>div{min-width:0}.sb-user .sb-name{display:flex;align-items:center;min-width:0}.sb-user .sb-name b{display:block;min-width:0}.sb-user .sb-name .nbadge{margin-left:6px}
-/* Phòng tập trung: bộ đếm | Việc + Nhạc | Nhóm + Live (khung riêng, xem song song) */
-.fx3{grid-template-areas:"timer" "main" "side"}
-.fx3>.fx-timer{grid-area:timer}.fx3>.fx-main{grid-area:main}.fx3>.fx-side{grid-area:side;min-width:0}
-@media (min-width:1101px){.fx3 .ring{width:min(400px,100%)}.fx3 .ring .tt{font-size:4.2rem}.fx3{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);grid-template-areas:"timer main" "side main";align-items:start}}
-@media (min-width:1500px){
-  .page:has(.fx3){max-width:1560px}
-  .fx3{grid-template-columns:minmax(0,1.8fr) minmax(0,1fr) minmax(0,1fr);grid-template-areas:"timer main side"}
-  .fx3 .ring{width:min(400px,100%)}.fx3 .ring .tt{font-size:4.4rem}
-  .fx3>.fx-side{position:sticky;top:84px;max-height:calc(100vh - 104px);overflow-y:auto;scrollbar-width:thin}
-}
+/* Phòng tập trung: bộ đếm lớn bên trái; Việc/Nhạc rồi Nhóm/Live xếp dọc bên phải (hai cột cao bằng nhau); thống kê dưới cùng */
+.fx3{grid-template-areas:"timer" "main" "side" "stats"}
+.fx3>.fx-timer{grid-area:timer}.fx3>.fx-main{grid-area:main}.fx3>.fx-side{grid-area:side;min-width:0}.fx3>.fx-stats{grid-area:stats;min-width:0}
+.fx-stats{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:stretch}
+.fx-stats>.card,.fx-stats .tile{margin:0}.fx-stats .tile{justify-content:center}
 .fx-side>.tabset>.tab-bar{padding-bottom:12px}
+@media (min-width:1101px){
+  .fx3{grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);grid-template-areas:"timer main" "timer side" "stats stats";grid-template-rows:auto 1fr auto;align-items:stretch}
+  .fx3>.fx-timer{justify-content:center}
+  .fx3 .ring{width:min(380px,100%)}.fx3 .ring .tt{font-size:4rem}
+  .fx3>.fx-side{align-self:start}.fx3>.fx-main{align-self:start}
+  .fx-stats{grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:18px}
+}
