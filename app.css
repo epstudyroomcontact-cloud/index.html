@@ -1088,16 +1088,29 @@ html[data-calm="1"] .ep-paw{display:none}
 .tm-cfg>summary::-webkit-details-marker{display:none}
 .tm-cfg[open]>summary{margin-bottom:12px}
 .tm-cfg>*+*:not(summary){margin-top:12px}
-/* Bong bóng Ủng hộ */
-.sb-bubble{position:fixed;left:calc(var(--sbw) + 20px);bottom:20px;z-index:140;display:flex;align-items:flex-end}
-.sb-bubble[hidden],.sb-bubble.nopay{display:none}
-.sb-card{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:4px;max-width:260px;padding:14px 38px 14px 16px;background:var(--surface);border:1px solid var(--accent);border-radius:20px;box-shadow:var(--shadow)}
-.sb-t{font-size:.95rem}.sb-s{font-size:.82rem;color:var(--ink2);margin-bottom:6px;overflow-wrap:anywhere}
-.sb-x{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:9px;display:grid;place-items:center;color:var(--ink3)}.sb-x:hover{background:var(--surface2);color:var(--ink)}
-.sb-heart{display:none;width:54px;height:54px;border-radius:50%;background:var(--accent);color:var(--on-accent);place-items:center;box-shadow:var(--shadow);animation:sbPulse 2.4s infinite}
-.sb-heart .ic{width:24px;height:24px}
-.sb-bubble.min .sb-card{display:none}.sb-bubble.min .sb-heart{display:grid}
 .don-step{scroll-margin-top:84px}
-@keyframes sbPulse{0%{box-shadow:var(--shadow),0 0 0 0 rgba(var(--accent-rgb),.5)}70%{box-shadow:var(--shadow),0 0 0 14px rgba(var(--accent-rgb),0)}100%{box-shadow:var(--shadow),0 0 0 0 rgba(var(--accent-rgb),0)}}
-@media(prefers-reduced-motion:reduce){.sb-heart{animation:none}}
-@media(max-width:960px){.sb-bubble{left:12px;bottom:84px}}
+
+/* Ghế sofa của Moon: góc dưới bên phải mọi trang */
+.sofa{position:fixed;right:14px;bottom:96px;z-index:140;display:flex;flex-direction:column;align-items:flex-end;gap:8px;pointer-events:none}
+.sofa>*{pointer-events:auto}
+.sofa-btn{display:block;width:132px;border-radius:24px;filter:drop-shadow(0 8px 14px rgba(0,0,0,.35));transition:transform .2s}
+.sofa-btn:hover,.sofa-btn:focus-visible{transform:translateY(-3px) rotate(-1.5deg)}
+.sofa-svg{display:block;width:100%;height:auto;overflow:visible}
+.sofa-eyes-o{display:none}.sofa.open .sofa-eyes-o{display:inline}.sofa.open .sofa-eyes-z,.sofa.open .sofa-zz{display:none}
+.sofa-breath{transform-box:fill-box;transform-origin:50% 100%;animation:sofaBreath 4.2s ease-in-out infinite}
+.sofa-zz text{opacity:0;animation:sofaZ 3.6s ease-in-out infinite}.sofa-zz .z2{animation-delay:.9s}.sofa-zz .z3{animation-delay:1.8s}
+@keyframes sofaBreath{0%,100%{transform:scale(1,1)}50%{transform:scale(1.015,1.045)}}
+@keyframes sofaZ{0%{opacity:0;transform:translate(0,4px)}25%{opacity:1}75%{opacity:1}100%{opacity:0;transform:translate(3px,-6px)}}
+.sofa-card{position:relative;width:min(290px,calc(100vw - 28px));display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:16px 40px 14px 16px;background:var(--surface);border:1px solid var(--accent);border-radius:20px;box-shadow:var(--shadow)}
+.sofa-card[hidden]{display:none}
+.sofa-card::after{content:"";position:absolute;right:52px;bottom:-8px;width:14px;height:14px;background:var(--surface);border-right:1px solid var(--accent);border-bottom:1px solid var(--accent);transform:rotate(45deg)}
+.sofa-t{font-size:1rem;line-height:1.3}.sofa-tx{margin:0;line-height:1.45}
+.sofa-ul{margin:0;padding-left:18px;font-size:.85rem;line-height:1.45;color:var(--ink2)}
+.sofa-price{font-size:.9rem}.sofa-price b{color:var(--accent-strong)}
+.sofa-x{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:var(--ink3)}.sofa-x:hover{background:var(--surface2);color:var(--ink)}
+.sofa-hide{color:var(--ink3);text-decoration:underline;align-self:flex-start}
+body.has-sofa .golive-fab{bottom:calc(200px + env(safe-area-inset-bottom))}
+@media(max-width:640px){.sofa{right:8px;bottom:82px}.sofa-btn{width:108px}}
+@media(prefers-reduced-motion:reduce){.sofa-breath,.sofa-zz text{animation:none}.sofa-zz text{opacity:.9}.sofa-btn{transition:none}}
+@media print{.sofa{display:none}}
+body:has(#tour-ask) .sofa{display:none}
