@@ -8,7 +8,7 @@
    - Máy bật "giảm chuyển động" thì chỉ vẽ một khung đứng yên (không có màn mở trạm). Ngoài màn hình thì dừng vẽ.
    ========================================================= */
 const MJF = { list:new Set(), raf:0, last:0 };
-const mjfReduced = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+const mjfReduced = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches && document.documentElement.dataset.motion !== 'on');
 const mjfIO = 'IntersectionObserver' in window ? new IntersectionObserver(es => { es.forEach(e => { const st = e.target._mjf; if (st) st.vis = e.isIntersecting; }); mjfKick(); }) : null;
 const mjfR = (a, b) => a + Math.random() * (b - a);
 const MJ_FX = {

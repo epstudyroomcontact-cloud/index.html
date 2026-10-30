@@ -6,6 +6,7 @@
    Số lần đã thử nhớ trong sessionStorage (chặn được thì ghi lên địa chỉ ?heal=N), nên không bao giờ tải lại vòng vòng. */
 // Khách đã bật "Giảm chuyển động" (⚙️): bật ngay từ đầu để màn chờ lúc mở web cũng đứng yên (core.js applyLook giữ tiếp)
 try { if (JSON.parse(localStorage.getItem('ep_calm'))) document.documentElement.setAttribute('data-calm', '1'); } catch (e) {}
+try { if (JSON.parse(localStorage.getItem('ep_motion')) === 'on') document.documentElement.setAttribute('data-motion', 'on'); } catch (e) {}   // khách chọn vẫn hiện hiệu ứng dù máy tắt animation: màn chờ cũng chạy
 (function(){
   var errs = [], KEY = 'ep_heal';
   var tag = function(e){ return (e && (e.message || e.reason && (e.reason.message || e.reason))) || 'error'; };

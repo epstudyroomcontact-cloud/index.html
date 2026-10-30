@@ -9,7 +9,7 @@
    - Máy bật "giảm chuyển động" thì chỉ vẽ một khung đứng yên. Tranh nằm ngoài màn hình thì dừng vẽ.
    ========================================================= */
 const MJR = { list:new Set(), raf:0, last:0, t:Math.random() * 100 };
-const mjrReduced = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+const mjrReduced = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches && document.documentElement.dataset.motion !== 'on');
 const mjrIO = 'IntersectionObserver' in window ? new IntersectionObserver(es => { es.forEach(e => { const st = e.target._mjr; if (st) st.vis = e.isIntersecting; }); mjrKick(); }) : null;
 const mjrRO = 'ResizeObserver' in window ? new ResizeObserver(es => es.forEach(e => { const st = e.target._mjr; if (st) { mjrSize(st); mjrDrips(st); if (mjrReduced()) mjrStill(st); } })) : null;
 const MJR_LAYERS = [{ z:.38, k:.42 }, { z:.68, k:.36 }, { z:1, k:.22 }];
