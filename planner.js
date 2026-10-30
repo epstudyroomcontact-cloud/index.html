@@ -280,6 +280,18 @@ async function plFocusEdit(fn){                                   // fn(tasks) s
     return true;
   } catch (e) { console.warn('focus-planner', e.code); return false; }
 }
+async function plFocusRemove(id, drop){                           // xoá một việc hôm nay từ Phòng tập trung; drop = ghi nhận "đã bỏ" như bên Planner (việc chưa xong của ngày đã bắt đầu), false = xoá hẳn
+  try {
+    const key = plKey(0), live = !!(PL.tasks && PL.key === key), tasks = await plWeek0(), x = tasks && tasks.find(v => v.id === id); if (!x) return false;
+    if (live) { if (drop) plMark(x, 'x'); tasks.splice(tasks.indexOf(x), 1); plSave(); return true; }
+    const rest = tasks.filter(v => v.id !== id);
+    let gone = null;
+    if (drop && !x.done) { const r = await plFetch(key); gone = [...r.gone.map(plGoneClean).filter(g => !(g.id === x.id && g.day === x.day)), plGoneClean({ id:x.id, t:x.title, day:x.day, dur:x.dur, c:x.c, s:'x' })].slice(-PL_MAX); }
+    PL.pre = null; delete PL.raw[key]; plCache(key, rest, gone || undefined); if (state.user) PL.remTasks = { uid:state.user.uid, tasks:rest }; plPinShow();
+    if (!DEMO) await plRef(key).set({ tasks:rest.map(plClean), ...(gone ? { gone } : {}), updatedAt:TS() }, { merge:true });
+    return true;
+  } catch (e) { console.warn('focus-planner-del', e.code); return false; }
+}
 /* ---------- tải / lưu ---------- */
 /* Đọc nhanh: lần mở sau hiện ngay bản nhớ trong máy (xoá khi đăng xuất / đổi tài khoản, xem core.js), rồi cập nhật từ máy chủ ở nền */
 async function plFetch(key){                                      // 'unavailable' = kết nối Firebase chưa kịp lên: thử lại vài lần trước khi báo lỗi

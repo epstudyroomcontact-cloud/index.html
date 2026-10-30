@@ -606,6 +606,7 @@ function splashOut(){
 function afterRender(){
   if (typeof updateTimerUI === 'function') updateTimerUI();
   updateNext(); tickClock();
+  if (typeof sbSync === 'function') sbSync();
   if (state.editMode) applyEditable();
 }
 const NAV_DEFAULT = [
