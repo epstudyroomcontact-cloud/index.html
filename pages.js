@@ -1403,25 +1403,26 @@ function sofaSync(){
 /* Moon đi dạo: lâu lâu rời sofa đi vòng quanh khắp màn hình (nhìn ngang, lại gần, đi xa, ngồi nghỉ) rồi quay về (chỉ transform, không đọc Firebase). Điện thoại: nhỏ hơn, ra ngắn hơn, thưa hơn.
    Không chạy khi: máy tắt chuyển động, tab ẩn, đang cuộn / gõ chữ / mở hộp thoại / hướng dẫn / thẻ sofa. Bấm vào Moon (đang ngủ hay đang đi): Moon giận hài hước và để lại vết cào. */
 const MWS = 'stroke="#aab4d0" stroke-width=".9"';
-const mwPaw = (x, y, fill, ph) => `<g class="mw-pw ${ph}"><ellipse cx="${x}" cy="${y}" rx="6.2" ry="4.7" fill="${fill}" ${MWS}/></g>`;
-const mwPawF = (x, y, rx) => `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="4.3" fill="#fdfaf3" ${MWS}/>`;
+/* chân ngắn mập: cổ chân thon, bàn chân xòe, hai ngón nhỏ; nét viền hở ở đỉnh để chân nối liền vào thân */
+const mwLegD = (x, y, h) => `M${x - 4.6} ${y}L${x - 4.6} ${y + h - 3}C${x - 6.8} ${y + h - 2.4} ${x - 7} ${y + h + 1} ${x - 3.6} ${y + h + 1}L${x + 3.6} ${y + h + 1}C${x + 7 } ${y + h + 1} ${x + 6.8} ${y + h - 2.4} ${x + 4.6} ${y + h - 3}L${x + 4.6} ${y}`;
+const mwLegSvg = (x, y, h, fill) => `<path d="${mwLegD(x, y, h)}Z" fill="${fill}"/><path d="${mwLegD(x, y, h)}" fill="none" ${MWS} stroke-linejoin="round" stroke-linecap="round"/><path d="M${x - 1.5} ${y + h - 1.6}v1.7M${x + 1.5} ${y + h - 1.6}v1.7" stroke="#aab4d0" stroke-width=".6" stroke-linecap="round" fill="none"/>`;
+const mwLeg = (x, y, h, fill, ph) => `<g transform="translate(${x} ${y})"><g class="mw-pw ${ph}">${mwLegSvg(0, 0, h, fill)}</g></g>`;
 const mwTail = (d, cls) => `<g class="${cls}"><path d="${d}" stroke="#aab4d0" stroke-width="8.2" stroke-linecap="round" fill="none"/><path d="${d}" stroke="#fdfaf3" stroke-width="6.6" stroke-linecap="round" fill="none"/></g>`;
 const mwPatch = d => `<path d="${d}" fill="#f2a15c" opacity=".92"/>`;
 /* Moon đi dạo có bốn góc nhìn: đi ngang (side), đi lại gần (front), đi xa (back) và ngồi nhìn thẳng (sit, cũng là dáng khi bị bấm) */
 const MOON_WALK = `<svg class="mw-svg mw-v mw-v-side" viewBox="0 0 100 72" aria-hidden="true">
   <ellipse cx="56" cy="69.5" rx="34" ry="3" fill="rgba(0,0,0,.22)"/>
-  ${mwTail('M81 46Q101 47 98 29Q96 21 89 24', 'mw-tail')}
-  ${mwPaw(38, 63.6, '#dfe5f2', 'pb')}${mwPaw(71, 63.6, '#dfe5f2', 'pa')}
-  <g class="mw-bd"><ellipse cx="58" cy="47" rx="27.5" ry="16" fill="#fdfaf3" ${MWS}/>${mwPatch('M50 34Q68 29 84 41Q73 44 62 43Z')}
-    <g class="mw-hd"><g transform="translate(24 38) scale(2.15) translate(0 16.8)">${moonHead('mwH1', 'mw')}</g></g></g>
-  ${mwPaw(48, 63.8, '#fdfaf3', 'pa')}${mwPaw(80, 63.8, '#fdfaf3', 'pb')}
+  ${mwTail('M81 42Q101 43 98 25Q96 17 89 20', 'mw-tail')}
+  ${mwLeg(38, 46, 20, '#dfe5f2', 'pb')}${mwLeg(70, 46, 20, '#dfe5f2', 'pa')}${mwLeg(48, 46, 20, '#fdfaf3', 'pa')}${mwLeg(80, 46, 20, '#fdfaf3', 'pb')}
+  <g class="mw-bd"><ellipse cx="58" cy="43" rx="27.5" ry="15.5" fill="#fdfaf3" ${MWS}/>${mwPatch('M50 30Q68 25 84 37Q73 40 62 39Z')}
+    <g class="mw-hd"><g transform="translate(24 34) scale(2.15) translate(0 16.8)">${moonHead('mwH1', 'mw')}</g></g></g>
 </svg>
 <svg class="mw-svg mw-v mw-v-front" viewBox="0 0 100 72" aria-hidden="true">
   <ellipse cx="50" cy="69.5" rx="22" ry="3" fill="rgba(0,0,0,.22)"/>
   ${mwTail('M60 54Q82 54 77 34Q75 26 68 30', 'mw-tailf')}
   <ellipse class="mw-fl pb" cx="36" cy="66.5" rx="5.6" ry="3.1" fill="#fdfaf3" ${MWS}/><ellipse class="mw-fl pa" cx="64" cy="66.5" rx="5.6" ry="3.1" fill="#fdfaf3" ${MWS}/>
   <g class="mw-fb"><ellipse cx="50" cy="53" rx="17" ry="15" fill="#fdfaf3" ${MWS}/>${mwPatch('M34 50Q36 40 46 40Q44 48 38 56Z')}
-    <g class="mw-fl pa">${mwPawF(42, 64.6, 6.2)}</g><g class="mw-fl pb">${mwPawF(58, 64.6, 6.2)}</g>
+    <g class="mw-fl pa">${mwLegSvg(42, 55, 11, '#fdfaf3')}</g><g class="mw-fl pb">${mwLegSvg(58, 55, 11, '#fdfaf3')}</g>
     <g class="mw-hd"><g transform="translate(50 31) scale(2.4) translate(0 16.8)">${moonHead('mwH2', 'mw')}</g></g></g>
 </svg>
 <svg class="mw-svg mw-v mw-v-back" viewBox="0 0 100 72" aria-hidden="true">
@@ -1440,7 +1441,7 @@ const MOON_WALK = `<svg class="mw-svg mw-v mw-v-side" viewBox="0 0 100 72" aria-
   <ellipse cx="50" cy="57" rx="23" ry="13" fill="#fdfaf3" ${MWS}/>
   <ellipse cx="34" cy="66.4" rx="6.6" ry="3.3" fill="#fdfaf3" ${MWS}/><ellipse cx="66" cy="66.4" rx="6.6" ry="3.3" fill="#fdfaf3" ${MWS}/>
   <g class="mw-br"><ellipse cx="50" cy="50" rx="14" ry="16.5" fill="#fdfaf3" ${MWS}/>${mwPatch('M37 48Q38 38 47 38Q45 46 40 54Z')}
-    ${mwPawF(44, 65.2, 6)}${mwPawF(56, 65.2, 6)}</g>
+    ${mwLegSvg(44, 54, 12, '#fdfaf3')}${mwLegSvg(56, 54, 12, '#fdfaf3')}</g>
   <g class="mw-hd"><g transform="translate(50 29) scale(2.4) translate(0 16.8)">${moonHead('mwH3', 'mw')}</g></g>
 </svg>`;
 const sfReduced = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches && document.documentElement.dataset.motion !== 'on');
