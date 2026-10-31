@@ -736,6 +736,7 @@ const EPTour = (() => {
   function start(opt){
     close();
     if (route.name === 'admin') return;
+    if (!state.user && !(opt && opt.steps)) opt = { steps:[{ k:'lg' }] };   // chưa đăng nhập: mọi hướng dẫn (chung hay từng trang) chỉ là lời nhắc đăng nhập
     $('prefs').classList.remove('open'); $('live-rem').classList.remove('open'); closeModal();
     const sh = document.createElement('div'); sh.id = 'tour-shade'; const ring = document.createElement('div'); ring.id = 'tour-ring'; ring.style.opacity = 0;
     const card = document.createElement('div'); card.id = 'tour-card'; card.setAttribute('role', 'dialog'); card.setAttribute('aria-live', 'polite');
@@ -772,9 +773,10 @@ const EPTour = (() => {
     if (store.get('tour', null) !== null || cur || el('tour-ask') || route.name === 'admin') return;
     try { if (sessionStorage.getItem('ep_tour_later') && returning()) return; } catch (e) {}
     if (!state.authReady && tries++ < 6) return setTimeout(auto, 1000);   // đợi biết đã đăng nhập chưa để chọn "tự chạy" hay "hỏi trước"
+    if (!state.user) { try { if (sessionStorage.getItem('ep_lg')) return; sessionStorage.setItem('ep_lg', '1'); } catch (e) {} return start(); }   // khách chưa đăng nhập: nhắc đăng nhập một lần mỗi lần mở web
     returning() ? ask() : start();
   }
-  const page = name => { if (PG[name]) start(state.user ? { page:name } : { steps:[{ k:'pg', pg:name }, { k:'lg' }] }); };   // chưa đăng nhập: bản tóm tắt ba hình của trang rồi mời đăng nhập; các bước chỉ vào từng nút dành cho người đã đăng nhập
+  const page = name => { if (PG[name]) start({ page:name }); };   // chưa đăng nhập thì start() chỉ hiện lời nhắc đăng nhập
   // đang dùng thử mã: mỗi lần mở trang Ủng hộ Moon hiện lên nhắc ngày hết hạn (không đè lên hướng dẫn đang chạy)
   const trial = () => { if (cur || el('tour-ask') || !state.user || !state.trial || state.companion || state.isAdmin || !(state.trial.endsAt > Date.now())) return; start({ steps:[{ k:'tr' }] }); };   // nút ? ở đầu trang: Moon chỉ nhanh trang đang xem, không đụng tới cờ "đã xem hướng dẫn"
   return { start, auto, close, preview, page, trial };
