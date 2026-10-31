@@ -1119,27 +1119,42 @@ body:has(#tour-ask) .sofa{display:none}
 .sofa-hshake,.mw-hshake{transform-box:fill-box;transform-origin:50% 100%}
 .sofa.angry .sofa-eyes-z,.sofa.angry .sofa-zz,.sofa.angry .sofa-mouth-n,.moon-walker.angry .mw-mouth-n{display:none}.sofa.angry .sofa-eyes-o{display:inline}
 .sofa.angry .sofa-eyes-a,.sofa.angry .sofa-mouth-a,.sofa.angry .sofa-vein,.moon-walker.angry .mw-eyes-a,.moon-walker.angry .mw-mouth-a,.moon-walker.angry .mw-vein{display:inline}
-.sofa.angry .sofa-hshake,.moon-walker.angry .mw-hshake{animation:moonShake .14s linear 8}
+.sofa.angry .sofa-hshake,.moon-walker.angry .mw-v-sit .mw-hd{animation:moonShake .14s linear 8}
 .sofa.angry .sofa-breath{animation:moonPuff .35s ease-out}
 .sofa-vein,.mw-vein{animation:moonVein .5s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:50% 50%}
 @keyframes moonShake{0%,100%{transform:rotate(0)}25%{transform:rotate(-2.5deg)}75%{transform:rotate(2.5deg)}}
 @keyframes moonPuff{0%{transform:scale(1)}40%{transform:scale(1.08,1.12)}100%{transform:scale(1)}}
 @keyframes moonVein{from{transform:scale(.85)}to{transform:scale(1.15)}}
 .sofa.away .sofa-cat,.sofa.away .sofa-zz{visibility:hidden}
+.sofa-btn{transition:transform .2s,opacity .5s}.sofa.gone .sofa-btn{opacity:0;pointer-events:none}
 .sofa.land .sofa-cat{animation:moonLand .6s ease-out}
 @keyframes moonLand{0%{transform:translateY(-14px)}55%{transform:translateY(2px)}100%{transform:translateY(0)}}
-.moon-walker{position:fixed;left:0;top:auto;bottom:98px;z-index:139;cursor:pointer;touch-action:manipulation;will-change:transform;-webkit-tap-highlight-color:transparent}
+.moon-walker{position:fixed;left:0;top:0;z-index:139;cursor:pointer;touch-action:manipulation;will-change:transform;transform-origin:50% 100%;-webkit-tap-highlight-color:transparent}
 .mw-flip{transform-origin:50% 50%}.moon-walker.right .mw-flip{transform:scaleX(-1)}
-.mw-svg{display:block;width:100%;height:auto;overflow:visible;filter:drop-shadow(0 4px 6px rgba(0,0,0,.28))}
-.mw-leg{transform-box:fill-box;transform-origin:50% 0}
-.mw-la{animation:mwLegA .46s ease-in-out infinite alternate}.mw-lb{animation:mwLegB .46s ease-in-out infinite alternate}
-.mw-body{animation:mwBob .46s ease-in-out infinite alternate}
-.mw-tail{transform-box:fill-box;transform-origin:0 100%;animation:mwTail 1.3s ease-in-out infinite alternate}
-.moon-walker.idle .mw-leg,.moon-walker.idle .mw-body{animation-play-state:paused}
-@keyframes mwLegA{from{transform:rotate(24deg)}to{transform:rotate(-24deg)}}
-@keyframes mwLegB{from{transform:rotate(-24deg)}to{transform:rotate(24deg)}}
-@keyframes mwBob{from{transform:translateY(0)}to{transform:translateY(-1.6px)}}
-@keyframes mwTail{from{transform:rotate(-10deg)}to{transform:rotate(12deg)}}
+.mw-svg{display:none;width:100%;height:auto;overflow:visible;filter:drop-shadow(0 4px 6px rgba(0,0,0,.28))}
+.moon-walker[data-v=side] .mw-v-side,.moon-walker[data-v=front] .mw-v-front,.moon-walker[data-v=back] .mw-v-back,.moon-walker[data-v=sit] .mw-v-sit{display:block}
+.moon-walker.angry .mw-v-side,.moon-walker.angry .mw-v-front,.moon-walker.angry .mw-v-back{display:none}.moon-walker.angry .mw-v-sit{display:block}.moon-walker.angry .mw-flip{transform:none}
+.mw-th,.mw-sh{transform-box:view-box;transform-origin:0 0;animation:.7s ease-in-out infinite;animation-name:mwTh}.mw-sh{animation-name:mwSh}
+.mw-th.pb,.mw-sh.pb,.mw-fl.pb{animation-delay:-.35s}
+.mw-bd{animation:mwBob .35s ease-in-out infinite alternate}
+.mw-hd{transform-box:view-box}.mw-v-side .mw-hd{transform-origin:30px 40px;animation:mwNod .7s ease-in-out infinite alternate}
+.mw-tail,.mw-tailf,.mw-tailb,.mw-tails{transform-box:view-box;animation:mwTail 1.2s ease-in-out infinite alternate}
+.mw-tail{transform-origin:80px 40px}.mw-tailf{transform-origin:60px 54px}.mw-tailb{transform-origin:54px 57px;animation-duration:.9s}.mw-tails{transform-origin:66px 64px;animation-duration:1.8s}
+.mw-fb{transform-box:view-box;transform-origin:50px 68px;animation:mwSway .7s ease-in-out infinite alternate}
+.mw-fl{animation:mwStep .7s ease-in-out infinite}
+.mw-v-front .mw-hd,.mw-v-sit .mw-hd{transform-origin:50px 42px}.mw-v-front .mw-hd{animation:mwNod .7s ease-in-out infinite alternate}.mw-v-sit .mw-hd{animation:mwTilt 3.6s ease-in-out infinite alternate}
+.mw-br{transform-box:view-box;transform-origin:50px 66px;animation:mwBreath 3s ease-in-out infinite alternate}
+.mw-v-sit .mw-eyes-o{transform-box:fill-box;transform-origin:50% 50%;animation:mwBlink 4.5s ease-in-out infinite}
+@keyframes mwTh{0%,100%{transform:rotate(26deg)}50%{transform:rotate(-26deg)}}
+@keyframes mwSh{0%{transform:rotate(-12deg)}25%{transform:rotate(-4deg)}50%{transform:rotate(6deg)}62%{transform:rotate(-34deg)}82%{transform:rotate(-22deg)}100%{transform:rotate(-12deg)}}
+@keyframes mwBob{from{transform:translateY(0)}to{transform:translateY(-1.8px)}}
+@keyframes mwNod{from{transform:rotate(-2.5deg)}to{transform:rotate(2.5deg)}}
+@keyframes mwTilt{from{transform:rotate(-5deg)}to{transform:rotate(5deg)}}
+@keyframes mwTail{from{transform:rotate(-9deg)}to{transform:rotate(11deg)}}
+@keyframes mwSway{from{transform:rotate(-2.2deg) translateY(0)}to{transform:rotate(2.2deg) translateY(-1.6px)}}
+@keyframes mwStep{0%,100%{transform:translateY(0)}50%{transform:translateY(-3.4px)}}
+@keyframes mwBreath{from{transform:scale(1,1)}to{transform:scale(1.015,1.03)}}
+@keyframes mwBlink{0%,92%,100%{transform:scaleY(1)}96%{transform:scaleY(.1)}}
 .moon-claw{position:fixed;z-index:305;width:72px;height:72px;margin:-36px 0 0 -36px;pointer-events:none;animation:clawFade .45s ease-in .6s forwards}
 .moon-claw svg{display:block;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 0 3px rgba(255,122,156,.5))}
 .moon-claw .c,.moon-claw .h{transform-box:fill-box;transform-origin:50% 0;opacity:0;animation:clawDraw .2s ease-out forwards}
@@ -1148,7 +1163,7 @@ body:has(#tour-ask) .sofa{display:none}
 .moon-claw .sp{transform-box:fill-box;transform-origin:50% 50%;animation:clawSpark .7s ease-out .15s both}
 @keyframes clawDraw{from{transform:scaleY(.1);opacity:0}to{transform:scaleY(1);opacity:1}}@keyframes clawSpark{0%{transform:scale(0) rotate(0);opacity:0}40%{opacity:1}100%{transform:scale(1.2) rotate(40deg);opacity:0}}
 @keyframes clawFade{to{opacity:0}}
-@media(max-width:640px){.moon-walker{bottom:84px}.moon-claw{width:56px;height:56px;margin:-28px 0 0 -28px}}
+@media(max-width:640px){.moon-claw{width:56px;height:56px;margin:-28px 0 0 -28px}}
 @media(prefers-reduced-motion:reduce){html:not([data-motion="on"]) .moon-claw .c,html:not([data-motion="on"]) .moon-claw .h{opacity:1}html:not([data-motion="on"]) .moon-claw .sp{opacity:0}}
 @media print{.moon-walker,.moon-claw{display:none}}
 
