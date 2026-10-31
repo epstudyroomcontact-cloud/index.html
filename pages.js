@@ -1407,17 +1407,24 @@ const MWS = 'stroke="#aab4d0" stroke-width=".9"';
 /* chân ngắn mập: cổ chân thon, bàn chân xòe, hai ngón nhỏ; nét viền hở ở đỉnh để chân nối liền vào thân */
 const mwLegD = (x, y, h, hind) => hind
   ? `M${x - 2.4} ${y}C${x - 3.4} ${y + 6} ${x + .6} ${y + 9} ${x - .4} ${y + h - 3.4}C${x - 2.2} ${y + h - 2.8} ${x - 2.6} ${y + h + .6} ${x - .4} ${y + h + .8}L${x + 2.2} ${y + h + .8}C${x + 3.9} ${y + h + .6} ${x + 3.5} ${y + h - 2.8} ${x + 2.1} ${y + h - 3.4}C${x + 3.4} ${y + 9} ${x + 5.4} ${y + 5} ${x + 2.4} ${y}`
-  : `M${x - 1.9} ${y}L${x - 1.8} ${y + h - 3.2}C${x - 3.4} ${y + h - 2.6} ${x - 3.7} ${y + h + .6} ${x - 1.4} ${y + h + .8}L${x + 1.4} ${y + h + .8}C${x + 3.7} ${y + h + .6} ${x + 3.4} ${y + h - 2.6} ${x + 1.8} ${y + h - 3.2}L${x + 1.9} ${y}`;
+  : `M${x - 2.3} ${y}L${x - 2.2} ${y + h - 3.2}C${x - 3.8} ${y + h - 2.6} ${x - 4.1} ${y + h + .6} ${x - 1.6} ${y + h + .8}L${x + 1.6} ${y + h + .8}C${x + 4.1} ${y + h + .6} ${x + 3.8} ${y + h - 2.6} ${x + 2.2} ${y + h - 3.2}L${x + 2.3} ${y}`;
 const mwLegSvg = (x, y, h, fill, hind) => `<path d="${mwLegD(x, y, h, hind)}Z" fill="${fill}"/><path d="${mwLegD(x, y, h, hind)}" fill="none" ${MWS} stroke-linejoin="round" stroke-linecap="round"/><path d="M${x + (hind ? .8 : 0)} ${y + h - 1.3}v1.4" stroke="#aab4d0" stroke-width=".5" stroke-linecap="round" fill="none"/>`;
 const mwLeg = (x, y, h, fill, ph, hind) => `<g transform="translate(${x} ${y})"><g class="mw-pw ${ph}">${mwLegSvg(0, 0, h, fill, hind)}</g></g>`;
+/* hình bên hông: chân và thân gộp thành một khối liền nét. Lớp dưới vẽ hình nở ra 1 đơn vị bằng màu viền, lớp trên tô trắng nên chỗ chân nối thân không còn nét viền chen ngang, chỉ còn viền ngoài của cả khối */
+const mwOut = d => `<path d="${d}" fill="#aab4d0" stroke="#aab4d0" stroke-width="2.2" stroke-linejoin="round"/>`;
+const mwLegO = (x, y, h, ph, hind) => `<g transform="translate(${x} ${y})"><g class="mw-pw ${ph}">${mwOut(mwLegD(0, 0, h, hind) + 'Z')}</g></g>`;
+const mwLegW = (x, y, h, ph, hind, fill) => `<g transform="translate(${x} ${y})"><g class="mw-pw ${ph}"><path d="${mwLegD(0, 0, h, hind)}Z" fill="${fill}"/><path d="M${hind ? .8 : 0} ${h - 1.3}v1.4" stroke="#aab4d0" stroke-width=".5" stroke-linecap="round" fill="none"/></g></g>`;
+const MW_BODY = 'M35 41C35 31 49 28 62 28.5C79 29 90 36 89 48C88 58 77 61.5 62 61.5C47 61.5 35 54 35 41Z';
 const mwTail = (d, cls) => `<g class="${cls}"><path d="${d}" stroke="#aab4d0" stroke-width="8.2" stroke-linecap="round" fill="none"/><path d="${d}" stroke="#fdfaf3" stroke-width="6.6" stroke-linecap="round" fill="none"/></g>`;
 const mwPatch = d => `<path d="${d}" fill="#f2a15c" opacity=".92"/>`;
 /* Moon đi dạo có bốn góc nhìn: đi ngang (side), đi lại gần (front), đi xa (back) và ngồi nhìn thẳng (sit, cũng là dáng khi bị bấm) */
 const MOON_WALK = `<svg class="mw-svg mw-v mw-v-side" viewBox="0 0 100 72" aria-hidden="true">
   <ellipse cx="56" cy="69.5" rx="34" ry="3" fill="rgba(0,0,0,.22)"/>
   <g transform="translate(0 -3.5)">${mwTail('M85 43Q102 44 99 26Q97 18 91 21', 'mw-tail')}</g>
-  ${mwLeg(40, 48, 18, '#dfe5f2', 'pb')}${mwLeg(72, 48, 18, '#dfe5f2', 'pa', 1)}${mwLeg(49, 48, 18, '#fdfaf3', 'pa')}${mwLeg(80, 48, 18, '#fdfaf3', 'pb', 1)}
-  <g transform="translate(0 -3.5)"><g class="mw-bd"><path d="M35 41C35 31 49 28 62 28.5C79 29 90 36 89 48C88 58 77 61.5 62 61.5C47 61.5 35 54 35 41Z" fill="#fdfaf3" ${MWS}/>${mwPatch('M54 30Q71 26 86 37Q76 41 64 40Z')}
+  ${mwLegO(40, 48, 18, 'pb')}${mwLegO(72, 48, 18, 'pa', 1)}${mwLegO(49, 48, 18, 'pa')}${mwLegO(80, 48, 18, 'pb', 1)}
+  <g transform="translate(0 -3.5)"><g class="mw-bd">${mwOut(MW_BODY)}</g></g>
+  ${mwLegW(40, 48, 18, 'pb', 0, '#f3f5fb')}${mwLegW(72, 48, 18, 'pa', 1, '#f3f5fb')}${mwLegW(49, 48, 18, 'pa', 0, '#fdfaf3')}${mwLegW(80, 48, 18, 'pb', 1, '#fdfaf3')}
+  <g transform="translate(0 -3.5)"><g class="mw-bd"><path d="${MW_BODY}" fill="#fdfaf3"/>${mwPatch('M54 30Q71 26 86 37Q76 41 64 40Z')}
     <g class="mw-hd"><g transform="translate(24 38) scale(2.15) translate(0 16.8)">${moonHead('mwH1', 'mw')}</g></g></g></g>
 </svg>
 <svg class="mw-svg mw-v mw-v-front" viewBox="0 0 100 72" aria-hidden="true">
