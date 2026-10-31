@@ -649,6 +649,12 @@ Làm một lần, sau đó mỗi buổi chỉ cần bấm Start Streaming trong 
 - Muốn sửa chữ từng bước: `TOUR_PS` trong `guide.js` (đủ 8 ngôn ngữ, mỗi bước là [tiêu đề, một câu]); muốn đổi chỗ Moon chỉ hoặc thứ tự: `PGS` (bộ chọn, dáng Moon, khoá chữ).
 - Phòng tập trung, Hành trình trăng và Kế hoạch tuần dùng lại ba hình của hướng dẫn chung. Muốn đổi chữ dưới hình: sửa trong `guide.js` ở `TOUR_PG` (các trang mới) hoặc `fi` / `ci` / `pi` trong `TOUR_T`.
 
+### 22.ao. Moon ở góc sofa: đi dạo và giận khi bị bấm
+- **Đi dạo:** lâu lâu (máy tính khoảng 45 đến 90 giây một lần, điện thoại khoảng 100 đến 200 giây) Moon rời sofa, đi dọc mép dưới màn hình ra một đoạn, ngồi nghỉ một chút rồi quay về sofa (sofa trống trong lúc đó). Điện thoại: Moon nhỏ hơn, đi ngắn hơn và chậm hơn. Chỉ dùng transform nên rất nhẹ, không đọc Firebase.
+- **Không đi dạo khi:** máy khách tắt chuyển động (cài đặt "giảm chuyển động" của máy, trừ khi khách bật lại hiệu ứng trong web), tab đang ẩn, khách vừa cuộn trong 1,5 giây, đang gõ chữ, đang mở hộp thoại / hướng dẫn / thẻ sofa, hoặc chuyển sang trang Ủng hộ / Admin. Moon chỉ xuất hiện ở nơi ghế sofa vốn xuất hiện (Người đồng hành hoặc khi web có cách thanh toán).
+- **Bấm vào Moon** (đang ngủ trên sofa hay đang đi): Moon tỉnh dậy giận hài hước (lông mày xếch, miệng nhe răng, dấu 💢, rung đầu) và để lại **ba vết cào móng đỏ** ngay chỗ bấm, mờ dần sau chưa tới 1,5 giây (tối đa 3 vết cùng lúc). Thẻ Người đồng hành vẫn mở như cũ khi bấm vào sofa. Moon đang đi thì đứng lại gầm gừ rồi đi tiếp. Máy tắt chuyển động vẫn thấy mặt giận và vết cào đứng yên.
+- Muốn đổi tần suất: `sfSchedule` trong `pages.js`; tốc độ và quãng đường: `sfRoam`; hình dáng: `MOON_WALK`, `moonHead`; kiểu dáng: mục "Moon đi dạo" trong `app.css`.
+
 ### 22.an. Khách chưa đăng nhập: Moon chỉ nhắc đăng nhập
 - Khách **chưa đăng nhập** bật Moon lên (hướng dẫn tự chạy lần đầu, mục **Hướng dẫn** trên menu, hay nút ⓘ ở đầu từng trang) thì chỉ thấy **một thẻ nhắc đăng nhập** với nút **Đăng nhập** và **Để sau**, không có hướng dẫn nào khác (thay cho bản tóm tắt ba hình ở 22.al). Khách mới: thẻ này tự hiện một lần mỗi lần mở web (không đặt cờ "đã xem", nên sau khi đăng nhập hướng dẫn tự chạy bình thường); bấm Để sau thì không hiện lại trong lần mở đó.
 - Người đã đăng nhập: hướng dẫn chung và từng bước ở mỗi trang như trước.
