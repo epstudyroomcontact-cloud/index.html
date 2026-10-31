@@ -1347,6 +1347,23 @@ document.addEventListener('toggle', e => { if (e.target.classList && e.target.cl
   };
   Object.keys(G).forEach(l => { I18N[l] = I18N[l] || {}; Object.keys(G[l]).forEach(k => { if (I18N[l][k] === undefined) I18N[l][k] = G[l][k]; }); });
 })();
+function moonHead(id, p){   // đầu Moon dùng chung cho ghế sofa và Moon đi dạo: mắt nhắm / mở / giận, miệng cười / giận, dấu 💢
+  return `
+      <defs><clipPath id="${id}"><ellipse cx="0" cy="-16.8" rx="6.448" ry="5.828"/></clipPath></defs>
+      <path d="M-5.7 -18L-5.3 -25.2L-1.2 -21.6Z" fill="#f2a15c"/><path d="M5.7 -18L5.3 -25.2L1.2 -21.6Z" fill="#f2a15c"/>
+      <path d="M-3.844 -20.21L-4.712 -23.744L-2.108 -21.388Z" fill="#f4a9b6"/><path d="M3.844 -20.21L4.712 -23.744L2.108 -21.388Z" fill="#f4a9b6"/>
+      <ellipse cx="0" cy="-16.8" rx="6.448" ry="5.828" fill="#fdfaf3"/>
+      <g clip-path="url(#${id})"><path d="M-8.1 -15.6L-8.1 -25.5L8.1 -25.5L8.1 -18.7Q5.3 -19.7 3.1 -19Q1.5 -18.8 .7 -20.3Q0 -22 -.7 -20.4Q-1.4 -18.7 -3 -18.4Q-4.6 -18 -4.8 -16.1Q-5.3 -14.7 -8.1 -15.6Z" fill="#f2a15c"/><path d="M-3.1 -22.1q.5 1 .1 1.9M2.9 -22.3q-.5 1-.1 1.9M-5 -19.9q.9 .4 1.4 1.2" stroke="#d9823f" stroke-width=".56" stroke-linecap="round" fill="none" opacity=".55"/></g>
+      <ellipse cx="0" cy="-16.8" rx="6.448" ry="5.828" fill="none" stroke="#aab4d0" stroke-width=".45"/>
+      <g class="${p}-eyes-z"><path d="M-3.7 -16.5Q-2.5 -15.2 -1.3 -16.5M1.3 -16.5Q2.5 -15.2 3.7 -16.5" stroke="#29203a" stroke-width=".6" stroke-linecap="round" fill="none"/></g>
+      <g class="${p}-eyes-o"><ellipse cx="-2.48" cy="-16.43" rx=".93" ry="1.18" fill="#29203a"/><ellipse cx="2.48" cy="-16.43" rx=".93" ry="1.18" fill="#29203a"/><circle cx="-2.17" cy="-16.92" r=".37" fill="#fff"/><circle cx="2.79" cy="-16.92" r=".37" fill="#fff"/></g>
+      <g class="${p}-eyes-a"><path d="M-4.7 -19.7L-1.2 -18.1M4.7 -19.7L1.2 -18.1" stroke="#29203a" stroke-width=".8" stroke-linecap="round" fill="none"/><ellipse cx="-2.48" cy="-16.4" rx=".95" ry=".78" fill="#29203a"/><ellipse cx="2.48" cy="-16.4" rx=".95" ry=".78" fill="#29203a"/><circle cx="-2.2" cy="-16.7" r=".3" fill="#fff"/><circle cx="2.76" cy="-16.7" r=".3" fill="#fff"/></g>
+      <ellipse cx="-3.844" cy="-14.444" rx="1.116" ry=".682" fill="#f4a9b6" opacity=".75"/><ellipse cx="3.844" cy="-14.444" rx="1.116" ry=".682" fill="#f4a9b6" opacity=".75"/>
+      <path d="M-.62 -15.126h1.24l-.62 .682z" fill="#ee8fa1"/><g class="${p}-mouth-n"><path d="M-1.116 -14.01q.558 .496 1.116 0q.558 .496 1.116 0" stroke="#9b7b80" stroke-width=".372" stroke-linecap="round" fill="none"/></g>
+      <g class="${p}-mouth-a"><path d="M-2 -13.3Q0 -15.6 2 -13.3Z" fill="#e5707f" stroke="#7a3a46" stroke-width=".4" stroke-linejoin="round"/><path d="M-1.1 -14.3l.4 .95l.4 -.8M1.1 -14.3l-.4 .95l-.4 -.8" fill="#fff"/></g>
+      <g class="${p}-vein" stroke="#e5484d" stroke-width=".8" stroke-linecap="round" fill="none"><path d="M4.6 -25.2q1.2 .2 1.4 1.4M8.6 -25.2q-1.2 .2 -1.4 1.4M4.6 -22q1.2 -.2 1.4 -1.4M8.6 -22q-1.2 -.2 -1.4 -1.4"/></g>
+`;
+}
 const SOFA_SVG = `<svg class="sofa-svg" viewBox="0 0 150 96" aria-hidden="true">
   <ellipse cx="75" cy="91" rx="64" ry="4.5" fill="rgba(0,0,0,.22)"/>
   <rect x="22" y="79" width="8" height="11" rx="2.5" fill="#4a2f3a"/><rect x="120" y="79" width="8" height="11" rx="2.5" fill="#4a2f3a"/>
@@ -1357,18 +1374,7 @@ const SOFA_SVG = `<svg class="sofa-svg" viewBox="0 0 150 96" aria-hidden="true">
     <ellipse cx="84" cy="60" rx="31" ry="14" fill="#fdfaf3" stroke="#aab4d0" stroke-width="1"/><path d="M96 48Q112 56 108 70Q100 72 92 72Q100 62 96 48Z" fill="#c9d1e6" opacity=".7"/>
     <ellipse cx="101" cy="67" rx="10" ry="6" fill="#fdfaf3" stroke="#aab4d0" stroke-width="1"/>
     <ellipse cx="64" cy="68" rx="8.5" ry="4" fill="#fdfaf3" stroke="#aab4d0" stroke-width="1"/>
-    <g transform="translate(51 55) rotate(-7) scale(2.2 2.15) translate(0 16.8)">
-      <defs><clipPath id="sofaHc"><ellipse cx="0" cy="-16.8" rx="6.448" ry="5.828"/></clipPath></defs>
-      <path d="M-5.7 -18L-5.3 -25.2L-1.2 -21.6Z" fill="#f2a15c"/><path d="M5.7 -18L5.3 -25.2L1.2 -21.6Z" fill="#f2a15c"/>
-      <path d="M-3.844 -20.21L-4.712 -23.744L-2.108 -21.388Z" fill="#f4a9b6"/><path d="M3.844 -20.21L4.712 -23.744L2.108 -21.388Z" fill="#f4a9b6"/>
-      <ellipse cx="0" cy="-16.8" rx="6.448" ry="5.828" fill="#fdfaf3"/>
-      <g clip-path="url(#sofaHc)"><path d="M-8.1 -15.6L-8.1 -25.5L8.1 -25.5L8.1 -18.7Q5.3 -19.7 3.1 -19Q1.5 -18.8 .7 -20.3Q0 -22 -.7 -20.4Q-1.4 -18.7 -3 -18.4Q-4.6 -18 -4.8 -16.1Q-5.3 -14.7 -8.1 -15.6Z" fill="#f2a15c"/><path d="M-3.1 -22.1q.5 1 .1 1.9M2.9 -22.3q-.5 1-.1 1.9M-5 -19.9q.9 .4 1.4 1.2" stroke="#d9823f" stroke-width=".56" stroke-linecap="round" fill="none" opacity=".55"/></g>
-      <ellipse cx="0" cy="-16.8" rx="6.448" ry="5.828" fill="none" stroke="#aab4d0" stroke-width=".45"/>
-      <g class="sofa-eyes-z"><path d="M-3.7 -16.5Q-2.5 -15.2 -1.3 -16.5M1.3 -16.5Q2.5 -15.2 3.7 -16.5" stroke="#29203a" stroke-width=".6" stroke-linecap="round" fill="none"/></g>
-      <g class="sofa-eyes-o"><ellipse cx="-2.48" cy="-16.43" rx=".93" ry="1.18" fill="#29203a"/><ellipse cx="2.48" cy="-16.43" rx=".93" ry="1.18" fill="#29203a"/><circle cx="-2.17" cy="-16.92" r=".37" fill="#fff"/><circle cx="2.79" cy="-16.92" r=".37" fill="#fff"/></g>
-      <ellipse cx="-3.844" cy="-14.444" rx="1.116" ry=".682" fill="#f4a9b6" opacity=".75"/><ellipse cx="3.844" cy="-14.444" rx="1.116" ry=".682" fill="#f4a9b6" opacity=".75"/>
-      <path d="M-.62 -15.126h1.24l-.62 .682z" fill="#ee8fa1"/><path d="M-1.116 -14.01q.558 .496 1.116 0q.558 .496 1.116 0" stroke="#9b7b80" stroke-width=".372" stroke-linecap="round" fill="none"/>
-    </g>
+    <g class="sofa-hshake"><g transform="translate(51 55) rotate(-7) scale(2.2 2.15) translate(0 16.8)">${moonHead('sofaHc', 'sofa')}</g></g>
   </g></g>
   <g class="sofa-zz" fill="var(--accent-strong)" font-weight="800"><text class="z1" x="34" y="24" font-size="11">z</text><text class="z2" x="26" y="14" font-size="9">z</text><text class="z3" x="20" y="6" font-size="7">z</text></g>
   <rect x="12" y="63" width="126" height="22" rx="11" fill="#d46a93"/><path d="M26 72h98" stroke="#e58aab" stroke-width="1.6" stroke-linecap="round" opacity=".7"/>
@@ -1387,15 +1393,82 @@ function sofaCard(){
 function sofaSync(){
   let b = $('sofa'); const on = sofaOn();
   document.body.classList.toggle('has-sofa', on);
-  if (!on) { if (b) b.remove(); return; }
-  if (!b) { b = document.createElement('div'); b.id = 'sofa'; b.className = 'sofa'; document.body.appendChild(b); }
+  if (!on) { sfStop(); if (b) b.remove(); return; }
+  if (!b) { b = document.createElement('div'); b.id = 'sofa'; b.className = 'sofa'; document.body.appendChild(b); if (!sfRoamT) sfSchedule(); }
   const open = b.classList.contains('open'), key = state.lang + '|' + !!state.companion + '|' + (state.companionSince || '') + '|' + compPayMode() + '|' + (branding.groupOn === true) + '|' + Math.round(+branding.focusLimit) + '|' + sofaPrice();
   if (b.dataset.key === key) return;                              // không vẽ lại khi không có gì đổi (giữ hiệu ứng ngủ và thẻ đang mở)
   b.dataset.key = key;
   b.innerHTML = `<div class="sofa-card" id="sofa-card" role="dialog" aria-label="${esc(t(state.companion ? 'sofa_thx_t' : 'sofa_t'))}"${open ? '' : ' hidden'}>${sofaCard()}</div><button type="button" id="sofa-btn" class="sofa-btn" data-act="sofaToggle" aria-expanded="${open}" aria-controls="sofa-card" aria-label="${esc(t(state.companion ? 'sofa_thx_aria' : 'sofa_aria'))}" title="${esc(t(state.companion ? 'sofa_thx_t' : 'sofa_t'))}">${SOFA_SVG}</button>`;
 }
+/* Moon đi dạo: lâu lâu rời sofa đi dọc mép dưới màn hình, ra một đoạn rồi quay về (chỉ transform, không đọc Firebase). Điện thoại: nhỏ hơn, ra ngắn hơn, thưa hơn.
+   Không chạy khi: máy tắt chuyển động, tab ẩn, đang cuộn / gõ chữ / mở hộp thoại / hướng dẫn / thẻ sofa. Bấm vào Moon (đang ngủ hay đang đi): Moon giận hài hước và để lại vết cào. */
+const MOON_WALK = `<svg class="mw-svg" viewBox="0 0 100 64" aria-hidden="true">
+  <ellipse cx="56" cy="61" rx="34" ry="3" fill="rgba(0,0,0,.22)"/>
+  <g class="mw-tail"><path d="M80 36Q97 36 95 20Q94 13 88 15" stroke="#aab4d0" stroke-width="7" stroke-linecap="round" fill="none"/><path d="M80 36Q97 36 95 20Q94 13 88 15" stroke="#fdfaf3" stroke-width="5.6" stroke-linecap="round" fill="none"/></g>
+  <g class="mw-leg mw-la"><rect x="40" y="44" width="8" height="16" rx="4" fill="#dfe5f2" stroke="#aab4d0"/></g><g class="mw-leg mw-lb"><rect x="70" y="44" width="8" height="16" rx="4" fill="#dfe5f2" stroke="#aab4d0"/></g>
+  <g class="mw-body"><ellipse cx="58" cy="38" rx="26" ry="13" fill="#fdfaf3" stroke="#aab4d0"/><path d="M52 26Q68 22 82 33Q72 36 62 35Z" fill="#f2a15c" opacity=".9"/></g>
+  <g class="mw-leg mw-lb"><rect x="46" y="44" width="8" height="16" rx="4" fill="#fdfaf3" stroke="#aab4d0"/></g><g class="mw-leg mw-la"><rect x="76" y="44" width="8" height="16" rx="4" fill="#fdfaf3" stroke="#aab4d0"/></g>
+  <g class="mw-hshake"><g transform="translate(25 28) scale(2.05) translate(0 16.8)">${moonHead('mwHc', 'mw')}</g></g>
+</svg>`;
+const sfReduced = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches && document.documentElement.dataset.motion !== 'on');
+const sfPhone = () => !!(window.matchMedia && matchMedia('(max-width:640px)').matches);
+let sfWalk = null, sfRoamT = 0, sfScrollAt = 0, sfAngryT = 0;
+window.addEventListener('scroll', () => { sfScrollAt = Date.now(); }, { passive:true });
+function sfStop(){
+  if (!sfWalk) return;
+  clearTimeout(sfWalk.t); try { sfWalk.anim && sfWalk.anim.cancel(); } catch (e) {}
+  sfWalk.el.remove(); sfWalk = null;
+  const b = $('sofa'); if (b) b.classList.remove('away');
+}
+const sfCanRoam = () => { const b = $('sofa'); return !!b && !sfWalk && !sfReduced() && !document.hidden && !b.classList.contains('open') && !$('tour-card') && !$('tour-ask') && !$('modal').classList.contains('open') && !typingInPage() && Date.now() - sfScrollAt > 1500; };
+function sfRoam(){
+  const btn = $('sofa-btn'); if (!btn || !sfCanRoam()) return;
+  const phone = sfPhone(), W = innerWidth, r = btn.getBoundingClientRect(), mw = phone ? 60 : 92;
+  const x0 = Math.round(r.left + r.width * .12), lo = phone ? .4 : .2, hi = phone ? .65 : .55;
+  const far = Math.max(8, Math.round(W * (lo + Math.random() * (hi - lo)) - mw / 2)), ms = Math.max(1500, Math.abs(x0 - far) / (phone ? 75 : 110) * 1000);
+  const el = document.createElement('div'); el.className = 'moon-walker'; el.style.width = mw + 'px'; el.style.transform = `translateX(${x0}px)`;
+  el.innerHTML = `<div class="mw-flip">${MOON_WALK}</div>`; document.body.appendChild(el);
+  $('sofa').classList.add('away'); sfWalk = { el, anim:null, t:0 };
+  const leg = (from, to, right, done) => {
+    if (!sfWalk || sfWalk.el !== el) return;
+    el.classList.toggle('right', right); el.classList.remove('idle');
+    sfWalk.anim = el.animate([{ transform:`translateX(${from}px)` }, { transform:`translateX(${to}px)` }], { duration:ms, easing:'linear', fill:'forwards' });
+    sfWalk.anim.onfinish = done;
+  };
+  leg(x0, far, false, () => {
+    if (!sfWalk || sfWalk.el !== el) return;
+    el.classList.add('idle');                                         // ngồi nghỉ một chút rồi quay về
+    sfWalk.t = setTimeout(() => leg(far, x0, true, () => { const b = $('sofa'); sfStop(); if (b) { b.classList.add('land'); setTimeout(() => b.classList.remove('land'), 700); } }), 1300);
+  });
+}
+function sfSchedule(){
+  clearTimeout(sfRoamT);
+  const phone = sfPhone();
+  sfRoamT = setTimeout(() => { sfRoam(); sfSchedule(); }, (phone ? 100 : 45) * 1000 + Math.random() * (phone ? 100 : 45) * 1000);
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) sfStop(); });
+/* vết cào: ba đường móng đỏ vẽ nhanh rồi mờ dần ngay chỗ khách bấm */
+function sfClaw(x, y){
+  if (document.querySelectorAll('.moon-claw').length >= 3) return;
+  const c = document.createElement('div'); c.className = 'moon-claw'; c.style.left = x + 'px'; c.style.top = y + 'px';
+  c.style.transform = `rotate(${Math.round(Math.random() * 50 - 25)}deg) scaleX(${Math.random() < .5 ? -1 : 1})`;
+  const d = ['M18 14Q34 40 30 78', 'M40 8Q58 38 54 82', 'M62 14Q78 40 74 76'];
+  c.innerHTML = `<svg viewBox="0 0 90 90" aria-hidden="true">${d.map((v, i) => `<path class="c${i}" pathLength="1" d="${v}" stroke="#e5484d" stroke-width="5.5"/>`).join('')}${d.map((v, i) => `<path class="c${i}" pathLength="1" d="${v}" stroke="#ffd3d8" stroke-width="1.8"/>`).join('')}</svg>`;
+  document.body.appendChild(c); setTimeout(() => c.remove(), 1300);
+}
+function sfAngry(target, e){
+  const host = target.closest('.moon-walker') || $('sofa'); if (!host) return;
+  host.classList.add('angry'); clearTimeout(host._at); host._at = setTimeout(() => host.classList.remove('angry'), 1400);
+  if (sfWalk && host === sfWalk.el && sfWalk.anim) {                  // Moon đang đi: đứng lại gầm gừ một chút rồi đi tiếp
+    sfWalk.anim.pause(); host.classList.add('idle'); clearTimeout(sfAngryT);
+    sfAngryT = setTimeout(() => { if (sfWalk && sfWalk.anim) { sfWalk.anim.play(); host.classList.remove('idle'); } }, 1400);
+  }
+  const rc = target.getBoundingClientRect(), px = e && (e.clientX || e.clientY) ? e.clientX : rc.left + rc.width / 2, py = e && (e.clientX || e.clientY) ? e.clientY : rc.top + rc.height / 2;
+  sfClaw(px, py);
+}
+document.addEventListener('click', e => { const t = e.target.closest && e.target.closest('#sofa-btn, .moon-walker'); if (t) sfAngry(t, e); }, true);
 Object.assign(ACTIONS, {
-  sofaToggle: () => { const b = $('sofa'); if (!b) return; const o = !b.classList.contains('open'); b.classList.toggle('open', o); $('sofa-card').hidden = !o; $('sofa-btn').setAttribute('aria-expanded', o); if (o) $('sofa-card').querySelector('.btn').focus({ preventScroll:true }); },
+  sofaToggle: () => { const b = $('sofa'); if (!b) return; const o = !b.classList.contains('open'); if (o) sfStop(); b.classList.toggle('open', o); $('sofa-card').hidden = !o; $('sofa-btn').setAttribute('aria-expanded', o); if (o) $('sofa-card').querySelector('.btn').focus({ preventScroll:true }); },
   sofaGo: () => { TABS.don = 'comp'; const b = $('sofa'); if (b) { b.classList.remove('open'); $('sofa-card').hidden = true; $('sofa-btn').setAttribute('aria-expanded', false); } }
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { const b = $('sofa'); if (b && b.classList.contains('open')) { b.classList.remove('open'); $('sofa-card').hidden = true; $('sofa-btn').setAttribute('aria-expanded', false); } } });
