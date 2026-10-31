@@ -1357,11 +1357,11 @@ function moonHead(id, p){   // đầu Moon dùng chung cho ghế sofa và Moon �
       <ellipse cx="0" cy="-16.8" rx="6.448" ry="5.828" fill="none" stroke="#aab4d0" stroke-width=".45"/>
       <g class="${p}-eyes-z"><path d="M-3.7 -16.5Q-2.5 -15.2 -1.3 -16.5M1.3 -16.5Q2.5 -15.2 3.7 -16.5" stroke="#29203a" stroke-width=".6" stroke-linecap="round" fill="none"/></g>
       <g class="${p}-eyes-o"><ellipse cx="-2.48" cy="-16.43" rx=".93" ry="1.18" fill="#29203a"/><ellipse cx="2.48" cy="-16.43" rx=".93" ry="1.18" fill="#29203a"/><circle cx="-2.17" cy="-16.92" r=".37" fill="#fff"/><circle cx="2.79" cy="-16.92" r=".37" fill="#fff"/></g>
-      <g class="${p}-eyes-a"><path d="M-4.7 -19.7L-1.2 -18.1M4.7 -19.7L1.2 -18.1" stroke="#29203a" stroke-width=".8" stroke-linecap="round" fill="none"/><ellipse cx="-2.48" cy="-16.4" rx=".95" ry=".78" fill="#29203a"/><ellipse cx="2.48" cy="-16.4" rx=".95" ry=".78" fill="#29203a"/><circle cx="-2.2" cy="-16.7" r=".3" fill="#fff"/><circle cx="2.76" cy="-16.7" r=".3" fill="#fff"/></g>
+      <g class="${p}-eyes-a"><path d="M-4.5 -19.5Q-3 -19.6 -1.3 -18.5M4.5 -19.5Q3 -19.6 1.3 -18.5" stroke="#6a4a52" stroke-width=".9" stroke-linecap="round" fill="none"/></g>
       <ellipse cx="-3.844" cy="-14.444" rx="1.116" ry=".682" fill="#f4a9b6" opacity=".75"/><ellipse cx="3.844" cy="-14.444" rx="1.116" ry=".682" fill="#f4a9b6" opacity=".75"/>
       <path d="M-.62 -15.126h1.24l-.62 .682z" fill="#ee8fa1"/><g class="${p}-mouth-n"><path d="M-1.116 -14.01q.558 .496 1.116 0q.558 .496 1.116 0" stroke="#9b7b80" stroke-width=".372" stroke-linecap="round" fill="none"/></g>
-      <g class="${p}-mouth-a"><path d="M-2 -13.3Q0 -15.6 2 -13.3Z" fill="#e5707f" stroke="#7a3a46" stroke-width=".4" stroke-linejoin="round"/><path d="M-1.1 -14.3l.4 .95l.4 -.8M1.1 -14.3l-.4 .95l-.4 -.8" fill="#fff"/></g>
-      <g class="${p}-vein" stroke="#e5484d" stroke-width=".8" stroke-linecap="round" fill="none"><path d="M4.6 -25.2q1.2 .2 1.4 1.4M8.6 -25.2q-1.2 .2 -1.4 1.4M4.6 -22q1.2 -.2 1.4 -1.4M8.6 -22q-1.2 -.2 -1.4 -1.4"/></g>
+      <g class="${p}-mouth-a"><path d="M-1.3 -13.4q.65 -.75 1.3 0q.65 -.75 1.3 0" stroke="#9b7b80" stroke-width=".42" stroke-linecap="round" fill="none"/><ellipse cx="-4.2" cy="-14.3" rx="1.6" ry="1" fill="#f4a9b6"/><ellipse cx="4.2" cy="-14.3" rx="1.6" ry="1" fill="#f4a9b6"/></g>
+      <g class="${p}-vein" stroke="#ff6b81" stroke-width=".7" stroke-linecap="round" fill="none"><path d="M4.6 -25.2q1.2 .2 1.4 1.4M8.6 -25.2q-1.2 .2 -1.4 1.4M4.6 -22q1.2 -.2 1.4 -1.4M8.6 -22q-1.2 -.2 -1.4 -1.4"/></g>
 `;
 }
 const SOFA_SVG = `<svg class="sofa-svg" viewBox="0 0 150 96" aria-hidden="true">
@@ -1394,7 +1394,7 @@ function sofaSync(){
   let b = $('sofa'); const on = sofaOn();
   document.body.classList.toggle('has-sofa', on);
   if (!on) { sfStop(); if (b) b.remove(); return; }
-  if (!b) { b = document.createElement('div'); b.id = 'sofa'; b.className = 'sofa'; document.body.appendChild(b); if (!sfRoamT) sfSchedule(); }
+  if (!b) { b = document.createElement('div'); b.id = 'sofa'; b.className = 'sofa'; document.body.appendChild(b); if (!sfRoamT) sfSchedule(true); }
   const open = b.classList.contains('open'), key = state.lang + '|' + !!state.companion + '|' + (state.companionSince || '') + '|' + compPayMode() + '|' + (branding.groupOn === true) + '|' + Math.round(+branding.focusLimit) + '|' + sofaPrice();
   if (b.dataset.key === key) return;                              // không vẽ lại khi không có gì đổi (giữ hiệu ứng ngủ và thẻ đang mở)
   b.dataset.key = key;
@@ -1422,7 +1422,7 @@ function sfStop(){
 }
 const sfCanRoam = () => { const b = $('sofa'); return !!b && !sfWalk && !sfReduced() && !document.hidden && !b.classList.contains('open') && !$('tour-card') && !$('tour-ask') && !$('modal').classList.contains('open') && !typingInPage() && Date.now() - sfScrollAt > 1500; };
 function sfRoam(){
-  const btn = $('sofa-btn'); if (!btn || !sfCanRoam()) return;
+  const btn = $('sofa-btn'); if (!btn || !sfCanRoam()) return false;
   const phone = sfPhone(), W = innerWidth, r = btn.getBoundingClientRect(), mw = phone ? 60 : 92;
   const x0 = Math.round(r.left + r.width * .12), lo = phone ? .4 : .2, hi = phone ? .65 : .55;
   const far = Math.max(8, Math.round(W * (lo + Math.random() * (hi - lo)) - mw / 2)), ms = Math.max(1500, Math.abs(x0 - far) / (phone ? 75 : 110) * 1000);
@@ -1440,20 +1440,22 @@ function sfRoam(){
     el.classList.add('idle');                                         // ngồi nghỉ một chút rồi quay về
     sfWalk.t = setTimeout(() => leg(far, x0, true, () => { const b = $('sofa'); sfStop(); if (b) { b.classList.add('land'); setTimeout(() => b.classList.remove('land'), 700); } }), 1300);
   });
+  return true;
 }
-function sfSchedule(){
+function sfSchedule(first){
   clearTimeout(sfRoamT);
-  const phone = sfPhone();
-  sfRoamT = setTimeout(() => { sfRoam(); sfSchedule(); }, (phone ? 100 : 45) * 1000 + Math.random() * (phone ? 100 : 45) * 1000);
+  const phone = sfPhone();   // lần đầu sau vài giây, sau đó khoảng 25-45 giây (điện thoại 45-80 giây); đang bận (cuộn, gõ chữ...) thì thử lại sau 4 giây
+  sfRoamT = setTimeout(() => { if (sfRoam()) sfSchedule(); else { sfRoamT = setTimeout(() => sfSchedule(true), 4000); } },
+    first ? 5000 + Math.random() * 4000 : (phone ? 45 : 25) * 1000 + Math.random() * (phone ? 35 : 20) * 1000);
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden) sfStop(); });
 /* vết cào: ba đường móng đỏ vẽ nhanh rồi mờ dần ngay chỗ khách bấm */
 function sfClaw(x, y){
   if (document.querySelectorAll('.moon-claw').length >= 3) return;
-  const c = document.createElement('div'); c.className = 'moon-claw'; c.style.left = x + 'px'; c.style.top = y + 'px';
-  c.style.transform = `rotate(${Math.round(Math.random() * 50 - 25)}deg) scaleX(${Math.random() < .5 ? -1 : 1})`;
-  const d = ['M18 14Q34 40 30 78', 'M40 8Q58 38 54 82', 'M62 14Q78 40 74 76'];
-  c.innerHTML = `<svg viewBox="0 0 90 90" aria-hidden="true">${d.map((v, i) => `<path class="c${i}" pathLength="1" d="${v}" stroke="#e5484d" stroke-width="5.5"/>`).join('')}${d.map((v, i) => `<path class="c${i}" pathLength="1" d="${v}" stroke="#ffd3d8" stroke-width="1.8"/>`).join('')}</svg>`;
+  const c = document.createElement('div'); c.className = 'moon-claw'; c.style.left = x + 'px'; c.style.top = (y - (sfPhone() ? 26 : 34)) + 'px';   // nổi phía trên chỗ bấm để không che mặt Moon
+  c.style.transform = `rotate(${Math.round(Math.random() * 30 - 15)}deg) scaleX(${Math.random() < .5 ? -1 : 1})`;
+  const d = ['M24 16Q32 36 29 66Q25 38 21 17Z', 'M44 12Q53 36 50 72Q45 40 40 13Z', 'M64 16Q72 36 69 64Q65 38 61 17Z'];
+  c.innerHTML = `<svg viewBox="0 0 90 90" aria-hidden="true">${d.map((v, i) => `<path class="c c${i}" d="${v}" fill="#ff7a9c"/>`).join('')}${d.map((v, i) => `<path class="h c${i}" d="${v}" fill="none" stroke="#ffe0e8" stroke-width=".8" stroke-linejoin="round"/>`).join('')}<path class="sp" d="M80 14l1.6 3.8 3.8 1.6-3.8 1.6-1.6 3.8-1.6-3.8-3.8-1.6 3.8-1.6zM10 58l1.2 2.8 2.8 1.2-2.8 1.2-1.2 2.8-1.2-2.8-2.8-1.2 2.8-1.2z" fill="#fff3c4"/></svg>`;
   document.body.appendChild(c); setTimeout(() => c.remove(), 1300);
 }
 function sfAngry(target, e){
