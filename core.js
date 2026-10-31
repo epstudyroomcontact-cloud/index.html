@@ -627,6 +627,15 @@ function afterRender(){
   updateNext(); tickClock();
   if (typeof sofaSync === 'function') sofaSync();
   if (state.editMode) applyEditable();
+  trialMoonSync();
+}
+/* Đang dùng mã dùng thử: mỗi lần mở trang Ủng hộ, Moon hiện lên nhắc ngày hết hạn (một lần cho mỗi lần vào trang, không lặp khi trang vẽ lại) */
+let trialMoonSeen = false;
+function trialMoonSync(){
+  if (route.name !== 'donate') { trialMoonSeen = false; return; }
+  if (trialMoonSeen || !state.user || state.companion || state.isAdmin || typeof trialActive !== 'function' || !trialActive()) return;
+  trialMoonSeen = true;
+  setTimeout(() => { if (route.name === 'donate') loadGuide().then(() => EPTour.trial()).catch(() => {}); }, 700);
 }
 const NAV_DEFAULT = [
   { id:'home', icon:'home', path:'/' }, { id:'guide', icon:'info', path:'/guide' }, { id:'schedule', icon:'calendar', path:'/schedule' }, { id:'watch', icon:'play', path:'/watch' },
