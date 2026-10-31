@@ -1058,7 +1058,7 @@ PAGES.club = function(){
   if (!state.user) main = `<div class="card pad stack" style="align-items:center;text-align:center"><div class="moon-big">${moonSVG(6, MOON_TOTAL)}</div><p class="muted">${esc(t('club_login'))}</p><a class="btn primary" href="#/account">${esc(t('club_login_btn'))}</a></div>`;
   else if (!DEMO && !state.profileReady) {                       // chưa tải xong hồ sơ: hiện bản đã nhớ (chỉ xem), không cho bấm
     const cm = store.get('moon_' + state.user.uid, null), cn = cm && Array.isArray(cm.days) ? cm.days.length : 0;
-    main = `<div class="card pad stack" style="align-items:center;text-align:center"><div class="moon-big">${moonSVG(Math.min(cn, moonRoad()), moonRoad())}</div>${state.profileFailed ? `<p class="muted">${esc(t('club_load_fail'))}</p><button class="btn primary" data-act="moonRetry">${esc(t('club_retry'))}</button>` : `<p class="muted">${cm ? esc(moonDayText(cn)) + ' · ' : ''}${esc(t('loading'))}</p>`}</div>`;
+    main = `<div class="card pad stack" style="align-items:center;text-align:center"><div class="moon-big">${moonSVG(Math.min(cn, moonRoad()), moonRoad())}</div>${state.profileFailed ? `<p class="muted">${esc(t('club_load_fail'))}</p>${state.profileErr ? `<p class="small faint">${esc(state.profileErr)}</p>` : ''}<button class="btn primary" data-act="moonRetry">${esc(t('club_retry'))}</button>` : `<p class="muted">${cm ? esc(moonDayText(cn)) + ' · ' : ''}${esc(t('loading'))}</p>`}</div>`;
   }   // chưa tải xong hồ sơ: không hiện nút Bắt đầu (bấm nhầm sẽ xoá các ngày đã điểm danh)
   else if (!m) main = `<div class="card pad stack" style="align-items:center;text-align:center"><div class="moon-big">${moonSVG(0, MOON_TOTAL)}</div><button class="btn primary lg" data-act="moonStart">${esc(t('club_start'))}</button></div>`;
   else {
@@ -1432,7 +1432,7 @@ Object.assign(ACTIONS, {
     catch (e) { el.disabled = false; console.warn('claim', e.code); toast(t('cc_err') + ' ' + (e.code || '')); }
   },
   moonReward: async el => { el.disabled = true; if (await claimMoonReward()) { toast(t('mr_got', { x:bonusText(moonRewardMonths(state.moonReward)) })); render(true); } else { el.disabled = false; toast(t('err_generic')); } },
-  moonRetry: () => location.reload(),
+  moonRetry: () => { if (!state.user) return location.reload(); state.profileFailed = false; render(true); loadProfile(state.user); },   // tải lại hồ sơ ngay, không cần tải lại cả web
   moonStart: () => { if (!DEMO && !state.profileReady) return; if (moonData()) return render(true); moonSave({ startedAt:Date.now(), days:[], rounds:0, moons:0 }); },
   // dùng trăng tích trữ vá các ngày lỡ: thêm các ngày đó vào chuỗi cũ (vẫn còn trong dữ liệu vì chưa điểm danh lại) và ghi vào saved
   moonRescue: el => {
