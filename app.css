@@ -1134,19 +1134,18 @@ body:has(#tour-ask) .sofa{display:none}
 .mw-svg{display:none;width:100%;height:auto;overflow:visible;filter:drop-shadow(0 4px 6px rgba(0,0,0,.28))}
 .moon-walker[data-v=side] .mw-v-side,.moon-walker[data-v=front] .mw-v-front,.moon-walker[data-v=back] .mw-v-back,.moon-walker[data-v=sit] .mw-v-sit{display:block}
 .moon-walker.angry .mw-v-side,.moon-walker.angry .mw-v-front,.moon-walker.angry .mw-v-back{display:none}.moon-walker.angry .mw-v-sit{display:block}.moon-walker.angry .mw-flip{transform:none}
-.mw-th,.mw-sh{transform-box:view-box;transform-origin:0 0;animation:.7s ease-in-out infinite;animation-name:mwTh}.mw-sh{animation-name:mwSh}
-.mw-th.pb,.mw-sh.pb,.mw-fl.pb{animation-delay:-.35s}
-.mw-bd{animation:mwBob .35s ease-in-out infinite alternate}
-.mw-hd{transform-box:view-box}.mw-v-side .mw-hd{transform-origin:30px 40px;animation:mwNod .7s ease-in-out infinite alternate}
+.mw-th{transform-box:view-box;transform-origin:0 0;animation:mwTh 1.1s ease-in-out infinite}
+.mw-th.pb,.mw-fl.pb{animation-delay:-.55s}
+.mw-bd{animation:mwBob .55s ease-in-out infinite alternate}
+.mw-hd{transform-box:view-box}.mw-v-side .mw-hd{transform-origin:30px 40px;animation:mwNod 1.1s ease-in-out infinite alternate}
 .mw-tail,.mw-tailf,.mw-tailb,.mw-tails{transform-box:view-box;animation:mwTail 1.2s ease-in-out infinite alternate}
 .mw-tail{transform-origin:80px 40px}.mw-tailf{transform-origin:60px 54px}.mw-tailb{transform-origin:54px 57px;animation-duration:.9s}.mw-tails{transform-origin:66px 64px;animation-duration:1.8s}
-.mw-fb{transform-box:view-box;transform-origin:50px 68px;animation:mwSway .7s ease-in-out infinite alternate}
-.mw-fl{animation:mwStep .7s ease-in-out infinite}
-.mw-v-front .mw-hd,.mw-v-sit .mw-hd{transform-origin:50px 42px}.mw-v-front .mw-hd{animation:mwNod .7s ease-in-out infinite alternate}.mw-v-sit .mw-hd{animation:mwTilt 3.6s ease-in-out infinite alternate}
+.mw-fb{transform-box:view-box;transform-origin:50px 68px;animation:mwSway 1.1s ease-in-out infinite alternate}
+.mw-fl{animation:mwStep 1.1s ease-in-out infinite}
+.mw-v-front .mw-hd,.mw-v-sit .mw-hd{transform-origin:50px 42px}.mw-v-front .mw-hd{animation:mwNod 1.1s ease-in-out infinite alternate}.mw-v-sit .mw-hd{animation:mwTilt 3.6s ease-in-out infinite alternate}
 .mw-br{transform-box:view-box;transform-origin:50px 66px;animation:mwBreath 3s ease-in-out infinite alternate}
 .mw-v-sit .mw-eyes-o{transform-box:fill-box;transform-origin:50% 50%;animation:mwBlink 4.5s ease-in-out infinite}
-@keyframes mwTh{0%,100%{transform:rotate(26deg)}50%{transform:rotate(-26deg)}}
-@keyframes mwSh{0%{transform:rotate(-12deg)}25%{transform:rotate(-4deg)}50%{transform:rotate(6deg)}62%{transform:rotate(-34deg)}82%{transform:rotate(-22deg)}100%{transform:rotate(-12deg)}}
+@keyframes mwTh{0%{transform:rotate(19deg)}48%{transform:rotate(-19deg)}74%{transform:rotate(3deg) translateY(-2.6px)}100%{transform:rotate(19deg)}}
 @keyframes mwBob{from{transform:translateY(0)}to{transform:translateY(-1.8px)}}
 @keyframes mwNod{from{transform:rotate(-2.5deg)}to{transform:rotate(2.5deg)}}
 @keyframes mwTilt{from{transform:rotate(-5deg)}to{transform:rotate(5deg)}}
