@@ -1404,8 +1404,8 @@ function sofaSync(){
    Không chạy khi: máy tắt chuyển động, tab ẩn, đang cuộn / gõ chữ / mở hộp thoại / hướng dẫn / thẻ sofa. Bấm vào Moon (đang ngủ hay đang đi): Moon giận hài hước và để lại vết cào. */
 const MWS = 'stroke="#aab4d0" stroke-width=".9"';
 /* chân ngắn mập: cổ chân thon, bàn chân xòe, hai ngón nhỏ; nét viền hở ở đỉnh để chân nối liền vào thân */
-const mwLegD = (x, y, h) => `M${x - 4.6} ${y}L${x - 4.6} ${y + h - 3}C${x - 6.8} ${y + h - 2.4} ${x - 7} ${y + h + 1} ${x - 3.6} ${y + h + 1}L${x + 3.6} ${y + h + 1}C${x + 7 } ${y + h + 1} ${x + 6.8} ${y + h - 2.4} ${x + 4.6} ${y + h - 3}L${x + 4.6} ${y}`;
-const mwLegSvg = (x, y, h, fill) => `<path d="${mwLegD(x, y, h)}Z" fill="${fill}"/><path d="${mwLegD(x, y, h)}" fill="none" ${MWS} stroke-linejoin="round" stroke-linecap="round"/><path d="M${x - 1.5} ${y + h - 1.6}v1.7M${x + 1.5} ${y + h - 1.6}v1.7" stroke="#aab4d0" stroke-width=".6" stroke-linecap="round" fill="none"/>`;
+const mwLegD = (x, y, h) => `M${x - 2.6} ${y}L${x - 2.6} ${y + h - 3.4}C${x - 4.2} ${y + h - 2.8} ${x - 4.6} ${y + h + .6} ${x - 1.6} ${y + h + .8}L${x + 1.6} ${y + h + .8}C${x + 4.6} ${y + h + .6} ${x + 4.2} ${y + h - 2.8} ${x + 2.6} ${y + h - 3.4}L${x + 2.6} ${y}`;
+const mwLegSvg = (x, y, h, fill) => `<path d="${mwLegD(x, y, h)}Z" fill="${fill}"/><path d="${mwLegD(x, y, h)}" fill="none" ${MWS} stroke-linejoin="round" stroke-linecap="round"/><path d="M${x - 1} ${y + h - 1.4}v1.5M${x + 1} ${y + h - 1.4}v1.5" stroke="#aab4d0" stroke-width=".5" stroke-linecap="round" fill="none"/>`;
 const mwLeg = (x, y, h, fill, ph) => `<g transform="translate(${x} ${y})"><g class="mw-pw ${ph}">${mwLegSvg(0, 0, h, fill)}</g></g>`;
 const mwTail = (d, cls) => `<g class="${cls}"><path d="${d}" stroke="#aab4d0" stroke-width="8.2" stroke-linecap="round" fill="none"/><path d="${d}" stroke="#fdfaf3" stroke-width="6.6" stroke-linecap="round" fill="none"/></g>`;
 const mwPatch = d => `<path d="${d}" fill="#f2a15c" opacity=".92"/>`;
