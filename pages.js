@@ -1358,6 +1358,7 @@ function moonHead(id, p){   // đầu Moon dùng chung cho ghế sofa và Moon �
       <g class="${p}-eyes-z"><path d="M-3.7 -16.5Q-2.5 -15.2 -1.3 -16.5M1.3 -16.5Q2.5 -15.2 3.7 -16.5" stroke="#29203a" stroke-width=".6" stroke-linecap="round" fill="none"/></g>
       <g class="${p}-eyes-o"><ellipse cx="-2.48" cy="-16.43" rx=".93" ry="1.18" fill="#29203a"/><ellipse cx="2.48" cy="-16.43" rx=".93" ry="1.18" fill="#29203a"/><circle cx="-2.17" cy="-16.92" r=".37" fill="#fff"/><circle cx="2.79" cy="-16.92" r=".37" fill="#fff"/></g>
       <g class="${p}-eyes-a"><path d="M-4.5 -19.5Q-3 -19.6 -1.3 -18.5M4.5 -19.5Q3 -19.6 1.3 -18.5" stroke="#6a4a52" stroke-width=".9" stroke-linecap="round" fill="none"/></g>
+      <path d="M-6.2 -15.2l-3.3 -.6M-6.3 -14.2l-3.1 .8M6.2 -15.2l3.3 -.6M6.3 -14.2l3.1 .8" stroke="#aab4d0" stroke-width=".38" stroke-linecap="round" fill="none"/>
       <ellipse cx="-3.844" cy="-14.444" rx="1.116" ry=".682" fill="#f4a9b6" opacity=".75"/><ellipse cx="3.844" cy="-14.444" rx="1.116" ry=".682" fill="#f4a9b6" opacity=".75"/>
       <path d="M-.62 -15.126h1.24l-.62 .682z" fill="#ee8fa1"/><g class="${p}-mouth-n"><path d="M-1.116 -14.01q.558 .496 1.116 0q.558 .496 1.116 0" stroke="#9b7b80" stroke-width=".372" stroke-linecap="round" fill="none"/></g>
       <g class="${p}-mouth-a"><path d="M-1.3 -13.4q.65 -.75 1.3 0q.65 -.75 1.3 0" stroke="#9b7b80" stroke-width=".42" stroke-linecap="round" fill="none"/><ellipse cx="-4.2" cy="-14.3" rx="1.6" ry="1" fill="#f4a9b6"/><ellipse cx="4.2" cy="-14.3" rx="1.6" ry="1" fill="#f4a9b6"/></g>
@@ -1404,25 +1405,27 @@ function sofaSync(){
    Không chạy khi: máy tắt chuyển động, tab ẩn, đang cuộn / gõ chữ / mở hộp thoại / hướng dẫn / thẻ sofa. Bấm vào Moon (đang ngủ hay đang đi): Moon giận hài hước và để lại vết cào. */
 const MWS = 'stroke="#aab4d0" stroke-width=".9"';
 /* chân ngắn mập: cổ chân thon, bàn chân xòe, hai ngón nhỏ; nét viền hở ở đỉnh để chân nối liền vào thân */
-const mwLegD = (x, y, h) => `M${x - 2.6} ${y}L${x - 2.6} ${y + h - 3.4}C${x - 4.2} ${y + h - 2.8} ${x - 4.6} ${y + h + .6} ${x - 1.6} ${y + h + .8}L${x + 1.6} ${y + h + .8}C${x + 4.6} ${y + h + .6} ${x + 4.2} ${y + h - 2.8} ${x + 2.6} ${y + h - 3.4}L${x + 2.6} ${y}`;
-const mwLegSvg = (x, y, h, fill) => `<path d="${mwLegD(x, y, h)}Z" fill="${fill}"/><path d="${mwLegD(x, y, h)}" fill="none" ${MWS} stroke-linejoin="round" stroke-linecap="round"/><path d="M${x - 1} ${y + h - 1.4}v1.5M${x + 1} ${y + h - 1.4}v1.5" stroke="#aab4d0" stroke-width=".5" stroke-linecap="round" fill="none"/>`;
-const mwLeg = (x, y, h, fill, ph) => `<g transform="translate(${x} ${y})"><g class="mw-pw ${ph}">${mwLegSvg(0, 0, h, fill)}</g></g>`;
+const mwLegD = (x, y, h, hind) => hind
+  ? `M${x - 2.4} ${y}C${x - 3.4} ${y + 6} ${x + .6} ${y + 9} ${x - .4} ${y + h - 3.4}C${x - 2.2} ${y + h - 2.8} ${x - 2.6} ${y + h + .6} ${x - .4} ${y + h + .8}L${x + 2.2} ${y + h + .8}C${x + 3.9} ${y + h + .6} ${x + 3.5} ${y + h - 2.8} ${x + 2.1} ${y + h - 3.4}C${x + 3.4} ${y + 9} ${x + 5.4} ${y + 5} ${x + 2.4} ${y}`
+  : `M${x - 1.9} ${y}L${x - 1.8} ${y + h - 3.2}C${x - 3.4} ${y + h - 2.6} ${x - 3.7} ${y + h + .6} ${x - 1.4} ${y + h + .8}L${x + 1.4} ${y + h + .8}C${x + 3.7} ${y + h + .6} ${x + 3.4} ${y + h - 2.6} ${x + 1.8} ${y + h - 3.2}L${x + 1.9} ${y}`;
+const mwLegSvg = (x, y, h, fill, hind) => `<path d="${mwLegD(x, y, h, hind)}Z" fill="${fill}"/><path d="${mwLegD(x, y, h, hind)}" fill="none" ${MWS} stroke-linejoin="round" stroke-linecap="round"/><path d="M${x + (hind ? .8 : 0)} ${y + h - 1.3}v1.4" stroke="#aab4d0" stroke-width=".5" stroke-linecap="round" fill="none"/>`;
+const mwLeg = (x, y, h, fill, ph, hind) => `<g transform="translate(${x} ${y})"><g class="mw-pw ${ph}">${mwLegSvg(0, 0, h, fill, hind)}</g></g>`;
 const mwTail = (d, cls) => `<g class="${cls}"><path d="${d}" stroke="#aab4d0" stroke-width="8.2" stroke-linecap="round" fill="none"/><path d="${d}" stroke="#fdfaf3" stroke-width="6.6" stroke-linecap="round" fill="none"/></g>`;
 const mwPatch = d => `<path d="${d}" fill="#f2a15c" opacity=".92"/>`;
 /* Moon đi dạo có bốn góc nhìn: đi ngang (side), đi lại gần (front), đi xa (back) và ngồi nhìn thẳng (sit, cũng là dáng khi bị bấm) */
 const MOON_WALK = `<svg class="mw-svg mw-v mw-v-side" viewBox="0 0 100 72" aria-hidden="true">
   <ellipse cx="56" cy="69.5" rx="34" ry="3" fill="rgba(0,0,0,.22)"/>
-  ${mwTail('M81 42Q101 43 98 25Q96 17 89 20', 'mw-tail')}
-  ${mwLeg(38, 46, 20, '#dfe5f2', 'pb')}${mwLeg(70, 46, 20, '#dfe5f2', 'pa')}${mwLeg(48, 46, 20, '#fdfaf3', 'pa')}${mwLeg(80, 46, 20, '#fdfaf3', 'pb')}
-  <g class="mw-bd"><ellipse cx="58" cy="43" rx="27.5" ry="15.5" fill="#fdfaf3" ${MWS}/>${mwPatch('M50 30Q68 25 84 37Q73 40 62 39Z')}
-    <g class="mw-hd"><g transform="translate(24 34) scale(2.15) translate(0 16.8)">${moonHead('mwH1', 'mw')}</g></g></g>
+  <g transform="translate(0 -3.5)">${mwTail('M85 43Q102 44 99 26Q97 18 91 21', 'mw-tail')}</g>
+  ${mwLeg(40, 48, 18, '#dfe5f2', 'pb')}${mwLeg(72, 48, 18, '#dfe5f2', 'pa', 1)}${mwLeg(49, 48, 18, '#fdfaf3', 'pa')}${mwLeg(80, 48, 18, '#fdfaf3', 'pb', 1)}
+  <g transform="translate(0 -3.5)"><g class="mw-bd"><path d="M35 41C35 31 49 28 62 28.5C79 29 90 36 89 48C88 58 77 61.5 62 61.5C47 61.5 35 54 35 41Z" fill="#fdfaf3" ${MWS}/>${mwPatch('M54 30Q71 26 86 37Q76 41 64 40Z')}
+    <g class="mw-hd"><g transform="translate(24 38) scale(2.15) translate(0 16.8)">${moonHead('mwH1', 'mw')}</g></g></g></g>
 </svg>
 <svg class="mw-svg mw-v mw-v-front" viewBox="0 0 100 72" aria-hidden="true">
   <ellipse cx="50" cy="69.5" rx="22" ry="3" fill="rgba(0,0,0,.22)"/>
   ${mwTail('M60 54Q82 54 77 34Q75 26 68 30', 'mw-tailf')}
   <ellipse class="mw-fl pb" cx="36" cy="66.5" rx="5.6" ry="3.1" fill="#fdfaf3" ${MWS}/><ellipse class="mw-fl pa" cx="64" cy="66.5" rx="5.6" ry="3.1" fill="#fdfaf3" ${MWS}/>
   <g class="mw-fb"><ellipse cx="50" cy="53" rx="17" ry="15" fill="#fdfaf3" ${MWS}/>${mwPatch('M34 50Q36 40 46 40Q44 48 38 56Z')}
-    <g class="mw-fl pa">${mwLegSvg(42, 55, 11, '#fdfaf3')}</g><g class="mw-fl pb">${mwLegSvg(58, 55, 11, '#fdfaf3')}</g>
+    <g class="mw-fl pa">${mwLegSvg(43, 55, 12, '#fdfaf3')}</g><g class="mw-fl pb">${mwLegSvg(57, 55, 12, '#fdfaf3')}</g>
     <g class="mw-hd"><g transform="translate(50 31) scale(2.4) translate(0 16.8)">${moonHead('mwH2', 'mw')}</g></g></g>
 </svg>
 <svg class="mw-svg mw-v mw-v-back" viewBox="0 0 100 72" aria-hidden="true">
