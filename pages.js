@@ -1400,15 +1400,49 @@ function sofaSync(){
   b.dataset.key = key;
   b.innerHTML = `<div class="sofa-card" id="sofa-card" role="dialog" aria-label="${esc(t(state.companion ? 'sofa_thx_t' : 'sofa_t'))}"${open ? '' : ' hidden'}>${sofaCard()}</div><button type="button" id="sofa-btn" class="sofa-btn" data-act="sofaToggle" aria-expanded="${open}" aria-controls="sofa-card" aria-label="${esc(t(state.companion ? 'sofa_thx_aria' : 'sofa_aria'))}" title="${esc(t(state.companion ? 'sofa_thx_t' : 'sofa_t'))}">${SOFA_SVG}</button>`;
 }
-/* Moon đi dạo: lâu lâu rời sofa đi dọc mép dưới màn hình, ra một đoạn rồi quay về (chỉ transform, không đọc Firebase). Điện thoại: nhỏ hơn, ra ngắn hơn, thưa hơn.
+/* Moon đi dạo: lâu lâu rời sofa đi vòng quanh khắp màn hình (nhìn ngang, lại gần, đi xa, ngồi nghỉ) rồi quay về (chỉ transform, không đọc Firebase). Điện thoại: nhỏ hơn, ra ngắn hơn, thưa hơn.
    Không chạy khi: máy tắt chuyển động, tab ẩn, đang cuộn / gõ chữ / mở hộp thoại / hướng dẫn / thẻ sofa. Bấm vào Moon (đang ngủ hay đang đi): Moon giận hài hước và để lại vết cào. */
-const MOON_WALK = `<svg class="mw-svg" viewBox="0 0 100 64" aria-hidden="true">
-  <ellipse cx="56" cy="61" rx="34" ry="3" fill="rgba(0,0,0,.22)"/>
-  <g class="mw-tail"><path d="M80 36Q97 36 95 20Q94 13 88 15" stroke="#aab4d0" stroke-width="7" stroke-linecap="round" fill="none"/><path d="M80 36Q97 36 95 20Q94 13 88 15" stroke="#fdfaf3" stroke-width="5.6" stroke-linecap="round" fill="none"/></g>
-  <g class="mw-leg mw-la"><rect x="40" y="44" width="8" height="16" rx="4" fill="#dfe5f2" stroke="#aab4d0"/></g><g class="mw-leg mw-lb"><rect x="70" y="44" width="8" height="16" rx="4" fill="#dfe5f2" stroke="#aab4d0"/></g>
-  <g class="mw-body"><ellipse cx="58" cy="38" rx="26" ry="13" fill="#fdfaf3" stroke="#aab4d0"/><path d="M52 26Q68 22 82 33Q72 36 62 35Z" fill="#f2a15c" opacity=".9"/></g>
-  <g class="mw-leg mw-lb"><rect x="46" y="44" width="8" height="16" rx="4" fill="#fdfaf3" stroke="#aab4d0"/></g><g class="mw-leg mw-la"><rect x="76" y="44" width="8" height="16" rx="4" fill="#fdfaf3" stroke="#aab4d0"/></g>
-  <g class="mw-hshake"><g transform="translate(25 28) scale(2.05) translate(0 16.8)">${moonHead('mwHc', 'mw')}</g></g>
+const MWS = 'stroke="#aab4d0" stroke-width=".9"';
+const mwLeg = (x, y, fill, ph) => `<g transform="translate(${x} ${y})"><g class="mw-th ${ph}"><rect x="-4.4" y="-3" width="8.8" height="13" rx="4.4" fill="${fill}" ${MWS}/><g transform="translate(0 8)"><g class="mw-sh ${ph}"><rect x="-3.5" y="-1" width="7" height="11" rx="3.5" fill="${fill}" ${MWS}/><ellipse cx="-1.4" cy="10" rx="4.8" ry="2.9" fill="${fill}" ${MWS}/></g></g></g></g>`;
+const mwTail = (d, cls) => `<g class="${cls}"><path d="${d}" stroke="#aab4d0" stroke-width="7.2" stroke-linecap="round" fill="none"/><path d="${d}" stroke="#fdfaf3" stroke-width="5.6" stroke-linecap="round" fill="none"/></g>`;
+const mwPatch = d => `<path d="${d}" fill="#f2a15c" opacity=".92"/>`;
+/* Moon đi dạo có bốn góc nhìn: đi ngang (side), đi lại gần (front), đi xa (back) và ngồi nhìn thẳng (sit, cũng là dáng khi bị bấm) */
+const MOON_WALK = `<svg class="mw-svg mw-v mw-v-side" viewBox="0 0 100 72" aria-hidden="true">
+  <ellipse cx="56" cy="69.5" rx="34" ry="3" fill="rgba(0,0,0,.22)"/>
+  ${mwTail('M80 40Q98 41 96 22Q95 13 88 16', 'mw-tail')}
+  ${mwLeg(40, 47, '#dfe5f2', 'pb')}${mwLeg(72, 47, '#dfe5f2', 'pa')}
+  <g class="mw-bd"><ellipse cx="58" cy="40" rx="26" ry="13.5" fill="#fdfaf3" ${MWS}/>${mwPatch('M52 28Q68 24 82 35Q72 38 62 37Z')}
+    <g class="mw-hd"><g transform="translate(25 30) scale(2.05) translate(0 16.8)">${moonHead('mwH1', 'mw')}</g></g></g>
+  ${mwLeg(48, 47, '#fdfaf3', 'pa')}${mwLeg(78, 47, '#fdfaf3', 'pb')}
+</svg>
+<svg class="mw-svg mw-v mw-v-front" viewBox="0 0 100 72" aria-hidden="true">
+  <ellipse cx="50" cy="69.5" rx="22" ry="3" fill="rgba(0,0,0,.22)"/>
+  ${mwTail('M60 54Q82 54 77 34Q75 26 68 30', 'mw-tailf')}
+  <ellipse class="mw-fl pb" cx="36" cy="66.5" rx="5.6" ry="3.1" fill="#fdfaf3" ${MWS}/><ellipse class="mw-fl pa" cx="64" cy="66.5" rx="5.6" ry="3.1" fill="#fdfaf3" ${MWS}/>
+  <g class="mw-fb"><ellipse cx="50" cy="53" rx="17" ry="15" fill="#fdfaf3" ${MWS}/>${mwPatch('M34 50Q36 40 46 40Q44 48 38 56Z')}
+    <g class="mw-fl pa"><rect x="38.5" y="55" width="9" height="12" rx="4.5" fill="#fdfaf3" ${MWS}/><ellipse cx="43" cy="66.4" rx="5.4" ry="3.2" fill="#fdfaf3" ${MWS}/></g>
+    <g class="mw-fl pb"><rect x="52.5" y="55" width="9" height="12" rx="4.5" fill="#fdfaf3" ${MWS}/><ellipse cx="57" cy="66.4" rx="5.4" ry="3.2" fill="#fdfaf3" ${MWS}/></g>
+    <g class="mw-hd"><g transform="translate(50 31) scale(2.4) translate(0 16.8)">${moonHead('mwH2', 'mw')}</g></g></g>
+</svg>
+<svg class="mw-svg mw-v mw-v-back" viewBox="0 0 100 72" aria-hidden="true">
+  <ellipse cx="50" cy="69.5" rx="23" ry="3" fill="rgba(0,0,0,.22)"/>
+  <g class="mw-fb">
+    <path d="M37 26L35 11L47 18Z" fill="#f2a15c" ${MWS}/><path d="M63 26L65 11L53 18Z" fill="#fdfaf3" ${MWS}/>
+    <ellipse cx="50" cy="29" rx="14.5" ry="12.5" fill="#fdfaf3" ${MWS}/>${mwPatch('M35.6 29Q35 18 50 16.6Q57 17 60 20Q54 22 49 26Q43 24 35.6 29Z')}
+    <ellipse cx="50" cy="52" rx="21" ry="16" fill="#fdfaf3" ${MWS}/>${mwPatch('M33 46Q47 36 62 44Q56 49 46 49Q38 51 33 46Z')}
+    <ellipse cx="35" cy="58" rx="7.5" ry="9.5" fill="#fdfaf3" ${MWS}/><ellipse cx="65" cy="58" rx="7.5" ry="9.5" fill="#fdfaf3" ${MWS}/>
+    <ellipse class="mw-fl pa" cx="38" cy="66.5" rx="6.2" ry="3.3" fill="#fdfaf3" ${MWS}/><ellipse class="mw-fl pb" cx="62" cy="66.5" rx="6.2" ry="3.3" fill="#fdfaf3" ${MWS}/>
+    ${mwTail('M54 57Q74 53 69 36Q66 27 73 21', 'mw-tailb')}</g>
+</svg>
+<svg class="mw-svg mw-v mw-v-sit" viewBox="0 0 100 72" aria-hidden="true">
+  <ellipse cx="50" cy="69.5" rx="26" ry="3" fill="rgba(0,0,0,.22)"/>
+  ${mwTail('M66 64Q90 68 88 50Q87 43 80 46', 'mw-tails')}
+  <ellipse cx="50" cy="57" rx="23" ry="13" fill="#fdfaf3" ${MWS}/>
+  <ellipse cx="34" cy="66.4" rx="6.6" ry="3.3" fill="#fdfaf3" ${MWS}/><ellipse cx="66" cy="66.4" rx="6.6" ry="3.3" fill="#fdfaf3" ${MWS}/>
+  <g class="mw-br"><ellipse cx="50" cy="50" rx="14" ry="16.5" fill="#fdfaf3" ${MWS}/>${mwPatch('M37 48Q38 38 47 38Q45 46 40 54Z')}
+    <rect x="40.5" y="52" width="8" height="14" rx="4" fill="#fdfaf3" ${MWS}/><rect x="51.5" y="52" width="8" height="14" rx="4" fill="#fdfaf3" ${MWS}/>
+    <ellipse cx="44.5" cy="66.4" rx="5" ry="3" fill="#fdfaf3" ${MWS}/><ellipse cx="55.5" cy="66.4" rx="5" ry="3" fill="#fdfaf3" ${MWS}/></g>
+  <g class="mw-hd"><g transform="translate(50 29) scale(2.4) translate(0 16.8)">${moonHead('mwH3', 'mw')}</g></g>
 </svg>`;
 const sfReduced = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches && document.documentElement.dataset.motion !== 'on');
 const sfPhone = () => !!(window.matchMedia && matchMedia('(max-width:640px)').matches);
@@ -1418,28 +1452,45 @@ function sfStop(){
   if (!sfWalk) return;
   clearTimeout(sfWalk.t); try { sfWalk.anim && sfWalk.anim.cancel(); } catch (e) {}
   sfWalk.el.remove(); sfWalk = null;
-  const b = $('sofa'); if (b) b.classList.remove('away');
+  const b = $('sofa'); if (b) b.classList.remove('away', 'gone');
 }
 const sfCanRoam = () => { const b = $('sofa'); return !!b && !sfWalk && !sfReduced() && !document.hidden && !b.classList.contains('open') && !$('tour-card') && !$('tour-ask') && !$('modal').classList.contains('open') && !typingInPage() && Date.now() - sfScrollAt > 1500; };
+const sfBusy = () => document.hidden || !!$('tour-card') || !!$('tour-ask') || $('modal').classList.contains('open');
 function sfRoam(){
   const btn = $('sofa-btn'); if (!btn || !sfCanRoam()) return false;
-  const phone = sfPhone(), W = innerWidth, r = btn.getBoundingClientRect(), mw = phone ? 60 : 92;
-  const x0 = Math.round(r.left + r.width * .12), lo = phone ? .4 : .2, hi = phone ? .65 : .55;
-  const far = Math.max(8, Math.round(W * (lo + Math.random() * (hi - lo)) - mw / 2)), ms = Math.max(1500, Math.abs(x0 - far) / (phone ? 75 : 110) * 1000);
-  const el = document.createElement('div'); el.className = 'moon-walker'; el.style.width = mw + 'px'; el.style.transform = `translateX(${x0}px)`;
+  const phone = sfPhone(), W = innerWidth, H = innerHeight, r = btn.getBoundingClientRect(), w = phone ? 64 : 96, h = w * .72;
+  const top = H * (phone ? .34 : .3), bot = H - (phone ? 104 : 48), side = w / 2 + 6;
+  const sc = y => .75 + .35 * Math.min(1, Math.max(0, (y - top) / (bot - top)));              // xa (cao trên màn hình) thì nhỏ, gần (thấp) thì to
+  const home = { x:Math.round(r.left + r.width * .3), y:Math.round(Math.min(bot, r.bottom - 12)) };
+  const pts = [home];
+  for (let i = 0, n = phone ? 3 : 4; i < n; i++) {                                           // vài điểm ngẫu nhiên khắp màn hình, cách nhau đủ xa
+    let q, k = 0, l = pts[pts.length - 1];
+    do q = { x:Math.round(side + Math.random() * (W - 2 * side)), y:Math.round(top + Math.random() * (bot - top)) }; while (k++ < 10 && Math.hypot(q.x - l.x, q.y - l.y) < W * .24);
+    pts.push(q);
+  }
+  pts.push(home);
+  const T = q => `translate(${q.x - w / 2}px, ${q.y - h}px) scale(${sc(q.y)})`;
+  const el = document.createElement('div'); el.className = 'moon-walker'; el.style.width = w + 'px'; el.style.transform = T(home); el.dataset.v = 'sit';
   el.innerHTML = `<div class="mw-flip">${MOON_WALK}</div>`; document.body.appendChild(el);
-  $('sofa').classList.add('away'); sfWalk = { el, anim:null, t:0 };
-  const leg = (from, to, right, done) => {
+  $('sofa').classList.add('away', 'gone'); sfWalk = { el, anim:null, t:0 };                  // sofa mờ đi cùng lúc Moon rời chỗ, hiện lại (còn trống) khi Moon quay về
+  const go = i => {
     if (!sfWalk || sfWalk.el !== el) return;
-    el.classList.toggle('right', right); el.classList.remove('idle');
-    sfWalk.anim = el.animate([{ transform:`translateX(${from}px)` }, { transform:`translateX(${to}px)` }], { duration:ms, easing:'linear', fill:'forwards' });
-    sfWalk.anim.onfinish = done;
+    if (sfBusy()) return sfStop();
+    if (el.classList.contains('angry')) { sfWalk.t = setTimeout(() => go(i), 400); return; }
+    if (i >= pts.length - 1) { const b = $('sofa'); sfStop(); if (b) { b.classList.add('land'); setTimeout(() => b.classList.remove('land'), 700); } return; }
+    const a = pts[i], b = pts[i + 1], dx = b.x - a.x, dy = b.y - a.y, last = i + 2 === pts.length;
+    const v = Math.abs(dy) > Math.abs(dx) * 1.1 ? (dy > 0 ? 'front' : 'back') : 'side';       // đi xuống: nhìn thấy mặt, đi lên: quay lưng, đi ngang: nhìn nghiêng
+    el.dataset.v = v; el.classList.toggle('right', v === 'side' && dx > 0);
+    if (last) $('sofa').classList.remove('gone');
+    if (sfWalk.anim) sfWalk.anim.cancel();
+    sfWalk.anim = el.animate([{ transform:T(a) }, { transform:T(b) }], { duration:Math.max(900, Math.hypot(dx, dy) / (phone ? 80 : 120) * 1000), easing:'linear', fill:'forwards' });
+    sfWalk.anim.onfinish = () => {
+      if (!sfWalk || sfWalk.el !== el) return;
+      if (!last && Math.random() < .7) { el.dataset.v = 'sit'; el.classList.remove('right'); sfWalk.t = setTimeout(() => go(i + 1), 1400 + Math.random() * 1400); }   // dừng lại ngồi nhìn một chút
+      else go(i + 1);
+    };
   };
-  leg(x0, far, false, () => {
-    if (!sfWalk || sfWalk.el !== el) return;
-    el.classList.add('idle');                                         // ngồi nghỉ một chút rồi quay về
-    sfWalk.t = setTimeout(() => leg(far, x0, true, () => { const b = $('sofa'); sfStop(); if (b) { b.classList.add('land'); setTimeout(() => b.classList.remove('land'), 700); } }), 1300);
-  });
+  go(0);
   return true;
 }
 function sfSchedule(first){
@@ -1462,8 +1513,8 @@ function sfAngry(target, e){
   const host = target.closest('.moon-walker') || $('sofa'); if (!host) return;
   host.classList.add('angry'); clearTimeout(host._at); host._at = setTimeout(() => host.classList.remove('angry'), 1400);
   if (sfWalk && host === sfWalk.el && sfWalk.anim) {                  // Moon đang đi: đứng lại gầm gừ một chút rồi đi tiếp
-    sfWalk.anim.pause(); host.classList.add('idle'); clearTimeout(sfAngryT);
-    sfAngryT = setTimeout(() => { if (sfWalk && sfWalk.anim) { sfWalk.anim.play(); host.classList.remove('idle'); } }, 1400);
+    sfWalk.anim.pause(); clearTimeout(sfAngryT);                      // quay mặt ra nhìn khách (dáng ngồi) rồi đi tiếp
+    sfAngryT = setTimeout(() => { if (sfWalk && sfWalk.anim) sfWalk.anim.play(); }, 1400);
   }
   const rc = target.getBoundingClientRect(), px = e && (e.clientX || e.clientY) ? e.clientX : rc.left + rc.width / 2, py = e && (e.clientX || e.clientY) ? e.clientY : rc.top + rc.height / 2;
   sfClaw(px, py);
