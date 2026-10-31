@@ -649,6 +649,10 @@ Làm một lần, sau đó mỗi buổi chỉ cần bấm Start Streaming trong 
 - Muốn sửa chữ từng bước: `TOUR_PS` trong `guide.js` (đủ 8 ngôn ngữ, mỗi bước là [tiêu đề, một câu]); muốn đổi chỗ Moon chỉ hoặc thứ tự: `PGS` (bộ chọn, dáng Moon, khoá chữ).
 - Phòng tập trung, Hành trình trăng và Kế hoạch tuần dùng lại ba hình của hướng dẫn chung. Muốn đổi chữ dưới hình: sửa trong `guide.js` ở `TOUR_PG` (các trang mới) hoặc `fi` / `ci` / `pi` trong `TOUR_T`.
 
+### 22.am. Hướng dẫn chung: nút "Không nhắc lại" ở mọi bước
+- Hướng dẫn chung (tự chạy cho khách mới, hoặc bấm mục **Hướng dẫn** trên menu) có thêm dòng chữ nhỏ gạch chân **Không nhắc lại** dưới nút ở **mọi bước**. Bấm là đóng hướng dẫn và máy đó không tự chạy nữa (cùng cờ với nút Bỏ qua cũ; bước đầu không còn nút Bỏ qua riêng vì trùng). Muốn xem lại thì bấm mục Hướng dẫn trên menu. Hướng dẫn riêng của từng trang (nút ⓘ) không có nút này vì chỉ chạy khi khách tự bấm. Chữ ở `TOUR_OFF` trong `guide.js`, đủ 8 ngôn ngữ.
+- Sửa lỗi: bản #195 làm hướng dẫn chung tự chạy bị lỗi (`start()` gọi không tham số) nên không hiện; đã sửa.
+
 ### 22.al. Hướng dẫn chi tiết chỉ cho người đã đăng nhập, và Moon nhắc khi đang dùng thử
 - Nút **Hướng dẫn** (ⓘ) ở đầu mỗi trang: người **đã đăng nhập** thấy hướng dẫn từng bước như trước. Khách **chưa đăng nhập** bấm vào thì Moon chỉ hiện một thẻ mời đăng nhập ("Đăng nhập để xem hướng dẫn") với nút **Đăng nhập** (mở trang tài khoản) và **Để sau**; các hướng dẫn chi tiết không hiện cho khách. Các mục đang khoá cho khách (xem Giao diện & Menu) vốn đã mời đăng nhập nên không có nút ⓘ. Hướng dẫn chung ở mục **Hướng dẫn** trên menu và hướng dẫn tự chạy cho khách mới không đổi.
 - Ai đang có **mã dùng thử còn hạn** (và chưa là Người đồng hành, không phải admin): mỗi lần mở trang **Ủng hộ**, Moon hiện lên nhắc "Bạn đang dùng thử" kèm ngày giờ hết hạn, bấm **Đã hiểu** để đóng. Mỗi lần vào trang chỉ hiện một lần (vẽ lại trang không làm hiện lại), không đè lên hướng dẫn đang chạy, không nhắc giá. Hết hạn, đã là Người đồng hành hoặc là admin thì không hiện.
