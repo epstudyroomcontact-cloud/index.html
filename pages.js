@@ -1403,56 +1403,23 @@ function sofaSync(){
 }
 /* Moon đi dạo: lâu lâu rời sofa đi vòng quanh khắp màn hình (nhìn ngang, lại gần, đi xa, ngồi nghỉ) rồi quay về (chỉ transform, không đọc Firebase). Điện thoại: nhỏ hơn, ra ngắn hơn, thưa hơn.
    Không chạy khi: máy tắt chuyển động, tab ẩn, đang cuộn / gõ chữ / mở hộp thoại / hướng dẫn / thẻ sofa. Bấm vào Moon (đang ngủ hay đang đi): Moon giận hài hước và để lại vết cào. */
-const MWS = 'stroke="#aab4d0" stroke-width=".9"';
-/* chân ngắn mập: cổ chân thon, bàn chân xòe, hai ngón nhỏ; nét viền hở ở đỉnh để chân nối liền vào thân */
-const mwLegD = (x, y, h, hind) => hind
-  ? `M${x - 4.2} ${y}C${x - 5.4} ${y + 4} ${x - 3} ${y + 8} ${x - 2.6} ${y + h - 3.4}C${x - 4.8} ${y + h - 2.8} ${x - 5.2} ${y + h + .7} ${x - 2} ${y + h + .9}L${x + 2.4} ${y + h + .9}C${x + 5.4} ${y + h + .7} ${x + 5} ${y + h - 2.8} ${x + 3} ${y + h - 3.4}C${x + 3.6} ${y + 8} ${x + 6.4} ${y + 4} ${x + 4.6} ${y}`
-  : `M${x - 3} ${y}L${x - 2.9} ${y + h - 3.4}C${x - 5.2} ${y + h - 2.8} ${x - 5.6} ${y + h + .7} ${x - 2.2} ${y + h + .9}L${x + 2.2} ${y + h + .9}C${x + 5 } ${y + h + .7} ${x + 4.8} ${y + h - 2.8} ${x + 2.9} ${y + h - 3.4}L${x + 3} ${y}`;
-const mwLegSvg = (x, y, h, fill, hind) => `<path d="${mwLegD(x, y, h, hind)}Z" fill="${fill}"/><path d="${mwLegD(x, y, h, hind)}" fill="none" ${MWS} stroke-linejoin="round" stroke-linecap="round"/><path d="M${x + (hind ? .8 : 0)} ${y + h - 1.3}v1.4" stroke="#aab4d0" stroke-width=".5" stroke-linecap="round" fill="none"/>`;
-const mwLeg = (x, y, h, fill, ph, hind) => `<g transform="translate(${x} ${y})"><g class="mw-pw ${ph}">${mwLegSvg(0, 0, h, fill, hind)}</g></g>`;
-/* hình bên hông: chân và thân gộp thành một khối liền nét. Lớp dưới vẽ hình nở ra 1 đơn vị bằng màu viền, lớp trên tô trắng nên chỗ chân nối thân không còn nét viền chen ngang, chỉ còn viền ngoài của cả khối */
-const mwOut = d => `<path d="${d}" fill="#aab4d0" stroke="#aab4d0" stroke-width="2.2" stroke-linejoin="round"/>`;
-const mwLegO = (x, y, h, ph, hind) => `<g transform="translate(${x} ${y})"><g class="mw-pw ${ph}">${mwOut(mwLegD(0, 0, h, hind) + 'Z')}</g></g>`;
-const mwLegW = (x, y, h, ph, hind, fill) => `<g transform="translate(${x} ${y})"><g class="mw-pw ${ph}"><path d="${mwLegD(0, 0, h, hind)}Z" fill="${fill}"/><path d="M${hind ? .8 : 0} ${h - 1.3}v1.4" stroke="#aab4d0" stroke-width=".5" stroke-linecap="round" fill="none"/></g></g>`;
-const MW_BODY = 'M32 44C32 35 46 31 60 31.5C78 32 90 38 89 49C88 58 77 60.5 62 60.5C46 60.5 32 55 32 44Z';
-const mwTail = (d, cls) => `<g class="${cls}"><path d="${d}" stroke="#aab4d0" stroke-width="8.2" stroke-linecap="round" fill="none"/><path d="${d}" stroke="#fdfaf3" stroke-width="6.6" stroke-linecap="round" fill="none"/></g>`;
-const mwPatch = d => `<path d="${d}" fill="#f2a15c" opacity=".92"/>`;
-/* Moon đi dạo có bốn góc nhìn: đi ngang (side), đi lại gần (front), đi xa (back) và ngồi nhìn thẳng (sit, cũng là dáng khi bị bấm) */
-const MOON_WALK = `<svg class="mw-svg mw-v mw-v-side" viewBox="0 0 100 72" aria-hidden="true">
-  <ellipse cx="56" cy="69.5" rx="34" ry="3" fill="rgba(0,0,0,.22)"/>
-  <g transform="translate(0 -2.5)">${mwTail('M85 45Q104 49 100 27Q98 15 90 17', 'mw-tail')}</g>
-  ${mwLegO(44, 52, 14, 'pb')}${mwLegO(74, 52, 14, 'pa', 1)}${mwLegO(54, 52, 14, 'pa')}${mwLegO(84, 52, 14, 'pb', 1)}
-  <g transform="translate(0 -2.5)"><g class="mw-bd">${mwOut(MW_BODY)}</g></g>
-  ${mwLegW(44, 52, 14, 'pb', 0, '#f3f5fb')}${mwLegW(74, 52, 14, 'pa', 1, '#f3f5fb')}${mwLegW(54, 52, 14, 'pa', 0, '#fdfaf3')}${mwLegW(84, 52, 14, 'pb', 1, '#fdfaf3')}
-  <g transform="translate(0 -2.5)"><g class="mw-bd"><path d="${MW_BODY}" fill="#fdfaf3"/>${mwPatch('M52 33Q70 29 86 39Q76 43 64 42Z')}
-    <g class="mw-hd"><g transform="translate(30 41) scale(2.3) translate(0 16.8)">${moonHead('mwH1', 'mw')}</g></g></g></g>
+const MOON_WALK = `<svg class="mw-svg mw-v mw-v-side" viewBox="-16 -26 32 27" aria-hidden="true">
+  <defs><clipPath id="mwa_1"><circle cx="8.4" cy="-12.6" r="4.6"/></clipPath></defs><ellipse cx="0" cy=".4" rx="10" ry="1.7" fill="rgba(0,0,0,.22)"/><g class="mj-cat" transform="translate(0 0) scale(1 1)"><g class="mja mja-catstep"><g class="mja mja-tailw"><path d="M-7 -8.4Q-12.4 -10 -11.8 -16Q-11.4 -18.6 -9.6 -18.4" stroke="#aab4d0" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="1"/><path d="M-7 -8.4Q-12.4 -10 -11.8 -16Q-11.4 -18.6 -9.6 -18.4" stroke="#fdfaf3" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="1"/></g><g class="mja mja-pawA"><path d="M-2.4 -6L-2.1 -.6" stroke="#aab4d0" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="1"/><path d="M-2.4 -6L-2.1 -.6" stroke="#fdfaf3" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="1"/></g><g class="mja mja-pawB"><path d="M5.6 -6L5.9 -.6" stroke="#aab4d0" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="1"/><path d="M5.6 -6L5.9 -.6" stroke="#fdfaf3" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="1"/></g><g class="mja mja-pawB"><path d="M-5 -6L-5.3 -.6" stroke="#aab4d0" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="1"/><path d="M-5 -6L-5.3 -.6" stroke="#fdfaf3" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="1"/></g><g class="mja mja-pawA"><path d="M3 -6L2.7 -.6" stroke="#aab4d0" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="1"/><path d="M3 -6L2.7 -.6" stroke="#fdfaf3" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="1"/></g><ellipse cx="0" cy="-8.6" rx="8.2" ry="4.6" fill="#fdfaf3" stroke="#aab4d0" stroke-width=".45"/><path d="M-6 -6.2Q0 -3.8 6 -6.2Q3 -4.6 0 -4.4Q-3 -4.6 -6 -6.2Z" fill="#c9d1e6" opacity=".7"/><path d="M5 -14.6L5.6 -19.8L8.2 -16.4Z" fill="#f2a15c"/><path d="M8.8 -16.8L11.4 -20.2L11.8 -15.2Z" fill="#f2a15c"/><circle cx="8.4" cy="-12.6" r="4.6" fill="#fdfaf3"/><g clip-path="url(#mwa_1)"><path d="M3.1 -11.7L3.1 -18.8L14.5 -18.8L14.5 -13.9Q12.6 -14.6 11 -14.2Q9.9 -14 9.3 -15.1Q8.8 -16.3 8.3 -15.2Q7.8 -13.9 6.7 -13.7Q5.5 -13.5 5.4 -12.1Q5 -11.1 3.1 -11.7Z" fill="#f2a15c"/><path d="M6.6 -16.4q0.4 0.7 0.1 1.3M10.8 -16.5q-0.4 0.7 -0.1 1.3M5.3 -14.8q0.6 0.3 1 0.9" stroke="#d9823f" stroke-width="0.396" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.55"/></g><circle cx="8.4" cy="-12.6" r="4.6" fill="none" stroke="#aab4d0" stroke-width=".45"/><path d="M3.2 -12.6Q5.6 -13.6 6.8 -10.8Q6.8 -8.6 5.4 -7.8Q3.8 -8 2.8 -9.6Z" fill="#fdfaf3"/>
+      <path d="M9.6 -12.6q.7-.8 1.4 0" stroke="#29203a" stroke-width="0.55" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="1"/><circle cx="12.7" cy="-11.4" r=".55" fill="#ee8fa1"/><ellipse cx="10.4" cy="-10.6" rx=".9" ry=".55" fill="#f4a9b6" opacity=".7"/></g></g>
 </svg>
-<svg class="mw-svg mw-v mw-v-front" viewBox="0 0 100 72" aria-hidden="true">
-  <ellipse cx="50" cy="69.5" rx="22" ry="3" fill="rgba(0,0,0,.22)"/>
-  ${mwTail('M60 54Q82 54 77 34Q75 26 68 30', 'mw-tailf')}
-  <ellipse class="mw-fl pb" cx="36" cy="66.5" rx="5.6" ry="3.1" fill="#fdfaf3" ${MWS}/><ellipse class="mw-fl pa" cx="64" cy="66.5" rx="5.6" ry="3.1" fill="#fdfaf3" ${MWS}/>
-  <g class="mw-fb"><ellipse cx="50" cy="53" rx="17" ry="15" fill="#fdfaf3" ${MWS}/>${mwPatch('M34 50Q36 40 46 40Q44 48 38 56Z')}
-    <g class="mw-fl pa">${mwLegSvg(43, 55, 12, '#fdfaf3')}</g><g class="mw-fl pb">${mwLegSvg(57, 55, 12, '#fdfaf3')}</g>
-    <g class="mw-hd"><g transform="translate(50 31) scale(2.4) translate(0 16.8)">${moonHead('mwH2', 'mw')}</g></g></g>
+<svg class="mw-svg mw-v mw-v-front" viewBox="-16 -26 32 27" aria-hidden="true">
+  <ellipse cx="0" cy=".4" rx="9" ry="1.7" fill="rgba(0,0,0,.22)"/><g class="mw-fb"><g class="mja mja-tail"><path d="M4.5 -1.2Q11.5 -1 11.5 -6.6Q11.5 -10.4 9 -11" stroke="#aab4d0" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M4.5 -1.2Q11.5 -1 11.5 -6.6Q11.5 -10.4 9 -11" stroke="#fdfaf3" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g><path d="M-6.8 0C-7.8 -6 -6.4 -11 -3.2 -12.8Q0 -13.8 3.2 -12.8C6.4 -11 7.8 -6 6.8 0Q0 1 -6.8 0Z" fill="#fdfaf3" stroke="#aab4d0" stroke-width=".45"/><path d="M2.4 -12.8C5.6 -11 7.6 -6 6.8 0Q5 .5 3.2 .6C4.6 -4.6 4.4 -9 2.4 -12.8Z" fill="#c9d1e6" opacity=".75"/><ellipse class="mw-fl pa" cx="-2.3" cy="-0.9" rx="2.1" ry="1.3" fill="#fdfaf3" stroke="#aab4d0" stroke-width=".45"/><ellipse class="mw-fl pb" cx="2.3" cy="-0.9" rx="2.1" ry="1.3" fill="#fdfaf3" stroke="#aab4d0" stroke-width=".45"/><path d="M0 -11.6v2.4" stroke="#c9d1e6" stroke-width=".6" stroke-linecap="round" opacity=".7" fill="none"/><g class="mja mja-tilt mw-hd">${moonHead('mwH2', 'mw')}</g></g>
 </svg>
-<svg class="mw-svg mw-v mw-v-back" viewBox="0 0 100 72" aria-hidden="true">
-  <ellipse cx="50" cy="69.5" rx="23" ry="3" fill="rgba(0,0,0,.22)"/>
-  <g class="mw-fb">
-    <path d="M37 26L35 11L47 18Z" fill="#f2a15c" ${MWS}/><path d="M63 26L65 11L53 18Z" fill="#fdfaf3" ${MWS}/>
-    <ellipse cx="50" cy="29" rx="14.5" ry="12.5" fill="#fdfaf3" ${MWS}/>${mwPatch('M35.6 29Q35 18 50 16.6Q57 17 60 20Q54 22 49 26Q43 24 35.6 29Z')}
-    <ellipse cx="50" cy="52" rx="21" ry="16" fill="#fdfaf3" ${MWS}/>${mwPatch('M33 46Q47 36 62 44Q56 49 46 49Q38 51 33 46Z')}
-    <ellipse cx="35" cy="58" rx="7.5" ry="9.5" fill="#fdfaf3" ${MWS}/><ellipse cx="65" cy="58" rx="7.5" ry="9.5" fill="#fdfaf3" ${MWS}/>
-    <ellipse class="mw-fl pa" cx="38" cy="66.5" rx="6.2" ry="3.3" fill="#fdfaf3" ${MWS}/><ellipse class="mw-fl pb" cx="62" cy="66.5" rx="6.2" ry="3.3" fill="#fdfaf3" ${MWS}/>
-    ${mwTail('M54 57Q74 53 69 36Q66 27 73 21', 'mw-tailb')}</g>
+<svg class="mw-svg mw-v mw-v-back" viewBox="-16 -26 32 27" aria-hidden="true">
+  <defs><clipPath id="mwb_1"><circle cx="0" cy="-16.4" r="5.7"/></clipPath></defs><ellipse cx="0" cy=".4" rx="9" ry="1.7" fill="rgba(0,0,0,.22)"/><g class="mw-fb"><g class="mj-cat" transform="translate(0 0) scale(1 1)"><g class="mja mja-breath" style="animation-duration:4.5s"><g class="mja mja-tail"><path d="M4.5 -1.2Q11.5 -1 11.5 -6.6Q11.5 -10.4 9 -11" stroke="#aab4d0" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="1"/><path d="M4.5 -1.2Q11.5 -1 11.5 -6.6Q11.5 -10.4 9 -11" stroke="#fdfaf3" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="1"/></g><path d="M-6.8 0C-7.8 -6 -6.4 -11 -3.2 -12.8Q0 -13.8 3.2 -12.8C6.4 -11 7.8 -6 6.8 0Q0 1 -6.8 0Z" fill="#fdfaf3" stroke="#aab4d0" stroke-width=".45"/><path d="M2.4 -12.8C5.6 -11 7.6 -6 6.8 0Q5 .5 3.2 .6C4.6 -4.6 4.4 -9 2.4 -12.8Z" fill="#c9d1e6" opacity=".75"/><g class="mja mja-tilt" style="animation-duration:9.6s;transform-box:view-box;transform-origin:0px -11.4px"><path d="M-5.2 -17.5L-4.9 -24.2L-1.1 -20.8Z" fill="#f2a15c"/><g class="mja mja-ear" style="animation-duration:7.6s"><path d="M5.2 -17.5L4.9 -24.2L1.1 -20.8Z" fill="#f2a15c"/></g><circle cx="0" cy="-16.4" r="5.7" fill="#fdfaf3"/><g clip-path="url(#mwb_1)"><path d="M-6 -15.2Q-4.4 -14.2 -3 -15.6Q-1.4 -17 0 -16.2Q1.8 -15.4 3.2 -16.8Q4.6 -18 6 -17.4V-23H-6Z" fill="#f2a15c"/><path d="M-2.4 -21.4q.4 1 .1 2M0 -21.8v2M2.4 -21.4q-.4 1 -.1 2" stroke="#d9823f" stroke-width="0.5" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.55"/></g><circle cx="0" cy="-16.4" r="5.7" fill="none" stroke="#aab4d0" stroke-width=".45"/></g><ellipse cx="0" cy="-11.6" rx="4.4" ry="1.8" fill="#fdfaf3"/><path d="M2.2 -21.6C4.6 -20.6 5.8 -18 5.4 -15.4" stroke="#c9d1e6" stroke-width=".9" fill="none" opacity=".7"/></g></g><ellipse class="mw-fl pa" cx="-3.6" cy="0.1" rx="2.3" ry="1.1" fill="#fdfaf3" stroke="#aab4d0" stroke-width=".45"/><ellipse class="mw-fl pb" cx="3.4" cy="0.1" rx="2.3" ry="1.1" fill="#fdfaf3" stroke="#aab4d0" stroke-width=".45"/></g>
 </svg>
-<svg class="mw-svg mw-v mw-v-sit" viewBox="0 0 100 72" aria-hidden="true">
-  <ellipse cx="50" cy="69.5" rx="26" ry="3" fill="rgba(0,0,0,.22)"/>
-  ${mwTail('M66 64Q90 68 88 50Q87 43 80 46', 'mw-tails')}
-  <ellipse cx="50" cy="57" rx="23" ry="13" fill="#fdfaf3" ${MWS}/>
-  <ellipse cx="34" cy="66.4" rx="6.6" ry="3.3" fill="#fdfaf3" ${MWS}/><ellipse cx="66" cy="66.4" rx="6.6" ry="3.3" fill="#fdfaf3" ${MWS}/>
-  <g class="mw-br"><ellipse cx="50" cy="50" rx="14" ry="16.5" fill="#fdfaf3" ${MWS}/>${mwPatch('M37 48Q38 38 47 38Q45 46 40 54Z')}
-    ${mwLegSvg(44, 54, 12, '#fdfaf3')}${mwLegSvg(56, 54, 12, '#fdfaf3')}</g>
-  <g class="mw-hd"><g transform="translate(50 29) scale(2.4) translate(0 16.8)">${moonHead('mwH3', 'mw')}</g></g>
+<svg class="mw-svg mw-v mw-v-sit" viewBox="-16 -26 32 27" aria-hidden="true">
+  <ellipse cx="0" cy=".4" rx="9" ry="1.7" fill="rgba(0,0,0,.22)"/><g class="mja mja-breath"><g class="mja mja-tail"><path d="M4.5 -1.2Q11.5 -1 11.5 -6.6Q11.5 -10.4 9 -11" stroke="#aab4d0" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M4.5 -1.2Q11.5 -1 11.5 -6.6Q11.5 -10.4 9 -11" stroke="#fdfaf3" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g><path d="M-6.8 0C-7.8 -6 -6.4 -11 -3.2 -12.8Q0 -13.8 3.2 -12.8C6.4 -11 7.8 -6 6.8 0Q0 1 -6.8 0Z" fill="#fdfaf3" stroke="#aab4d0" stroke-width=".45"/><path d="M2.4 -12.8C5.6 -11 7.6 -6 6.8 0Q5 .5 3.2 .6C4.6 -4.6 4.4 -9 2.4 -12.8Z" fill="#c9d1e6" opacity=".75"/><ellipse class="" cx="-2.3" cy="-0.9" rx="2.1" ry="1.3" fill="#fdfaf3" stroke="#aab4d0" stroke-width=".45"/><ellipse class="" cx="2.3" cy="-0.9" rx="2.1" ry="1.3" fill="#fdfaf3" stroke="#aab4d0" stroke-width=".45"/><path d="M0 -11.6v2.4" stroke="#c9d1e6" stroke-width=".6" stroke-linecap="round" opacity=".7" fill="none"/><g class="mja mja-tilt mw-hd">${moonHead('mwH3', 'mw')}</g></g>
+</svg>
+<svg class="mw-svg mw-v mw-v-sleep" viewBox="-16 -26 32 27" aria-hidden="true">
+  <defs><clipPath id="mwc_1"><ellipse cx="-6.6" cy="-6.6" rx="4.8" ry="4.2"/></clipPath></defs><ellipse cx="0" cy=".4" rx="12" ry="1.7" fill="rgba(0,0,0,.22)"/><g class="mj-cat" transform="translate(0 0) scale(1 1)"><g class="mja mja-breath" style="animation-duration:6s"><ellipse cx="0" cy="-5" rx="10.4" ry="5.6" fill="#fdfaf3" stroke="#aab4d0" stroke-width=".45"/><path d="M-2 -10.4C4 -11 9.6 -8.6 10.2 -4.6Q6 -7.6 -.6 -8.2Z" fill="#c9d1e6" opacity=".6"/><path d="M9.6 -2Q3 2 -7.2 -.4" stroke="#aab4d0" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="1"/><path d="M9.6 -2Q3 2 -7.2 -.4" stroke="#fdfaf3" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="1"/><path d="M-10.6 -7.4L-11.6 -12.2L-8.2 -10Z" fill="#f2a15c"/><path d="M-6.6 -10.4L-4.4 -13.8L-3.4 -9.6Z" fill="#f2a15c"/><ellipse cx="-6.6" cy="-6.6" rx="4.8" ry="4.2" fill="#fdfaf3"/><g clip-path="url(#mwc_1)"><path d="M-13.1 -5.7L-13.1 -12.8L-1.7 -12.8L-1.7 -7.9Q-3.6 -8.6 -5.2 -8.2Q-6.3 -8 -6.9 -9.1Q-7.4 -10.3 -7.9 -9.2Q-8.4 -7.9 -9.5 -7.7Q-10.7 -7.5 -10.8 -6.1Q-11.2 -5.1 -13.1 -5.7Z" fill="#f2a15c"/><path d="M-9.6 -10.4q0.4 0.7 0.1 1.3M-5.4 -10.5q-0.4 0.7 -0.1 1.3M-10.9 -8.8q0.6 0.3 1 0.9" stroke="#d9823f" stroke-width="0.396" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.55"/></g><ellipse cx="-6.6" cy="-6.6" rx="4.8" ry="4.2" fill="none" stroke="#aab4d0" stroke-width=".45"/>
+      <path d="M-9.4 -6q.8.7 1.6 0M-6 -6q.8.7 1.6 0" stroke="#29203a" stroke-width="0.5" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="1"/><ellipse cx="-9.8" cy="-4.4" rx=".8" ry=".5" fill="#f4a9b6" opacity=".7"/></g></g>
+  <g class="mw-zz" fill="#cfd8f2" stroke="#8d9bc4" stroke-width=".25" font-weight="800" font-family="'Baloo 2',Nunito,sans-serif"><text class="z1" x="3" y="-13" font-size="4.6">z</text><text class="z2" x="7" y="-17.6" font-size="3.6">z</text><text class="z3" x="10" y="-21" font-size="2.8">z</text></g>
 </svg>`;
 const sfReduced = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches && document.documentElement.dataset.motion !== 'on');
 const sfPhone = () => !!(window.matchMedia && matchMedia('(max-width:640px)').matches);
@@ -1468,7 +1435,7 @@ const sfCanRoam = () => { const b = $('sofa'); return !!b && !sfWalk && !sfReduc
 const sfBusy = () => document.hidden || !!$('tour-card') || !!$('tour-ask') || $('modal').classList.contains('open');
 function sfRoam(){
   const btn = $('sofa-btn'); if (!btn || !sfCanRoam()) return false;
-  const phone = sfPhone(), W = innerWidth, H = innerHeight, r = btn.getBoundingClientRect(), w = phone ? 64 : 96, h = w * .72;
+  const phone = sfPhone(), W = innerWidth, H = innerHeight, r = btn.getBoundingClientRect(), w = phone ? 62 : 92, h = w * .844;
   const top = H * (phone ? .34 : .3), bot = H - (phone ? 104 : 48), side = w / 2 + 6;
   const sc = y => .75 + .35 * Math.min(1, Math.max(0, (y - top) / (bot - top)));              // xa (cao trên màn hình) thì nhỏ, gần (thấp) thì to
   const home = { x:Math.round(r.left + r.width * .3), y:Math.round(Math.min(bot, r.bottom - 12)) };
@@ -1490,14 +1457,16 @@ function sfRoam(){
     if (i >= pts.length - 1) { const b = $('sofa'); sfStop(); if (b) { b.classList.add('land'); setTimeout(() => b.classList.remove('land'), 700); } return; }
     const a = pts[i], b = pts[i + 1], dx = b.x - a.x, dy = b.y - a.y, last = i + 2 === pts.length;
     const v = Math.abs(dy) > Math.abs(dx) * 1.1 ? (dy > 0 ? 'front' : 'back') : 'side';       // đi xuống: nhìn thấy mặt, đi lên: quay lưng, đi ngang: nhìn nghiêng
-    el.dataset.v = v; el.classList.toggle('right', v === 'side' && dx > 0);
+    el.dataset.v = v; el.classList.toggle('left', v === 'side' && dx < 0);      // Moon vẽ quay mặt sang phải; đi sang trái thì lật ngang
     if (last) $('sofa').classList.remove('gone');
     if (sfWalk.anim) sfWalk.anim.cancel();
     sfWalk.anim = el.animate([{ transform:T(a) }, { transform:T(b) }], { duration:Math.max(1500, Math.hypot(dx, dy) / (phone ? 46 : 60) * 1000), easing:'linear', fill:'forwards' });
     sfWalk.anim.onfinish = () => {
       if (!sfWalk || sfWalk.el !== el) return;
-      if (!last && Math.random() < .7) { el.dataset.v = 'sit'; el.classList.remove('right'); sfWalk.t = setTimeout(() => go(i + 1), 1400 + Math.random() * 1400); }   // dừng lại ngồi nhìn một chút
-      else go(i + 1);
+      if (!last && Math.random() < .7) {                                                     // dừng lại giữa đường: thường ngồi nhìn một chút, đôi khi cuộn tròn ngủ gật
+        const nap = Math.random() < .35; el.dataset.v = nap ? 'sleep' : 'sit'; el.classList.remove('left');
+        sfWalk.t = setTimeout(() => go(i + 1), nap ? 3600 + Math.random() * 2200 : 1400 + Math.random() * 1400);
+      } else go(i + 1);
     };
   };
   go(0);
@@ -1510,17 +1479,23 @@ function sfSchedule(first){
     first ? 5000 + Math.random() * 4000 : (phone ? 45 : 25) * 1000 + Math.random() * (phone ? 35 : 20) * 1000);
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden) sfStop(); });
-/* vết cào: ba đường móng đỏ vẽ nhanh rồi mờ dần ngay chỗ khách bấm */
+/* vết cào: ba vệt móng cào chéo nhọn dần về cuối, lệch nhau tự nhiên, hiện lần lượt từ trái sang phải như một cú quào rồi mờ dần (viền tối + lõi sáng nên thấy rõ trên cả nền sáng lẫn tối), kèm vài vụn nhỏ rơi xuống */
 function sfClaw(x, y){
   if (document.querySelectorAll('.moon-claw').length >= 3) return;
+  const R = (a, b) => a + Math.random() * (b - a), f = n => Math.round(n * 10) / 10;
   const c = document.createElement('div'); c.className = 'moon-claw'; c.style.left = x + 'px'; c.style.top = (y - (sfPhone() ? 26 : 34)) + 'px';   // nổi phía trên chỗ bấm để không che mặt Moon
-  c.style.transform = `rotate(${Math.round(Math.random() * 30 - 15)}deg) scaleX(${Math.random() < .5 ? -1 : 1})`;
-  const d = ['M24 16Q32 36 29 66Q25 38 21 17Z', 'M44 12Q53 36 50 72Q45 40 40 13Z', 'M64 16Q72 36 69 64Q65 38 61 17Z'];
-  c.innerHTML = `<svg viewBox="0 0 90 90" aria-hidden="true">${d.map((v, i) => `<path class="c c${i}" d="${v}" fill="#ff7a9c"/>`).join('')}${d.map((v, i) => `<path class="h c${i}" d="${v}" fill="none" stroke="#ffe0e8" stroke-width=".8" stroke-linejoin="round"/>`).join('')}<path class="sp" d="M80 14l1.6 3.8 3.8 1.6-3.8 1.6-1.6 3.8-1.6-3.8-3.8-1.6 3.8-1.6zM10 58l1.2 2.8 2.8 1.2-2.8 1.2-1.2 2.8-1.2-2.8-2.8-1.2 2.8-1.2z" fill="#fff3c4"/></svg>`;
-  document.body.appendChild(c); setTimeout(() => c.remove(), 1300);
+  c.style.transform = `rotate(${Math.round(R(-14, 14))}deg) scaleX(${Math.random() < .5 ? -1 : 1})`;
+  const lean = R(7, 13), slashes = [0, 1, 2].map(i => {
+    const x0 = 24 + i * 20 + R(-2, 2), y0 = 15 + R(-1, 5) + (i === 1 ? -2 : 0), len = R(44, 62) - (i === 2 ? 6 : 0), x1 = x0 + lean + R(-2, 2), y1 = y0 + len, cx = (x0 + x1) / 2 + R(2, 5), cy = (y0 + y1) / 2, w = R(1.9, 2.7);
+    return `M${f(x0 - 2)} ${f(y0)}Q${f(cx - w)} ${f(cy)} ${f(x1)} ${f(y1)}Q${f(cx + w)} ${f(cy)} ${f(x0 + 2)} ${f(y0)}Z`;
+  });
+  const chips = [0, 1, 2, 3].map(() => `<circle class="f" cx="${f(R(26, 74))}" cy="${f(R(40, 74))}" r="${f(R(.6, 1.2))}" style="animation-delay:${f(R(.1, .35))}s"/>`).join('');
+  c.innerHTML = `<svg viewBox="0 0 90 90" aria-hidden="true">${slashes.map((d, i) => `<g class="s s${i}"><path d="${d}" fill="rgba(34,16,46,.55)" stroke="rgba(34,16,46,.55)" stroke-width="1.5" stroke-linejoin="round"/><path d="${d}" fill="#fff6f8"/></g>`).join('')}<g fill="#fff6f8" stroke="rgba(34,16,46,.4)" stroke-width=".3">${chips}</g></svg>`;
+  document.body.appendChild(c); setTimeout(() => c.remove(), 1400);
 }
 function sfAngry(target, e){
   const host = target.closest('.moon-walker') || $('sofa'); if (!host) return;
+  if (host.dataset && host.dataset.v === 'sleep') host.dataset.v = 'sit';      // đang ngủ mà bị bấm: giật mình dậy, ngồi giận
   host.classList.add('angry'); clearTimeout(host._at); host._at = setTimeout(() => host.classList.remove('angry'), 1400);
   if (sfWalk && host === sfWalk.el && sfWalk.anim) {                  // Moon đang đi: đứng lại gầm gừ một chút rồi đi tiếp
     sfWalk.anim.pause(); clearTimeout(sfAngryT);                      // quay mặt ra nhìn khách (dáng ngồi) rồi đi tiếp
