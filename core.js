@@ -466,6 +466,32 @@ const todosGone = () => store.get('todos_gone', []);                  // id các
    ngày nào vượt là số liệu hỏng (lỗi cộng lặp cũ) → đưa về 0 để không hiện số vô lý và không đồng bộ tiếp lên tài khoản. */
 const cleanFocus = fl => { const o = {}; Object.entries(fl && typeof fl === 'object' ? fl : {}).forEach(([k, v]) => { const m = Math.round(+(v && v.m) || 0), s = Math.round(+(v && v.s) || 0); o[k] = (m >= 0 && s >= 0 && m <= 1440 && s <= m) ? { m, s } : { m:0, s:0 }; }); return o; };
 const localFocus = () => cleanFocus(store.get('focus', {}));
+/* Tải hồ sơ khách (users/<uid>): lỗi thì thử lại tối đa 3 lần (lần sau làm mới token trước), vẫn lỗi mới báo "không tải được" kèm mã lỗi để biết nguyên nhân.
+   `first` là lời gọi đã chạy sẵn song song với việc làm mới token; nút Thử lại ở Hành trình trăng gọi lại hàm này mà không phải tải lại cả web. */
+async function loadProfile(u, first){
+  let d = null, err = null;
+  for (let i = 0; i < 3 && !d; i++) {
+    try {
+      if (i) { await new Promise(r => setTimeout(r, 1500 * i)); if (!state.user || state.user.uid !== u.uid) return; await u.getIdToken(true).catch(() => {}); }
+      d = await (i || !first ? db.collection('users').doc(u.uid).get() : first);
+    } catch (e) { err = e; console.warn('profile', e.code, i); }
+  }
+  if (!state.user || state.user.uid !== u.uid) return;
+  if (!d) { state.profileFailed = true; state.profileErr = err && err.code || ''; render(true); return; }
+  try {
+    profile = d.exists ? d.data() : {};
+    const gone = new Set([...(profile.todosGone || []), ...todosGone()]), todos = (profile.todos || []).filter(x => !gone.has(x.id)); localTodos().forEach(x => { if (!gone.has(x.id) && !todos.find(y => y.id === x.id)) todos.push(x); });
+    store.set('todos_gone', [...gone].slice(-300));
+    const fl = cleanFocus(profile.focusLog); Object.entries(localFocus()).forEach(([k, v]) => { const o = fl[k] || { m:0, s:0 }; fl[k] = { m:Math.max(o.m, v.m), s:Math.max(o.s, v.s) }; });
+    store.set('todos', todos); store.set('focus', fl); profile.todos = todos; profile.focusLog = fl;
+    if (!d.exists || !profile.displayName) { profile.displayName = profile.displayName || u.displayName || (u.email || '').split('@')[0]; }
+    state.profileReady = true; state.profileFailed = false; state.profileErr = '';   // hồ sơ đã tải xong → mới được hiện/ghi Moon Journey
+    if (typeof grpPing === 'function') grpPing();                   // đã tham gia nhóm học và đồng hồ đang chạy → báo lại trạng thái
+    store.set('moon_' + u.uid, profile.moon || null);               // nhớ để lần sau hiện ngay trong lúc chờ tải
+    render(true);
+    saveProfileNow();
+  } catch (e) { console.warn('profile', e.code); state.profileFailed = true; state.profileErr = e.code || ''; render(true); }
+}
 auth.onAuthStateChanged(async u => {
   if (DEMO) { render(true); return; }
   state.authReady = true;
@@ -475,19 +501,7 @@ auth.onAuthStateChanged(async u => {
   if (unsubLib) { unsubLib(); unsubLib = null; }
   if (u) {
     const profileP = db.collection('users').doc(u.uid).get(); profileP.catch(() => {});      // tải hồ sơ song song với làm mới token, không chờ nhau
-    try {
-      const d = await profileP; profile = d.exists ? d.data() : {};
-      const gone = new Set([...(profile.todosGone || []), ...todosGone()]), todos = (profile.todos || []).filter(x => !gone.has(x.id)); localTodos().forEach(x => { if (!gone.has(x.id) && !todos.find(y => y.id === x.id)) todos.push(x); });
-      store.set('todos_gone', [...gone].slice(-300));
-      const fl = cleanFocus(profile.focusLog); Object.entries(localFocus()).forEach(([k, v]) => { const o = fl[k] || { m:0, s:0 }; fl[k] = { m:Math.max(o.m, v.m), s:Math.max(o.s, v.s) }; });
-      store.set('todos', todos); store.set('focus', fl); profile.todos = todos; profile.focusLog = fl;
-      if (!d.exists || !profile.displayName) { profile.displayName = profile.displayName || u.displayName || (u.email || '').split('@')[0]; }
-      state.profileReady = true;                                      // hồ sơ đã tải xong → mới được hiện/ghi Moon Journey
-      if (typeof grpPing === 'function') grpPing();                   // đã tham gia nhóm học và đồng hồ đang chạy → báo lại trạng thái
-      store.set('moon_' + u.uid, profile.moon || null);               // nhớ để lần sau hiện ngay trong lúc chờ tải
-      render(true);
-      saveProfileNow();
-    } catch (e) { console.warn('profile', e.code); state.profileFailed = true; render(true); }
+    await loadProfile(u, profileP);
     try { await u.reload(); await u.getIdToken(true); } catch (e) {}   // làm mới trạng thái xác minh email SAU khi hồ sơ đã hiện, để không làm chậm trang
     state.isAdmin = isAdminUser(u);
     if (state.isAdmin) { goLegacy(); loadAdmin().then(() => { if (typeof ensureSitePublished === 'function') ensureSitePublished(); if (typeof adminWatchRequests === 'function') adminWatchRequests(); }).catch(() => {}); }

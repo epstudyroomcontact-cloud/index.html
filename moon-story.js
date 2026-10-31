@@ -20,7 +20,7 @@ const mjStop = id => MJ_STOPS.find(s => s.id === id);
 const mjTitle = s => ctext('mjc_' + s.id + '_t');
 const mjOpen = (s, best) => s.day <= best;
 // admin luôn xem được mọi trạm (để duyệt và viết lời); khách chỉ thấy trạm đã tới
-const mjPreview = () => !!state.isAdmin;
+const mjPreview = () => !!state.isAdmin && !!store.get('mj_preview', false);   // admin phải bật mới thấy các trạm còn khoá; mặc định thấy y như khách
 const mjSeenKey = () => 'mj_seen_' + (state.user ? state.user.uid : 'guest');
 const mjSeen = () => +store.get(mjSeenKey(), -1);
 const mjRainOn = () => store.get('mj_rain', true) !== false;
@@ -141,7 +141,7 @@ function mjMapCard(m){
   const n = m ? m.days.length : 0, best = m ? m.best : 0, preview = mjPreview(), nxt = MJ_STOPS.find(s => !mjOpen(s, best));
   const rain = mjRainOn();
   return `<section class="card mj-road"><div class="mj-road-h"><div><h2>${esc(t('mjs_road'))}</h2><p class="small muted">${esc(t('mjs_road_sub'))}</p></div>
-      <button type="button" class="mj-toggle ${rain ? 'on' : ''}" data-act="mjRain" aria-pressed="${rain}">${esc(t('mjs_rain'))}</button></div>
+      <span class="row" style="gap:8px;flex-wrap:wrap;justify-content:flex-end">${state.isAdmin ? `<button type="button" class="mj-toggle ${preview ? 'on' : ''}" data-act="mjPreview" aria-pressed="${preview}">${state.lang === 'vi' ? 'Xem trước (admin)' : 'Preview (admin)'}</button>` : ''}<button type="button" class="mj-toggle ${rain ? 'on' : ''}" data-act="mjRain" aria-pressed="${rain}">${esc(t('mjs_rain'))}</button></span></div>
     <div class="mj-frame"${rain ? ' data-mjrain="map"' : ''}><div class="mj-scroll" id="mj-scroll">${mjMap(n, best, preview)}</div></div>
     <div class="mj-road-f small">${nxt && state.user ? `<span>${esc(t('mjs_next', { n:nxt.day - best }))}</span>` : ''}${m && m.broken ? `<span class="faint">${esc(t('mjs_kept'))}</span>` : ''}${preview ? `<span class="faint">${esc(t('mjs_preview'))}</span>` : ''}${t('mjs_lang') ? `<span class="faint">${esc(t('mjs_lang'))}</span>` : ''}</div></section>`;
 }
@@ -181,6 +181,7 @@ function mjMount(){
 }
 Object.assign(ACTIONS, {
   mjOpen: el => mjOpenChapter(el.dataset.id),
+  mjPreview: () => { store.set('mj_preview', !mjPreview() && !!state.isAdmin); render(true); },
   mjRain: () => { store.set('mj_rain', !mjRainOn()); render(true); }
 });
 document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.closest && e.target.closest('.mj-stop')) { e.preventDefault(); mjOpenChapter(e.target.closest('.mj-stop').dataset.id); } });
