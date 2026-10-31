@@ -1062,6 +1062,7 @@ html[data-calm="1"] .ep-paw{display:none}
 @keyframes tcSpin{to{transform:rotate(360deg)}}
 @keyframes tcBlink{50%{opacity:.2}}
 .tour-foot{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.tour-never{display:block;margin:10px auto 0;padding:2px 6px;background:none;border:0;color:var(--ink3);font:inherit;font-size:.75rem;text-decoration:underline;cursor:pointer}.tour-never:hover{color:var(--ink)}
 .tour-dots{display:flex;gap:5px}.tour-dots i{width:6px;height:6px;border-radius:50%;background:var(--line)}.tour-dots i.on{background:var(--accent)}
 @media(max-width:960px){#tour-ask{left:12px;right:12px;transform:none;bottom:calc(12px + env(safe-area-inset-bottom));width:auto}}
 @media(prefers-reduced-motion:reduce){html:not([data-motion="on"]) .tour-cat *,html:not([data-motion="on"]) .tour-cat{animation:none!important}html:not([data-motion="on"]) #tour-ring{animation:none}html:not([data-motion="on"]) #tour-card,html:not([data-motion="on"]) #tour-ask,html:not([data-motion="on"]) #tour-ring{transition:none}}
