@@ -649,6 +649,10 @@ Làm một lần, sau đó mỗi buổi chỉ cần bấm Start Streaming trong 
 - Muốn sửa chữ từng bước: `TOUR_PS` trong `guide.js` (đủ 8 ngôn ngữ, mỗi bước là [tiêu đề, một câu]); muốn đổi chỗ Moon chỉ hoặc thứ tự: `PGS` (bộ chọn, dáng Moon, khoá chữ).
 - Phòng tập trung, Hành trình trăng và Kế hoạch tuần dùng lại ba hình của hướng dẫn chung. Muốn đổi chữ dưới hình: sửa trong `guide.js` ở `TOUR_PG` (các trang mới) hoặc `fi` / `ci` / `pi` trong `TOUR_T`.
 
+### 22.an. Khách chưa đăng nhập: Moon chỉ nhắc đăng nhập
+- Khách **chưa đăng nhập** bật Moon lên (hướng dẫn tự chạy lần đầu, mục **Hướng dẫn** trên menu, hay nút ⓘ ở đầu từng trang) thì chỉ thấy **một thẻ nhắc đăng nhập** với nút **Đăng nhập** và **Để sau**, không có hướng dẫn nào khác (thay cho bản tóm tắt ba hình ở 22.al). Khách mới: thẻ này tự hiện một lần mỗi lần mở web (không đặt cờ "đã xem", nên sau khi đăng nhập hướng dẫn tự chạy bình thường); bấm Để sau thì không hiện lại trong lần mở đó.
+- Người đã đăng nhập: hướng dẫn chung và từng bước ở mỗi trang như trước.
+
 ### 22.am. Hướng dẫn chung: nút "Không nhắc lại" ở mọi bước
 - Hướng dẫn chung (tự chạy cho khách mới, hoặc bấm mục **Hướng dẫn** trên menu) có thêm dòng chữ nhỏ gạch chân **Không nhắc lại** dưới nút ở **mọi bước**. Bấm là đóng hướng dẫn và máy đó không tự chạy nữa (cùng cờ với nút Bỏ qua cũ; bước đầu không còn nút Bỏ qua riêng vì trùng). Muốn xem lại thì bấm mục Hướng dẫn trên menu. Hướng dẫn riêng của từng trang (nút ⓘ) không có nút này vì chỉ chạy khi khách tự bấm. Chữ ở `TOUR_OFF` trong `guide.js`, đủ 8 ngôn ngữ.
 - Sửa lỗi: bản #195 làm hướng dẫn chung tự chạy bị lỗi (`start()` gọi không tham số) nên không hiện; đã sửa.
