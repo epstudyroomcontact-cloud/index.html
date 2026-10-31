@@ -1403,25 +1403,25 @@ function sofaSync(){
 /* Moon đi dạo: lâu lâu rời sofa đi vòng quanh khắp màn hình (nhìn ngang, lại gần, đi xa, ngồi nghỉ) rồi quay về (chỉ transform, không đọc Firebase). Điện thoại: nhỏ hơn, ra ngắn hơn, thưa hơn.
    Không chạy khi: máy tắt chuyển động, tab ẩn, đang cuộn / gõ chữ / mở hộp thoại / hướng dẫn / thẻ sofa. Bấm vào Moon (đang ngủ hay đang đi): Moon giận hài hước và để lại vết cào. */
 const MWS = 'stroke="#aab4d0" stroke-width=".9"';
-const mwLeg = (x, y, fill, ph) => `<g transform="translate(${x} ${y})"><g class="mw-th ${ph}"><rect x="-4.4" y="-3" width="8.8" height="13" rx="4.4" fill="${fill}" ${MWS}/><g transform="translate(0 8)"><g class="mw-sh ${ph}"><rect x="-3.5" y="-1" width="7" height="11" rx="3.5" fill="${fill}" ${MWS}/><ellipse cx="-1.4" cy="10" rx="4.8" ry="2.9" fill="${fill}" ${MWS}/></g></g></g></g>`;
+const mwLeg = (x, y, fill, ph, hind) => `<g transform="translate(${x} ${y})"><g class="mw-th ${ph}"><path d="${hind ? 'M-4.5 -3C-6 5 -1.6 10 -2.6 16C-5.6 16.4 -5.8 20.8 -2.8 21L2.6 21C4.4 21 4.4 18 3 16.2C3.6 10 6.6 5 4.5 -3Z' : 'M-3.8 -3C-4.2 5 -3 11 -3 16C-5.8 16.4 -6 20.8 -3 21L2.4 21C4.2 21 4.2 18 2.8 16.2C3 10 4 4 3.8 -3Z'}" fill="${fill}" ${MWS} stroke-linejoin="round"/></g></g>`;
+const mwLegF = (x, y, fill) => `<path d="M${x - 4.2} ${y}C${x - 4.8} ${y + 6} ${x - 4.4} ${y + 9} ${x - 5.4} ${y + 11.4}Q${x - 6} ${y + 14.2} ${x} ${y + 14.2}Q${x + 6} ${y + 14.2} ${x + 5.4} ${y + 11.4}C${x + 4.4} ${y + 9} ${x + 4.8} ${y + 6} ${x + 4.2} ${y}Z" fill="${fill}" ${MWS} stroke-linejoin="round"/>`;
 const mwTail = (d, cls) => `<g class="${cls}"><path d="${d}" stroke="#aab4d0" stroke-width="7.2" stroke-linecap="round" fill="none"/><path d="${d}" stroke="#fdfaf3" stroke-width="5.6" stroke-linecap="round" fill="none"/></g>`;
 const mwPatch = d => `<path d="${d}" fill="#f2a15c" opacity=".92"/>`;
 /* Moon đi dạo có bốn góc nhìn: đi ngang (side), đi lại gần (front), đi xa (back) và ngồi nhìn thẳng (sit, cũng là dáng khi bị bấm) */
 const MOON_WALK = `<svg class="mw-svg mw-v mw-v-side" viewBox="0 0 100 72" aria-hidden="true">
   <ellipse cx="56" cy="69.5" rx="34" ry="3" fill="rgba(0,0,0,.22)"/>
   ${mwTail('M80 40Q98 41 96 22Q95 13 88 16', 'mw-tail')}
-  ${mwLeg(40, 47, '#dfe5f2', 'pb')}${mwLeg(72, 47, '#dfe5f2', 'pa')}
+  ${mwLeg(40, 46, '#dfe5f2', 'pb')}${mwLeg(72, 46, '#dfe5f2', 'pa', 1)}${mwLeg(48, 46, '#fdfaf3', 'pa')}${mwLeg(78, 46, '#fdfaf3', 'pb', 1)}
   <g class="mw-bd"><ellipse cx="58" cy="40" rx="26" ry="13.5" fill="#fdfaf3" ${MWS}/>${mwPatch('M52 28Q68 24 82 35Q72 38 62 37Z')}
     <g class="mw-hd"><g transform="translate(25 30) scale(2.05) translate(0 16.8)">${moonHead('mwH1', 'mw')}</g></g></g>
-  ${mwLeg(48, 47, '#fdfaf3', 'pa')}${mwLeg(78, 47, '#fdfaf3', 'pb')}
+  <ellipse cx="76" cy="46" rx="8.6" ry="9.4" fill="#fdfaf3" stroke="#aab4d0" stroke-width=".9" stroke-opacity=".45"/><ellipse cx="47" cy="45" rx="7" ry="8.4" fill="#fdfaf3" stroke="#aab4d0" stroke-width=".9" stroke-opacity=".45"/>
 </svg>
 <svg class="mw-svg mw-v mw-v-front" viewBox="0 0 100 72" aria-hidden="true">
   <ellipse cx="50" cy="69.5" rx="22" ry="3" fill="rgba(0,0,0,.22)"/>
   ${mwTail('M60 54Q82 54 77 34Q75 26 68 30', 'mw-tailf')}
   <ellipse class="mw-fl pb" cx="36" cy="66.5" rx="5.6" ry="3.1" fill="#fdfaf3" ${MWS}/><ellipse class="mw-fl pa" cx="64" cy="66.5" rx="5.6" ry="3.1" fill="#fdfaf3" ${MWS}/>
   <g class="mw-fb"><ellipse cx="50" cy="53" rx="17" ry="15" fill="#fdfaf3" ${MWS}/>${mwPatch('M34 50Q36 40 46 40Q44 48 38 56Z')}
-    <g class="mw-fl pa"><rect x="38.5" y="55" width="9" height="12" rx="4.5" fill="#fdfaf3" ${MWS}/><ellipse cx="43" cy="66.4" rx="5.4" ry="3.2" fill="#fdfaf3" ${MWS}/></g>
-    <g class="mw-fl pb"><rect x="52.5" y="55" width="9" height="12" rx="4.5" fill="#fdfaf3" ${MWS}/><ellipse cx="57" cy="66.4" rx="5.4" ry="3.2" fill="#fdfaf3" ${MWS}/></g>
+    <g class="mw-fl pa">${mwLegF(43, 54, '#fdfaf3')}</g><g class="mw-fl pb">${mwLegF(57, 54, '#fdfaf3')}</g>
     <g class="mw-hd"><g transform="translate(50 31) scale(2.4) translate(0 16.8)">${moonHead('mwH2', 'mw')}</g></g></g>
 </svg>
 <svg class="mw-svg mw-v mw-v-back" viewBox="0 0 100 72" aria-hidden="true">
@@ -1440,8 +1440,7 @@ const MOON_WALK = `<svg class="mw-svg mw-v mw-v-side" viewBox="0 0 100 72" aria-
   <ellipse cx="50" cy="57" rx="23" ry="13" fill="#fdfaf3" ${MWS}/>
   <ellipse cx="34" cy="66.4" rx="6.6" ry="3.3" fill="#fdfaf3" ${MWS}/><ellipse cx="66" cy="66.4" rx="6.6" ry="3.3" fill="#fdfaf3" ${MWS}/>
   <g class="mw-br"><ellipse cx="50" cy="50" rx="14" ry="16.5" fill="#fdfaf3" ${MWS}/>${mwPatch('M37 48Q38 38 47 38Q45 46 40 54Z')}
-    <rect x="40.5" y="52" width="8" height="14" rx="4" fill="#fdfaf3" ${MWS}/><rect x="51.5" y="52" width="8" height="14" rx="4" fill="#fdfaf3" ${MWS}/>
-    <ellipse cx="44.5" cy="66.4" rx="5" ry="3" fill="#fdfaf3" ${MWS}/><ellipse cx="55.5" cy="66.4" rx="5" ry="3" fill="#fdfaf3" ${MWS}/></g>
+    ${mwLegF(44.5, 53, '#fdfaf3')}${mwLegF(55.5, 53, '#fdfaf3')}</g>
   <g class="mw-hd"><g transform="translate(50 29) scale(2.4) translate(0 16.8)">${moonHead('mwH3', 'mw')}</g></g>
 </svg>`;
 const sfReduced = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches && document.documentElement.dataset.motion !== 'on');
@@ -1483,7 +1482,7 @@ function sfRoam(){
     el.dataset.v = v; el.classList.toggle('right', v === 'side' && dx > 0);
     if (last) $('sofa').classList.remove('gone');
     if (sfWalk.anim) sfWalk.anim.cancel();
-    sfWalk.anim = el.animate([{ transform:T(a) }, { transform:T(b) }], { duration:Math.max(900, Math.hypot(dx, dy) / (phone ? 80 : 120) * 1000), easing:'linear', fill:'forwards' });
+    sfWalk.anim = el.animate([{ transform:T(a) }, { transform:T(b) }], { duration:Math.max(1500, Math.hypot(dx, dy) / (phone ? 46 : 60) * 1000), easing:'linear', fill:'forwards' });
     sfWalk.anim.onfinish = () => {
       if (!sfWalk || sfWalk.el !== el) return;
       if (!last && Math.random() < .7) { el.dataset.v = 'sit'; el.classList.remove('right'); sfWalk.t = setTimeout(() => go(i + 1), 1400 + Math.random() * 1400); }   // dừng lại ngồi nhìn một chút
