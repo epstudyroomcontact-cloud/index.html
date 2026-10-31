@@ -1406,26 +1406,26 @@ function sofaSync(){
 const MWS = 'stroke="#aab4d0" stroke-width=".9"';
 /* chân ngắn mập: cổ chân thon, bàn chân xòe, hai ngón nhỏ; nét viền hở ở đỉnh để chân nối liền vào thân */
 const mwLegD = (x, y, h, hind) => hind
-  ? `M${x - 2.4} ${y}C${x - 3.4} ${y + 6} ${x + .6} ${y + 9} ${x - .4} ${y + h - 3.4}C${x - 2.2} ${y + h - 2.8} ${x - 2.6} ${y + h + .6} ${x - .4} ${y + h + .8}L${x + 2.2} ${y + h + .8}C${x + 3.9} ${y + h + .6} ${x + 3.5} ${y + h - 2.8} ${x + 2.1} ${y + h - 3.4}C${x + 3.4} ${y + 9} ${x + 5.4} ${y + 5} ${x + 2.4} ${y}`
-  : `M${x - 2.3} ${y}L${x - 2.2} ${y + h - 3.2}C${x - 3.8} ${y + h - 2.6} ${x - 4.1} ${y + h + .6} ${x - 1.6} ${y + h + .8}L${x + 1.6} ${y + h + .8}C${x + 4.1} ${y + h + .6} ${x + 3.8} ${y + h - 2.6} ${x + 2.2} ${y + h - 3.2}L${x + 2.3} ${y}`;
+  ? `M${x - 4.2} ${y}C${x - 5.4} ${y + 4} ${x - 3} ${y + 8} ${x - 2.6} ${y + h - 3.4}C${x - 4.8} ${y + h - 2.8} ${x - 5.2} ${y + h + .7} ${x - 2} ${y + h + .9}L${x + 2.4} ${y + h + .9}C${x + 5.4} ${y + h + .7} ${x + 5} ${y + h - 2.8} ${x + 3} ${y + h - 3.4}C${x + 3.6} ${y + 8} ${x + 6.4} ${y + 4} ${x + 4.6} ${y}`
+  : `M${x - 3} ${y}L${x - 2.9} ${y + h - 3.4}C${x - 5.2} ${y + h - 2.8} ${x - 5.6} ${y + h + .7} ${x - 2.2} ${y + h + .9}L${x + 2.2} ${y + h + .9}C${x + 5 } ${y + h + .7} ${x + 4.8} ${y + h - 2.8} ${x + 2.9} ${y + h - 3.4}L${x + 3} ${y}`;
 const mwLegSvg = (x, y, h, fill, hind) => `<path d="${mwLegD(x, y, h, hind)}Z" fill="${fill}"/><path d="${mwLegD(x, y, h, hind)}" fill="none" ${MWS} stroke-linejoin="round" stroke-linecap="round"/><path d="M${x + (hind ? .8 : 0)} ${y + h - 1.3}v1.4" stroke="#aab4d0" stroke-width=".5" stroke-linecap="round" fill="none"/>`;
 const mwLeg = (x, y, h, fill, ph, hind) => `<g transform="translate(${x} ${y})"><g class="mw-pw ${ph}">${mwLegSvg(0, 0, h, fill, hind)}</g></g>`;
 /* hình bên hông: chân và thân gộp thành một khối liền nét. Lớp dưới vẽ hình nở ra 1 đơn vị bằng màu viền, lớp trên tô trắng nên chỗ chân nối thân không còn nét viền chen ngang, chỉ còn viền ngoài của cả khối */
 const mwOut = d => `<path d="${d}" fill="#aab4d0" stroke="#aab4d0" stroke-width="2.2" stroke-linejoin="round"/>`;
 const mwLegO = (x, y, h, ph, hind) => `<g transform="translate(${x} ${y})"><g class="mw-pw ${ph}">${mwOut(mwLegD(0, 0, h, hind) + 'Z')}</g></g>`;
 const mwLegW = (x, y, h, ph, hind, fill) => `<g transform="translate(${x} ${y})"><g class="mw-pw ${ph}"><path d="${mwLegD(0, 0, h, hind)}Z" fill="${fill}"/><path d="M${hind ? .8 : 0} ${h - 1.3}v1.4" stroke="#aab4d0" stroke-width=".5" stroke-linecap="round" fill="none"/></g></g>`;
-const MW_BODY = 'M35 41C35 31 49 28 62 28.5C79 29 90 36 89 48C88 58 77 61.5 62 61.5C47 61.5 35 54 35 41Z';
+const MW_BODY = 'M32 44C32 35 46 31 60 31.5C78 32 90 38 89 49C88 58 77 60.5 62 60.5C46 60.5 32 55 32 44Z';
 const mwTail = (d, cls) => `<g class="${cls}"><path d="${d}" stroke="#aab4d0" stroke-width="8.2" stroke-linecap="round" fill="none"/><path d="${d}" stroke="#fdfaf3" stroke-width="6.6" stroke-linecap="round" fill="none"/></g>`;
 const mwPatch = d => `<path d="${d}" fill="#f2a15c" opacity=".92"/>`;
 /* Moon đi dạo có bốn góc nhìn: đi ngang (side), đi lại gần (front), đi xa (back) và ngồi nhìn thẳng (sit, cũng là dáng khi bị bấm) */
 const MOON_WALK = `<svg class="mw-svg mw-v mw-v-side" viewBox="0 0 100 72" aria-hidden="true">
   <ellipse cx="56" cy="69.5" rx="34" ry="3" fill="rgba(0,0,0,.22)"/>
-  <g transform="translate(0 -3.5)">${mwTail('M85 43Q102 44 99 26Q97 18 91 21', 'mw-tail')}</g>
-  ${mwLegO(40, 48, 18, 'pb')}${mwLegO(72, 48, 18, 'pa', 1)}${mwLegO(49, 48, 18, 'pa')}${mwLegO(80, 48, 18, 'pb', 1)}
-  <g transform="translate(0 -3.5)"><g class="mw-bd">${mwOut(MW_BODY)}</g></g>
-  ${mwLegW(40, 48, 18, 'pb', 0, '#f3f5fb')}${mwLegW(72, 48, 18, 'pa', 1, '#f3f5fb')}${mwLegW(49, 48, 18, 'pa', 0, '#fdfaf3')}${mwLegW(80, 48, 18, 'pb', 1, '#fdfaf3')}
-  <g transform="translate(0 -3.5)"><g class="mw-bd"><path d="${MW_BODY}" fill="#fdfaf3"/>${mwPatch('M54 30Q71 26 86 37Q76 41 64 40Z')}
-    <g class="mw-hd"><g transform="translate(24 38) scale(2.15) translate(0 16.8)">${moonHead('mwH1', 'mw')}</g></g></g></g>
+  <g transform="translate(0 -2.5)">${mwTail('M85 45Q104 49 100 27Q98 15 90 17', 'mw-tail')}</g>
+  ${mwLegO(44, 52, 14, 'pb')}${mwLegO(74, 52, 14, 'pa', 1)}${mwLegO(54, 52, 14, 'pa')}${mwLegO(84, 52, 14, 'pb', 1)}
+  <g transform="translate(0 -2.5)"><g class="mw-bd">${mwOut(MW_BODY)}</g></g>
+  ${mwLegW(44, 52, 14, 'pb', 0, '#f3f5fb')}${mwLegW(74, 52, 14, 'pa', 1, '#f3f5fb')}${mwLegW(54, 52, 14, 'pa', 0, '#fdfaf3')}${mwLegW(84, 52, 14, 'pb', 1, '#fdfaf3')}
+  <g transform="translate(0 -2.5)"><g class="mw-bd"><path d="${MW_BODY}" fill="#fdfaf3"/>${mwPatch('M52 33Q70 29 86 39Q76 43 64 42Z')}
+    <g class="mw-hd"><g transform="translate(30 41) scale(2.3) translate(0 16.8)">${moonHead('mwH1', 'mw')}</g></g></g></g>
 </svg>
 <svg class="mw-svg mw-v mw-v-front" viewBox="0 0 100 72" aria-hidden="true">
   <ellipse cx="50" cy="69.5" rx="22" ry="3" fill="rgba(0,0,0,.22)"/>
