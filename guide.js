@@ -774,7 +774,7 @@ const EPTour = (() => {
     if (!state.authReady && tries++ < 6) return setTimeout(auto, 1000);   // đợi biết đã đăng nhập chưa để chọn "tự chạy" hay "hỏi trước"
     returning() ? ask() : start();
   }
-  const page = name => { if (PG[name]) start(state.user ? { page:name } : { steps:[{ k:'lg' }] }); };   // chưa đăng nhập: chỉ mời đăng nhập, các hướng dẫn chi tiết dành cho người đã đăng nhập
+  const page = name => { if (PG[name]) start(state.user ? { page:name } : { steps:[{ k:'pg', pg:name }, { k:'lg' }] }); };   // chưa đăng nhập: bản tóm tắt ba hình của trang rồi mời đăng nhập; các bước chỉ vào từng nút dành cho người đã đăng nhập
   // đang dùng thử mã: mỗi lần mở trang Ủng hộ Moon hiện lên nhắc ngày hết hạn (không đè lên hướng dẫn đang chạy)
   const trial = () => { if (cur || el('tour-ask') || !state.user || !state.trial || state.companion || state.isAdmin || !(state.trial.endsAt > Date.now())) return; start({ steps:[{ k:'tr' }] }); };   // nút ? ở đầu trang: Moon chỉ nhanh trang đang xem, không đụng tới cờ "đã xem hướng dẫn"
   return { start, auto, close, preview, page, trial };
