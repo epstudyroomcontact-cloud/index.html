@@ -168,7 +168,7 @@ Object.assign(I18N.vi, {
   const statsRef = () => db.collection('study_stats').doc('current');
   let pub = store.get('grp_pub', null), pubBusy = false;
   function pushStats(){
-    if (!on() || !me() || !lead()) return; const now = Date.now();
+    if (!on() || !lead()) return; const now = Date.now();   // không cần đã tham gia nhóm: admin / Người đồng hành đang xem nhóm cũng cập nhật số liệu được
     if (now - (+store.get('grp_pubw', 0) || 0) < 5 * 60e3) return; store.set('grp_pubw', now);
     const ids = new Set([...Object.keys(board), ...liveRows().map(r => r.id)]);
     statsRef().set({ wk:wk(), members:ids.size, live:liveRows().length, t:TS() }).catch(() => {});   // bị luật từ chối (có người khác vừa ghi) thì bỏ qua
