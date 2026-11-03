@@ -1004,6 +1004,11 @@ html[data-calm="1"] .ep-paw{display:none}
 .grp-err{margin:8px 0}
 .grp-opts summary{cursor:pointer}
 .grp-leave{display:flex;justify-content:flex-end}
+.grp-toggle{display:flex;align-items:center;gap:8px;width:100%;margin-top:6px;padding:8px 10px;border-radius:10px;font-size:.84rem;font-weight:700;color:var(--ink2);background:var(--accent-soft);justify-content:center}
+.grp-toggle:hover{color:var(--ink)}
+.grp-tri{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid currentColor;transition:transform .2s}
+.grp-toggle.open .grp-tri{transform:rotate(180deg)}
+@media(prefers-reduced-motion:reduce){html:not([data-motion="on"]) .grp-tri{transition:none}}
 .grp-moon{display:flex;gap:12px;align-items:center;max-width:460px;padding:10px 12px;border-radius:16px;background:var(--accent-soft)}
 .grp-moon-cat{flex:none;width:96px;display:block}
 .grp-moon-cat .mw-svg{display:block;width:100%}
@@ -1243,3 +1248,15 @@ body:has(#tour-ask) .sofa{display:none}
 .moon-help:hover{background:var(--accent);border-color:transparent}
 .moon-help .ic{width:15px;height:15px}
 @media(max-width:640px){.moon-help span{display:none}.moon-help{padding:8px}}
+/* Planner: chấm mức hoàn thành khi tick, cảnh báo trùng giờ */
+.pl-lv{display:grid;gap:8px}
+.pl-lvb{display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:10px;text-align:left;padding:10px 12px;border-radius:14px;border:1.5px solid var(--line);background:var(--surface2);color:var(--ink);cursor:pointer;font:inherit;font-weight:600}
+.pl-lvb b{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--accent-soft);color:var(--accent-strong);font-size:.95rem}
+.pl-lvb small{color:var(--ink3);font-weight:700}
+.pl-lvb:hover,.pl-lvb:focus-visible{border-color:var(--accent);outline:none}
+.pl-clash{margin:8px 0 0;padding:9px 11px;border-radius:12px;border:1.5px solid var(--danger,#e0243a);background:rgba(224,36,58,.09);color:var(--ink);line-height:1.45}
+.pl-clash .btn{margin-left:4px;vertical-align:middle}
+.pl-b.clash{box-shadow:0 0 0 2px var(--danger,#e0243a),0 1px 3px rgba(0,0,0,.18)}
+.pl-b small{font-weight:700;opacity:.75}
+.pl-warn{font-style:normal;font-weight:700;color:var(--danger,#e0243a)}
+.pl-b.clash{padding-left:5px;padding-right:3px}.pl-b.clash .pl-ck{display:none}
