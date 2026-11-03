@@ -1004,6 +1004,11 @@ html[data-calm="1"] .ep-paw{display:none}
 .grp-err{margin:8px 0}
 .grp-opts summary{cursor:pointer}
 .grp-leave{display:flex;justify-content:flex-end}
+.grp-toggle{display:flex;align-items:center;gap:8px;width:100%;margin-top:6px;padding:8px 10px;border-radius:10px;font-size:.84rem;font-weight:700;color:var(--ink2);background:var(--accent-soft);justify-content:center}
+.grp-toggle:hover{color:var(--ink)}
+.grp-tri{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid currentColor;transition:transform .2s}
+.grp-toggle.open .grp-tri{transform:rotate(180deg)}
+@media(prefers-reduced-motion:reduce){html:not([data-motion="on"]) .grp-tri{transition:none}}
 .grp-moon{display:flex;gap:12px;align-items:center;max-width:460px;padding:10px 12px;border-radius:16px;background:var(--accent-soft)}
 .grp-moon-cat{flex:none;width:96px;display:block}
 .grp-moon-cat .mw-svg{display:block;width:100%}

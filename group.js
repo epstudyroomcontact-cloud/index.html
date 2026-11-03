@@ -76,7 +76,7 @@ Object.assign(I18N.vi, {
   Object.keys(Z).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], Z[l]); });
 })();
 (function(){
-  const TZ = 'Asia/Ho_Chi_Minh', BEAT = 4 * 60e3, STALE = 9 * 60e3, POLL = 60e3, POLL_SLOW = 180e3, IDLE = 10 * 60e3, SESS_GAP = 15 * 60e3, TOP = 20, FLUSH = 3 * 60e3;   // nhịp báo, quá hạn thì ẩn, tải lại (Phòng tập trung / trang khác), ngừng tải khi không đụng vào gì, nghỉ quá lâu thì tính phiên mới, số người trong bảng
+  const TZ = 'Asia/Ho_Chi_Minh', BEAT = 4 * 60e3, STALE = 9 * 60e3, POLL = 60e3, POLL_SLOW = 180e3, IDLE = 10 * 60e3, SESS_GAP = 15 * 60e3, TOP = 5, FLUSH = 3 * 60e3;   // nhịp báo, quá hạn thì ẩn, tải lại (Phòng tập trung / trang khác), ngừng tải khi không đụng vào gì, nghỉ quá lâu thì tính phiên mới, số người trong bảng
   const wk = () => DT.now().setZone(TZ).toFormat("kkkk-'W'WW"), wkPrev = () => DT.now().setZone(TZ).minus({ weeks:1 }).toFormat("kkkk-'W'WW");
   const ref = () => db.collection('study_group').doc(wk());
   const key = () => 'grp_' + state.user.uid;
@@ -276,7 +276,7 @@ Object.assign(I18N.vi, {
     const top = all.slice(0, showAll ? 1500 : TOP), mine = all.findIndex(x => x.k === id), row = (x, i) => `<li class="grp-row ${x.k === id ? 'me' : ''}"><span class="grp-rank r${i < 3 ? i + 1 : 0}">${i + 1}</span>${avatar(x.n)}<b class="grp-n">${esc(dn(x.k, x.n))}${x.k === id ? ` <span class="badge">${esc(t('grp_you'))}</span>` : ''}</b><span class="grp-t">${esc(fmt(x.mins * 60000))}</span>${plus(x.k, x.n)}${kick(x.k)}</li>`;
     const zero = liveRows().filter(r => !all.some(x => x.k === r.id));   // đang học nhưng chưa có phút trên bảng tuần này: vẫn hiện, để không ai "biến mất" khỏi bảng
     const zrow = r => `<li class="grp-row ${r.id === id ? 'me' : ''}"><span class="grp-rank r0">–</span>${avatar(r.n)}<b class="grp-n">${esc(dn(r.id, r.n))}${r.id === id ? ` <span class="badge">${esc(t('grp_you'))}</span>` : ''}</b><span class="grp-st f">${esc(t('grp_live0'))}</span>${kick(r.id)}</li>`;
-    const more = all.length > TOP ? `<button type="button" class="btn ghost sm" data-act="grpMore">${esc(showAll ? t('grp_less', { n:TOP }) : t('grp_more', { n:all.length }))}</button>` : '';
+    const more = all.length > TOP ? `<button type="button" class="grp-toggle ${showAll ? 'open' : ''}" data-act="grpMore" aria-expanded="${showAll}"><i class="grp-tri" aria-hidden="true"></i> ${esc(showAll ? t('grp_less', { n:TOP }) : t('grp_more', { n:all.length }))}</button>` : '';
     const cl = climb(), sum = cl ? `<p class="grp-climb small"><b>${esc(t('grp_rank', { r:cl.r }))}</b>${trendHTML(cl)}<span class="muted">${esc(gapText(cl))}</span></p>` : '';
     return `<h3 class="grp-h">${esc(t('grp_board'))}</h3>${sum}` + (all.length || zero.length
       ? `<ol class="grp-list">${top.map(row).join('')}${!showAll && mine >= TOP ? `<li class="grp-gap" aria-hidden="true">…</li>${row(all[mine], mine)}` : ''}${zero.map(zrow).join('')}</ol>${more}` : `<p class="muted small">${esc(t(known() ? 'grp_board_none' : 'loading'))}</p>`) + `<p class="small faint mt-s">${esc(t('grp_reset'))}</p>` + prevHTML();
