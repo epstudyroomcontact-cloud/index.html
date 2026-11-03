@@ -280,6 +280,9 @@ Object.assign(I18N.vi, {
     return `<h3 class="grp-h">${esc(t('grp_board'))}</h3>${sum}` + (all.length || zero.length
       ? `<ol class="grp-list">${top.map(row).join('')}${!showAll && mine >= TOP ? `<li class="grp-gap" aria-hidden="true">…</li>${row(all[mine], mine)}` : ''}${zero.map(zrow).join('')}</ol>${more}` : `<p class="muted small">${esc(t(known() ? 'grp_board_none' : 'loading'))}</p>`) + `<p class="small faint mt-s">${esc(t('grp_reset'))}</p>` + prevHTML();
   }
+  function moonBeg(){      // Moon (con mèo động của web, dáng ngồi) hiện ra nũng nịu; dùng lại hình mèo đi dạo trong pages.js, không vẽ riêng
+    try { const m = typeof MOON_WALK === 'string' && MOON_WALK.match(/<svg class="mw-svg mw-v mw-v-sit"[\s\S]*?<\/svg>/); return m ? `<span class="grp-moon-cat" aria-hidden="true">${m[0].replace(/mwH3/g, 'mwHL')}</span>` : ''; } catch (e) { return ''; }
+  }
   function renderMain(){
     const el = box(); if (!el) return;
     if (!state.user || !on()) { el.innerHTML = upsell(); return; }
@@ -292,7 +295,7 @@ Object.assign(I18N.vi, {
       ${errHTML()}
       <div class="grp-cols"><div>${liveCols()}</div><div>${boardHTML()}</div></div>
       <details class="grp-opts mt"><summary class="small muted">${esc(m.n)} · ${esc(t('grp_save_nick'))}</summary><div class="mt-s">${nickForm(true, m.n)}</div></details>
-      <div class="mt-s grp-leave">${leaving ? `<div class="grp-moon">${typeof paint === 'function' ? `<span class="grp-moon-art" aria-hidden="true">${paint('moonwalk', { crop:'card', seed:5, anim:false })}</span>` : ''}<div class="grp-moon-t"><b>${esc(t('grp_leave_moon'))}</b><p class="small muted">${esc(t('grp_leave_ask'))}</p><div class="row grp-moon-b"><button type="button" class="btn primary sm" data-act="grpLeaveNo">${esc(t('grp_stay'))}</button><button type="button" class="btn ghost sm" data-act="grpLeaveYes">${esc(t('grp_leave_yes'))}</button></div></div></div>` : `<button type="button" class="btn ghost sm" data-act="grpLeave">${esc(t('grp_leave'))}</button>`}</div>`;
+      <div class="mt-s grp-leave">${leaving ? `<div class="grp-moon">${moonBeg()}<div class="grp-moon-t"><b>${esc(t('grp_leave_moon'))}</b><p class="small muted">${esc(t('grp_leave_ask'))}</p><div class="row grp-moon-b"><button type="button" class="btn primary sm" data-act="grpLeaveNo">${esc(t('grp_stay'))}</button><button type="button" class="btn ghost sm" data-act="grpLeaveYes">${esc(t('grp_leave_yes'))}</button></div></div></div>` : `<button type="button" class="btn ghost sm" data-act="grpLeave">${esc(t('grp_leave'))}</button>`}</div>`;
   }
   const rankOf = () => { const id = state.user.uid, all = boardRows(), i = all.findIndex(x => x.k === id); return i < 0 ? null : { r:i + 1, mins:all[i].mins }; };
   /* Leo hạng: hạng hiện tại, tăng/giảm so với lần đầu thấy trong ngày (giờ Việt Nam), và khoảng cách tới người đứng trên (cùng điểm thì ai đạt trước đứng trên, nên cần hơn 1 phút để vượt) */
