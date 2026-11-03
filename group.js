@@ -264,6 +264,7 @@ Object.assign(I18N.vi, {
   const dn = (k, n) => (dup[nk(n)] || 0) > 1 ? `${n} #${String(k).slice(-3).toUpperCase()}` : n;
   const avatar = n => `<i class="grp-av" style="--h:${hue(n)}">${esc(String(n).slice(0, 1).toUpperCase())}</i>`;
   const kick = id => state.isAdmin && id !== state.user.uid ? `<button type="button" class="grp-x" data-act="grpKick" data-id="${esc(id)}" title="${esc(t('grp_remove'))}" aria-label="${esc(t('grp_remove'))}">${ic('x', 'sm')}</button>` : '';
+  const plus = (id, n) => state.isAdmin ? `<button type="button" class="grp-x" data-act="grpAdd" data-id="${esc(id)}" data-n="${esc(n)}" title="Cộng bù phút" aria-label="Cộng bù phút">${ic('plus', 'sm')}</button>` : '';   // chỉ admin: cộng bù phút bị mất do lỗi cũ
   function boardRows(){               // bảng tuần; số phút của chính mình cộng thêm phần đang chờ ghi, nên luôn mới nhất
     const id = state.user.uid, p = me() ? pend() : 0, tms = e => e && e.t && typeof e.t.toMillis === 'function' ? e.t.toMillis() : 0, now = Date.now();
     const o = Object.entries(board).map(([k, e]) => ({ k, n:(e && e.n) || '?', mins:((e && e.mins) | 0) + (k === id ? p : 0), at:k === id && p > 0 ? now : tms(e) }));
@@ -272,7 +273,7 @@ Object.assign(I18N.vi, {
   }
   function boardHTML(){
     const id = state.user.uid, all = boardRows();
-    const top = all.slice(0, showAll ? 1500 : TOP), mine = all.findIndex(x => x.k === id), row = (x, i) => `<li class="grp-row ${x.k === id ? 'me' : ''}"><span class="grp-rank r${i < 3 ? i + 1 : 0}">${i + 1}</span>${avatar(x.n)}<b class="grp-n">${esc(dn(x.k, x.n))}${x.k === id ? ` <span class="badge">${esc(t('grp_you'))}</span>` : ''}</b><span class="grp-t">${esc(fmt(x.mins * 60000))}</span>${kick(x.k)}</li>`;
+    const top = all.slice(0, showAll ? 1500 : TOP), mine = all.findIndex(x => x.k === id), row = (x, i) => `<li class="grp-row ${x.k === id ? 'me' : ''}"><span class="grp-rank r${i < 3 ? i + 1 : 0}">${i + 1}</span>${avatar(x.n)}<b class="grp-n">${esc(dn(x.k, x.n))}${x.k === id ? ` <span class="badge">${esc(t('grp_you'))}</span>` : ''}</b><span class="grp-t">${esc(fmt(x.mins * 60000))}</span>${plus(x.k, x.n)}${kick(x.k)}</li>`;
     const zero = liveRows().filter(r => !all.some(x => x.k === r.id));   // đang học nhưng chưa có phút trên bảng tuần này: vẫn hiện, để không ai "biến mất" khỏi bảng
     const zrow = r => `<li class="grp-row ${r.id === id ? 'me' : ''}"><span class="grp-rank r0">–</span>${avatar(r.n)}<b class="grp-n">${esc(dn(r.id, r.n))}${r.id === id ? ` <span class="badge">${esc(t('grp_you'))}</span>` : ''}</b><span class="grp-st f">${esc(t('grp_live0'))}</span>${kick(r.id)}</li>`;
     const more = all.length > TOP ? `<button type="button" class="btn ghost sm" data-act="grpMore">${esc(showAll ? t('grp_less', { n:TOP }) : t('grp_more', { n:all.length }))}</button>` : '';
@@ -374,8 +375,18 @@ Object.assign(I18N.vi, {
     if (board[id]) ref().set({ board:{ [id]: { n, mins:firebase.firestore.FieldValue.increment(0), t:TS() } } }, { merge:true }).then(() => { board[id].n = n; renderBox(); }).catch(() => {});   // đổi biệt danh trên bảng xếp hạng, giữ nguyên số phút
     load(true);
   };
+  FORMS.grpAddMin = async () => {
+    const id = $('grp-add-id').value, m = Math.round(+$('grp-add-m').value) || 0; if (!state.isAdmin || !id || m < 1 || m > 600) return toast('Nhập số phút từ 1 đến 600');
+    try {
+      const d = await ref().get(), e = ((d.exists && d.data().board) || {})[id]; if (!e) return toast('Không thấy người này trên bảng tuần này');
+      const b = { n:e.n || '?', mins:firebase.firestore.FieldValue.increment(m), t:TS() };
+      if (e.f && typeof e.f.toMillis === 'function') b.f = firebase.firestore.Timestamp.fromMillis(e.f.toMillis() - m * 60000);   // lùi mốc bắt đầu của họ đúng bằng số phút cộng bù, để luật chống khai khống không chặn các lần ghi sau của chính họ
+      await ref().set({ board:{ [id]: b } }, { merge:true }); closeModal(); toast('Đã cộng ' + m + ' phút'); load(true);
+    } catch (err) { toast(t('grp_err')); }
+  };
   Object.assign(ACTIONS, {
     grpRefresh: () => load(true),
+    grpAdd: el => { if (!state.isAdmin) return; const id = el.dataset.id; openModal(`<h2>Cộng bù phút cho ${esc(el.dataset.n || '')}</h2><p class="muted small mt-s">Dùng khi khách bị mất phút học do lỗi cũ. Số phút được cộng thẳng vào bảng tuần này.</p><form class="stack mt" data-form="grpAddMin"><input type="hidden" id="grp-add-id" value="${esc(id)}"><label class="label" for="grp-add-m">Số phút (1 đến 600)</label><input class="input" id="grp-add-m" type="number" min="1" max="600" inputmode="numeric"><div class="row"><button class="btn primary" type="submit">Cộng phút</button><button class="btn ghost" type="button" data-act="closeModal">Huỷ</button></div></form>`, true); },
     grpMore: () => { showAll = !showAll; renderBox(); },
     grpGo: () => { const b = box(); if (b) b.scrollIntoView({ block:'start' }); },
     grpLeave: () => { leaving = true; renderBox(); },
