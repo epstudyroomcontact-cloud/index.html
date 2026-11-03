@@ -201,7 +201,7 @@ input[type=checkbox],input[type=radio]{accent-color:var(--accent-strong)}
 @media(max-width:820px){.hero{min-height:620px}.hero-copy{margin:24px 20px}.next-card{right:auto;left:16px;bottom:16px}}
 /* ---------- tranh động: bé thiên thần cầm ô hồng giữa đêm mưa ---------- */
 .rs{position:absolute;inset:0;width:100%;height:100%;display:block}
-.hero>.rs,.art-head>.rs,.art-strip>.rs,.pcard .cv>.rs,.about-img>.rs,.player .ph>.rs{position:absolute;inset:0}
+.hero>.rs,.art-head>.rs,.art-strip>.rs,.grp-moon-art>.rs,.pcard .cv>.rs,.about-img>.rs,.player .ph>.rs{position:absolute;inset:0}
 @keyframes rs-rain{from{transform:translate(0,0)}to{transform:translate(calc(var(--rh) * var(--sl) * -1),var(--rh))}}
 @keyframes rs-gust{0%,100%{transform:rotate(-1.4deg)}50%{transform:rotate(1.8deg)}}
 @keyframes rs-mist{0%,100%{transform:translateX(-70px)}50%{transform:translateX(70px)}}
@@ -1005,7 +1005,7 @@ html[data-calm="1"] .ep-paw{display:none}
 .grp-opts summary{cursor:pointer}
 .grp-leave{display:flex;justify-content:flex-end}
 .grp-moon{display:flex;gap:12px;align-items:center;max-width:460px;padding:10px 12px;border-radius:16px;background:var(--accent-soft)}
-.grp-moon-art{flex:none;width:88px;height:66px;border-radius:12px;overflow:hidden;display:block;background:#04050a}
+.grp-moon-art{position:relative;flex:none;width:88px;height:66px;border-radius:12px;overflow:hidden;display:block;background:#04050a}
 .grp-moon-art svg,.grp-moon-art img{width:100%;height:100%;display:block;object-fit:cover}
 .grp-moon-t{min-width:0}
 .grp-moon-t b{display:block;font-size:.95rem}
