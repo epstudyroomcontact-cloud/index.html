@@ -103,7 +103,7 @@ service cloud.firestore {
       return nw.keys().hasOnly(['live', 'board'])
         && live.diff(ol).affectedKeys().hasOnly([uid])
         && board.diff(ob).affectedKeys().hasOnly([uid])
-        && live.size() <= 400 && board.size() <= 400
+        && live.size() <= 1500 && board.size() <= 1500
         && grpLiveOk(uid, live, ol) && grpBoardOk(uid, board, ob);
     }
     // Giao diện, nội dung chữ/ảnh, thông tin thanh toán hiển thị cho khách, lịch live: ai cũng xem, chỉ admin sửa
