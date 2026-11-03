@@ -26,7 +26,7 @@ Object.assign(I18N.en, {
   grp_strip_join:'Join the study group to see who is studying and your weekly rank', grp_strip_n:'{n} studying now', grp_strip_0:'Nobody studying yet', grp_rank:'Rank #{r}', grp_rank_none:'No hours this week yet', grp_home_sub:'See who is studying right now.', grp_home_join:'Join the group in the Focus room', grp_home_open:'Open the study group', grp_home_peek:'See how it works', grp_home_up:'Companions can see who is studying right now, with live timers and a weekly leaderboard.',
   grp_trend_up:'▲ {n} today', grp_trend_dn:'▼ {n} today', grp_climb_next:'{m} more to pass {n}', grp_climb_lead:'You lead {n} by {m}', grp_climb_alone:'You are the only one on the board so far', grp_moved:'You moved up to #{r} this week!', grp_top:'You are #1 this week!',
   grp_prev:'Last week', grp_prev_you:'You were #{r} · {t}',
-  grp_live_note:'Time counts from the start of the session, breaks included. The weekly board only counts focus minutes.', grp_pub:'{m} joined this week · {n} studying now', grp_pub_m:'{m} joined this week', grp_more:'Show everyone ({n})', grp_less:'Show top {n} only', grp_live0:'Studying now · no minutes logged yet this week',
+  grp_live_note:'Time counts from the start of the session, breaks included. The weekly board only counts focus minutes.', grp_leave_moon:"Please don't leave~ Moon will miss you so much 🥺", grp_stay:'Stay with Moon', grp_pub:'{m} joined this week · {n} studying now', grp_pub_m:'{m} joined this week', grp_more:'Show everyone ({n})', grp_less:'Show top {n} only', grp_live0:'Studying now · no minutes logged yet this week',
   grp_err:'Could not load the group. Try again in a moment.', grp_err_rules:'The group is not ready yet. The site owner still needs to publish the latest security rules.', grp_err_quota:'The group is resting for today. Please come back tomorrow.'
 });
 Object.assign(I18N.vi, {
@@ -43,7 +43,7 @@ Object.assign(I18N.vi, {
   grp_strip_join:'Tham gia nhóm học để xem ai đang học và thứ hạng tuần của bạn', grp_strip_n:'{n} người đang học', grp_strip_0:'Chưa ai đang học', grp_rank:'Hạng {r}', grp_rank_none:'Tuần này chưa có giờ học', grp_home_sub:'Xem ai đang học ngay lúc này.', grp_home_join:'Tham gia nhóm ở Phòng tập trung', grp_home_open:'Mở nhóm học', grp_home_peek:'Xem thử cách hoạt động', grp_home_up:'Người đồng hành xem được ai đang học ngay lúc này, kèm đồng hồ trực tiếp và bảng xếp hạng tuần.',
   grp_trend_up:'▲ {n} hạng hôm nay', grp_trend_dn:'▼ {n} hạng hôm nay', grp_climb_next:'Học thêm {m} để vượt {n}', grp_climb_lead:'Bạn hơn {n} {m}', grp_climb_alone:'Hiện mới chỉ có bạn trên bảng', grp_moved:'Bạn vừa lên hạng {r} tuần này!', grp_top:'Bạn đang đứng đầu tuần này!',
   grp_prev:'Tuần trước', grp_prev_you:'Bạn đã đứng hạng {r} · {t}',
-  grp_live_note:'Thời gian tính từ lúc bắt đầu phiên, gồm cả giờ nghỉ. Bảng tuần chỉ tính phút tập trung.', grp_pub:'{m} người đã tham gia tuần này · {n} đang học', grp_pub_m:'{m} người đã tham gia tuần này', grp_more:'Xem tất cả ({n} người)', grp_less:'Chỉ xem top {n}', grp_live0:'Đang học · tuần này chưa có phút nào được ghi',
+  grp_live_note:'Thời gian tính từ lúc bắt đầu phiên, gồm cả giờ nghỉ. Bảng tuần chỉ tính phút tập trung.', grp_leave_moon:'Đừng rời đi mà~ Moon sẽ nhớ bạn lắm đó 🥺', grp_stay:'Ở lại với Moon', grp_pub:'{m} người đã tham gia tuần này · {n} đang học', grp_pub_m:'{m} người đã tham gia tuần này', grp_more:'Xem tất cả ({n} người)', grp_less:'Chỉ xem top {n}', grp_live0:'Đang học · tuần này chưa có phút nào được ghi',
   grp_err:'Chưa tải được nhóm. Bạn thử lại sau một lát nhé.', grp_err_rules:'Nhóm chưa sẵn sàng: chủ web cần dán luật bảo mật mới nhất lên Firebase.', grp_err_quota:'Hôm nay nhóm đang nghỉ. Bạn quay lại vào ngày mai nhé.'
 });
 /* Bản dịch cho khách chưa là Người đồng hành (lời mời ở Phòng tập trung và Tổng quan) bằng hi / ja / ko / zh / fr / es; phần dành cho thành viên nhóm (Y) cũng có đủ 8 ngôn ngữ; thiếu khoá nào thì tự dùng tiếng Anh. */
@@ -65,6 +65,15 @@ Object.assign(I18N.vi, {
     es:{ grp_home_open:"Abrir el grupo de estudio", grp_home_peek:"Ver cómo funciona", grp_title:'Grupo de estudio en vivo', grp_up_text:'Los Acompañantes pueden unirse a un grupo de estudio en vivo: ver quién está estudiando ahora y desde hace cuánto, y un ranking semanal de horas de enfoque. Tu apoyo también ayuda a mantener este sitio en marcha.', grp_up_login:'Inicia sesión para ver si puedes unirte.', grp_up_cta:'Ver cómo ser Acompañante', grp_home_up:'Los Acompañantes ven quién está estudiando ahora, con temporizadores en vivo y el ranking semanal.' }
   };
   Object.keys(X).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], Y[l], X[l]); });   // ghi đè: các bản dịch của khách chưa là Người đồng hành nằm ở đây
+  const Z = {   // các khoá bổ sung (rời nhóm có Moon nũng nịu, số người tham gia, xem tất cả, ghi chú đồng hồ) cho 6 ngôn ngữ còn lại
+    hi:{ grp_leave_moon:"प्लीज़ मत जाओ~ Moon को तुम्हारी बहुत याद आएगी 🥺", grp_stay:"Moon के साथ रहें", grp_pub:"इस हफ़्ते {m} लोग जुड़े · {n} अभी पढ़ रहे हैं", grp_pub_m:"इस हफ़्ते {m} लोग जुड़े", grp_more:"सभी देखें ({n})", grp_less:"सिर्फ़ टॉप {n} देखें", grp_live0:"अभी पढ़ रहे हैं · इस हफ़्ते अभी कोई मिनट दर्ज नहीं", grp_live_note:"समय सत्र की शुरुआत से गिना जाता है, ब्रेक सहित। साप्ताहिक बोर्ड सिर्फ़ फ़ोकस मिनट गिनता है।" },
+    ja:{ grp_leave_moon:"行かないで〜 Moonはさみしいよ 🥺", grp_stay:"Moonといっしょにいる", grp_pub:"今週{m}人が参加 · {n}人が勉強中", grp_pub_m:"今週{m}人が参加", grp_more:"全員を見る({n})", grp_less:"上位{n}人だけ表示", grp_live0:"勉強中 · 今週はまだ記録された時間がありません", grp_live_note:"時間はセッション開始からの経過で、休憩も含みます。週間ボードは集中時間だけを数えます。" },
+    ko:{ grp_leave_moon:"가지 마요~ Moon이 너무 보고 싶을 거예요 🥺", grp_stay:"Moon이랑 있을게요", grp_pub:"이번 주 {m}명 참여 · {n}명 공부 중", grp_pub_m:"이번 주 {m}명 참여", grp_more:"모두 보기 ({n})", grp_less:"상위 {n}명만 보기", grp_live0:"공부 중 · 이번 주 기록된 시간이 아직 없어요", grp_live_note:"시간은 세션 시작부터 계산하며 휴식도 포함돼요. 주간 순위는 집중 시간만 세요." },
+    zh:{ grp_leave_moon:"别走嘛~ Moon 会很想你的 🥺", grp_stay:"留下陪 Moon", grp_pub:"本周已有 {m} 人加入 · {n} 人正在学习", grp_pub_m:"本周已有 {m} 人加入", grp_more:"查看全部({n})", grp_less:"只看前 {n} 名", grp_live0:"正在学习 · 本周还没有记录时长", grp_live_note:"时间从本次学习开始计算,包含休息。每周排行榜只统计专注时长。" },
+    fr:{ grp_leave_moon:"Ne pars pas~ Moon va tellement te manquer 🥺", grp_stay:"Rester avec Moon", grp_pub:"{m} personnes ont rejoint cette semaine · {n} étudient en ce moment", grp_pub_m:"{m} personnes ont rejoint cette semaine", grp_more:"Voir tout le monde ({n})", grp_less:"Voir seulement le top {n}", grp_live0:"En train d'étudier · aucune minute enregistrée cette semaine", grp_live_note:"Le temps compte depuis le début de la session, pauses comprises. Le classement hebdomadaire ne compte que la concentration." },
+    es:{ grp_leave_moon:"No te vayas~ Moon te va a extrañar muchísimo 🥺", grp_stay:"Quedarme con Moon", grp_pub:"{m} personas se unieron esta semana · {n} estudiando ahora", grp_pub_m:"{m} personas se unieron esta semana", grp_more:"Ver a todos ({n})", grp_less:"Ver solo el top {n}", grp_live0:"Estudiando ahora · aún sin minutos esta semana", grp_live_note:"El tiempo cuenta desde el inicio de la sesión, descansos incluidos. El ranking semanal solo cuenta minutos de enfoque." }
+  };
+  Object.keys(Z).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], Z[l]); });
 })();
 (function(){
   const TZ = 'Asia/Ho_Chi_Minh', BEAT = 4 * 60e3, STALE = 9 * 60e3, POLL = 60e3, POLL_SLOW = 180e3, IDLE = 10 * 60e3, SESS_GAP = 15 * 60e3, TOP = 20, FLUSH = 3 * 60e3;   // nhịp báo, quá hạn thì ẩn, tải lại (Phòng tập trung / trang khác), ngừng tải khi không đụng vào gì, nghỉ quá lâu thì tính phiên mới, số người trong bảng
@@ -167,11 +176,13 @@ Object.assign(I18N.vi, {
      khách đọc đúng 1 lượt khi mở trang rồi lưu trong máy 10 phút, không tải lại liên tục, nên số lượt đọc tăng theo số lượt khách mở web chứ không theo thời gian. */
   const statsRef = () => db.collection('study_stats').doc('current');
   let pub = store.get('grp_pub', null), pubBusy = false;
+  const counts = () => { const ids = new Set([...Object.keys(board), ...liveRows().map(r => r.id)]); return { m:ids.size, n:liveRows().length }; };
+  function pubNums(){ if (on() && known() && loadedWk === wk()) return counts(); return pub && pub.wk === wk() ? { m:pub.m, n:pub.n } : null; }
   function pushStats(){
     if (!on() || !lead()) return; const now = Date.now();   // không cần đã tham gia nhóm: admin / Người đồng hành đang xem nhóm cũng cập nhật số liệu được
     if (now - (+store.get('grp_pubw', 0) || 0) < 5 * 60e3) return; store.set('grp_pubw', now);
-    const ids = new Set([...Object.keys(board), ...liveRows().map(r => r.id)]);
-    statsRef().set({ wk:wk(), members:ids.size, live:liveRows().length, t:TS() }).catch(() => {});   // bị luật từ chối (có người khác vừa ghi) thì bỏ qua
+    const c = counts();
+    statsRef().set({ wk:wk(), members:c.m, live:c.n, t:TS() }).catch(() => {});   // bị luật từ chối (có người khác vừa ghi) thì bỏ qua
   }
   function pubLoad(){
     if (pubBusy || DEMO || typeof db === 'undefined') return;
@@ -179,7 +190,9 @@ Object.assign(I18N.vi, {
     statsRef().get().then(d => { const x = d.exists ? d.data() : null, tm = x && x.t && typeof x.t.toMillis === 'function' ? x.t.toMillis() : 0;
       pub = { at:Date.now(), wk:x && x.wk, m:(x && x.members | 0) || 0, n:(x && Date.now() - tm < 15 * 60e3) ? (x.live | 0) : 0 }; store.set('grp_pub', pub); }).catch(() => { pub = { at:Date.now(), wk:'', m:0, n:0 }; }).then(() => { pubBusy = false; renderBox(); });
   }
-  const pubLine = () => pub && pub.wk === wk() && pub.m > 0 ? `<p class="grp-pub small muted">${ic('users', 'sm')} ${esc(pub.n > 0 ? t('grp_pub', { m:pub.m, n:pub.n }) : t('grp_pub_m', { m:pub.m }))}</p>` : '';
+  const pubText = () => { const c = pubNums(); return c && c.m > 0 ? (c.n > 0 ? t('grp_pub', { m:c.m, n:c.n }) : t('grp_pub_m', { m:c.m })) : ''; };
+  const pubLine = () => { const x = pubText(); return x ? `<p class="grp-pub small muted">${ic('users', 'sm')} ${esc(x)}</p>` : ''; };
+  function renderHero(){ const el = document.getElementById('grp-hero'); if (!el) return; const x = pubText(); el.innerHTML = x ? `<span class="grp-hero-pill">${ic('users', 'sm')} ${esc(x)}</span>` : ''; }
 
   /* ---------- đọc ---------- */
   /* Bảng tuần trước: top 3 và hạng của bạn, đọc tài liệu tuần trước đúng MỘT lần mỗi tuần rồi lưu trong máy (grp_prev), nên chỉ tốn thêm một lượt đọc mỗi người mỗi tuần. */
@@ -279,7 +292,7 @@ Object.assign(I18N.vi, {
       ${errHTML()}
       <div class="grp-cols"><div>${liveCols()}</div><div>${boardHTML()}</div></div>
       <details class="grp-opts mt"><summary class="small muted">${esc(m.n)} · ${esc(t('grp_save_nick'))}</summary><div class="mt-s">${nickForm(true, m.n)}</div></details>
-      <div class="mt-s">${leaving ? `<p class="small">${esc(t('grp_leave_ask'))}</p><div class="row mt-s"><button type="button" class="btn danger sm" data-act="grpLeaveYes">${esc(t('grp_leave_yes'))}</button><button type="button" class="btn secondary sm" data-act="grpLeaveNo">${esc(t('grp_cancel'))}</button></div>` : `<button type="button" class="btn ghost sm" data-act="grpLeave">${esc(t('grp_leave'))}</button>`}</div>`;
+      <div class="mt-s grp-leave">${leaving ? `<div class="grp-moon">${typeof paint === 'function' ? `<span class="grp-moon-art" aria-hidden="true">${paint('moonwalk', { crop:'card', seed:5, anim:false })}</span>` : ''}<div class="grp-moon-t"><b>${esc(t('grp_leave_moon'))}</b><p class="small muted">${esc(t('grp_leave_ask'))}</p><div class="row grp-moon-b"><button type="button" class="btn primary sm" data-act="grpLeaveNo">${esc(t('grp_stay'))}</button><button type="button" class="btn ghost sm" data-act="grpLeaveYes">${esc(t('grp_leave_yes'))}</button></div></div></div>` : `<button type="button" class="btn ghost sm" data-act="grpLeave">${esc(t('grp_leave'))}</button>`}</div>`;
   }
   const rankOf = () => { const id = state.user.uid, all = boardRows(), i = all.findIndex(x => x.k === id); return i < 0 ? null : { r:i + 1, mins:all[i].mins }; };
   /* Leo hạng: hạng hiện tại, tăng/giảm so với lần đầu thấy trong ngày (giờ Việt Nam), và khoảng cách tới người đứng trên (cùng điểm thì ai đạt trước đứng trên, nên cần hơn 1 phút để vượt) */
@@ -317,7 +330,7 @@ Object.assign(I18N.vi, {
       : `<p class="muted small">${esc(t(busy || !known() ? 'loading' : 'grp_none'))}</p>`)
       + (me() ? '' : `<div class="row mt-s"><a class="btn primary sm" href="#/focus" data-act="grpOpen">${ic('timer', 'sm')} ${esc(t('grp_home_join'))}</a></div>`);
   }
-  function renderBox(){ dupCount(); renderMain(); renderStrip(); renderHome(); }
+  function renderBox(){ dupCount(); renderMain(); renderStrip(); renderHome(); renderHero(); }
   const errHTML = () => err ? `<p class="hint grp-err">${esc(t(err === 'rules' ? 'grp_err_rules' : err === 'quota' ? 'grp_err_quota' : 'grp_err'))}</p>` : '';
   function liveCols(){
     const rows = liveRows(), id = state.user.uid, now = Date.now();
@@ -341,7 +354,7 @@ Object.assign(I18N.vi, {
       setInterval(() => { const now = Date.now(); document.querySelectorAll('#grp-box [data-s], #grp-home [data-s]').forEach(e => { e.textContent = fmt(now - +e.dataset.s); }); }, 20e3);
     }
   }
-  function mount(){ if (on()) { prime(); prevLoad(); } else pubLoad(); renderBox(); if (on()) load(true); startTimers(); earlyLoad(); if (store.get('grp_goto', 0) && box()) { store.set('grp_goto', 0); setTimeout(() => typeof grpScroll === 'function' && grpScroll(), 120); } }
+  function mount(){ if (on()) { prime(); prevLoad(); } pubLoad(); renderBox(); if (on()) load(true); startTimers(); earlyLoad(); if (store.get('grp_goto', 0) && box()) { store.set('grp_goto', 0); setTimeout(() => typeof grpScroll === 'function' && grpScroll(), 120); } }
   let early = 0;
   function earlyLoad(){                // lúc mới vào web quyền Người đồng hành đến muộn hơn trang, hoặc lần tải đầu lỗi: thử lại mỗi 2 giây (tối đa ~1 phút) thay vì đợi nhịp 60 giây
     if (early) return; early = setInterval(() => {

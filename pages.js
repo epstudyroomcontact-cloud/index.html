@@ -129,7 +129,7 @@ PAGES.home = function(){
       <h1 ${cms('home_title')}>${esc(ctext('home_title'))}</h1>
       <p class="lead" ${cms('home_sub')}>${esc(ctext('home_sub'))}</p>
       <div class="cta"><a class="btn primary lg" href="#/watch">${ic('play', 'sm')} ${esc(t('btn_watch_live'))}</a><a class="btn secondary lg" href="#/schedule">${ic('calendar', 'sm')} ${esc(t('btn_see_schedule'))}</a></div>
-      <div class="clock mt" data-clock>--:--:--</div></div>
+      ${branding.groupOn === true ? '<div class="grp-hero" id="grp-hero"></div>' : ''}<div class="clock mt" data-clock>--:--:--</div></div>
       <div class="next-card" id="next-card"><span class="live-pill" style="padding:5px 8px"><i></i></span><div><small></small><b>—</b></div></div></section>`;
   if (branding.groupOn === true) html += `<section class="card pad grp grp-home mt" id="grp-home"><div class="card-h"><h2>${ic('users', 'sm')} ${esc(t('grp_title'))}</h2></div><p class="muted small">${esc(t('loading'))}</p></section>`;   // ai đang học: nằm ngay dưới khối chào
   if (html) html += trialNudge();

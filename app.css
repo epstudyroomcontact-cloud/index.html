@@ -1003,6 +1003,17 @@ html[data-calm="1"] .ep-paw{display:none}
 .grp-x:hover{background:rgba(239,68,68,.15);color:#ef4444}
 .grp-err{margin:8px 0}
 .grp-opts summary{cursor:pointer}
+.grp-leave{display:flex;justify-content:flex-end}
+.grp-moon{display:flex;gap:12px;align-items:center;max-width:460px;padding:10px 12px;border-radius:16px;background:var(--accent-soft)}
+.grp-moon-art{flex:none;width:88px;height:66px;border-radius:12px;overflow:hidden;display:block;background:#04050a}
+.grp-moon-art svg,.grp-moon-art img{width:100%;height:100%;display:block;object-fit:cover}
+.grp-moon-t{min-width:0}
+.grp-moon-t b{display:block;font-size:.95rem}
+.grp-moon-b{justify-content:flex-end;margin-top:8px;gap:8px}
+.grp-pub{display:flex;align-items:center;gap:6px;margin:0 0 8px}
+.grp-hero{margin-top:14px}
+.grp-hero:empty{display:none}
+.grp-hero-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:99px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);backdrop-filter:blur(6px);font-size:.82rem;font-weight:700;color:#fff}
 
 .grp-strip-wrap:empty{display:none}
 .grp-strip-wrap{width:100%}
