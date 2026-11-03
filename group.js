@@ -26,6 +26,7 @@ Object.assign(I18N.en, {
   grp_strip_join:'Join the study group to see who is studying and your weekly rank', grp_strip_n:'{n} studying now', grp_strip_0:'Nobody studying yet', grp_rank:'Rank #{r}', grp_rank_none:'No hours this week yet', grp_home_sub:'See who is studying right now.', grp_home_join:'Join the group in the Focus room', grp_home_open:'Open the study group', grp_home_peek:'See how it works', grp_home_up:'Companions can see who is studying right now, with live timers and a weekly leaderboard.',
   grp_trend_up:'▲ {n} today', grp_trend_dn:'▼ {n} today', grp_climb_next:'{m} more to pass {n}', grp_climb_lead:'You lead {n} by {m}', grp_climb_alone:'You are the only one on the board so far', grp_moved:'You moved up to #{r} this week!', grp_top:'You are #1 this week!',
   grp_prev:'Last week', grp_prev_you:'You were #{r} · {t}',
+  grp_more:'Show everyone ({n})', grp_less:'Show top {n} only', grp_live0:'Studying now · no minutes logged yet this week',
   grp_err:'Could not load the group. Try again in a moment.', grp_err_rules:'The group is not ready yet. The site owner still needs to publish the latest security rules.', grp_err_quota:'The group is resting for today. Please come back tomorrow.'
 });
 Object.assign(I18N.vi, {
@@ -42,6 +43,7 @@ Object.assign(I18N.vi, {
   grp_strip_join:'Tham gia nhóm học để xem ai đang học và thứ hạng tuần của bạn', grp_strip_n:'{n} người đang học', grp_strip_0:'Chưa ai đang học', grp_rank:'Hạng {r}', grp_rank_none:'Tuần này chưa có giờ học', grp_home_sub:'Xem ai đang học ngay lúc này.', grp_home_join:'Tham gia nhóm ở Phòng tập trung', grp_home_open:'Mở nhóm học', grp_home_peek:'Xem thử cách hoạt động', grp_home_up:'Người đồng hành xem được ai đang học ngay lúc này, kèm đồng hồ trực tiếp và bảng xếp hạng tuần.',
   grp_trend_up:'▲ {n} hạng hôm nay', grp_trend_dn:'▼ {n} hạng hôm nay', grp_climb_next:'Học thêm {m} để vượt {n}', grp_climb_lead:'Bạn hơn {n} {m}', grp_climb_alone:'Hiện mới chỉ có bạn trên bảng', grp_moved:'Bạn vừa lên hạng {r} tuần này!', grp_top:'Bạn đang đứng đầu tuần này!',
   grp_prev:'Tuần trước', grp_prev_you:'Bạn đã đứng hạng {r} · {t}',
+  grp_more:'Xem tất cả ({n} người)', grp_less:'Chỉ xem top {n}', grp_live0:'Đang học · tuần này chưa có phút nào được ghi',
   grp_err:'Chưa tải được nhóm. Bạn thử lại sau một lát nhé.', grp_err_rules:'Nhóm chưa sẵn sàng: chủ web cần dán luật bảo mật mới nhất lên Firebase.', grp_err_quota:'Hôm nay nhóm đang nghỉ. Bạn quay lại vào ngày mai nhé.'
 });
 /* Bản dịch cho khách chưa là Người đồng hành (lời mời ở Phòng tập trung và Tổng quan) bằng hi / ja / ko / zh / fr / es; phần dành cho thành viên nhóm (Y) cũng có đủ 8 ngôn ngữ; thiếu khoá nào thì tự dùng tiếng Anh. */
@@ -72,7 +74,7 @@ Object.assign(I18N.vi, {
   const me = () => state.user ? store.get(key(), null) : null;                    // { n:biệt danh } khi đã tham gia
   const access = () => !!state.user && !DEMO && typeof plLinked === 'function' && plLinked();   // cùng điều kiện với Planner (chốt cuối cùng ở firestore.rules)
   const on = () => branding.groupOn === true && access();
-  let live = {}, board = {}, loadedAt = 0, err = '', busy = false, leaving = false, lastSent = '', lastBeat = 0, lastWeek = '', denied = 0, timers = false, lastFlush = 0, loadedWk = '', retried = false;
+  let showAll = false, live = {}, board = {}, loadedAt = 0, err = '', busy = false, leaving = false, lastSent = '', lastBeat = 0, lastWeek = '', denied = 0, timers = false, lastFlush = 0, loadedWk = '', retried = false;
   const TAB = Math.random().toString(36).slice(2), LEASE = 90e3;
   /* Mở nhiều tab cùng lúc: chỉ MỘT tab được ghi lên nhóm (tab giữ "quyền ghi" trong localStorage, hết hạn sau 90 giây nếu tab đó đóng), còn phút đang học
      được tính chung cho cả trình duyệt (grp_acc) nên không tab nào cộng thêm lần hai. Trước đây mỗi tab tự cộng, phút bị gấp đôi rồi bị luật Firestore từ chối. */
@@ -101,6 +103,9 @@ Object.assign(I18N.vi, {
       try { const d = await ref().get(), x = d.exists ? d.data() : {}; live = x.live || {}; board = x.board || {}; loadedWk = wkNow; } catch (e) { return errNote(e); }
     }
     const ent = board[id]; let sentF = false;
+    if (inc > 0 && retried && ent && ent.t && typeof ent.t.toMillis === 'function') {   // sau một lần bị từ chối (thường do thiết bị khác của bạn vừa ghi): chỉ gửi phần luật cho phép theo mốc giờ máy chủ mới, phần còn lại ở lại hàng chờ
+      const okMin = Math.floor((Date.now() - ent.t.toMillis() + 60e3) / 60e3); inc = Math.max(0, Math.min(inc, okMin));
+    }
     if (entry) o.live = { [id]: entry };
     if (inc > 0 || (entry && ent)) {
       const b = { n:m.n, mins:firebase.firestore.FieldValue.increment(inc), t:TS() };
@@ -117,8 +122,8 @@ Object.assign(I18N.vi, {
       if (entry) lastSent = '';
       const nope = e && (e.code === 'permission-denied' || e.code === 'invalid-argument');
       if (inc > 0 && nope) {
-        if (sentF && !retried) { retried = true; loadedWk = ''; }   // có thể thiết bị khác vừa tạo mục của bạn: đọc lại bảng rồi thử một lần nữa, giữ phút đang chờ
-        else store.set('grp_pend', Math.max(0, pend() - inc));       // bị quy tắc từ chối thì bỏ phần này, không thử lại mãi
+        if (!retried) { retried = true; loadedWk = ''; }   // có thể thiết bị khác vừa ghi (đổi mốc giờ) hoặc vừa tạo mục của bạn: đọc lại bảng rồi thử một lần nữa, GIỮ phút đang chờ (trước đây bỏ ngay nên phút học bị mất)
+        else { store.set('grp_pend', Math.max(0, pend() - inc)); retried = false; }   // vẫn bị từ chối sau khi đã đọc lại thì bỏ phần này, không thử lại mãi
       }
       if (nope && ++denied < 2) { console.warn('[EP] study group write denied', e.code); renderBox(); return; }   // một lần bị từ chối (vd. quá tốc độ cộng phút) không đáng hiện lời báo "chưa dán luật"; từ lần thứ hai liên tiếp mới báo
       errNote(e);
@@ -231,10 +236,13 @@ Object.assign(I18N.vi, {
   }
   function boardHTML(){
     const id = state.user.uid, all = boardRows();
-    const top = all.slice(0, TOP), mine = all.findIndex(x => x.k === id), row = (x, i) => `<li class="grp-row ${x.k === id ? 'me' : ''}"><span class="grp-rank r${i < 3 ? i + 1 : 0}">${i + 1}</span>${avatar(x.n)}<b class="grp-n">${esc(x.n)}${x.k === id ? ` <span class="badge">${esc(t('grp_you'))}</span>` : ''}</b><span class="grp-t">${esc(fmt(x.mins * 60000))}</span>${kick(x.k)}</li>`;
+    const top = all.slice(0, showAll ? 400 : TOP), mine = all.findIndex(x => x.k === id), row = (x, i) => `<li class="grp-row ${x.k === id ? 'me' : ''}"><span class="grp-rank r${i < 3 ? i + 1 : 0}">${i + 1}</span>${avatar(x.n)}<b class="grp-n">${esc(x.n)}${x.k === id ? ` <span class="badge">${esc(t('grp_you'))}</span>` : ''}</b><span class="grp-t">${esc(fmt(x.mins * 60000))}</span>${kick(x.k)}</li>`;
+    const zero = liveRows().filter(r => !all.some(x => x.k === r.id));   // đang học nhưng chưa có phút trên bảng tuần này: vẫn hiện, để không ai "biến mất" khỏi bảng
+    const zrow = r => `<li class="grp-row ${r.id === id ? 'me' : ''}"><span class="grp-rank r0">–</span>${avatar(r.n)}<b class="grp-n">${esc(r.n)}${r.id === id ? ` <span class="badge">${esc(t('grp_you'))}</span>` : ''}</b><span class="grp-st f">${esc(t('grp_live0'))}</span>${kick(r.id)}</li>`;
+    const more = all.length > TOP ? `<button type="button" class="btn ghost sm" data-act="grpMore">${esc(showAll ? t('grp_less', { n:TOP }) : t('grp_more', { n:all.length }))}</button>` : '';
     const cl = climb(), sum = cl ? `<p class="grp-climb small"><b>${esc(t('grp_rank', { r:cl.r }))}</b>${trendHTML(cl)}<span class="muted">${esc(gapText(cl))}</span></p>` : '';
-    return `<h3 class="grp-h">${esc(t('grp_board'))}</h3>${sum}` + (all.length
-      ? `<ol class="grp-list">${top.map(row).join('')}${mine >= TOP ? `<li class="grp-gap" aria-hidden="true">…</li>${row(all[mine], mine)}` : ''}</ol>` : `<p class="muted small">${esc(t(known() ? 'grp_board_none' : 'loading'))}</p>`) + `<p class="small faint mt-s">${esc(t('grp_reset'))}</p>` + prevHTML();
+    return `<h3 class="grp-h">${esc(t('grp_board'))}</h3>${sum}` + (all.length || zero.length
+      ? `<ol class="grp-list">${top.map(row).join('')}${!showAll && mine >= TOP ? `<li class="grp-gap" aria-hidden="true">…</li>${row(all[mine], mine)}` : ''}${zero.map(zrow).join('')}</ol>${more}` : `<p class="muted small">${esc(t(known() ? 'grp_board_none' : 'loading'))}</p>`) + `<p class="small faint mt-s">${esc(t('grp_reset'))}</p>` + prevHTML();
   }
   function renderMain(){
     const el = box(); if (!el) return;
@@ -255,14 +263,15 @@ Object.assign(I18N.vi, {
   function climb(){
     const id = state.user.uid, all = boardRows(), i = all.findIndex(x => x.k === id); if (i < 0) return null;
     const day = DT.now().setZone(TZ).toISODate(); let b = store.get('grp_rk0', null);
-    if (!b || b.day !== day || b.id !== id) { b = { day, id, r:i + 1 }; store.set('grp_rk0', b); }
+    if (loadedWk !== wk()) b = { day, id, r:i + 1 };   // chưa tải bảng thật của tuần này (mới có phút của riêng mình): chưa lấy làm mốc, tránh hiện "tụt hạng" ảo
+    else if (!b || b.day !== day || b.id !== id) { b = { day, id, r:i + 1 }; store.set('grp_rk0', b); }
     const me0 = all[i], up = i > 0 ? all[i - 1] : null, dn = i === 0 ? all[1] : null;
     return { r:i + 1, mins:me0.mins, trend:b.r - (i + 1), upN:up && up.n, upM:up ? up.mins - me0.mins + 1 : 0, leadN:dn && dn.n, leadM:dn ? me0.mins - dn.mins : 0 };
   }
   const trendHTML = c => !c ? '' : c.trend > 0 ? `<span class="grp-trend up">${esc(t('grp_trend_up', { n:c.trend }))}</span>` : c.trend < 0 ? `<span class="grp-trend dn">${esc(t('grp_trend_dn', { n:-c.trend }))}</span>` : '';
   const gapText = c => !c ? '' : c.upN ? t('grp_climb_next', { m:fmt(c.upM * 60000), n:c.upN }) : c.leadN ? t('grp_climb_lead', { n:c.leadN, m:fmt(c.leadM * 60000) }) : t('grp_climb_alone');
   function rankWatch(){                  // lên hạng (so với lần thấy trước) thì chúc mừng một lần
-    if (!state.user || !me() || !on()) return; const c = rankOf(); if (!c) return;
+    if (!state.user || !me() || !on() || loadedWk !== wk()) return; const c = rankOf(); if (!c) return;
     const w = wk(), p = store.get('grp_rk', null);
     if (p && p.wk === w && p.id === state.user.uid && c.r < p.r && document.visibilityState === 'visible') toast(t(c.r === 1 ? 'grp_top' : 'grp_moved', { r:c.r }));
     if (!p || p.wk !== w || p.id !== state.user.uid || p.r !== c.r) store.set('grp_rk', { wk:w, id:state.user.uid, r:c.r });
@@ -323,11 +332,12 @@ Object.assign(I18N.vi, {
     const n = nameOk($('grp-nick').value); if (!n) return toast(t('grp_nick_bad'));
     const id = state.user.uid, first = !me(); store.set(key(), { n }); leaving = false; renderBox(); toast(t(first ? 'grp_joined_toast' : 'grp_saved'));
     sync(true);
-    if (board[id]) ref().set({ board:{ [id]: { n, mins:board[id].mins | 0, t:TS() } } }, { merge:true }).then(() => { board[id].n = n; renderBox(); }).catch(() => {});   // đổi biệt danh trên bảng xếp hạng, giữ nguyên số phút
+    if (board[id]) ref().set({ board:{ [id]: { n, mins:firebase.firestore.FieldValue.increment(0), t:TS() } } }, { merge:true }).then(() => { board[id].n = n; renderBox(); }).catch(() => {});   // đổi biệt danh trên bảng xếp hạng, giữ nguyên số phút
     load(true);
   };
   Object.assign(ACTIONS, {
     grpRefresh: () => load(true),
+    grpMore: () => { showAll = !showAll; renderBox(); },
     grpGo: () => { const b = box(); if (b) b.scrollIntoView({ block:'start' }); },
     grpLeave: () => { leaving = true; renderBox(); },
     grpLeaveNo: () => { leaving = false; renderBox(); },
