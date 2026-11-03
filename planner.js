@@ -229,6 +229,28 @@ const plId = () => Math.random().toString(36).slice(2, 9);
 const hm = v => { const p = String(v || '').split(':'); return (parseInt(p[0], 10) || 0) * 60 + (parseInt(p[1], 10) || 0); };
 const hmStr = m => String(Math.floor(m / 60) % 24).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
 const fmtMin = m => { m = Math.round(m); const h = Math.floor(m / 60), r = m % 60; return h ? (r ? t('pl_hm', { h, m:r }) : t('pl_h', { h })) : t('pl_min', { m }); };
+const PL_QW = [.2, .5, .75, .9, 1];                               // mức hoàn thành 1-5 → phần trăm của việc được tính vào hiệu suất (việc cũ tick xong chưa chấm mức: tính đủ 100% để không đổi điểm cũ)
+const plQf = x => x.done ? (x.q >= 1 && x.q <= 5 ? PL_QW[x.q - 1] : 1) : 0;
+/* Chống trùng giờ: một lúc chỉ làm một việc (chuyển qua lại giữa hai việc làm chậm cả hai và dễ bỏ dở cả hai). */
+const plSpan = x => hm(x.start) + (x.dur || 30);
+function plClash(list, day, start, dur, skipId){
+  if (day === null || day === undefined || !/^\d{1,2}:\d{2}$/.test(start || '')) return null;
+  const a = hm(start), b = a + (dur || 30);
+  return list.find(x => x.id !== skipId && !x.carried && x.day === day && x.start && a < plSpan(x) && hm(x.start) < b) || null;
+}
+function plFreeSlot(list, day, dur, from, skipId){                 // giờ gần nhất sau `from` còn trống, cách việc liền trước 10 phút để nghỉ
+  let s = Math.ceil(from / 5) * 5;
+  for (let i = 0; i < 300 && s + (dur || 30) <= 1440; i++) {
+    const c = plClash(list, day, hmStr(s), dur, skipId); if (!c) return hmStr(s);
+    s = Math.ceil((plSpan(c) + 10) / 5) * 5;
+  }
+  return '';
+}
+function plClashMsg(list, day, start, dur, skipId){                // null nếu không trùng; ngược lại { text, slot }
+  const c = plClash(list, day, start, dur, skipId); if (!c) return null;
+  const slot = plFreeSlot(list, day, dur, plSpan(c) + 10, skipId), p = { d:t('pl_d' + day), x:c.title || '—', a:c.start, b:hmStr(plSpan(c) % 1440 || 1439) };
+  return { slot, text:t(slot ? 'pl_clash' : 'pl_clash_full', { ...p, n:slot }) };
+}
 const plW = x => x.dur > 0 ? x.dur : 30;                         // trọng số khi chấm = số phút dự định; việc chưa ghi phút tính như 30 phút
 /* ô nhập thời lượng: giờ + phút (vẫn lưu tổng số phút như cũ). Gõ 90 vào ô phút cũng được, tự cộng dồn */
 const plDurIn = (v, id) => `<div class="pl-dur"${id ? ` id="${id}"` : ''}>${[['h', v ? Math.floor(v / 60) : '', 'pl_goal_hh', ' max="24" step="1"'], ['m', v ? v % 60 : '', 'pl_goal_mm', ' step="5"']].map(([u, val, k, a]) => `<label><input class="input" type="number" min="0"${a} inputmode="numeric" data-u="${u}" value="${val}" placeholder="0" aria-label="${esc(t(k))}"><small>${esc(t(k))}</small></label>`).join('')}</div>`;
@@ -248,7 +270,7 @@ function plClean(x){                                              // chuẩn ho�
   const start = /^\d{1,2}:\d{2}$/.test(x.start || '') ? hmStr(Math.min(1439, hm(x.start))) : '';
   let dur = Math.max(0, Math.min(1440, Math.round(+x.dur || 0))); if (start && !dur) dur = 30; if (start) dur = Math.min(dur, 1440 - hm(start));
   const day = Number.isInteger(x.day) && x.day >= 0 && x.day <= 6 ? x.day : null;
-  return { id:String(x.id || plId()), title:String(x.title || '').trim().slice(0, 80), day, start:day === null ? '' : start, dur, c:Math.max(0, Math.min(5, x.c | 0)), done:!!x.done, ...(x.carried ? { carried:typeof x.carried === 'string' ? x.carried : true } : {}) };
+  return { id:String(x.id || plId()), title:String(x.title || '').trim().slice(0, 80), day, start:day === null ? '' : start, dur, c:Math.max(0, Math.min(5, x.c | 0)), done:!!x.done, ...(x.done && x.q >= 1 && x.q <= 5 ? { q:x.q | 0 } : {}), ...(x.carried ? { carried:typeof x.carried === 'string' ? x.carried : true } : {}) };
 }
 /* đưa việc đã dời sang tuần sau về lại tuần này (và gỡ bản sao bên tuần sau nếu chưa làm) */
 async function plUncarry(list){
@@ -257,7 +279,7 @@ async function plUncarry(list){
       const nk = plKey(PL.off + 1), d = await plRef(nk).get(), next = d.exists && Array.isArray(d.data().tasks) ? d.data().tasks.map(plClean) : [];
       list.forEach(x => {
         let i = typeof x.carried === 'string' ? next.findIndex(v => v.id === x.carried) : next.findIndex(v => !v.done && v.title === x.title && v.day === x.day && v.start === x.start && v.dur === x.dur);
-        if (i >= 0) { if (next[i].done) x.done = true; next.splice(i, 1); }
+        if (i >= 0) { if (next[i].done) { x.done = true; if (next[i].q) x.q = next[i].q; } next.splice(i, 1); }
       });
       await plRef(nk).set({ tasks:next, updatedAt:TS() }, { merge:true });
     }
@@ -359,12 +381,12 @@ function plDueFn(off){
    - Phần trăm chính (rate) tính theo số phút dự định (plW), vì một việc 2 giờ không ngang một việc 10 phút; crate là tỉ lệ theo số việc. */
 function plStats(tasks, off = -1, gone = []){
   const due = plDueFn(off), blank = () => ({ plan:0, done:0, n:0, nd:0, dn:0, dnd:0, mv:0, x:0 });
-  const S = { n:0, nd:0, plan:0, done:0, dn:0, dnd:0, dplan:0, ddone:0, dw:0, dwd:0, nm:0, wm:0, nx:0, wx:0, no:0, wo:0, mvIn:0, rep:null, day:Array.from({ length:7 }, blank), cat:Array.from({ length:6 }, blank), part:[0, 0, 0], pn:[0, 0, 0], pd:[0, 0, 0] };
+  const S = { n:0, nd:0, qn:0, qsum:0, q5:0, qlow:0, dq:0, plan:0, done:0, dn:0, dnd:0, dplan:0, ddone:0, dw:0, dwd:0, nm:0, wm:0, nx:0, wx:0, no:0, wo:0, mvIn:0, rep:null, day:Array.from({ length:7 }, blank), cat:Array.from({ length:6 }, blank), part:[0, 0, 0], pn:[0, 0, 0], pd:[0, 0, 0] };
   tasks.forEach(x => {
     const out = !!x.carried && !x.done, isDue = out || due(x), w = plW(x);
-    S.n++; S.plan += x.dur; if (x.done) { S.nd++; S.done += x.dur; }
+    S.n++; S.plan += x.dur; if (x.done) { S.nd++; S.done += x.dur; if (x.q) { S.qn++; S.qsum += x.q; if (x.q === 5) S.q5++; if (x.q <= 3) S.qlow++; } }
     const c = S.cat[x.c]; c.n++; c.plan += x.dur; if (x.done) { c.nd++; c.done += x.dur; }
-    if (isDue) { S.dn++; S.dplan += x.dur; S.dw += w; if (x.done) { S.dnd++; S.ddone += x.dur; S.dwd += w; } else if (out) { S.nm++; S.wm += w; } else { S.no++; S.wo += w; } }
+    if (isDue) { S.dn++; S.dplan += x.dur; S.dw += w; if (x.done) { S.dnd++; S.dq += plQf(x); S.ddone += x.dur; S.dwd += w * plQf(x); } else if (out) { S.nm++; S.wm += w; } else { S.no++; S.wo += w; } }
     if (x.day !== null) { const dd = S.day[x.day]; dd.plan += x.dur; dd.n++; if (x.done) { dd.done += x.dur; dd.nd++; } if (isDue) { dd.dn++; if (x.done) dd.dnd++; } if (out) dd.mv++; }
     if (x.start) { const pi = hm(x.start) < 720 ? 0 : hm(x.start) < 1080 ? 1 : 2; S.pn[pi]++; if (x.done) S.pd[pi]++; }
     if (x.done && x.start) S.part[hm(x.start) < 720 ? 0 : hm(x.start) < 1080 ? 1 : 2] += x.dur || 1;
@@ -378,7 +400,7 @@ function plStats(tasks, off = -1, gone = []){
   });
   Object.values(moves).forEach(m => { if (m.n >= 2 && (!S.rep || m.n > S.rep.n)) S.rep = m; });
   S.rate = S.dw ? Math.round(S.dwd / S.dw * 100) : 0;
-  S.crate = S.dn ? Math.round(S.dnd / S.dn * 100) : 0;
+  S.crate = S.dn ? Math.round(S.dq / S.dn * 100) : 0;
   return S;
 }
 const plOverdue = () => PL.off > 0 || !PL.tasks ? [] : PL.tasks.filter(x => !x.done && !x.carried && (PL.off < 0 || (x.day !== null && x.day < DT.now().setZone(userTZ).weekday - 1)));
@@ -391,6 +413,10 @@ function plInsights(S){
     const mix = [S.nm && t('pl_k_m', { n:S.nm }), S.nx && t('pl_k_x', { n:S.nx }), S.no && t('pl_k_o', { n:S.no })].filter(Boolean);
     if (mix.length && (S.nm || S.nx)) out.push(t('pl_i_mix', { l:mix.join(', ') }));
     if (PL.prev && PL.prev.dn >= 3) { const dlt = S.rate - PL.prev.rate; out.push(t(dlt > 3 ? 'pl_i_vs_up' : dlt < -3 ? 'pl_i_vs_down' : 'pl_i_vs_same', { n:Math.abs(dlt), p:PL.prev.rate })); }
+  }
+  if (S.qn >= 3) {                                                // nhận xét theo mức hoàn thành tự chấm: tick xong chưa phải là xong
+    const av = S.qsum / S.qn, a = av.toFixed(1);
+    out.push(t(S.q5 === S.qn && S.qn >= 5 ? 'pl_i_q_all5' : av < 3 ? 'pl_i_q_lo' : av < 4.2 ? 'pl_i_q_mid' : 'pl_i_q_hi', { a, k:S.qlow, n:S.qn }));
   }
   const bi = S.day.reduce((b, d, i) => d.done > S.day[b].done ? i : b, 0); if (S.day[bi].done > 0) out.push(t('pl_i_best', { d:t('pl_d' + bi), t:fmtMin(S.day[bi].done) }));
   const pm = Math.max(...S.part); if (pm > 0 && S.dnd >= 3) out.push(t('pl_i_part_' + S.part.indexOf(pm)));
@@ -453,12 +479,12 @@ function plFocusSum(days){
   return { v, m:v.reduce((a, x) => a + x, 0), s:days.reduce((a, d) => a + (fl[d.toISODate()] || { s:0 }).s, 0), act:v.filter(x => x > 0).length };
 }
 function plMonthTasks(ms){
-  const T = { n:0, nd:0, dn:0, dnd:0, miss:0 };
+  const T = { n:0, nd:0, dn:0, dnd:0, dq:0, miss:0 };
   plMonthWeeks(ms).forEach(ws => {
     const o = plOffOf(ws), r = plWeekData(plKey(o)); if (!r) { T.miss++; return; }
     const inM = day => ws.plus({ days:day === null ? 3 : day }).hasSame(ms, 'month');
     const S = plStats(r.tasks.filter(x => inM(x.day)), o, r.gone.filter(g => inM(g.day)));
-    T.n += S.n; T.nd += S.nd; T.dn += S.dn; T.dnd += S.dnd;
+    T.n += S.n; T.nd += S.nd; T.dn += S.dn; T.dnd += S.dnd; T.dq += S.dq;
   });
   return T;
 }
@@ -484,7 +510,7 @@ function plPeriod(S){
     T = plMonthTasks(ms); plMonthLoad(ms);
     head = `<div class="week-nav"><button type="button" class="btn secondary icon sm" data-act="plMon" data-d="-1" aria-label="‹">${ic('chev-l', 'sm')}</button><span class="lbl">${esc(loc(ms).toLocaleString({ month:'long', year:'numeric' }).replace(/^\p{Ll}/u, c => c.toUpperCase()))}</span><button type="button" class="btn secondary icon sm" data-act="plMon" data-d="1" aria-label="›" ${mo >= 0 ? 'disabled' : ''}>${ic('chev-r', 'sm')}</button></div>`;
   }
-  const F = plFocusSum(days), P = plFocusSum(prev), mx = Math.max(60, ...F.v), r = T.dn ? Math.round(T.dnd / T.dn * 100) : null, k = wk ? 'w' : 'm', wait = !wk && (PL.mload || T.miss) && !PL.preview && !DEMO;
+  const F = plFocusSum(days), P = plFocusSum(prev), mx = Math.max(60, ...F.v), r = T.dn ? Math.round(T.dq / T.dn * 100) : null, k = wk ? 'w' : 'm', wait = !wk && (PL.mload || T.miss) && !PL.preview && !DEMO;
   const cm = [];
   if (!F.m && !T.n) cm.push(t('pl_ps_c_empty'));
   else {
@@ -628,7 +654,7 @@ function plAgenda(){                                              // điện tho
   const ws = plWeekStart(PL.off), today = DT.now().setZone(userTZ), ti = PL.off === 0 ? today.weekday - 1 : 0, di = PL.mday === null || PL.mday === undefined ? ti : PL.mday;
   const tabs = Array.from({ length:7 }, (_, i) => { const n = PL.tasks.filter(x => x.day === i).length; return `<button type="button" class="pl-dt ${i === di ? 'on' : ''} ${PL.off === 0 && i === ti ? 'today' : ''}" data-act="plMday" data-d="${i}"><b>${esc(t('pl_d' + i))}</b><small>${ws.plus({ days:i }).toFormat('dd')}</small><i class="${n ? 'has' : ''}"></i></button>`; }).join('');
   const list = PL.tasks.filter(x => x.day === di).sort((a, b) => (a.start || '99:99').localeCompare(b.start || '99:99') || a.title.localeCompare(b.title));
-  const row = x => `<div class="pl-ag ${x.done ? 'done' : ''}" data-act="plEdit" data-id="${esc(x.id)}"><button type="button" class="pl-ck sm" style="border-color:${PL_COLORS[x.c]}" data-act="plToggle" data-id="${esc(x.id)}" aria-label="${esc(t('pl_f_done'))}">${x.done ? ic('check', 'sm') : ''}</button><span class="pl-agc" style="background:${PL_COLORS[x.c]}"></span><div><b>${esc(x.title || '—')}</b><small>${x.start ? esc(x.start) + '–' + esc(hmStr(hm(x.start) + (x.dur || 0))) : esc(t('pl_allday'))}${x.dur && !x.start ? ' · ' + esc(fmtMin(x.dur)) : ''}</small></div></div>`;
+  const row = x => `<div class="pl-ag ${x.done ? 'done' : ''}" data-act="plEdit" data-id="${esc(x.id)}"><button type="button" class="pl-ck sm" style="border-color:${PL_COLORS[x.c]}" data-act="plToggle" data-id="${esc(x.id)}" aria-label="${esc(t('pl_f_done'))}">${x.done ? ic('check', 'sm') : ''}</button><span class="pl-agc" style="background:${PL_COLORS[x.c]}"></span><div><b>${esc(x.title || '—')}</b><small>${x.start ? esc(x.start) + '–' + esc(hmStr(hm(x.start) + (x.dur || 0))) : esc(t('pl_allday'))}${x.dur && !x.start ? ' · ' + esc(fmtMin(x.dur)) : ''}${x.q ? ' · ' + esc(t('pl_q_tag', { n:x.q })) : ''}${x.start && plClash(list, x.day, x.start, x.dur, x.id) ? ' · <em class="pl-warn">' + esc(t('pl_clash_tag')) + '</em>' : ''}</small></div></div>`;
   return `<div class="pl-agenda"><div class="pl-dtabs">${tabs}</div><div class="pl-aglist">${list.length ? list.map(row).join('') : `<p class="muted small">${esc(t('pl_day_empty'))}</p>`}</div><button type="button" class="btn secondary" data-act="plNew" data-day="${di}">${ic('plus', 'sm')} ${esc(t('pl_add'))}</button></div>`;
 }
 function plGrid(){
@@ -636,9 +662,19 @@ function plGrid(){
   const timed = tasks.filter(x => x.day !== null && x.start);
   const g0 = Math.max(0, Math.min(7, ...timed.map(x => Math.floor(hm(x.start) / 60)))), g1 = Math.min(24, Math.max(21, ...timed.map(x => Math.ceil((hm(x.start) + x.dur) / 60))));
   const hours = Array.from({ length:g1 - g0 }, (_, i) => g0 + i);
+  const lane = {};                                                // việc trùng giờ từ trước (dữ liệu cũ) xếp cạnh nhau thay vì chồng lên nhau, để không việc nào bị che
+  for (let di = 0; di < 7; di++) {
+    let cl = [], ends = []; const flush = () => { cl.forEach(c => { lane[c.id] = { l:c.l, n:ends.length }; }); cl = []; ends = []; };
+    timed.filter(x => x.day === di).sort((a, b) => hm(a.start) - hm(b.start)).forEach(x => {
+      if (ends.length && ends.every(e => e <= hm(x.start))) flush();
+      let l = ends.findIndex(e => e <= hm(x.start)); if (l < 0) l = ends.length;
+      ends[l] = Math.max(plSpan(x), hm(x.start) + 30); cl.push({ id:x.id, l });
+    });
+    flush();
+  }
   const block = x => {
-    const top = (hm(x.start) - g0 * 60) / 60 * PL_HOUR, h = Math.max(24, x.dur / 60 * PL_HOUR - 2);
-    return `<div class="pl-b ${x.done ? 'done' : ''}" style="top:${top}px;height:${h}px;background:${PL_COLORS[x.c]}" data-act="plEdit" data-id="${esc(x.id)}"><button type="button" class="pl-ck" data-act="plToggle" data-id="${esc(x.id)}" aria-label="${esc(t('pl_f_done'))}">${x.done ? ic('check', 'sm') : ''}</button><div class="pl-bt">${esc(x.title || '—')}</div>${h >= 62 ? `<div class="pl-bm">${esc(x.start)}–${esc(hmStr(hm(x.start) + x.dur))}</div>` : ''}</div>`;
+    const top = (hm(x.start) - g0 * 60) / 60 * PL_HOUR, h = Math.max(24, x.dur / 60 * PL_HOUR - 2), ln = lane[x.id] || { l:0, n:1 };
+    return `<div class="pl-b ${x.done ? 'done' : ''}${ln.n > 1 ? ' clash' : ''}" style="top:${top}px;height:${h}px;background:${PL_COLORS[x.c]}${ln.n > 1 ? `;left:calc(${ln.l} * 100% / ${ln.n} + 2px);right:auto;width:calc(100% / ${ln.n} - 4px)` : ''}" data-act="plEdit" data-id="${esc(x.id)}"><button type="button" class="pl-ck" data-act="plToggle" data-id="${esc(x.id)}" aria-label="${esc(t('pl_f_done'))}">${x.done ? ic('check', 'sm') : ''}</button><div class="pl-bt">${esc(x.title || '—')}${x.q ? ` <small>${x.q}/5</small>` : ''}</div>${h >= 62 ? `<div class="pl-bm">${esc(x.start)}–${esc(hmStr(hm(x.start) + x.dur))}</div>` : ''}</div>`;
   };
   const chip = x => `<div class="pl-chip ${x.done ? 'done' : ''}" style="background:${PL_COLORS[x.c]}" data-act="plEdit" data-id="${esc(x.id)}"><button type="button" class="pl-ck sm" data-act="plToggle" data-id="${esc(x.id)}">${x.done ? ic('check', 'sm') : ''}</button><span>${esc(x.title || '—')}</span></div>`;
   const cols = Array.from({ length:7 }, (_, di) => {
@@ -663,12 +699,13 @@ function plGoalSel(change, label, cur, opts, style){
 const plLv = sc => sc >= 85 ? 3 : sc >= 70 ? 2 : sc >= 50 ? 1 : 0;      // cấp của điểm tuần (pl_lv_0..3)
 function plDayPerf(di){                                           // hiệu suất của một ngày: phần trăm số phút dự định đã xong (việc chưa ghi phút tính 30; việc đã dời / bỏ vẫn nằm trong mẫu số), hoặc so với mục tiêu ngày nếu bạn đã đặt; cấp 0-4 là pl_dlv_*
   const list = PL.tasks.filter(x => x.day === di), gone = (PL.gone || []).filter(g => g.day === di), goal = PL.prefs && PL.prefs.dayGoalMin || 0;
-  const wAll = list.reduce((a, x) => a + plW(x), 0) + gone.reduce((a, g) => a + plW(g), 0), wDone = list.reduce((a, x) => a + (x.done ? plW(x) : 0), 0), doneMin = list.reduce((a, x) => a + (x.done ? x.dur : 0), 0);
+  const wAll = list.reduce((a, x) => a + plW(x), 0) + gone.reduce((a, g) => a + plW(g), 0), wDone = list.reduce((a, x) => a + plW(x) * plQf(x), 0), doneMin = Math.round(list.reduce((a, x) => a + x.dur * plQf(x), 0));   // việc tick xong được tính theo mức hoàn thành (20-100%)
   const frac = goal ? doneMin / goal : wAll ? wDone / wAll : 0;
   return { frac, pct:Math.round(Math.min(1, frac) * 100), lv:frac >= 1 ? 4 : frac >= .6 ? 3 : frac >= .3 ? 2 : frac > 0 ? 1 : 0, nd:list.filter(x => x.done).length, all:list.length + gone.length };
 }
-function plTickNote(x, before){                                   // thông báo ngay sau khi tick xong một việc: hiệu suất của ngày đó (hoặc điểm tuần nếu việc không gắn ngày), kèm "lên hạng" nếu vừa qua cấp
+function plTickNote(x, before){                                   // thông báo ngay sau khi tick xong một việc: mức hoàn thành vừa chấm, hiệu suất của ngày đó (hoặc điểm tuần nếu việc không gắn ngày), kèm "lên hạng" nếu vừa qua cấp
   let msg;
+  const qn = x.q ? t('pl_q_fb', { n:x.q, p:Math.round(PL_QW[x.q - 1] * 100) }) + (x.q <= 3 ? ' ' + t('pl_q_fb_lo') : '') + ' ' : '';
   if (x.day !== null) {
     const P = plDayPerf(x.day), d = PL.off === 0 && x.day === DT.now().setZone(userTZ).weekday - 1 ? '' : t('pl_d' + x.day) + ': ', l = t('pl_dlv_' + P.lv);
     msg = t(P.frac >= 1 ? 'pl_pf_all' : 'pl_pf_now', { d, l, p:P.pct, n:P.nd, m:P.all }) + (before && before.lv >= 1 && P.lv > before.lv && P.lv < 4 ? ' ' + t('pl_pf_up', { l }) : '');
@@ -676,17 +713,17 @@ function plTickNote(x, before){                                   // thông báo
     const sc = plScore(plStats(PL.tasks, PL.off, PL.gone));
     msg = sc === null ? t('pl_pf_nowk') : t('pl_pf_week', { l:t('pl_lv_' + plLv(sc)), s:sc });
   }
-  toast(msg, 4200);
+  toast(qn + msg, qn ? 6200 : 4200);
 }
 function plToday(){
   if (PL.off !== 0) return '';
   const now = DT.now().setZone(userTZ), di = now.weekday - 1, mins = now.hour * 60 + now.minute;
   const list = PL.tasks.filter(x => x.day === di).sort((a, b) => (a.start || '99:99').localeCompare(b.start || '99:99')), nd = list.filter(x => x.done).length, undone = list.filter(x => !x.done);
   const gone = (PL.gone || []).filter(g => g.day === di), out = [...undone.filter(x => x.carried), ...gone], all = list.length + gone.length, open = undone.length - undone.filter(x => x.carried).length;   // kế hoạch ban đầu của hôm nay = việc còn trên lịch + việc đã dời / bỏ khỏi hôm nay
-  const planMin = list.reduce((a, x) => a + x.dur, 0), doneMin = list.reduce((a, x) => a + (x.done ? x.dur : 0), 0), goal = PL.prefs && PL.prefs.dayGoalMin || 0;
-  const wAll = list.reduce((a, x) => a + plW(x), 0) + gone.reduce((a, g) => a + plW(g), 0), wDone = list.reduce((a, x) => a + (x.done ? plW(x) : 0), 0), wMv = out.filter(g => g.s !== 'x').reduce((a, g) => a + plW(g), 0), frac = goal ? doneMin / goal : wAll ? wDone / wAll : 0;
+  const planMin = list.reduce((a, x) => a + x.dur, 0), doneMin = Math.round(list.reduce((a, x) => a + x.dur * plQf(x), 0)), goal = PL.prefs && PL.prefs.dayGoalMin || 0;
+  const wAll = list.reduce((a, x) => a + plW(x), 0) + gone.reduce((a, g) => a + plW(g), 0), wDone = list.reduce((a, x) => a + (x.done ? plW(x) : 0), 0), wMv = out.filter(g => g.s !== 'x').reduce((a, g) => a + plW(g), 0), wEff = list.reduce((a, x) => a + plW(x) * plQf(x), 0), frac = goal ? doneMin / goal : wAll ? wEff / wAll : 0;
   const next = list.find(x => !x.done && x.start && hm(x.start) + (x.dur || 0) >= mins);
-  const verdict = !all ? t('pl_dv_empty') : nd === all ? t('pl_dv_all') : goal && doneMin >= goal ? t('pl_dv_goal') : !open ? t('pl_dv_adj', { n:nd, m:all, k:out.length }) : nd === 0 ? t(now.hour < 17 ? 'pl_dv_start' : 'pl_dv_none') : t('pl_dv_some', { n:nd, m:all });
+  const verdict = !all ? t('pl_dv_empty') : nd === all && frac < .9 && !goal ? t('pl_dv_lowq', { p:Math.round(frac * 100) }) : nd === all ? t('pl_dv_all') : goal && doneMin >= goal ? t('pl_dv_goal') : !open ? t('pl_dv_adj', { n:nd, m:all, k:out.length }) : nd === 0 ? t(now.hour < 17 ? 'pl_dv_start' : 'pl_dv_none') : t('pl_dv_some', { n:nd, m:all });
   const nMv = out.filter(g => g.s !== 'x').length, nX = gone.filter(g => g.s === 'x').length, mixD = nMv || nX ? [t('pl_k_d', { n:nd }), nMv && t('pl_k_mv', { n:nMv }), nX && t('pl_k_x2', { n:nX }), open && t('pl_k_o2', { n:open })].filter(Boolean).join(' · ') : '';
   const over = plOverdue(), tip = over.length ? { k:t('pl_tip_overdue', { n:over.length }), act:'plMoveToday', btn:t('pl_mv_today') } : planMin > 360 && undone.length ? { k:t('pl_tip_over', { t:fmtMin(planMin) }) } : undone.filter(x => !x.carried).length && now.hour >= 18 ? { k:t('pl_tip_tm'), act:'plMoveTomorrow', btn:t('pl_mv_tm') } : null;
   const row = x => `<div class="pl-li ${x.done ? 'done' : ''}"><button type="button" class="pl-ck sm" style="border-color:${PL_COLORS[x.c]}" data-act="plToggle" data-id="${esc(x.id)}">${x.done ? ic('check', 'sm') : ''}</button><span data-act="plEdit" data-id="${esc(x.id)}">${esc(x.title || '—')}${x.start ? ` <small class="faint">${esc(x.start)}</small>` : ''}${x.carried && !x.done ? ` <small class="faint">· ${esc(t('pl_st_w'))}</small>` : ''}</span></div>`;
@@ -757,12 +794,21 @@ function plForm(x, isNew, day, start){
     <div class="field"><label class="label">${esc(t('pl_f_title'))}</label><input class="input" id="pl-title" maxlength="80" value="${esc(x.title)}"></div>
     <div class="mt-s">${dayChips}</div>
     <div class="f2 mt-s"><div class="field"><label class="label">${esc(t('pl_f_start'))}</label><input class="input" type="time" id="pl-start" value="${esc(start !== undefined ? start : x.start)}"></div><div class="field"><label class="label">${esc(t('pl_f_len'))}</label>${plDurIn(x.dur, 'pl-dur')}</div></div>
+    <p class="small pl-clash" id="pl-clash" role="alert" hidden></p>
     <div class="row mt-s" style="gap:6px;flex-wrap:wrap">${[15, 30, 45, 60, 90, 120, 180].map(m => `<button type="button" class="chip" data-act="plDur" data-m="${m}">${esc(fmtMin(m))}</button>`).join('')}</div>
     <div class="field mt-s"><label class="label">${esc(t('pl_f_cat'))}</label><div class="row" style="gap:8px" id="pl-cats">${PL_COLORS.map((c, i) => `<button type="button" class="pl-cat ${x.c === i ? 'on' : ''}" data-act="plCat" data-c="${i}" style="background:${c}" title="${esc(t('pl_c' + i))}"><span>${esc(t('pl_c' + i))}</span></button>`).join('')}</div></div>
-    ${isNew ? '' : `<label class="chk row small mt-s" style="font-weight:700"><input type="checkbox" id="pl-done" ${x.done ? 'checked' : ''}> ${esc(t('pl_f_done'))}</label>`}
+    ${isNew ? '' : `<label class="chk row small mt-s" style="font-weight:700"><input type="checkbox" id="pl-done" data-change="plDoneChk" ${x.done ? 'checked' : ''}> ${esc(t('pl_f_done'))}</label>
+    <div class="field mt-s" id="pl-qw" ${x.done ? '' : 'hidden'}><label class="label" for="pl-q">${esc(t('pl_q_lab'))}</label><select class="select" id="pl-q"><option value="">${esc(x.done && !x.q ? '—' : t('pl_q_pick'))}</option>${[5, 4, 3, 2, 1].map(q => `<option value="${q}" ${x.q === q ? 'selected' : ''}>${q}/5 · ${esc(t('pl_q_' + q))} (${Math.round(PL_QW[q - 1] * 100)}%)</option>`).join('')}</select></div>`}
     <div class="row mt" style="justify-content:space-between">${isNew ? '<span></span>' : `<button type="button" class="btn danger" data-act="plDel">${esc(t('pl_delete'))}</button>`}<span class="row"><button type="button" class="btn ghost" data-act="closeModal">${esc(t('cancel'))}</button><button type="button" class="btn primary" data-act="plSaveTask">${esc(t('pl_save'))}</button></span></div>`, true);
   PL.cat = x.c;
   setTimeout(() => { const el = $('pl-title'); if (el && isNew) el.focus(); }, 30);
+}
+/* Chấm mức hoàn thành khi tick xong một việc: 5 mức, mỗi mức được tính một phần trăm khác nhau vào hiệu suất, điểm tuần và nhận xét */
+function plLevelForm(x){
+  PL.lvId = x.id;
+  openModal(`<h3 style="margin-bottom:6px;padding-right:32px">${esc(t('pl_q_title', { t:x.title || '—' }))}</h3><p class="small muted">${esc(t('pl_q_sub'))}</p>
+    <div class="pl-lv mt-s">${[5, 4, 3, 2, 1].map(q => `<button type="button" class="pl-lvb" data-act="plLevel" data-q="${q}"><b>${q}</b><span>${esc(t('pl_q_' + q))}</span><small>${Math.round(PL_QW[q - 1] * 100)}%</small></button>`).join('')}</div>
+    <div class="row mt" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="closeModal">${esc(t('cancel'))}</button></div>`, true);
 }
 /* dời việc chưa xong hôm nay sang ngày mai: chỉnh giờ bắt đầu / số phút cho từng việc trước khi dời */
 function plTmForm(){
@@ -791,7 +837,9 @@ FORMS.plQuick = f => {
   const inp = f.querySelector('input'); let v = inp.value.trim(); if (!v || !PL.tasks) return;
   if (PL.tasks.length >= PL_MAX) return toast(t('pl_max', { n:PL_MAX }));
   const m = v.match(/^(\d{1,2})[:h](\d{2})?\s+(.+)$/i), day = PL.off === 0 ? DT.now().setZone(userTZ).weekday - 1 : null;
-  PL.tasks.push(plClean(m && +m[1] < 24 && +(m[2] || 0) < 60 ? { title:m[3], day, start:m[1] + ':' + (m[2] || '00'), dur:60, c:0 } : { title:v, day, c:0 }));
+  const nt = plClean(m && +m[1] < 24 && +(m[2] || 0) < 60 ? { title:m[3], day, start:m[1] + ':' + (m[2] || '00'), dur:60, c:0 } : { title:v, day, c:0 });
+  const cl = nt.start ? plClashMsg(PL.tasks, nt.day, nt.start, nt.dur) : null; if (cl) return toast(cl.text + (cl.slot ? ' ' + t('pl_clash_q', { n:cl.slot }) : ''), 6500);   // giữ nguyên chữ đã gõ để sửa giờ
+  PL.tasks.push(nt);
   plSave(); render(true); setTimeout(() => { const n = $('pl-quick'); if (n) n.focus(); }, 30);
 };
 Object.assign(ACTIONS, {
@@ -808,7 +856,9 @@ Object.assign(ACTIONS, {
   plTplUse: () => {
     const tpl = PL.prefs && PL.prefs.template || []; if (!tpl.length) return;
     if (PL.tasks.length + tpl.length > PL_MAX) return toast(t('pl_max', { n:PL_MAX }));
-    tpl.forEach(x => PL.tasks.push(plClean({ ...x, id:plId(), done:false, carried:false }))); plSave(); render(true); toast(t('pl_tpl_added', { n:tpl.length }));
+    let bad = 0;
+    tpl.forEach(x => { const c = plClean({ ...x, id:plId(), done:false, carried:false }); if (c.start && plClash(PL.tasks, c.day, c.start, c.dur)) { c.start = ''; bad++; } PL.tasks.push(c); });   // trùng giờ với việc đang có: vẫn thêm nhưng bỏ giờ để bạn xếp lại
+    plSave(); render(true); toast(t('pl_tpl_added', { n:tpl.length }) + (bad ? ' ' + t('pl_tpl_clash', { n:bad }) : ''), bad ? 6000 : undefined);
   },
   plMoveToday: () => {
     const di = DT.now().setZone(userTZ).weekday - 1, mv = plOverdue(); if (!mv.length) return;
@@ -822,6 +872,16 @@ Object.assign(ACTIONS, {
       .map(r => ({ x:PL.tasks.find(v => v.id === r.dataset.id), start:r.querySelector('.pl-mv-start').value, dur:plDurGet(r.querySelector('.pl-dur')) }))
       .filter(p => p.x && !p.x.done && !p.x.carried);
     if (!picks.length) return toast(t('pl_tm_none'));
+    {                                                             // giờ mới không được trùng việc đã có của ngày mai (kể cả các việc đang dời cùng lúc)
+      let base = di < 6 ? PL.tasks.filter(v => !picks.some(p => p.x === v)) : [];
+      if (di === 6) { try { if (!DEMO) { const d = await plRef(plKey(1)).get(); base = d.exists && Array.isArray(d.data().tasks) ? d.data().tasks.map(plClean) : []; } } catch (e) { /* kiểm lại ở bước ghi */ } }
+      const tm = di < 6 ? di + 1 : 0, sim = [...base];
+      for (const p of picks) {
+        const st = /^\d{1,2}:\d{2}$/.test(p.start || '') ? p.start : '', cl = st ? plClashMsg(sim, tm, st, p.dur || 30) : null;
+        if (cl) return toast((p.x.title || '—') + ': ' + cl.text, 7000);
+        if (st) sim.push({ id:p.x.id, day:tm, start:st, dur:p.dur || 30 });
+      }
+    }
     if (di < 6) picks.forEach(p => { plMark(p.x, 'm', di + 1); Object.assign(p.x, plClean({ ...p.x, day:di + 1, start:p.start, dur:p.dur })); plLand(p.x); });
     else {                                                        // Chủ nhật: ngày mai là thứ Hai tuần sau, chép sang tuần sau như cũ để còn bấm "Đưa về" được
       try {
@@ -849,10 +909,17 @@ Object.assign(ACTIONS, {
   plCat: el => { PL.cat = +el.dataset.c; document.querySelectorAll('#pl-cats .pl-cat').forEach(b => b.classList.toggle('on', +b.dataset.c === PL.cat)); },
   plToggle: el => {
     const x = PL.tasks.find(v => v.id === el.dataset.id); if (!x) return;
-    const before = x.day !== null ? plDayPerf(x.day) : null; x.done = !x.done;
-    if (x.done) { plTickNote(x, before); PL.pop = x.day; setTimeout(() => { PL.pop = null; }, 900); }   // vừa tick xong: báo ngay hiệu suất và cho khối hiệu suất nháy một lần
+    if (x.done) { x.done = false; delete x.q; plSave(); render(true); return; }   // bỏ tick: mức hoàn thành cũng bỏ theo
+    plLevelForm(x);                                               // tick xong không chỉ là gạch bỏ: phải chấm mức hoàn thành 1-5
+  },
+  plLevel: el => {
+    const x = PL.tasks.find(v => v.id === PL.lvId), q = +el.dataset.q; PL.lvId = null;
+    if (!x || x.done || !(q >= 1 && q <= 5)) return closeModal();
+    const before = x.day !== null ? plDayPerf(x.day) : null; x.done = true; x.q = q;
+    closeModal(); plTickNote(x, before); PL.pop = x.day; setTimeout(() => { PL.pop = null; }, 900);   // vừa tick xong: báo ngay hiệu suất và cho khối hiệu suất nháy một lần
     plSave(); render(true);
   },
+  plUseSlot: el => { const n = $('pl-start'); if (n) n.value = el.dataset.s; const b = $('pl-clash'); if (b) b.hidden = true; },
   plDel: () => {
     const x = PL.tasks.find(v => v.id === PL.sel); if (!x) return closeModal();
     if (x.done || x.carried || !plStarted(x.day)) return ACTIONS.plDelGo({ dataset:{ s:'' } });   // việc đã xong / chưa tới ngày: xoá luôn như trước, không có gì cần ghi nhận
@@ -863,16 +930,85 @@ Object.assign(ACTIONS, {
   plSaveTask: async () => {
     const title = $('pl-title').value.trim(); if (!title) { $('pl-title').focus(); return; }
     const start = $('pl-start').value, dur = plDurGet($('pl-dur')), base = { title, start, dur, c:PL.cat || 0 };
-    if (PL.sel) { const x = PL.tasks.find(v => v.id === PL.sel); if (x) { const d1 = $('pl-day1').value, dn = $('pl-done').checked, day = d1 === '' ? null : +d1; if (x.carried) await plUncarry([x]); if (day !== x.day && !dn) plMark(x, 'm', day === null ? undefined : day); Object.assign(x, plClean({ ...x, ...base, day, done:dn })); plLand(x); } }
+    const warn = (day, skipId) => {                               // trùng giờ với việc khác cùng ngày: không lưu, báo ngay trong form kèm giờ trống gần nhất
+      const m = plClashMsg(PL.tasks, day, start, dur, skipId); if (!m) return false;
+      const b = $('pl-clash'); if (b) { b.hidden = false; b.innerHTML = `${esc(m.text)}${m.slot ? ` <button type="button" class="btn secondary sm" data-act="plUseSlot" data-s="${m.slot}">${esc(t('pl_clash_use', { n:m.slot }))}</button>` : ''}`; b.scrollIntoView({ block:'nearest' }); } return true;
+    };
+    if (PL.sel) {
+      const x = PL.tasks.find(v => v.id === PL.sel);
+      if (x) {
+        const d1 = $('pl-day1').value, dn = $('pl-done').checked, day = d1 === '' ? null : +d1, q = +$('pl-q').value || 0;
+        if (dn && !x.done && !q) { $('pl-q').focus(); toast(t('pl_q_need')); return; }
+        if ((day !== x.day || start !== x.start || dur !== x.dur) && warn(day, x.id)) return;   // chỉ kiểm khi đổi ngày / giờ / thời lượng, để vẫn sửa tên được việc cũ đã lỡ trùng
+        if (x.carried) await plUncarry([x]); if (day !== x.day && !dn) plMark(x, 'm', day === null ? undefined : day);
+        Object.assign(x, plClean({ ...x, ...base, day, done:dn, q:dn ? (q || x.q) : 0 })); if (!dn) delete x.q; plLand(x);
+      }
+    }
     else {
       const days = [...document.querySelectorAll('.pl-day:checked')].map(b => +b.value);
       if (PL.tasks.length + Math.max(1, days.length) > PL_MAX) { toast(t('pl_max', { n:PL_MAX })); return; }
+      if (days.some(d => warn(d))) return;
       (days.length ? days : [null]).forEach(day => PL.tasks.push(plClean({ ...base, day })));
     }
     PL.sel = null; closeModal(); plSave(); render(true);
   },
   plUncarry: async el => { const list = el && el.dataset.id ? PL.tasks.filter(x => x.id === el.dataset.id && x.carried) : PL.tasks.filter(x => x.carried); if (list.length && await plUncarry(list)) { render(true); toast(t('pl_uncarried_n', { n:list.length })); } },
 });
+CHANGES.plDoneChk = el => { const w = $('pl-qw'); if (w) w.hidden = !el.checked; };
 CHANGES.plDayGoal = el => { if (el.value === 'custom') return plGoalForm('dayGoalMin'); plSavePrefs({ dayGoalMin:+el.value || 0 }); render(true); };
 CHANGES.plGoal = el => { if (el.value === 'custom') return plGoalForm('goalMin'); plSavePrefs({ goalMin:+el.value || 0 }); render(true); };
 CHANGES.plStudyGoal = el => { if (el.value === 'custom') return plGoalForm('studyGoalMin'); plSavePrefs({ studyGoalMin:+el.value || 0 }); render(true); };
+
+/* chống trùng giờ + chấm mức hoàn thành 1-5 khi tick (en / vi; các ngôn ngữ khác ở planner-i18n.js) */
+Object.assign(I18N.en, {
+  "pl_clash": "Clash on {d}: “{x}” already runs {a}–{b}. You can only do one thing at a time, and switching between two tasks slows both down. How about {n} instead (with a 10-minute break)?",
+  "pl_clash_use": "Use {n}",
+  "pl_clash_full": "Clash on {d}: “{x}” already runs {a}–{b}, and there is no free slot left that day for this length. Shorten the task or pick another day.",
+  "pl_clash_q": "Next free slot: {n}.",
+  "pl_clash_tag": "Overlap",
+  "pl_tpl_clash": "{n} tasks overlapped existing ones, so they were added without a time. Reschedule them when you can.",
+  "pl_q_title": "How far did you get with “{t}”?",
+  "pl_q_sub": "Be honest. This level decides how much the task counts toward your performance, score and feedback.",
+  "pl_q_1": "Barely started",
+  "pl_q_2": "About half",
+  "pl_q_3": "Mostly done, gaps left",
+  "pl_q_4": "Done, could be better",
+  "pl_q_5": "Fully done as planned",
+  "pl_q_tag": "Level {n}/5",
+  "pl_q_lab": "Completion level",
+  "pl_q_pick": "Pick a level…",
+  "pl_q_need": "Pick a completion level first.",
+  "pl_q_fb": "Level {n}/5: counts {p}% of this task.",
+  "pl_q_fb_lo": "Open the task to raise it once you finish the rest.",
+  "pl_dv_lowq": "Everything is ticked, but at your own levels it adds up to only {p}%. Finishing properly beats ticking.",
+  "pl_i_q_lo": "Your average completion level is {a}/5, with {k} of {n} tasks at level 3 or below. Ticking is not finishing: plan fewer tasks per day or cut them smaller so each one gets done properly.",
+  "pl_i_q_mid": "Average completion level {a}/5 over {n} tasks, {k} of them at level 3 or below. To rank higher, finish each task fully before moving on.",
+  "pl_i_q_hi": "Average completion level {a}/5 over {n} tasks: solid. Raise the difficulty so level 5 keeps meaning something.",
+  "pl_i_q_all5": "All {n} tasks rated 5/5. If that is true, make next week harder; if not, rate yourself lower so the numbers stay honest."
+});
+Object.assign(I18N.vi, {
+  "pl_clash": "Trùng giờ ({d}): “{x}” đã chạy {a}–{b}. Một lúc chỉ làm được một việc, và nhảy qua lại giữa hai việc làm cả hai chậm đi. Thử {n} nhé (chừa 10 phút nghỉ)?",
+  "pl_clash_use": "Dùng {n}",
+  "pl_clash_full": "Trùng giờ ({d}): “{x}” đã chạy {a}–{b}, và ngày đó không còn khoảng trống đủ dài cho việc này. Hãy rút ngắn việc hoặc chọn ngày khác.",
+  "pl_clash_q": "Khung trống gần nhất: {n}.",
+  "pl_clash_tag": "Trùng giờ",
+  "pl_tpl_clash": "{n} việc trùng giờ với việc đang có nên được thêm mà không có giờ. Bạn xếp lại giờ sau nhé.",
+  "pl_q_title": "Bạn đã làm được đến đâu với “{t}”?",
+  "pl_q_sub": "Hãy chấm thật lòng. Mức này quyết định việc này được tính bao nhiêu vào hiệu suất, điểm và nhận xét của bạn.",
+  "pl_q_1": "Mới làm được chút ít",
+  "pl_q_2": "Được khoảng một nửa",
+  "pl_q_3": "Gần xong, còn sót vài phần",
+  "pl_q_4": "Xong, chưa thật tốt",
+  "pl_q_5": "Xong trọn vẹn như kế hoạch",
+  "pl_q_tag": "Mức {n}/5",
+  "pl_q_lab": "Mức hoàn thành",
+  "pl_q_pick": "Chọn mức…",
+  "pl_q_need": "Hãy chọn mức hoàn thành trước.",
+  "pl_q_fb": "Mức {n}/5: việc này được tính {p}%.",
+  "pl_q_fb_lo": "Khi làm xong phần còn lại, mở việc này để nâng mức lên.",
+  "pl_dv_lowq": "Đã tick hết, nhưng theo mức bạn tự chấm thì mới được {p}%. Làm trọn vẹn quan trọng hơn là tick.",
+  "pl_i_q_lo": "Mức hoàn thành trung bình của bạn là {a}/5, có {k} trên {n} việc ở mức 3 trở xuống. Tick chưa phải là xong: hãy lên ít việc hơn mỗi ngày hoặc chia nhỏ ra để việc nào cũng làm trọn.",
+  "pl_i_q_mid": "Mức hoàn thành trung bình {a}/5 trên {n} việc, trong đó {k} việc ở mức 3 trở xuống. Muốn lên hạng, hãy làm trọn từng việc rồi mới sang việc kế.",
+  "pl_i_q_hi": "Mức hoàn thành trung bình {a}/5 trên {n} việc: rất chắc tay. Hãy nâng độ khó để mức 5 vẫn xứng đáng.",
+  "pl_i_q_all5": "Cả {n} việc đều chấm 5/5. Nếu đúng vậy thì tuần sau hãy đặt kế hoạch khó hơn; nếu chưa thật chuẩn, hãy mạnh dạn chấm thấp hơn để số liệu phản ánh đúng."
+});
