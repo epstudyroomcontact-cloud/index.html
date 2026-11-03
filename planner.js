@@ -804,8 +804,8 @@ function plForm(x, isNew, day, start){
   setTimeout(() => { const el = $('pl-title'); if (el && isNew) el.focus(); }, 30);
 }
 /* Chấm mức hoàn thành khi tick xong một việc: 5 mức, mỗi mức được tính một phần trăm khác nhau vào hiệu suất, điểm tuần và nhận xét */
-function plLevelForm(x){
-  PL.lvId = x.id;
+function plLevelForm(x, fromFocus){
+  PL.lvId = x.id; PL.lvFocus = !!fromFocus;
   openModal(`<h3 style="margin-bottom:6px;padding-right:32px">${esc(t('pl_q_title', { t:x.title || '—' }))}</h3><p class="small muted">${esc(t('pl_q_sub'))}</p>
     <div class="pl-lv mt-s">${[5, 4, 3, 2, 1].map(q => `<button type="button" class="pl-lvb" data-act="plLevel" data-q="${q}"><b>${q}</b><span>${esc(t('pl_q_' + q))}</span><small>${Math.round(PL_QW[q - 1] * 100)}%</small></button>`).join('')}</div>
     <div class="row mt" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="closeModal">${esc(t('cancel'))}</button></div>`, true);
@@ -913,7 +913,16 @@ Object.assign(ACTIONS, {
     plLevelForm(x);                                               // tick xong không chỉ là gạch bỏ: phải chấm mức hoàn thành 1-5
   },
   plLevel: el => {
-    const x = PL.tasks.find(v => v.id === PL.lvId), q = +el.dataset.q; PL.lvId = null;
+    const q = +el.dataset.q, id = PL.lvId, fx = PL.lvFocus; PL.lvId = null; PL.lvFocus = false;
+    if (fx) {                                                     // tick từ Phòng tập trung: cùng một bước chấm mức, ghi thẳng vào Planner
+      closeModal(); if (!(q >= 1 && q <= 5)) return;
+      plFocusEdit(ts => { const v = ts.find(y => y.id === id); if (!v || v.done) return false; v.done = true; v.q = q; return true; }).then(ok => {
+        toast(ok ? t('pl_q_fb', { n:q, p:Math.round(PL_QW[q - 1] * 100) }) + (q <= 3 ? ' ' + t('pl_q_fb_lo') : '') : t('pl_err'), 5200);
+        if (typeof renderFocusPl === 'function') renderFocusPl(); if (route.name === 'planner') render(true);
+      });
+      return;
+    }
+    const x = PL.tasks.find(v => v.id === id);
     if (!x || x.done || !(q >= 1 && q <= 5)) return closeModal();
     const before = x.day !== null ? plDayPerf(x.day) : null; x.done = true; x.q = q;
     closeModal(); plTickNote(x, before); PL.pop = x.day; setTimeout(() => { PL.pop = null; }, 900);   // vừa tick xong: báo ngay hiệu suất và cho khối hiệu suất nháy một lần

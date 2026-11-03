@@ -588,7 +588,8 @@ CHANGES.cfgAuto = el => { pomo.cfg.auto = el.checked; pomoSave(); };
 CHANGES.todoToggle = el => { saveTodos(todos().map(x => x.id === el.dataset.id ? { ...x, done:el.checked } : x)); renderTodos(); };
 CHANGES.focusPlToggle = async el => {
   const id = el.dataset.id, done = el.checked;
-  if (!await plFocusEdit(ts => { const x = ts.find(v => v.id === id); if (!x) return false; x.done = done; return true; })) toast(t('pl_err'));
+  if (done) { el.checked = false; const x = FX_PL.find(v => v.id === id); if (x && !x.done) plLevelForm(x, true); return; }   // tick xong = chấm mức hoàn thành 1-5, giống bên Planner
+  if (!await plFocusEdit(ts => { const x = ts.find(v => v.id === id); if (!x) return false; x.done = false; delete x.q; return true; })) toast(t('pl_err'));
   renderFocusPl();
 };
 FORMS.todo = async () => {
@@ -597,6 +598,8 @@ FORMS.todo = async () => {
     try { if (typeof plFocusEdit !== 'function') await loadPlanner(); } catch (e) {}
     if (typeof plFocusEdit === 'function') {
       const tm = $('todo-time'), start = tm ? tm.value : '';
+      const wk0 = start ? await plWeek0() : null, cl = start && wk0 ? plClashMsg(wk0, plToday0(), start, 30) : null;      // giờ trùng việc khác hôm nay: báo và giữ nguyên chữ đã gõ
+      if (cl) { toast(cl.text, 6500); return; }
       const ok = await plFocusEdit(ts => { if (ts.length >= PL_MAX) return false; ts.push(plClean({ title:v, day:plToday0(), start, dur:0, c:0, done:false })); return true; });
       if (ok) { i.value = ''; if (tm) tm.value = ''; renderFocusPl(); } else toast(t('pl_err'));
       i.focus(); return;
@@ -606,6 +609,8 @@ FORMS.todo = async () => {
 };
 FORMS.fxPlEdit = async f => {
   const id = f.dataset.id, title = f.elements.ti.value.trim().slice(0, 80), start = f.elements.st.value; if (!title) { f.elements.ti.focus(); return; }
+  const wk0 = await plWeek0(), x0 = wk0 && wk0.find(v => v.id === id), cl = x0 && start && start !== x0.start ? plClashMsg(wk0, x0.day, start, x0.dur, id) : null;
+  if (cl) { toast(cl.text, 6500); return; }
   const ok = await plFocusEdit(ts => { const x = ts.find(v => v.id === id); if (!x) return false; x.title = title; x.start = start; return true; });
   fxEdit = ''; if (!ok) toast(t('pl_err')); renderFocusPl();
 };
