@@ -1256,10 +1256,11 @@ body:has(#tour-ask) .sofa{display:none}
 .fx3.fit .row:has(#tm-main){flex-wrap:nowrap;gap:8px}
 .fx3.fit .music-card{max-height:none}
 .fx3.fit{grid-template-columns:repeat(12,minmax(0,1fr))}
-.fx3.fit[data-lay=study],.fx3.fit[data-lay=bal]{grid-template-rows:auto auto;grid-template-areas:"timer timer timer timer timer timer live live live live live live" "todo todo todo todo group group group group music music music music"}
-.fx3.fit[data-lay=study].nogrp,.fx3.fit[data-lay=bal].nogrp{grid-template-areas:"timer timer timer timer timer timer live live live live live live" "todo todo todo todo todo todo music music music music music music"}
-.fx3.fit[data-lay=bal]{grid-template-areas:"timer timer timer timer timer live live live live live live live" "todo todo todo todo group group group group music music music music"}
-.fx3.fit[data-lay=bal].nogrp{grid-template-areas:"timer timer timer timer timer live live live live live live live" "todo todo todo todo todo todo music music music music music music"}
+.fx3.fit[data-lay=study],.fx3.fit[data-lay=bal]{grid-template-rows:auto auto auto;grid-template-areas:"timer timer timer timer timer timer live live live live live live" "timer timer timer timer timer timer todo todo todo todo todo todo" "group group group group group group music music music music music music"}
+.fx3.fit[data-lay=study].nogrp,.fx3.fit[data-lay=bal].nogrp{grid-template-areas:"timer timer timer timer timer timer live live live live live live" "timer timer timer timer timer timer todo todo todo todo todo todo" "music music music music music music music music music music music music"}
+.fx3.fit[data-lay=bal]{grid-template-areas:"timer timer timer timer timer live live live live live live live" "timer timer timer timer timer todo todo todo todo todo todo todo" "group group group group group group music music music music music music"}
+.fx3.fit[data-lay=bal].nogrp{grid-template-areas:"timer timer timer timer timer live live live live live live live" "timer timer timer timer timer todo todo todo todo todo todo todo" "music music music music music music music music music music music music"}
+.fx3.fit:is([data-lay=study],[data-lay=bal]) .tab-pane[data-k=todo]>:is(.card,section){max-height:none;overflow:visible}   /* planner nằm dưới stream, lấp chỗ trống */
 .fx3.fit[data-lay=watch]{grid-template-rows:auto auto auto;grid-template-areas:"live live live live live live live live timer timer timer timer" "live live live live live live live live group group group group" "todo todo todo todo todo todo music music music music music music"}
 .fx3.fit[data-lay=watch].nogrp{grid-template-areas:"live live live live live live live live timer timer timer timer" "live live live live live live live live todo todo todo todo" "music music music music music music music music todo todo todo todo"}
 .fx3.fit[data-lay=watch] .ring{width:110px}.fx3.fit[data-lay=watch]>.fx-timer{gap:8px;padding:14px;position:static;align-self:stretch}.fx3.fit[data-lay=watch]>.fx-timer .seg button{padding:4px 10px}.fx3.fit[data-lay=watch]>.fx-timer .seg{padding:2px}
