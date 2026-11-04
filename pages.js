@@ -485,21 +485,38 @@ const pipNow = () => { const left = pomo.running ? Math.max(0, pomo.endAt - Date
 const pipCol = () => { const cs = getComputedStyle(document.documentElement), v = k => cs.getPropertyValue(k).trim(); return pomo.mode === 'short' ? (v('--sage') || '#2ee6c8') : pomo.mode === 'long' ? (v('--peach') || '#ffc72c') : (v('--accent') || '#ff3d9a'); };
 function pipTick(){ if (pomo.running) pomoTick(); else pipPaint(); }    // pomoTick → updateTimerUI → pipPaint; hết giờ lúc tab ẩn thì vẫn chuyển khối đúng lúc
 const PIP_SVG = { play:'<path d="M8 5v14l11-7z"/>', pause:'<path d="M7 5h4v14H7zM13 5h4v14h-4z"/>', back:'<path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' };
+/* Tuỳ chọn timer nổi (lưu trong máy khách): kiểu hiển thị, độ mờ, màu nền, cỡ cửa sổ. Trình duyệt vẽ khung cửa sổ nổi nên web không làm nó trong suốt thật được. */
+const PIP_BG = { dark:['#0c0c12', '#ffffff'], black:['#000000', '#ffffff'], light:['#f6f6fa', '#14141c'] }, PIP_SZ = { s:[190, 92], m:[250, 124], l:[340, 170] };
+function pipCfg(){ const c = store.get('pip_cfg', null) || {}; return { style:['full', 'digits', 'ring', 'bar'].includes(c.style) ? c.style : 'full', op:[25, 45, 70, 100].includes(c.op) ? c.op : 45, bg:PIP_BG[c.bg] ? c.bg : 'dark', size:PIP_SZ[c.size] ? c.size : 'm' }; }
+function pipApply(){
+  if (!pipWin) return; const c = pipCfg(), d = pipWin.document, b = PIP_BG[c.bg];
+  d.documentElement.style.cssText = `--bg:${b[0]};--fg:${b[1]};--op:${c.op / 100}`; d.body.dataset.s = c.style;
+  try { pipWin.resizeTo(...PIP_SZ[c.size]); } catch (e) {}
+}
 function pipPaint(){
   if (pipWin) {
     const d = pipWin.document, n = pipNow(), q = id => d.getElementById(id); if (!q('tt')) return;
-    q('tt').textContent = n.txt; q('md').textContent = n.mode; q('bar').style.width = (100 * (1 - n.left / n.total)).toFixed(1) + '%'; q('bar').style.background = pipCol();
+    const f = 1 - n.left / n.total;
+    q('tt').textContent = n.txt; q('md').textContent = n.mode; q('bar').style.width = (100 * f).toFixed(1) + '%'; q('bar').style.background = pipCol();
+    q('rf').style.strokeDashoffset = (RING_C * (1 - f)).toFixed(2); q('rf').style.stroke = pipCol();
     q('pp').innerHTML = `<svg viewBox="0 0 24 24">${PIP_SVG[pomo.running ? 'pause' : 'play']}</svg>`; q('pp').title = t(pomo.running ? 'pause' : (n.left < n.total ? 'resume' : 'start'));
     d.title = `${n.txt} · ${n.mode}`;
   }
   if (pipCv && pipVid && document.pictureInPictureElement === pipVid) {
-    const c = pipCv.getContext('2d'), W = pipCv.width, H = pipCv.height, n = pipNow();
-    c.fillStyle = '#0c0c12'; c.fillRect(0, 0, W, H);
-    c.globalAlpha = .5; c.fillStyle = '#ffffff'; c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.font = '700 22px system-ui,sans-serif'; c.fillText(n.mode.toUpperCase() + (pomo.running ? '' : ' · II'), W / 2, 44);
-    c.font = '700 96px system-ui,sans-serif'; c.fillText(n.txt, W / 2, 128);
-    c.globalAlpha = .18; c.fillRect(40, 196, W - 80, 6);
-    c.globalAlpha = .6; c.fillStyle = pipCol(); c.fillRect(40, 196, (W - 80) * (1 - n.left / n.total), 6); c.globalAlpha = 1;
+    const c = pipCv.getContext('2d'), W = pipCv.width, H = pipCv.height, n = pipNow(), g = pipCfg(), b = PIP_BG[g.bg], f = 1 - n.left / n.total;
+    c.fillStyle = b[0]; c.fillRect(0, 0, W, H); c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = b[1]; c.globalAlpha = g.op / 100;
+    if (g.style === 'ring') {
+      const R = 100, x = W / 2, y = H / 2; c.lineWidth = 12; c.lineCap = 'round';
+      c.globalAlpha = g.op / 100 * .25; c.strokeStyle = b[1]; c.beginPath(); c.arc(x, y, R, 0, 7); c.stroke();
+      c.globalAlpha = g.op / 100; c.strokeStyle = pipCol(); c.beginPath(); c.arc(x, y, R, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI * f); c.stroke();
+      c.fillStyle = b[1]; c.font = '700 64px system-ui,sans-serif'; c.fillText(n.txt, x, y);
+    } else {
+      const big = g.style === 'digits', y = g.style === 'full' ? 128 : (g.style === 'bar' ? 112 : H / 2);
+      if (g.style === 'full') { c.font = '700 22px system-ui,sans-serif'; c.fillText(n.mode.toUpperCase() + (pomo.running ? '' : ' · II'), W / 2, 44); }
+      c.font = `700 ${big ? 130 : 96}px system-ui,sans-serif`; c.fillText(n.txt, W / 2, y);
+      if (g.style === 'full' || g.style === 'bar') { c.globalAlpha = g.op / 100 * .25; c.fillRect(40, 196, W - 80, 6); c.globalAlpha = g.op / 100; c.fillStyle = pipCol(); c.fillRect(40, 196, (W - 80) * f, 6); }
+    }
+    c.globalAlpha = 1;
   }
 }
 function pipClose(){
@@ -508,28 +525,47 @@ function pipClose(){
   updateTimerUI();
 }
 function pipOpenDoc(){
-  documentPictureInPicture.requestWindow({ width:230, height:118 }).then(w => {
+  const sz = PIP_SZ[pipCfg().size];
+  documentPictureInPicture.requestWindow({ width:sz[0], height:sz[1] }).then(w => {
     pipWin = w; const d = w.document;
     d.head.innerHTML = `<meta charset="utf-8"><style>
-      html,body{margin:0;height:100%;background:#0c0c12;color:#fff;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;overflow:hidden;user-select:none}
-      #w{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;opacity:.42;transition:opacity .25s}
+      html{--bg:#0c0c12;--fg:#fff;--op:.45}
+      html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;overflow:hidden;user-select:none}
+      #w{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;opacity:var(--op);transition:opacity .25s}
       body:hover #w{opacity:1}
       #md{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
-      #tt{font-size:clamp(28px,24vw,72px);font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.03em;line-height:1}
-      #track{width:72%;height:4px;border-radius:4px;background:rgba(255,255,255,.15);overflow:hidden}#bar{height:100%;width:0;border-radius:4px}
+      #rg{position:relative;display:grid;place-items:center}#rg svg{display:none;width:100%;height:100%;position:absolute;inset:0;transform:rotate(-90deg)}
+      #tt{font-size:clamp(26px,min(24vw,46vh),96px);font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.03em;line-height:1}
+      #track{width:72%;height:4px;border-radius:4px;background:rgba(128,128,128,.28);overflow:hidden}#bar{height:100%;width:0;border-radius:4px}
+      body[data-s=digits] #md,body[data-s=digits] #track,body[data-s=ring] #md,body[data-s=ring] #track,body[data-s=bar] #md{display:none}
+      body[data-s=digits] #tt{font-size:clamp(30px,min(30vw,70vh),120px)}
+      body[data-s=ring] #rg{height:88vh;aspect-ratio:1}body[data-s=ring] #rg svg{display:block}body[data-s=ring] #tt{font-size:min(23vw,24vh)}
+      #rg .b{stroke:rgba(128,128,128,.3);fill:none}#rg #rf{fill:none;stroke-linecap:round;transition:stroke-dashoffset .3s linear}
       #ctl{position:fixed;top:6px;right:6px;display:flex;gap:4px;opacity:0;transition:opacity .2s}body:hover #ctl{opacity:1}
-      button{width:28px;height:28px;border:0;border-radius:8px;background:rgba(255,255,255,.14);color:#fff;cursor:pointer;display:grid;place-items:center;padding:0}
-      button:hover{background:rgba(255,255,255,.28)}button svg{width:15px;height:15px;fill:currentColor}
+      button{width:28px;height:28px;border:0;border-radius:8px;background:rgba(128,128,128,.25);color:var(--fg);cursor:pointer;display:grid;place-items:center;padding:0}
+      button:hover{background:rgba(128,128,128,.45)}button svg{width:15px;height:15px;fill:currentColor}
     </style>`;
-    d.body.innerHTML = `<div id="w"><div id="md"></div><div id="tt"></div><div id="track"><div id="bar"></div></div></div>
+    d.body.innerHTML = `<div id="w"><div id="md"></div><div id="rg"><svg viewBox="0 0 120 120"><circle class="b" cx="60" cy="60" r="54" stroke-width="7"/><circle id="rf" cx="60" cy="60" r="54" stroke-width="7" stroke-dasharray="${RING_C.toFixed(2)}" stroke-dashoffset="0"/></svg><div id="tt"></div></div><div id="track"><div id="bar"></div></div></div>
       <div id="ctl"><button type="button" id="pp"></button><button type="button" id="bk" title="${esc(branding.name)}"><svg viewBox="0 0 24 24">${PIP_SVG.back}</svg></button></div>`;
     d.getElementById('pp').addEventListener('click', () => { pomo.running ? pomoPause() : pomoStart(); pipPaint(); });
     d.getElementById('bk').addEventListener('click', () => { window.focus(); if (route.name !== 'focus') location.hash = '#/focus'; });
     w.setInterval(pipTick, 500);
     w.addEventListener('pagehide', () => { if (pipWin === w) { pipWin = null; updateTimerUI(); } });
-    pipPaint(); updateTimerUI();
+    pipApply(); pipPaint(); updateTimerUI();
   }).catch(e => { console.warn('pip', e); pipWin = null; if (pipVidOk()) pipOpenVid(); else toast(t('pip_no')); });
 }
+const pipOpts = () => { const c = pipCfg(), row = (k, lab, items) => `<div class="pip-row"><span class="small muted">${esc(t(lab))}</span>${items.map(([v, l]) => `<button type="button" class="chip ${String(c[k]) === String(v) ? 'on' : ''}" data-act="pipSet" data-k="${k}" data-v="${v}">${esc(l)}</button>`).join('')}</div>`;
+  return `<details class="tm-cfg pip-cfg"><summary>${ic('pip', 'sm')} ${esc(t('pip_cfg'))}</summary>
+    ${row('style', 'pip_style', [['full', t('pip_s_full')], ['digits', t('pip_s_digits')], ['ring', t('pip_s_ring')], ['bar', t('pip_s_bar')]])}
+    ${row('op', 'pip_op', [[25, '25%'], [45, '45%'], [70, '70%'], [100, '100%']])}
+    ${row('bg', 'pip_bg', [['dark', t('pip_bg_dark')], ['black', t('pip_bg_black')], ['light', t('pip_bg_light')]])}
+    ${row('size', 'pip_size', [['s', 'S'], ['m', 'M'], ['l', 'L']])}
+    <p class="small faint" style="margin:0">${esc(t('pip_note'))}</p></details>`; };
+ACTIONS.pipSet = el => {
+  const c = pipCfg(), k = el.dataset.k; c[k] = k === 'op' ? +el.dataset.v : el.dataset.v; store.set('pip_cfg', c);
+  el.closest('.pip-row').querySelectorAll('.chip').forEach(b => b.classList.toggle('on', b === el));
+  pipApply(); pipPaint();
+};
 function pipPrep(){                      // chuẩn bị sẵn video (Safari đòi bấm nút là mở ngay, không chờ được)
   if (pipVid || pipDocOk() || !pipVidOk()) return;
   pipCv = document.createElement('canvas'); pipCv.width = 480; pipCv.height = 240;
@@ -560,6 +596,19 @@ ACTIONS.pip = () => {
     fr:{ pip_on:'Minuteur flottant', pip_off:'Masquer le minuteur flottant', pip_tip:'Affiche un minuteur discret au-dessus de toutes les fenêtres, même quand vous changez d\'onglet ou d\'application', pip_no:'Ce navigateur ne peut pas afficher de minuteur flottant. Essayez Chrome ou Edge sur ordinateur.' },
     es:{ pip_on:'Temporizador flotante', pip_off:'Ocultar temporizador flotante', pip_tip:'Muestra un temporizador tenue sobre todas las ventanas, aunque cambies de pestaña o uses otra app', pip_no:'Este navegador no puede mostrar un temporizador flotante. Prueba Chrome o Edge en un ordenador.' },
     hi:{ pip_on:'फ़्लोटिंग टाइमर', pip_off:'फ़्लोटिंग टाइमर बंद करें', pip_tip:'टैब बदलने या दूसरा ऐप इस्तेमाल करने पर भी हल्का टाइमर सभी विंडो के ऊपर दिखाएँ', pip_no:'यह ब्राउज़र फ़्लोटिंग टाइमर नहीं दिखा सकता। कंप्यूटर पर Chrome या Edge आज़माएँ।' }
+  };
+  Object.keys(G).forEach(l => { I18N[l] = I18N[l] || {}; Object.keys(G[l]).forEach(k => { if (I18N[l][k] === undefined) I18N[l][k] = G[l][k]; }); });
+})();
+(function(){
+  const G = {
+    en:{ pip_cfg:'Floating timer options', pip_style:'Style', pip_s_full:'Full', pip_s_digits:'Digits only', pip_s_ring:'Ring', pip_s_bar:'Bar', pip_op:'Opacity', pip_bg:'Background', pip_bg_dark:'Dark', pip_bg_black:'Black', pip_bg_light:'Light', pip_size:'Size', pip_note:'Browsers draw the floating window themselves, so it can\'t be fully see-through. Choose "Digits only" with low opacity to make it as light as possible.' },
+    vi:{ pip_cfg:'Tuỳ chỉnh timer nổi', pip_style:'Kiểu', pip_s_full:'Đầy đủ', pip_s_digits:'Chỉ số', pip_s_ring:'Vòng tròn', pip_s_bar:'Thanh', pip_op:'Độ mờ', pip_bg:'Nền', pip_bg_dark:'Tối', pip_bg_black:'Đen', pip_bg_light:'Sáng', pip_size:'Cỡ', pip_note:'Khung cửa sổ nổi do trình duyệt vẽ nên web không làm nó trong suốt hoàn toàn được. Chọn kiểu "Chỉ số" và độ mờ thấp để nhẹ nhàng nhất.' },
+    ja:{ pip_cfg:'フローティングタイマーの設定', pip_style:'スタイル', pip_s_full:'フル', pip_s_digits:'数字のみ', pip_s_ring:'リング', pip_s_bar:'バー', pip_op:'不透明度', pip_bg:'背景', pip_bg_dark:'ダーク', pip_bg_black:'ブラック', pip_bg_light:'ライト', pip_size:'サイズ', pip_note:'フローティングウィンドウはブラウザが描画するため、完全な透明にはできません。「数字のみ」と低い不透明度で最も控えめになります。' },
+    ko:{ pip_cfg:'플로팅 타이머 설정', pip_style:'스타일', pip_s_full:'전체', pip_s_digits:'숫자만', pip_s_ring:'링', pip_s_bar:'바', pip_op:'투명도', pip_bg:'배경', pip_bg_dark:'다크', pip_bg_black:'블랙', pip_bg_light:'라이트', pip_size:'크기', pip_note:'플로팅 창은 브라우저가 직접 그리기 때문에 완전히 투명하게 만들 수 없어요. "숫자만"과 낮은 투명도를 고르면 가장 가벼워요.' },
+    zh:{ pip_cfg:'悬浮计时器设置', pip_style:'样式', pip_s_full:'完整', pip_s_digits:'仅数字', pip_s_ring:'圆环', pip_s_bar:'进度条', pip_op:'不透明度', pip_bg:'背景', pip_bg_dark:'深色', pip_bg_black:'纯黑', pip_bg_light:'浅色', pip_size:'大小', pip_note:'悬浮窗由浏览器绘制，网页无法让它完全透明。选择“仅数字”并降低不透明度会最不打扰。' },
+    fr:{ pip_cfg:'Options du minuteur flottant', pip_style:'Style', pip_s_full:'Complet', pip_s_digits:'Chiffres seuls', pip_s_ring:'Anneau', pip_s_bar:'Barre', pip_op:'Opacité', pip_bg:'Fond', pip_bg_dark:'Sombre', pip_bg_black:'Noir', pip_bg_light:'Clair', pip_size:'Taille', pip_note:'Le navigateur dessine lui-même la fenêtre flottante : elle ne peut pas être totalement transparente. Choisissez « Chiffres seuls » avec une faible opacité pour la rendre la plus discrète.' },
+    es:{ pip_cfg:'Opciones del temporizador flotante', pip_style:'Estilo', pip_s_full:'Completo', pip_s_digits:'Solo cifras', pip_s_ring:'Anillo', pip_s_bar:'Barra', pip_op:'Opacidad', pip_bg:'Fondo', pip_bg_dark:'Oscuro', pip_bg_black:'Negro', pip_bg_light:'Claro', pip_size:'Tamaño', pip_note:'El navegador dibuja la ventana flotante, así que no puede ser totalmente transparente. Elige "Solo cifras" con poca opacidad para que moleste lo mínimo.' },
+    hi:{ pip_cfg:'फ़्लोटिंग टाइमर विकल्प', pip_style:'शैली', pip_s_full:'पूरा', pip_s_digits:'सिर्फ़ अंक', pip_s_ring:'रिंग', pip_s_bar:'बार', pip_op:'अपारदर्शिता', pip_bg:'पृष्ठभूमि', pip_bg_dark:'गहरा', pip_bg_black:'काला', pip_bg_light:'हल्का', pip_size:'आकार', pip_note:'फ़्लोटिंग विंडो ब्राउज़र खुद बनाता है, इसलिए वह पूरी तरह पारदर्शी नहीं हो सकती। सबसे हल्का रखने के लिए "सिर्फ़ अंक" और कम अपारदर्शिता चुनें।' }
   };
   Object.keys(G).forEach(l => { I18N[l] = I18N[l] || {}; Object.keys(G[l]).forEach(k => { if (I18N[l][k] === undefined) I18N[l][k] = G[l][k]; }); });
 })();
@@ -654,7 +703,7 @@ PAGES.focus = function(){
       <div class="cycle" id="tm-cycle"></div><div class="small muted" id="tm-cur" style="text-align:center;min-height:1.2em"></div>
       ${focusLimit() ? `<div class="limit-box"><div class="row between small"><b>${esc(t('focus_limit_used', { u:Math.min(focusUsed(), focusLimit()), l:focusLimit() }))}</b><span class="faint">${esc(t('focus_limit_note', { l:focusLimit() }))}</span></div><div class="progress mt-s"><i style="width:${Math.min(100, focusUsed() / focusLimit() * 100)}%"></i></div></div>` : (state.companion ? `<div class="limit-box">${compBadge(' · ' + esc(t('focus_nolimit')))}</div>` : '')}
       <div class="row"><button class="btn primary lg" id="tm-main" data-act="pstart"></button><button class="btn secondary icon" style="width:48px;height:48px" data-act="preset-reset" title="${esc(t('reset'))}">${ic('reset')}</button><button class="btn secondary icon" style="width:48px;height:48px" data-act="pskip" title="${esc(t('skip'))}">${ic('skip')}</button></div>
-      ${pipCanUse() ? `<button type="button" class="btn ghost sm tm-pip" id="tm-pip" data-act="pip" title="${esc(t('pip_tip'))}" aria-pressed="false">${ic('pip', 'sm')} ${esc(t('pip_on'))}</button>` : ''}
+      ${pipCanUse() ? `<button type="button" class="btn ghost sm tm-pip" id="tm-pip" data-act="pip" title="${esc(t('pip_tip'))}" aria-pressed="false">${ic('pip', 'sm')} ${esc(t('pip_on'))}</button>${pipOpts()}` : ''}
       ${branding.groupOn === true ? '<div id="grp-strip" class="grp-strip-wrap"></div>' : ''}
       <details class="tm-cfg" ${fxCfgOpen ? 'open' : ''}><summary>${ic('sliders', 'sm')} ${esc(t('fx_cfg'))}</summary>
       <div class="divider" style="width:100%;margin:2px 0"></div>
