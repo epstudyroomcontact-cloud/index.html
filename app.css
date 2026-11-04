@@ -741,6 +741,17 @@ button.sb-item{width:100%;background:none;border:0;font:inherit;font-weight:600;
 .pl-dur{display:flex;gap:8px}.pl-dur label{flex:1;display:flex;align-items:center;gap:6px;min-width:0}.pl-dur .input{min-width:0;width:100%}.pl-dur small{color:var(--ink3);font-size:.8rem;white-space:nowrap}
 .pl-mv .pl-dur{flex:1;max-width:240px}
 .pl-bar i.mv{background:var(--accent);opacity:.38;border-radius:0}.pl-bar i.gx{background:var(--ink3);opacity:.32;border-radius:0}
+/* Planner: tên việc dài không còn tràn / bị cắt nửa dòng. Mỗi ô chỉ hiện số dòng vừa với chiều cao (--pl-ln, tính trong plGrid) rồi "…"; giờ luôn ở dòng riêng; rê chuột để xem đủ tên */
+.pl-b{display:flex;flex-direction:column;gap:2px}
+.pl-bt{line-height:15px;overflow-wrap:anywhere;word-break:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:var(--pl-ln,2);overflow:hidden;flex:none}
+.pl-bm{line-height:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:none}
+.pl-b.tiny{padding-top:3px;padding-bottom:3px}.pl-b.tiny .pl-ck{top:3px}
+.pl-chip span{min-width:0;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;line-height:1.25}
+.pl-li .pl-lx{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.pl-li .pl-lt{flex:none;cursor:inherit;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;line-height:1.35}
+.pl-li .pl-lx small{font-size:.74rem;line-height:1.3}
+.pl-li.done .pl-lt{text-decoration:line-through}
+.pl-ag b{overflow-wrap:anywhere;word-break:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;line-height:1.3}
 .pl-li.pl-gone{opacity:.62}.pl-li.pl-gone span{cursor:default}.pl-gi{flex:none;width:18px;height:18px;border-radius:50%;border:2px dashed;display:grid;place-items:center;font-style:normal;font-size:.7rem;color:var(--ink3)}
 /* Hành trình trăng: trăng tích trữ và hộp dùng trăng giữ chuỗi */
 .mj-rescue{width:100%;max-width:360px;padding:12px 14px;border-radius:14px;border:1.5px solid #ffd23f;background:rgba(255,228,77,.1);align-items:center}
