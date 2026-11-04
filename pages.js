@@ -570,7 +570,11 @@ function pipPaint(){
     c.globalAlpha = 1;
   }
 }
+let pipSelf = false;
+const pipOffGet = () => { try { return sessionStorage.getItem('ep_pip_off') === '1'; } catch (e) { return false; } };
+const pipOffSet = v => { try { v ? sessionStorage.setItem('ep_pip_off', '1') : sessionStorage.removeItem('ep_pip_off'); } catch (e) {} };
 function pipClose(){
+  pipSelf = true;
   if (pipWin) { try { pipWin.close(); } catch (e) {} pipWin = null; }
   if (pipVid && document.pictureInPictureElement === pipVid) document.exitPictureInPicture().catch(() => {});
   updateTimerUI();
@@ -594,7 +598,7 @@ function pipOpenDoc(){
     d.getElementById('pp').addEventListener('click', () => { pomo.running ? pomoPause() : pomoStart(); pipPaint(); });
     d.getElementById('bk').addEventListener('click', () => { window.focus(); if (route.name !== 'focus') location.hash = '#/focus'; });
     w.setInterval(pipTick, 500);
-    w.addEventListener('pagehide', () => { if (pipWin === w) { pipWin = null; updateTimerUI(); } });
+    w.addEventListener('pagehide', () => { if (pipWin === w) { pipWin = null; if (!pipSelf) pipOffSet(true); pipSelf = false; updateTimerUI(); } });   // khách tự đóng cửa sổ bằng nút X: tôn trọng, không tự bật lại trong lần mở web này
     pipPaint(); updateTimerUI();
   }).catch(e => { console.warn('pip', e); pipWin = null; if (pipVidOk()) pipOpenVid(); else toast(t('pip_no')); });
 }
@@ -606,7 +610,7 @@ function pipPrep(){                      // chuẩn bị sẵn video (Safari đ�
   pipVid.srcObject = pipCv.captureStream(4); document.body.appendChild(pipVid);
   pipVid.addEventListener('pause', () => { if (document.pictureInPictureElement === pipVid) pipVid.play().catch(() => {}); });   // nút play/pause của khung video không làm khung đứng hình
   pipVid.addEventListener('enterpictureinpicture', () => { pipPaint(); try { pipWk = pipWk || new Worker('js/pip-tick.js?v=' + ASSET_V); pipWk.onmessage = pipTick; pipWk.postMessage(500); } catch (e) {} updateTimerUI(); });
-  pipVid.addEventListener('leavepictureinpicture', () => { if (pipWk) pipWk.postMessage(0); updateTimerUI(); });
+  pipVid.addEventListener('leavepictureinpicture', () => { if (pipWk) pipWk.postMessage(0); if (!pipSelf) pipOffSet(true); pipSelf = false; updateTimerUI(); });
   const c = pipCv.getContext('2d'); c.fillStyle = '#000'; c.fillRect(0, 0, 260, 260); pipVid.play().catch(() => {});
 }
 function pipOpenVid(){
@@ -614,10 +618,14 @@ function pipOpenVid(){
   pipVid.play().catch(() => {});
   pipVid.requestPictureInPicture().then(() => pipPaint()).catch(e => { console.warn('pip', e); toast(t('pip_no')); });
 }
-ACTIONS.pip = () => {
-  if (pipIsOpen()) return pipClose();
-  if (pipDocOk()) pipOpenDoc(); else if (pipVidOk()) pipOpenVid(); else toast(t('pip_no'));
+function pipOpen(){ if (pipDocOk()) pipOpenDoc(); else if (pipVidOk()) pipOpenVid(); else toast(t('pip_no')); }
+ACTIONS.pip = () => {                     // nút bật / tắt thủ công: tắt thì không tự bật lại, bật thì bỏ dấu tắt
+  if (pipIsOpen()) { pipOffSet(true); return pipClose(); }
+  pipOffSet(false); pipOpen();
 };
+/* Mặc định: bấm Bắt đầu một khối mới thì cửa sổ nổi tự hiện (trình duyệt chỉ cho mở cửa sổ nổi ngay lúc khách bấm, nên không tự bật lúc chuyển tab được).
+   Bấm tiếp tục sau khi tạm dừng thì không bật lại; khách đã tắt thì không bật nữa cho tới lần mở web sau. */
+function pipAuto(){ if (pomo.running && pipCanUse() && !pipIsOpen() && !pipOffGet()) pipOpen(); }
 (function(){
   const G = {
     en:{ pip_on:'Floating timer', pip_off:'Hide floating timer', pip_tip:'Show a faint timer on top of every window, even when you switch tabs or use another app', pip_no:'Your browser can\'t show a floating timer. Try Chrome or Edge on a computer.' },
@@ -1062,7 +1070,7 @@ Object.assign(ACTIONS, {
   playVideo: el => { playingId = el.dataset.id; if (route.name === 'watch') { render(true); window.scrollTo({ top:0, behavior:'smooth' }); } },
   playLive: () => { playingId = null; watchLive = true; render(true); },
   watchCheckLive: () => { playingId = null; watchLive = true; render(true); },
-  pstart: () => pomo.running ? pomoPause() : pomoStart(),
+  pstart: () => { if (pomo.running) return pomoPause(); const fresh = pomo.remaining >= pomoDur(pomo.mode) - 1000; pomoStart(); if (fresh) pipAuto(); },
   'preset-reset': pomoReset,
   pskip: () => pomoComplete(false),
   pmode: el => pomoMode(el.dataset.m),
