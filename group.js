@@ -74,6 +74,17 @@ Object.assign(I18N.vi, {
     es:{ grp_leave_moon:"No te vayas~ Moon te va a extrañar muchísimo 🥺", grp_stay:"Quedarme con Moon", grp_pub:"{m} personas se unieron esta semana · {n} estudiando ahora", grp_pub_m:"{m} personas se unieron esta semana", grp_more:"Ver a todos ({n})", grp_less:"Ver solo el top {n}", grp_live0:"Estudiando ahora · aún sin minutos esta semana", grp_live_note:"El tiempo cuenta desde el inicio de la sesión, descansos incluidos. El ranking semanal solo cuenta minutos de enfoque." }
   };
   Object.keys(Z).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], Z[l]); });
+  const R = {
+    en:{"grp_ab_h": "Not studied this week ({n})", "grp_ab_drop": "Was #{r} last week · none this week", "grp_ab_prev": "Studied last week · none this week", "grp_ab_w": "Last studied: week {w}", "grp_ab_new": "No study time yet", "grp_reset": "Minutes reset every Monday at 00:00 (Vietnam time, GMT+7). Members stay on the list, so you can see who has dropped in rank."},
+    vi:{"grp_ab_h": "Chưa học tuần này ({n} người)", "grp_ab_drop": "Tuần trước hạng {r} · tuần này chưa học", "grp_ab_prev": "Tuần trước có học · tuần này chưa học", "grp_ab_w": "Học gần nhất: tuần {w}", "grp_ab_new": "Chưa có giờ học nào", "grp_reset": "Số phút làm mới mỗi thứ Hai lúc 00:00 (giờ Việt Nam, GMT+7). Tên thành viên được giữ lại, nên bạn thấy được ai đang tụt hạng."},
+    hi:{"grp_ab_h": "इस हफ़्ते अभी नहीं पढ़े ({n})", "grp_ab_drop": "पिछले हफ़्ते #{r} पर थे · इस हफ़्ते कुछ नहीं", "grp_ab_prev": "पिछले हफ़्ते पढ़े · इस हफ़्ते कुछ नहीं", "grp_ab_w": "आख़िरी बार पढ़े: हफ़्ता {w}", "grp_ab_new": "अभी तक पढ़ाई का समय नहीं", "grp_reset": "मिनट हर सोमवार 00:00 बजे रीसेट होते हैं (वियतनाम समय, GMT+7)। सदस्य सूची में बने रहते हैं, इसलिए आप देख सकते हैं कि किसकी रैंक गिरी।"},
+    ja:{"grp_ab_h": "今週はまだ勉強していません（{n}人）", "grp_ab_drop": "先週は{r}位 · 今週はまだ", "grp_ab_prev": "先週は勉強 · 今週はまだ", "grp_ab_w": "最後に勉強した週：第{w}週", "grp_ab_new": "まだ勉強時間がありません", "grp_reset": "分数は毎週月曜0:00にリセットされます（ベトナム時間 GMT+7）。メンバーは一覧に残るので、順位が下がった人も見えます。"},
+    ko:{"grp_ab_h": "이번 주 아직 공부 안 함 ({n})", "grp_ab_drop": "지난주 {r}위 · 이번 주는 아직", "grp_ab_prev": "지난주에 공부함 · 이번 주는 아직", "grp_ab_w": "마지막으로 공부한 주: {w}주차", "grp_ab_new": "아직 공부 시간이 없어요", "grp_reset": "시간은 매주 월요일 00:00에 초기화돼요(베트남 시간, GMT+7). 멤버는 목록에 남아서 순위가 떨어진 사람도 볼 수 있어요."},
+    zh:{"grp_ab_h": "本周还没学习（{n} 人）", "grp_ab_drop": "上周第 {r} 名 · 本周还没有", "grp_ab_prev": "上周学习过 · 本周还没有", "grp_ab_w": "最近一次学习：第 {w} 周", "grp_ab_new": "还没有学习时长", "grp_reset": "时长每周一 00:00 重置（越南时间，GMT+7）。成员会保留在名单中，你能看到谁的排名下滑了。"},
+    fr:{"grp_ab_h": "Pas encore étudié cette semaine ({n})", "grp_ab_drop": "N° {r} la semaine dernière · rien cette semaine", "grp_ab_prev": "A étudié la semaine dernière · rien cette semaine", "grp_ab_w": "Dernière étude : semaine {w}", "grp_ab_new": "Aucun temps d’étude pour l’instant", "grp_reset": "Les minutes sont remises à zéro chaque lundi à 00:00 (heure du Vietnam, GMT+7). Les membres restent dans la liste : on voit qui a perdu des places."},
+    es:{"grp_ab_h": "Aún sin estudiar esta semana ({n})", "grp_ab_drop": "Fue n.º {r} la semana pasada · nada esta semana", "grp_ab_prev": "Estudió la semana pasada · nada esta semana", "grp_ab_w": "Último estudio: semana {w}", "grp_ab_new": "Aún sin tiempo de estudio", "grp_reset": "Los minutos se reinician cada lunes a las 00:00 (hora de Vietnam, GMT+7). Los miembros siguen en la lista, así ves quién ha bajado de puesto."}
+  };   // thành viên ở lại danh sách qua các tuần (người chưa học tuần này, tụt hạng)
+  Object.keys(R).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], R[l]); });
 })();
 (function(){
   const TZ = 'Asia/Ho_Chi_Minh', BEAT = 4 * 60e3, STALE = 9 * 60e3, POLL = 60e3, POLL_SLOW = 180e3, IDLE = 10 * 60e3, SESS_GAP = 15 * 60e3, TOP = 5, FLUSH = 3 * 60e3;   // nhịp báo, quá hạn thì ẩn, tải lại (Phòng tập trung / trang khác), ngừng tải khi không đụng vào gì, nghỉ quá lâu thì tính phiên mới, số người trong bảng
@@ -84,6 +95,21 @@ Object.assign(I18N.vi, {
   const access = () => !!state.user && !DEMO && typeof plLinked === 'function' && plLinked();   // cùng điều kiện với Planner (chốt cuối cùng ở firestore.rules)
   const on = () => branding.groupOn === true && access();
   let showAll = false, live = {}, board = {}, loadedAt = 0, err = '', busy = false, leaving = false, lastSent = '', lastBeat = 0, lastWeek = '', denied = 0, timers = false, lastFlush = 0, loadedWk = '', retried = false;
+  /* Danh sách thành viên giữ qua các tuần (study_roster/all = { m:{ uid:{ n, w:tuần học gần nhất } } }): bảng tuần về trống mỗi thứ Hai nhưng tên người tham gia thì ở lại,
+     để thấy ai từng học và đang tụt hạng. Mỗi người tự ghi mục của mình tối đa một lần mỗi tuần; đọc tối đa một lần mỗi 6 giờ rồi lưu trong máy. */
+  const rosRef = () => db.collection('study_roster').doc('all');
+  let roster = (store.get('grp_ros', null) || {}).m || {}, rosAt = +(store.get('grp_ros', null) || {}).at || 0, rosBusy = false;
+  const rosSave = () => store.set('grp_ros', { at:rosAt, m:roster });
+  function rosLoad(){
+    if (rosBusy || DEMO || Date.now() - rosAt < 6 * 3600e3) return; rosBusy = true;
+    rosRef().get().then(d => { const m = d.exists && d.data().m; roster = m && typeof m === 'object' ? m : {}; rosAt = Date.now(); rosSave(); }).catch(() => { rosAt = Date.now() - 5.5 * 3600e3; }).then(() => { rosBusy = false; renderBox(); });   // chưa dán luật mới / offline: thử lại sau 30 phút, bảng vẫn chạy bình thường
+  }
+  function rosMark(){                    // sau một lần ghi thành công: ghi tên + tuần hiện tại của mình vào danh sách (một lần mỗi tuần / mỗi lần đổi tên)
+    const m = me(), id = state.user && state.user.uid; if (!m || !id || DEMO) return;
+    const tag = wk() + '|' + m.n; if (store.get('grp_rosw', '') === tag) return; store.set('grp_rosw', tag);
+    rosRef().set({ m:{ [id]:{ n:m.n, w:wk() } } }, { merge:true }).then(() => { roster[id] = { n:m.n, w:wk() }; rosSave(); }).catch(() => store.set('grp_rosw', ''));
+  }
+  function rosDrop(id){ delete roster[id]; rosSave(); if (!DEMO) rosRef().update({ ['m.' + id]: DEL() }).catch(() => {}); }
   const TAB = Math.random().toString(36).slice(2), LEASE = 90e3;
   /* Mở nhiều tab cùng lúc: chỉ MỘT tab được ghi lên nhóm (tab giữ "quyền ghi" trong localStorage, hết hạn sau 90 giây nếu tab đó đóng), còn phút đang học
      được tính chung cho cả trình duyệt (grp_acc) nên không tab nào cộng thêm lần hai. Trước đây mỗi tab tự cộng, phút bị gấp đôi rồi bị luật Firestore từ chối. */
@@ -126,7 +152,7 @@ Object.assign(I18N.vi, {
       await ref().set(o, { merge:true });
       if (entry) { live[id] = entry; lastSent = entry.k; lastBeat = entry.b; }
       if (inc > 0) { store.set('grp_pend', Math.max(0, pend() - inc)); const b0 = board[id] || { n:m.n, mins:0 }; board[id] = { ...b0, n:m.n, mins:(b0.mins | 0) + inc, f:b0.f || true, z:sentF ? o.board[id].z : b0.z }; }
-      lastFlush = Date.now(); lastWeek = wkNow; err = ''; denied = 0; retried = false; rankWatch(); renderBox();
+      lastFlush = Date.now(); lastWeek = wkNow; err = ''; denied = 0; retried = false; rankWatch(); rosMark(); renderBox();
     } catch (e) {
       if (entry) lastSent = '';
       const nope = e && (e.code === 'permission-denied' || e.code === 'invalid-argument');
@@ -204,7 +230,7 @@ Object.assign(I18N.vi, {
     db.collection('study_group').doc(wkPrev()).get().then(d => {
       const b = (d.exists && d.data().board) || {}, tms = e => e && e.t && typeof e.t.toMillis === 'function' ? e.t.toMillis() : 0;
       const all = Object.entries(b).map(([k, e]) => ({ k, n:(e && e.n) || '?', mins:(e && e.mins) | 0, at:tms(e) })).filter(x => x.mins > 0).sort((a, z) => z.mins - a.mins || a.at - z.at || a.k.localeCompare(z.k)), i = all.findIndex(x => x.k === id);
-      prev = { for:w, uid:id, top:all.slice(0, 3).map(x => ({ k:x.k, n:x.n, mins:x.mins })), me:i >= 0 ? { r:i + 1, mins:all[i].mins } : null };
+      prev = { for:w, uid:id, rk:Object.fromEntries(all.slice(0, 300).map((x, i) => [x.k, i + 1])), top:all.slice(0, 3).map(x => ({ k:x.k, n:x.n, mins:x.mins })), me:i >= 0 ? { r:i + 1, mins:all[i].mins } : null };
       store.set('grp_prev', prev); renderBox();
     }).catch(() => {});
   }
@@ -229,7 +255,7 @@ Object.assign(I18N.vi, {
     const w0 = wk();
     try {
       const d = await ref().get(), x = d.exists ? d.data() : {};
-      live = x.live || {}; board = x.board || {}; loadedAt = Date.now(); loadedWk = w0; err = ''; saveSnap(); rankWatch(); prevLoad(); pushStats();
+      live = x.live || {}; board = x.board || {}; loadedAt = Date.now(); loadedWk = w0; err = ''; saveSnap(); rankWatch(); prevLoad(); pushStats(); rosLoad();
       const id = state.user.uid, mine = board[id] || live[id], nn = mine && nameOk(mine.n);
       if (nn && !me()) { store.set(key(), { n:nn }); sync(true); }                // đã tham gia ở thiết bị khác của tài khoản này: nhận lại biệt danh, nếu không thiết bị này không báo "đang học" và không cộng phút
       if (live[id] && !want()) clearLive();          // sót lại từ lần đóng web đột ngột
@@ -260,7 +286,7 @@ Object.assign(I18N.vi, {
   }
   let dup = {};   // tên (không phân biệt hoa thường) -> số người dùng; trùng thì thêm đuôi #XYZ lấy từ mã tài khoản để phân biệt
   const nk = n => String(n).trim().toLowerCase();
-  function dupCount(){ const c = {}, seen = new Set(); [board, live].forEach(m => Object.entries(m).forEach(([k, e]) => { if (e && e.n && !seen.has(k)) { seen.add(k); c[nk(e.n)] = (c[nk(e.n)] || 0) + 1; } })); dup = c; }
+  function dupCount(){ const c = {}, seen = new Set(); [board, live, roster].forEach(m => Object.entries(m).forEach(([k, e]) => { if (e && e.n && !seen.has(k)) { seen.add(k); c[nk(e.n)] = (c[nk(e.n)] || 0) + 1; } })); dup = c; }
   const dn = (k, n) => (dup[nk(n)] || 0) > 1 ? `${n} #${String(k).slice(-3).toUpperCase()}` : n;
   const avatar = n => `<i class="grp-av" style="--h:${hue(n)}">${esc(String(n).slice(0, 1).toUpperCase())}</i>`;
   const kick = id => state.isAdmin && id !== state.user.uid ? `<button type="button" class="grp-x" data-act="grpKick" data-id="${esc(id)}" title="${esc(t('grp_remove'))}" aria-label="${esc(t('grp_remove'))}">${ic('x', 'sm')}</button>` : '';
@@ -276,10 +302,16 @@ Object.assign(I18N.vi, {
     const top = all.slice(0, showAll ? 1500 : TOP), mine = all.findIndex(x => x.k === id), row = (x, i) => `<li class="grp-row ${x.k === id ? 'me' : ''}"><span class="grp-rank r${i < 3 ? i + 1 : 0}">${i + 1}</span>${avatar(x.n)}<b class="grp-n">${esc(dn(x.k, x.n))}${x.k === id ? ` <span class="badge">${esc(t('grp_you'))}</span>` : ''}</b><span class="grp-t">${esc(fmt(x.mins * 60000))}</span>${plus(x.k, x.n)}${kick(x.k)}</li>`;
     const zero = liveRows().filter(r => !all.some(x => x.k === r.id));   // đang học nhưng chưa có phút trên bảng tuần này: vẫn hiện, để không ai "biến mất" khỏi bảng
     const zrow = r => `<li class="grp-row ${r.id === id ? 'me' : ''}"><span class="grp-rank r0">–</span>${avatar(r.n)}<b class="grp-n">${esc(dn(r.id, r.n))}${r.id === id ? ` <span class="badge">${esc(t('grp_you'))}</span>` : ''}</b><span class="grp-st f">${esc(t('grp_live0'))}</span>${kick(r.id)}</li>`;
-    const more = all.length > TOP ? `<button type="button" class="grp-toggle ${showAll ? 'open' : ''}" data-act="grpMore" aria-expanded="${showAll}"><i class="grp-tri" aria-hidden="true"></i> ${esc(showAll ? t('grp_less', { n:TOP }) : t('grp_more', { n:all.length }))}</button>` : '';
+    const here = new Set([...all.map(x => x.k), ...zero.map(r => r.id)]), me0 = me();
+    const away = Object.entries(roster).filter(([k, e]) => e && !here.has(k) && nameOk(e.n)).map(([k, e]) => ({ k, n:e.n, w:String(e.w || '') }));
+    if (me0 && !here.has(id) && !away.some(x => x.k === id)) away.push({ k:id, n:me0.n, w:'' });   // vừa vào nhóm, chưa học phút nào: vẫn có tên mình trong danh sách
+    away.sort((a, b) => b.w.localeCompare(a.w) || a.n.localeCompare(b.n));
+    const wnum = w => +String(w).slice(-2) || 0, rk0 = prev && prev.uid === id && prev.rk || {};
+    const arow = x => `<li class="grp-row away ${x.k === id ? 'me' : ''}"><span class="grp-rank r0">–</span>${avatar(x.n)}<b class="grp-n">${esc(dn(x.k, x.n))}${x.k === id ? ` <span class="badge">${esc(t('grp_you'))}</span>` : ''}</b><span class="grp-st">${esc(x.w === wkPrev() && rk0[x.k] ? t('grp_ab_drop', { r:rk0[x.k] }) : x.w === wkPrev() ? t('grp_ab_prev') : x.w ? t('grp_ab_w', { w:wnum(x.w) }) : t('grp_ab_new'))}</span>${kick(x.k)}</li>`;
+    const awayShown = showAll ? away : away.slice(0, Math.max(0, TOP - top.length - zero.length)), more = all.length > TOP || away.length > Math.max(0, TOP - Math.min(all.length, TOP) - zero.length) ? `<button type="button" class="grp-toggle ${showAll ? 'open' : ''}" data-act="grpMore" aria-expanded="${showAll}"><i class="grp-tri" aria-hidden="true"></i> ${esc(showAll ? t('grp_less', { n:TOP }) : t('grp_more', { n:all.length + zero.length + away.length }))}</button>` : '';
     const cl = climb(), sum = cl ? `<p class="grp-climb small"><b>${esc(t('grp_rank', { r:cl.r }))}</b>${trendHTML(cl)}<span class="muted">${esc(gapText(cl))}</span></p>` : '';
-    return `<h3 class="grp-h">${esc(t('grp_board'))}</h3>${sum}` + (all.length || zero.length
-      ? `<ol class="grp-list">${top.map(row).join('')}${!showAll && mine >= TOP ? `<li class="grp-gap" aria-hidden="true">…</li>${row(all[mine], mine)}` : ''}${zero.map(zrow).join('')}</ol>${more}` : `<p class="muted small">${esc(t(known() ? 'grp_board_none' : 'loading'))}</p>`) + `<p class="small faint mt-s">${esc(t('grp_reset'))}</p>` + prevHTML();
+    return `<h3 class="grp-h">${esc(t('grp_board'))}</h3>${sum}` + (all.length || zero.length || away.length
+      ? `<ol class="grp-list">${top.map(row).join('')}${!showAll && mine >= TOP ? `<li class="grp-gap" aria-hidden="true">…</li>${row(all[mine], mine)}` : ''}${zero.map(zrow).join('')}${awayShown.length ? `<li class="grp-gap grp-cap" role="presentation">${esc(t('grp_ab_h', { n:away.length }))}</li>${awayShown.map(arow).join('')}` : ''}</ol>${more}` : `<p class="muted small">${esc(t(known() ? 'grp_board_none' : 'loading'))}</p>`) + `<p class="small faint mt-s">${esc(t('grp_reset'))}</p>` + prevHTML();
   }
   function moonBeg(){      // Moon (con mèo động của web, dáng ngồi) hiện ra nũng nịu; dùng lại hình mèo đi dạo trong pages.js, không vẽ riêng
     try { const m = typeof MOON_WALK === 'string' && MOON_WALK.match(/<svg class="mw-svg mw-v mw-v-sit"[\s\S]*?<\/svg>/); return m ? `<span class="grp-moon-cat" aria-hidden="true">${m[0].replace(/mwH3/g, 'mwHL')}</span>` : ''; } catch (e) { return ''; }
@@ -392,10 +424,10 @@ Object.assign(I18N.vi, {
     grpLeave: () => { leaving = true; renderBox(); },
     grpLeaveNo: () => { leaving = false; renderBox(); },
     grpLeaveYes: async () => {
-      const id = state.user.uid; leaving = false; store.set(key(), null); store.set('grp_pend', 0); lastSent = ''; delete live[id]; delete board[id]; renderBox(); toast(t('grp_left_toast'));
+      const id = state.user.uid; leaving = false; store.set(key(), null); store.set('grp_pend', 0); lastSent = ''; delete live[id]; delete board[id]; rosDrop(id); renderBox(); toast(t('grp_left_toast'));
       try { await ref().update({ ['live.' + id]: DEL(), ['board.' + id]: DEL() }); } catch (e) { /* chưa có tài liệu / offline */ }
     },
-    grpKick: async el => { const id = el.dataset.id; if (!state.isAdmin || !id) return; delete live[id]; delete board[id]; renderBox(); try { await ref().update({ ['live.' + id]: DEL(), ['board.' + id]: DEL() }); } catch (e) { toast(t('grp_err')); } }
+    grpKick: async el => { const id = el.dataset.id; if (!state.isAdmin || !id) return; delete live[id]; delete board[id]; rosDrop(id); renderBox(); try { await ref().update({ ['live.' + id]: DEL(), ['board.' + id]: DEL() }); } catch (e) { toast(t('grp_err')); } }
   });
   startTimers();
   window.EPGroup = { mount, sync, credit };
