@@ -480,6 +480,8 @@ function updateTimerUI(){
   document.querySelectorAll('[data-pomo-mode]').forEach(e => e.textContent = t('mode_' + pomo.mode));
   const fg = $('tm-fg'); if (fg) fg.style.strokeDashoffset = (RING_C * (1 - left / total)).toFixed(2);
   const ring = $('tm-ring'); if (ring) ring.className = 'ring m-' + pomo.mode;
+  const mb = left < total ? t('resume') : t('start'), mini = pomo.running ? `${ic('pause', 'sm')} ${esc(t('pause'))}` : `${ic('play', 'sm')} ${esc(mb)}`;
+  document.querySelectorAll('[data-pomo-btn]').forEach(b => { if (b.innerHTML !== mini) b.innerHTML = mini; });
   const main = $('tm-main'); if (main) main.innerHTML = pomo.running ? `${ic('pause')} ${esc(t('pause'))}` : `${ic('play')} ${esc(left < total ? t('resume') : t('start'))}`;
   document.querySelectorAll('[data-seg]').forEach(b => b.classList.toggle('on', b.dataset.seg === pomo.mode));
   const gl = $('tm-goal'); if (gl) gl.textContent = pomo.cfg.goal > 0 ? t('goal_prog', { d:Math.min(pomo.done, pomo.cfg.goal), n:pomo.cfg.goal }) : '';
@@ -725,12 +727,20 @@ Object.assign(ACTIONS, {
   fnOff: el => { store.set('fn_off', Date.now()); const c = el.closest('.fn-card'); if (c) c.remove(); },
   fnGo: () => { TABS.don = 'comp'; }
 });
+let fxIO = null;
+function fxMiniWatch(){                                   // thanh timer mini: hiện khi thẻ timer lớn cuộn ra khỏi màn hình (CSS chỉ cho hiện trên màn hẹp)
+  if (fxIO) { fxIO.disconnect(); fxIO = null; }
+  const mini = $('fx-mini'), card = document.querySelector('.fx-timer'); if (!mini || !card || !('IntersectionObserver' in window)) return;
+  fxIO = new IntersectionObserver(es => { mini.hidden = es[es.length - 1].isIntersecting; }, { rootMargin:'-70px 0px 0px 0px' });
+  fxIO.observe(card); updateTimerUI();
+}
 PAGES.focus = function(){
   const fl = localFocus(), today = DT.now().setZone(userTZ), days = Array.from({ length:7 }, (_, i) => today.minus({ days:6 - i })), vals = days.map(d => (fl[d.toISODate()] || { m:0 }).m), mx = Math.max(30, ...vals), td = fl[today.toISODate()] || { m:0, s:0 };
   const fxTabs = [['todo', t('fx_tab_todo'), 'check'], ['music', t('fx_tab_music'), 'volume']], fsTabs = [...(branding.groupOn === true ? [['group', t('fx_tab_group'), 'users']] : []), ['live', t('fx_tab_stream'), 'play']];   // Việc + Nhạc cạnh bộ đếm; Nhóm + Live ở khung riêng để xem song song
-  const fxCur = [TABS.fx, store.get('fx_tab', 'todo')].find(k => fxTabs.some(x => x[0] === k)) || 'todo', fsCur = [TABS.fs, store.get('fs_tab', 'group')].find(k => fsTabs.some(x => x[0] === k)) || fsTabs[0][0], fxCfgOpen = store.get('fx_cfg', null) ?? matchMedia('(min-width:1101px)').matches;   // bộ đếm: cài đặt mở sẵn trên màn rộng, gập trên điện thoại để danh sách việc không bị đẩy xuống
+  const fxCur = [TABS.fx, store.get('fx_tab', 'todo')].find(k => fxTabs.some(x => x[0] === k)) || 'todo', fsCur = [TABS.fs, store.get('fs_tab', 'group')].find(k => fsTabs.some(x => x[0] === k)) || fsTabs[0][0], fxCfgOpen = store.get('fx_cfg', null) ?? false;   // cài đặt timer thu gọn sẵn: bộ đếm gọn, đỡ phải cuộn   // bộ đếm: cài đặt mở sẵn trên màn rộng, gập trên điện thoại để danh sách việc không bị đẩy xuống
   const c = pomo.cfg, num = (k, lab) => `<div class="field"><label class="label">${esc(lab)}</label><input class="input" type="number" min="1" max="180" value="${c[k]}" data-change="cfg" data-k="${k}"></div>`;
   page(`${head('focus_title', 'focus_sub', '', 'umbrella', 4)}${state.user ? (plLinked() ? hintNote('new_focus2') : hintNote('new_tease', '#/planner')) : ''}${trialNudge()}${moonNudge()}
+    <div class="fx-mini" id="fx-mini" hidden><span class="fm-t" data-pomo-time></span><span class="fm-m" data-pomo-mode></span><button type="button" class="btn primary sm" data-act="pstart" data-pomo-btn></button></div>
     <div class="grid g-main fx3"><section class="card timer-card fx-timer">
       <div class="seg"><button type="button" data-seg="focus" data-act="pmode" data-m="focus">${esc(t('mode_focus'))}</button><button type="button" data-seg="short" data-act="pmode" data-m="short">${esc(t('mode_short'))}</button><button type="button" data-seg="long" data-act="pmode" data-m="long">${esc(t('mode_long'))}</button></div>
       <div class="ring" id="tm-ring"><svg viewBox="0 0 120 120"><circle class="bg" cx="60" cy="60" r="54" stroke-width="7"/><circle class="fg" id="tm-fg" cx="60" cy="60" r="54" stroke-width="7" stroke-dasharray="${RING_C.toFixed(2)}" stroke-dashoffset="0"/></svg><div class="center"><div class="tt" data-pomo-time>25:00</div><div class="md" data-pomo-mode></div></div></div>
@@ -758,7 +768,7 @@ PAGES.focus = function(){
     <div class="fx-stats"><div class="grid g2 keep2"><div class="card tile"><span class="t-l">${esc(t('sessions_today'))}</span><span class="t-v">${td.s}</span></div><div class="card tile"><span class="t-l">${esc(t('minutes_today'))}</span><span class="t-v">${td.m}</span></div></div><section class="card pad"><div class="card-h"><h2>${esc(t('week_chart'))}</h2></div><div class="bars">${days.map((d, i) => `<div><i style="height:${Math.max(3, vals[i] / mx * 100)}%" title="${vals[i]} ${esc(t('min'))}"></i><small>${esc(d.setLocale(state.lang).toFormat('ccc'))}</small></div>`).join('')}</div></section></div>
     </div>
     <h2 class="mt" style="font-size:1.3rem;margin:40px 0 14px">${ic('heart', 'sm')} ${esc(t('nav_donate'))}</h2>${donateHTML()}`);   // phần Support nằm ngay trong Focus room
-  renderTodos(); pipPrep();
+  renderTodos(); pipPrep(); fxMiniWatch();
   if (branding.groupOn === true) loadGroup().then(() => window.EPGroup.mount()).catch(() => { for (const id of ['grp-box', 'grp-strip']) { const b = $(id); if (b) b.remove(); } });
 };
 CHANGES.cfg = el => { const k = el.dataset.k, v = k === 'goal' ? Math.max(0, Math.min(30, parseInt(el.value, 10) || 0)) : Math.max(1, Math.min(180, parseInt(el.value, 10) || 1)); pomo.cfg[k] = v; if (k === 'goal') pomo.done = 0; if (!pomo.running && (k === pomo.mode)) pomo.remaining = pomoDur(pomo.mode); pomoSave(); updateTimerUI(); };

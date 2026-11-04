@@ -810,9 +810,9 @@ button.sb-item{width:100%;background:none;border:0;font:inherit;font-weight:600;
 .tab-bar::-webkit-scrollbar{display:none}
 .tab-bar .chip{flex:none;white-space:nowrap;min-height:34px}
 .pl-tabs h3{font-size:1rem;margin-bottom:10px}
-#page[data-route=club] .art-head,#page[data-route=planner] .art-head{height:170px}   /* ảnh đầu trang thấp hơn: nội dung chính lên màn hình đầu */
+#page[data-route=club] .art-head,#page[data-route=planner] .art-head,#page[data-route=focus] .art-head{height:170px}   /* ảnh đầu trang thấp hơn: nội dung chính lên màn hình đầu */
 @media(max-width:640px){
-  #page[data-route=club] .art-head,#page[data-route=planner] .art-head{height:110px;margin-bottom:14px}
+  #page[data-route=club] .art-head,#page[data-route=planner] .art-head,#page[data-route=focus] .art-head{height:110px;margin-bottom:14px}
   #page[data-route=club] .glass,#page[data-route=planner] .glass{left:12px;bottom:12px;padding:10px 14px}
   .mj-a-status .moon-big{width:min(120px,34vw)}
   .mj-a-status>.card{gap:10px;padding:16px 18px 18px}
@@ -1213,12 +1213,31 @@ body:has(#tour-ask) .sofa{display:none}
 .fx-stats{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:stretch}
 .fx-stats>.card,.fx-stats .tile{margin:0}.fx-stats .tile{justify-content:center}
 .fx-side>.tabset>.tab-bar{padding-bottom:12px}
-@media (min-width:1101px){
-  .fx3{grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);grid-template-areas:"timer main" "timer side" "stats stats";grid-template-rows:auto 1fr auto;align-items:stretch}
-  .fx3>.fx-timer{justify-content:center}
-  .fx3 .ring{width:min(380px,100%)}.fx3 .ring .tt{font-size:4rem}
+@media (min-width:1100px){
+  /* máy tính: không ghép tab nữa, Việc/Nhạc/Nhóm/Live hiện cùng lúc. Từ 1100px: hai cột (Timer | Việc+Nhạc), Nhóm cạnh Live ở hàng dưới */
+  .fx3 .fx-tabs{display:grid;gap:14px}
+  .fx3 .fx-tabs>.tab-bar{display:none}
+  .fx3 .fx-tabs>.tab-pane[hidden]{display:block}
+  .fx3{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"timer main" "side side" "stats stats";align-items:stretch}
+  .fx3>.fx-timer{justify-content:center;align-self:start}
+  .fx3 .music-card{max-height:min(520px,70vh);overflow-y:auto}
+  .fx3 .ring{width:min(320px,100%)}.fx3 .ring .tt{font-size:3.6rem}
   .fx3>.fx-side{align-self:start}.fx3>.fx-main{align-self:start}
+  .fx3>.fx-side .fx-tabs{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}
   .fx-stats{grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:18px}
+}
+@media (min-width:1360px){
+  /* màn rộng: ba cột Timer | Việc+Nhạc | Nhóm+Live, thống kê một dải ngang dưới cùng */
+  .fx3{grid-template-columns:minmax(0,.85fr) minmax(0,1fr) minmax(0,1.1fr);grid-template-areas:"timer main side" "stats stats stats"}
+  .fx3>.fx-side .fx-tabs{grid-template-columns:minmax(0,1fr)}
+  .fx3>.fx-timer{position:sticky;top:80px}   /* cuộn xuống đọc Việc/Live vẫn thấy timer */
+}
+/* điện thoại và máy tính bảng: thanh timer mini dính ở đầu trang, hiện khi bộ đếm lớn đã cuộn khuất */
+.fx-mini{display:none}
+@media (max-width:1099px){
+  .fx-mini:not([hidden]){display:flex;position:sticky;top:68px;z-index:50;align-items:center;gap:10px;margin:0 0 12px;padding:8px 8px 8px 16px;border:1px solid var(--line);border-radius:14px;background:var(--surface);box-shadow:var(--shadow-sm)}
+  .fx-mini .fm-t{font-weight:800;font-size:1.35rem;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .fx-mini .fm-m{flex:1;min-width:0;font-size:.85rem;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 }
 
 /* hướng dẫn từng bước có hình: mỗi dòng một hình nhỏ + số + chữ ngắn */
