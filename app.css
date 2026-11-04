@@ -825,7 +825,10 @@ button.sb-item{width:100%;background:none;border:0;font:inherit;font-weight:600;
 .tab-bar::-webkit-scrollbar{display:none}
 .tab-bar .chip{flex:none;white-space:nowrap;min-height:34px}
 .pl-tabs h3{font-size:1rem;margin-bottom:10px}
-#page[data-route=club] .art-head,#page[data-route=planner] .art-head,#page[data-route=focus] .art-head{height:170px}   /* ảnh đầu trang thấp hơn: nội dung chính lên màn hình đầu */
+#page[data-route=club] .art-head,#page[data-route=planner] .art-head{height:170px}
+#page[data-route=focus] .art-head{height:128px;margin-bottom:14px}
+#page[data-route=focus] .glass{left:16px;bottom:14px;padding:10px 16px}
+#page[data-route=focus] .glass p{display:none}   /* trang Focus: dải ảnh thấp, bỏ dòng phụ để timer và stream lên màn hình đầu */   /* ảnh đầu trang thấp hơn: nội dung chính lên màn hình đầu */
 @media(max-width:640px){
   #page[data-route=club] .art-head,#page[data-route=planner] .art-head,#page[data-route=focus] .art-head{height:110px;margin-bottom:14px}
   #page[data-route=club] .glass,#page[data-route=planner] .glass{left:12px;bottom:12px;padding:10px 14px}
@@ -1229,25 +1232,18 @@ body:has(#tour-ask) .sofa{display:none}
 .fx-stats>.card,.fx-stats .tile{margin:0}.fx-stats .tile{justify-content:center}
 .fx-side>.tabset>.tab-bar{padding-bottom:12px}
 @media (min-width:1100px){
-  /* máy tính: không ghép tab nữa, Việc/Nhạc/Nhóm/Live hiện cùng lúc. Từ 1100px: hai cột (Timer | Việc+Nhạc), Nhóm cạnh Live ở hàng dưới */
+  /* máy tính: không ghép tab nữa. Timer to nằm cố định bên trái (dính khi cuộn); cột phải xếp Live/Nhóm trước rồi Việc/Nhạc, nên stream luôn xem được song song với timer */
   .fx3 .fx-tabs{display:grid;gap:14px}
   .fx3 .fx-tabs>.tab-bar{display:none}
   .fx3 .fx-tabs>.tab-pane[hidden]{display:block}
-  .fx3{grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);grid-template-areas:"timer main" "side side" "stats stats";align-items:stretch}
-  .fx3>.fx-timer{justify-content:center;align-self:start}
-  .fx3 .fx-add{flex-wrap:wrap!important}.fx3 .fx-add #todo-in{flex:1 1 100%}   /* cột hẹp: ô nhập việc một hàng riêng, giờ và nút + hàng dưới */
+  .fx3 .fx-side .fx-tabs>.tab-pane[data-k=live]{order:-1}
+  .fx3{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);grid-template-areas:"timer side" "timer main" "stats stats";grid-template-rows:auto 1fr auto;align-items:start}
+  .fx3>.fx-timer{justify-content:center;position:sticky;top:80px;padding:30px}
+  .fx3>.fx-side,.fx3>.fx-main{min-width:0}
+  .fx3 .ring{width:min(400px,100%)}.fx3 .ring .tt{font-size:4.6rem}
+  .fx3 .fx-add{flex-wrap:wrap!important}.fx3 .fx-add #todo-in{flex:1 1 100%}   /* ô nhập việc một hàng riêng, giờ và nút + hàng dưới */
   .fx3 .music-card{max-height:min(520px,70vh);overflow-y:auto}
-  .fx3 .ring{width:min(400px,100%)}.fx3 .ring .tt{font-size:4.6rem}.fx3>.fx-timer{padding:30px}
-  .fx3>.fx-side{align-self:start}.fx3>.fx-main{align-self:start}
-  .fx3>.fx-side .fx-tabs{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}
   .fx-stats{grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:18px}
-}
-@media (min-width:1360px){
-  /* màn rộng: ba cột Timer | Việc+Nhạc | Nhóm+Live, thống kê một dải ngang dưới cùng */
-  .fx3{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr);grid-template-areas:"timer main side" "stats stats stats"}
-  .fx3>.fx-side .fx-tabs{grid-template-columns:minmax(0,1fr)}
-  .fx3 .ring{width:min(380px,100%)}.fx3 .ring .tt{font-size:4.2rem}
-  .fx3>.fx-timer{position:sticky;top:80px}   /* cuộn xuống đọc Việc/Live vẫn thấy timer */
 }
 /* điện thoại và máy tính bảng: thanh timer mini dính ở đầu trang, hiện khi bộ đếm lớn đã cuộn khuất */
 .fx-mini{display:none}
