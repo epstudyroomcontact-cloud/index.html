@@ -1218,18 +1218,20 @@ body:has(#tour-ask) .sofa{display:none}
   .fx3 .fx-tabs{display:grid;gap:14px}
   .fx3 .fx-tabs>.tab-bar{display:none}
   .fx3 .fx-tabs>.tab-pane[hidden]{display:block}
-  .fx3{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"timer main" "side side" "stats stats";align-items:stretch}
+  .fx3{grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);grid-template-areas:"timer main" "side side" "stats stats";align-items:stretch}
   .fx3>.fx-timer{justify-content:center;align-self:start}
+  .fx3 .fx-add{flex-wrap:wrap!important}.fx3 .fx-add #todo-in{flex:1 1 100%}   /* cột hẹp: ô nhập việc một hàng riêng, giờ và nút + hàng dưới */
   .fx3 .music-card{max-height:min(520px,70vh);overflow-y:auto}
-  .fx3 .ring{width:min(320px,100%)}.fx3 .ring .tt{font-size:3.6rem}
+  .fx3 .ring{width:min(400px,100%)}.fx3 .ring .tt{font-size:4.6rem}.fx3>.fx-timer{padding:30px}
   .fx3>.fx-side{align-self:start}.fx3>.fx-main{align-self:start}
   .fx3>.fx-side .fx-tabs{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}
   .fx-stats{grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:18px}
 }
 @media (min-width:1360px){
   /* màn rộng: ba cột Timer | Việc+Nhạc | Nhóm+Live, thống kê một dải ngang dưới cùng */
-  .fx3{grid-template-columns:minmax(0,.85fr) minmax(0,1fr) minmax(0,1.1fr);grid-template-areas:"timer main side" "stats stats stats"}
+  .fx3{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr);grid-template-areas:"timer main side" "stats stats stats"}
   .fx3>.fx-side .fx-tabs{grid-template-columns:minmax(0,1fr)}
+  .fx3 .ring{width:min(380px,100%)}.fx3 .ring .tt{font-size:4.2rem}
   .fx3>.fx-timer{position:sticky;top:80px}   /* cuộn xuống đọc Việc/Live vẫn thấy timer */
 }
 /* điện thoại và máy tính bảng: thanh timer mini dính ở đầu trang, hiện khi bộ đếm lớn đã cuộn khuất */
