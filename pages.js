@@ -159,7 +159,7 @@ PAGES.home = function(){
   if (on('thanks') && thanksList().length) S.thanks = thanksCard();
   if (on('challenge')) S.challenge = clubPromo();
   if (hs.faq !== undefined ? hs.faq : on('about')) S.faq = aboutFaqHTML() + aboutReviewsHTML();   // FAQ rồi đánh giá (mặc định nằm cuối trang)
-  html = homeOrder().map(k => S[k] || '').join('');
+  html = moonNudge() + homeOrder().map(k => S[k] || '').join('');
   page(html);
 };
 
@@ -729,7 +729,7 @@ PAGES.focus = function(){
   const fxTabs = [['todo', t('fx_tab_todo'), 'check'], ['music', t('fx_tab_music'), 'volume']], fsTabs = [...(branding.groupOn === true ? [['group', t('fx_tab_group'), 'users']] : []), ['live', t('fx_tab_stream'), 'play']];   // Việc + Nhạc cạnh bộ đếm; Nhóm + Live ở khung riêng để xem song song
   const fxCur = [TABS.fx, store.get('fx_tab', 'todo')].find(k => fxTabs.some(x => x[0] === k)) || 'todo', fsCur = [TABS.fs, store.get('fs_tab', 'group')].find(k => fsTabs.some(x => x[0] === k)) || fsTabs[0][0], fxCfgOpen = store.get('fx_cfg', null) ?? matchMedia('(min-width:1101px)').matches;   // bộ đếm: cài đặt mở sẵn trên màn rộng, gập trên điện thoại để danh sách việc không bị đẩy xuống
   const c = pomo.cfg, num = (k, lab) => `<div class="field"><label class="label">${esc(lab)}</label><input class="input" type="number" min="1" max="180" value="${c[k]}" data-change="cfg" data-k="${k}"></div>`;
-  page(`${head('focus_title', 'focus_sub', '', 'umbrella', 4)}${state.user ? (plLinked() ? hintNote('new_focus2') : hintNote('new_tease', '#/planner')) : ''}${trialNudge()}
+  page(`${head('focus_title', 'focus_sub', '', 'umbrella', 4)}${state.user ? (plLinked() ? hintNote('new_focus2') : hintNote('new_tease', '#/planner')) : ''}${trialNudge()}${moonNudge()}
     <div class="grid g-main fx3"><section class="card timer-card fx-timer">
       <div class="seg"><button type="button" data-seg="focus" data-act="pmode" data-m="focus">${esc(t('mode_focus'))}</button><button type="button" data-seg="short" data-act="pmode" data-m="short">${esc(t('mode_short'))}</button><button type="button" data-seg="long" data-act="pmode" data-m="long">${esc(t('mode_long'))}</button></div>
       <div class="ring" id="tm-ring"><svg viewBox="0 0 120 120"><circle class="bg" cx="60" cy="60" r="54" stroke-width="7"/><circle class="fg" id="tm-fg" cx="60" cy="60" r="54" stroke-width="7" stroke-dasharray="${RING_C.toFixed(2)}" stroke-dashoffset="0"/></svg><div class="center"><div class="tt" data-pomo-time>25:00</div><div class="md" data-pomo-mode></div></div></div>
@@ -1330,6 +1330,51 @@ function mjRemHTML(club){                                           // club: dò
   return club ? sw : `${sw}<hr class="lr-hr">`;
 }
 
+/* ---------- Nhắc điểm danh ba lớp (khách hay quên) ----------
+   1) thẻ nhắc có nút Điểm danh một chạm ở Tổng quan và Phòng tập trung (nơi khách ở lâu nhất), "Để sau" ẩn tới hết hôm nay;
+   2) chấm nhỏ cạnh mục Hành trình trăng ở menu khi hôm nay chưa điểm danh;
+   3) sau lần điểm danh đầu tiên, hỏi một lần có muốn được nhắc lúc 21:00 không (công tắc trước đây ẩn dưới nút điểm danh, mặc định tắt). */
+function moonNeedsCheckin(){
+  if (!state.user || (!DEMO && !state.profileReady)) return false;
+  const m = moonData(); return !!m && !m.days.includes(todayKey());
+}
+const mjNudgeKey = () => state.user.uid + '|' + todayKey();
+function moonNudge(){
+  if (!moonNeedsCheckin() || store.get('mj_nudge_off', '') === mjNudgeKey()) return '';
+  const m = moonData(), rescue = !m.days.length && m.rescue;
+  const text = m.days.length ? t('mjn_keep', { n:m.days.length }) : rescue ? t('mjn_rescue', { n:m.lost }) : t('mjn_first');
+  const btn = rescue ? `<a class="btn primary sm" href="#/club" data-act="mjNudgeLater">${esc(t('mjn_open'))}</a>` : `<button type="button" class="btn primary sm" data-act="moonCheckin">${ic('check', 'sm')} ${esc(t('mjn_btn'))}</button>`;
+  return `<aside class="phone-note hint-note mj-nudge" role="note"><div><b>${ic('moon', 'sm')} ${esc(t('mjn_title'))}</b><p>${esc(text)}</p></div><span class="row" style="flex:none;gap:6px">${btn}<button type="button" class="btn secondary sm" data-act="mjNudgeLater">${esc(t('mjn_later'))}</button></span></aside>`;
+}
+function mjAskRemind(){
+  if (!state.user || mjRemOn() || store.get('mj_rem_asked', false)) return;
+  let tries = 0;                                   // lần điểm danh đầu hay mở ngay hộp xem trạm mới: chờ khách đóng hộp đó rồi mới hỏi (tối đa ~1 phút)
+  const iv = setInterval(() => {
+    if (++tries > 40 || store.get('mj_rem_asked', false) || mjRemOn()) return clearInterval(iv);
+    if ($('modal').classList.contains('open')) return;
+    clearInterval(iv); store.set('mj_rem_asked', true);
+    openModal(`<h3 style="margin-bottom:6px;padding-right:32px">${ic('bell', 'sm')} ${esc(t('mjq_title'))}</h3><p class="muted">${esc(t('mjq_text', { h:mjRemH() }))}</p>
+      <div class="row mt" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="closeModal">${esc(t('mjq_no'))}</button><button type="button" class="btn primary" data-act="mjRemYes">${esc(t('mjq_yes'))}</button></div>`, true);
+  }, 1500);
+}
+Object.assign(ACTIONS, {
+  mjNudgeLater: el => { if (state.user) store.set('mj_nudge_off', mjNudgeKey()); const n = el.closest('.mj-nudge'); if (n && !el.href) n.remove(); },
+  mjRemYes: () => { closeModal(); mjRemSet(true); }
+});
+(function(){
+  const G = {
+    en:{ mjn_title:'Not checked in yet today', mjn_keep:'Check in to keep your {n}-day streak going.', mjn_first:'Moon Journey is waiting for today\'s step.', mjn_rescue:'Your {n}-day streak just broke, but you can still save it with moons. Open Moon Journey.', mjn_btn:'Check in', mjn_open:'Open Moon Journey', mjn_later:'Later', mjn_dot:'Not checked in today', mjq_title:'Want a reminder?', mjq_text:'Turn on a gentle reminder at {h} on days you haven\'t checked in, even when the site is closed. You can switch it off any time under the check-in button.', mjq_yes:'Remind me', mjq_no:'Not now' },
+    vi:{ mjn_title:'Hôm nay bạn chưa điểm danh', mjn_keep:'Điểm danh để giữ chuỗi {n} ngày nhé.', mjn_first:'Hành trình trăng đang chờ bước của hôm nay.', mjn_rescue:'Chuỗi {n} ngày vừa đứt, nhưng bạn vẫn cứu được bằng trăng. Mở Hành trình trăng nhé.', mjn_btn:'Điểm danh', mjn_open:'Mở Hành trình trăng', mjn_later:'Để sau', mjn_dot:'Hôm nay chưa điểm danh', mjq_title:'Muốn được nhắc không?', mjq_text:'Bật nhắc nhẹ lúc {h} vào những hôm bạn chưa điểm danh, kể cả khi đã đóng web. Bạn tắt lại được bất cứ lúc nào ở dưới nút điểm danh.', mjq_yes:'Nhắc mình', mjq_no:'Để sau' },
+    ja:{ mjn_title:'今日はまだチェックインしていません', mjn_keep:'チェックインして{n}日連続を続けましょう。', mjn_first:'ムーンジャーニーが今日の一歩を待っています。', mjn_rescue:'{n}日連続が途切れましたが、月で取り戻せます。ムーンジャーニーを開いてください。', mjn_btn:'チェックイン', mjn_open:'ムーンジャーニーを開く', mjn_later:'あとで', mjn_dot:'今日は未チェックイン', mjq_title:'リマインドしますか？', mjq_text:'チェックインしていない日の{h}に、サイトを閉じていてもやさしくお知らせします。チェックインボタンの下からいつでもオフにできます。', mjq_yes:'知らせてほしい', mjq_no:'今はしない' },
+    ko:{ mjn_title:'오늘은 아직 출석하지 않았어요', mjn_keep:'출석하고 {n}일 연속 기록을 이어가세요.', mjn_first:'문 저니가 오늘의 한 걸음을 기다리고 있어요.', mjn_rescue:'{n}일 연속 기록이 끊겼지만 달로 되살릴 수 있어요. 문 저니를 열어 보세요.', mjn_btn:'출석하기', mjn_open:'문 저니 열기', mjn_later:'나중에', mjn_dot:'오늘 출석 안 함', mjq_title:'알림을 받을까요?', mjq_text:'출석하지 않은 날 {h}에 사이트를 닫아 둔 상태에서도 가볍게 알려드려요. 출석 버튼 아래에서 언제든 끌 수 있어요.', mjq_yes:'알려 주세요', mjq_no:'나중에' },
+    zh:{ mjn_title:'今天还没有打卡', mjn_keep:'打卡以保持 {n} 天连续记录。', mjn_first:'月亮之旅在等你今天的一步。', mjn_rescue:'{n} 天连续记录刚刚中断，但还能用月亮挽回。去月亮之旅看看吧。', mjn_btn:'打卡', mjn_open:'打开月亮之旅', mjn_later:'稍后', mjn_dot:'今天未打卡', mjq_title:'需要提醒吗？', mjq_text:'在你未打卡的日子，于 {h} 轻轻提醒你，即使网站已关闭。随时可在打卡按钮下方关闭。', mjq_yes:'提醒我', mjq_no:'暂不' },
+    fr:{ mjn_title:'Pas encore pointé aujourd\'hui', mjn_keep:'Pointez pour garder votre série de {n} jours.', mjn_first:'Le Voyage lunaire attend le pas d\'aujourd\'hui.', mjn_rescue:'Votre série de {n} jours vient de s\'interrompre, mais vous pouvez la sauver avec des lunes. Ouvrez le Voyage lunaire.', mjn_btn:'Pointer', mjn_open:'Ouvrir le Voyage lunaire', mjn_later:'Plus tard', mjn_dot:'Pas pointé aujourd\'hui', mjq_title:'Un rappel ?', mjq_text:'Activez un rappel discret à {h} les jours où vous n\'avez pas pointé, même site fermé. Vous pouvez le couper à tout moment sous le bouton de pointage.', mjq_yes:'Me rappeler', mjq_no:'Pas maintenant' },
+    es:{ mjn_title:'Hoy aún no has registrado tu asistencia', mjn_keep:'Registra tu asistencia para mantener la racha de {n} días.', mjn_first:'El Viaje lunar espera el paso de hoy.', mjn_rescue:'Tu racha de {n} días se acaba de romper, pero aún puedes salvarla con lunas. Abre el Viaje lunar.', mjn_btn:'Registrar', mjn_open:'Abrir el Viaje lunar', mjn_later:'Luego', mjn_dot:'Hoy sin registrar', mjq_title:'¿Quieres un recordatorio?', mjq_text:'Activa un aviso suave a las {h} los días que no hayas registrado tu asistencia, incluso con la web cerrada. Puedes desactivarlo cuando quieras bajo el botón de registro.', mjq_yes:'Avísame', mjq_no:'Ahora no' },
+    hi:{ mjn_title:'आज अभी चेक-इन नहीं किया', mjn_keep:'{n} दिन की स्ट्रीक बनाए रखने के लिए चेक-इन करें।', mjn_first:'मून जर्नी आज के कदम का इंतज़ार कर रही है।', mjn_rescue:'{n} दिन की स्ट्रीक टूट गई, पर चाँद से बचाई जा सकती है। मून जर्नी खोलें।', mjn_btn:'चेक-इन', mjn_open:'मून जर्नी खोलें', mjn_later:'बाद में', mjn_dot:'आज चेक-इन नहीं', mjq_title:'रिमाइंडर चाहिए?', mjq_text:'जिन दिनों आप चेक-इन नहीं करते, उन दिनों {h} बजे हल्का रिमाइंडर पाएँ, साइट बंद होने पर भी। चेक-इन बटन के नीचे से कभी भी बंद कर सकते हैं।', mjq_yes:'याद दिलाएँ', mjq_no:'अभी नहीं' }
+  };
+  Object.keys(G).forEach(l => { I18N[l] = I18N[l] || {}; Object.keys(G[l]).forEach(k => { if (I18N[l][k] === undefined) I18N[l][k] = G[l][k]; }); });
+})();
+
 /* =========================================================
    DONATE / COMPANIONS
    ========================================================= */
@@ -1739,6 +1784,6 @@ Object.assign(ACTIONS, {
     const { broken, lost, balance, rescue, ...keep } = m;                              // chuỗi đã đứt thì moonData() trả days rỗng nên bắt đầu lại từ ngày 1
     keep.days = [...m.days, k]; keep.best = Math.max(keep.best || 0, keep.days.length);     // mảng mới, để lưu lỗi thì dữ liệu cũ vẫn nguyên
     const n = keep.days.length; if (n % MOON_EARN === 0) keep.moons = (m.moons || 0) + 1; else keep.moons = m.moons || 0;   // mỗi 14 ngày liên tiếp = +1 trăng tròn tích trữ
-    moonSave(keep).then(async ok => { if (ok && n === MOON_REWARD_AT && !state.moonReward && moonRewardCfg().on && await claimMoonReward()) { toast(t('mr_got', { x:bonusText(moonRewardMonths(state.moonReward)) })); render(true); } else if (ok && n % MOON_EARN === 0) toast(t('mj_full_plus')); if (ok) mjAfterCheckin(keep.best); });
+    moonSave(keep).then(async ok => { if (ok && n === MOON_REWARD_AT && !state.moonReward && moonRewardCfg().on && await claimMoonReward()) { toast(t('mr_got', { x:bonusText(moonRewardMonths(state.moonReward)) })); render(true); } else if (ok && n % MOON_EARN === 0) toast(t('mj_full_plus')); if (ok) { mjAfterCheckin(keep.best); mjAskRemind(); } });
   }
 });
