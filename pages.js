@@ -733,12 +733,10 @@ Object.assign(ACTIONS, {
   fnOff: el => { store.set('fn_off', Date.now()); const c = el.closest('.fn-card'); if (c) c.remove(); },
   fnGo: () => { TABS.don = 'comp'; }
 });
-/* Phòng tập trung vừa khít một màn hình (máy tính, màn đủ cao): đo chỗ lưới bắt đầu rồi cho lưới cao đúng phần còn lại, ô nào dài thì cuộn trong ô, trang không phải cuộn */
+/* Phòng tập trung trên máy tính: bật lớp .fit để các ô xếp song song theo bố cục đã chọn (Học / Xem live / Cân bằng) */
 function fxFit(){
   const g = document.querySelector('.fx3'); if (!g) return;
-  const on = window.matchMedia('(min-width:1100px) and (min-height:620px)').matches;
-  g.classList.toggle('fit', on); g.style.height = '';
-  if (on) g.style.height = Math.max(520, innerHeight - (g.getBoundingClientRect().top + scrollY) - 18) + 'px';
+  g.classList.toggle('fit', window.matchMedia('(min-width:1100px)').matches); g.style.height = '';   // chiều cao ô tự nhiên theo nội dung, không ép vừa màn hình
 }
 let fxFitT = 0;
 if (typeof MutationObserver !== 'undefined' && $('page')) new MutationObserver(() => { if (route.name === 'focus') requestAnimationFrame(fxFit); }).observe($('page'), { childList:true });   // đóng ghi chú phía trên thì lưới cao thêm

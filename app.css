@@ -1245,27 +1245,28 @@ body:has(#tour-ask) .sofa{display:none}
 }
 /* chế độ vừa khít màn hình (JS thêm lớp .fit và đặt chiều cao). Ba bố cục chọn bằng nút trên dải ảnh (data-lay): Học (timer to nhất), Xem live (stream to nhất), Cân bằng.
    Các khung bọc được display:contents nên từng ô là một phần tử lưới, xếp theo grid-template-areas; ô dài cuộn trong ô */
-.fx3.fit{align-items:stretch;gap:14px;overflow:hidden}
+.fx3.fit{align-items:stretch;gap:14px}
 .fx3.fit .fx-main,.fx3.fit .fx-side,.fx3.fit .fx-tabs{display:contents}
-.fx3.fit>.fx-timer{grid-area:timer;position:static;align-self:stretch;min-height:0;overflow:auto;padding:16px;gap:10px;justify-content:flex-start}
+.fx3.fit>.fx-timer{grid-area:timer;align-self:stretch;padding:22px;gap:12px;justify-content:flex-start}
 .fx3.fit .fx-tabs>.tab-pane,.fx3.fit .fx-tabs>.tab-pane[hidden]{display:flex;flex-direction:column;min-height:0;min-width:0}
-.fx3.fit .tab-pane>.card,.fx3.fit .tab-pane>section{flex:1 1 auto;min-height:0;overflow:auto;margin:0}
+.fx3.fit .tab-pane>.card,.fx3.fit .tab-pane>section{flex:1 1 auto;min-height:0;margin:0}
+.fx3.fit .tab-pane:is([data-k=todo],[data-k=group],[data-k=music])>:is(.card,section){max-height:min(420px,60vh);overflow:auto}   /* chỉ cuộn trong ô khi danh sách thật sự dài */
 .fx3.fit .tab-pane[data-k=live]{grid-area:live}.fx3.fit .tab-pane[data-k=group]{grid-area:group}.fx3.fit .tab-pane[data-k=todo]{grid-area:todo}.fx3.fit .tab-pane[data-k=music]{grid-area:music}
-.fx3.fit .ring{width:clamp(130px,20vh,210px);container-type:inline-size}.fx3.fit .ring .tt{font-size:22cqw}
-.fx3.fit>.fx-timer .seg{margin:0}.fx3.fit .row:has(#tm-main){flex-wrap:nowrap;gap:8px}.fx3.fit .limit-box{padding:8px 12px}.fx3.fit .limit-box .faint{display:none}
+.fx3.fit .ring{width:min(280px,100%);container-type:inline-size}.fx3.fit .ring .tt{font-size:22cqw}
+.fx3.fit .row:has(#tm-main){flex-wrap:nowrap;gap:8px}
 .fx3.fit .music-card{max-height:none}
-.fx3.fit[data-lay=study],.fx3.fit[data-lay=bal]{grid-template-rows:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"timer live todo" "timer group music"}
-.fx3.fit[data-lay=study].nogrp,.fx3.fit[data-lay=bal].nogrp{grid-template-areas:"timer live todo" "timer live music"}
-.fx3.fit[data-lay=study]{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr)}
-.fx3.fit[data-lay=bal]{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr) minmax(0,.95fr)}
-.fx3.fit[data-lay=study] .ring{width:clamp(150px,26vh,260px)}
-.fx3.fit[data-lay=watch]{grid-template-columns:minmax(0,1.9fr) minmax(0,1fr);grid-template-rows:minmax(0,1.3fr) minmax(0,1fr) minmax(0,.8fr);grid-template-areas:"live timer" "live group" "music todo"}
-.fx3.fit[data-lay=watch].nogrp{grid-template-areas:"live timer" "live todo" "music todo"}
-.fx3.fit[data-lay=watch] .ring{width:84px}.fx3.fit[data-lay=watch]>.fx-timer{gap:6px;padding:10px}.fx3.fit[data-lay=watch]>.fx-timer .seg button{padding:4px 10px}.fx3.fit[data-lay=watch]>.fx-timer .seg{padding:2px}
+.fx3.fit{grid-template-columns:repeat(12,minmax(0,1fr))}
+.fx3.fit[data-lay=study],.fx3.fit[data-lay=bal]{grid-template-rows:auto auto;grid-template-areas:"timer timer timer timer timer timer live live live live live live" "todo todo todo todo group group group group music music music music"}
+.fx3.fit[data-lay=study].nogrp,.fx3.fit[data-lay=bal].nogrp{grid-template-areas:"timer timer timer timer timer timer live live live live live live" "todo todo todo todo todo todo music music music music music music"}
+.fx3.fit[data-lay=bal]{grid-template-areas:"timer timer timer timer timer live live live live live live live" "todo todo todo todo group group group group music music music music"}
+.fx3.fit[data-lay=bal].nogrp{grid-template-areas:"timer timer timer timer timer live live live live live live live" "todo todo todo todo todo todo music music music music music music"}
+.fx3.fit[data-lay=watch]{grid-template-rows:auto auto auto;grid-template-areas:"live live live live live live live live timer timer timer timer" "live live live live live live live live group group group group" "todo todo todo todo todo todo music music music music music music"}
+.fx3.fit[data-lay=watch].nogrp{grid-template-areas:"live live live live live live live live timer timer timer timer" "live live live live live live live live todo todo todo todo" "music music music music music music music music todo todo todo todo"}
+.fx3.fit[data-lay=watch] .ring{width:110px}.fx3.fit[data-lay=watch]>.fx-timer{gap:8px;padding:14px;position:static;align-self:stretch}.fx3.fit[data-lay=watch]>.fx-timer .seg button{padding:4px 10px}.fx3.fit[data-lay=watch]>.fx-timer .seg{padding:2px}
 .fx3.fit[data-lay=watch]>.fx-timer :is(.limit-box,.tm-cfg,.tm-pip,.pip-cta,#grp-strip,.cycle,#tm-goal,#tm-cur){display:none}
 /* nút chọn bố cục: nằm đè góc dưới bên phải dải ảnh, chỉ hiện khi đang ở chế độ vừa khít */
 .fx-lay-wrap{display:none}
-@media (min-width:1100px) and (min-height:620px){
+@media (min-width:1100px){
   .fx-lay-wrap{display:block;position:relative;height:0;z-index:4}
   .fx-lay{position:absolute;right:16px;top:-68px;background:rgba(8,11,19,.66);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-color:rgba(255,255,255,.14)}
   .fx-lay button{color:#e8ebf4}.fx-lay button.on{background:var(--surface);color:var(--accent-strong)}
