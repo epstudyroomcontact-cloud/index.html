@@ -301,8 +301,10 @@ input[type=checkbox],input[type=radio]{accent-color:var(--accent-strong)}
 .ring .md{font-size:.78rem;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.1em;margin-top:8px}
 .tm-pip{opacity:.8;margin-top:-6px}.tm-pip.on{opacity:1;color:var(--accent);border-color:var(--accent)}
 .cycle{display:flex;gap:6px}.cycle i{width:9px;height:9px;border-radius:50%;background:var(--line2)}.cycle i.on{background:var(--accent)}
-.cfg-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:100%}
-@media(max-width:480px){.cfg-grid{grid-template-columns:repeat(2,1fr)}}
+.cfg-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;width:100%}   /* mỗi cài đặt một hàng: nhãn bên trái, ô số bên phải, nhãn dài ở ngôn ngữ nào cũng không làm lệch hàng */
+.cfg-grid .field{display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:14px;padding:2px 0}
+.cfg-grid .field .label{margin:0;flex:1;min-width:0;line-height:1.35}
+.cfg-grid .field .input{flex:none;width:88px;min-height:0;height:40px;padding-top:0;padding-bottom:0;text-align:center}
 .todo-item{display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--line)}
 .todo-item:last-child{border:none}
 .todo-item label{flex:1;display:flex;gap:10px;align-items:center;cursor:pointer;min-width:0}
