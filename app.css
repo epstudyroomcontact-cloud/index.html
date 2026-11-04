@@ -826,11 +826,9 @@ button.sb-item{width:100%;background:none;border:0;font:inherit;font-weight:600;
 .tab-bar .chip{flex:none;white-space:nowrap;min-height:34px}
 .pl-tabs h3{font-size:1rem;margin-bottom:10px}
 #page[data-route=club] .art-head,#page[data-route=planner] .art-head{height:170px}
-#page[data-route=focus] .art-head{height:128px;margin-bottom:14px}
-#page[data-route=focus] .glass{left:16px;bottom:14px;padding:10px 16px}
-#page[data-route=focus] .glass p{display:none}   /* trang Focus: dải ảnh thấp, bỏ dòng phụ để timer và stream lên màn hình đầu */   /* ảnh đầu trang thấp hơn: nội dung chính lên màn hình đầu */
+/* ảnh đầu trang thấp hơn: nội dung chính lên màn hình đầu */
 @media(max-width:640px){
-  #page[data-route=club] .art-head,#page[data-route=planner] .art-head,#page[data-route=focus] .art-head{height:110px;margin-bottom:14px}
+  #page[data-route=club] .art-head,#page[data-route=planner] .art-head{height:110px;margin-bottom:14px}
   #page[data-route=club] .glass,#page[data-route=planner] .glass{left:12px;bottom:12px;padding:10px 14px}
   .mj-a-status .moon-big{width:min(120px,34vw)}
   .mj-a-status>.card{gap:10px;padding:16px 18px 18px}
@@ -1259,15 +1257,6 @@ body:has(#tour-ask) .sofa{display:none}
 .fx3.fit .music-card{max-height:none}
 .fx3.fit .fn-card{flex:none}
 .fx3+.fx-stats{margin-top:18px}
-@media (min-width:1100px) and (min-height:620px){
-  /* cùng điều kiện với .fit: đầu trang gọn lại để lưới nhường chỗ */
-  #page[data-route=focus] .art-head{height:64px;margin-bottom:12px}
-  #page[data-route=focus] .art-head .art,#page[data-route=focus] .art-head img,#page[data-route=focus] .art-head svg{opacity:.55}
-  #page[data-route=focus] .glass{left:12px;bottom:10px;padding:6px 14px}
-  #page[data-route=focus] .glass h1{font-size:1.15rem}
-  #page[data-route=focus] .hint-note{padding:8px 14px;margin-bottom:8px}#page[data-route=focus] .hint-note p{display:none}
-}
-@media (min-width:1100px) and (min-height:620px) and (max-height:820px){#page[data-route=focus] .art-head{display:none}}   /* màn thấp: bỏ luôn dải ảnh, tên trang đã có trên thanh trên cùng */
 /* điện thoại và máy tính bảng: thanh timer mini dính ở đầu trang, hiện khi bộ đếm lớn đã cuộn khuất */
 .fx-mini{display:none}
 @media (max-width:1099px){
