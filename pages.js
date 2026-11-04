@@ -503,12 +503,13 @@ const pipCol = () => { const cs = getComputedStyle(document.documentElement), v 
 function pipTick(){ if (pomo.running) pomoTick(); else pipPaint(); }    // pomoTick → updateTimerUI → pipPaint; hết giờ lúc tab ẩn thì vẫn chuyển khối đúng lúc
 const PIP_SVG = { play:'<path d="M8 5v14l11-7z"/>', pause:'<path d="M7 5h4v14H7zM13 5h4v14h-4z"/>', back:'<path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' };
 /* Giao diện cố định (đã chọn): vòng mảnh, nền đen, chữ mờ 63% (rê chuột vào thì rõ hẳn). Trình duyệt vẽ khung cửa sổ nổi nên web không làm nó trong suốt được. */
-const PIP_OP = .63, PIP_SIZE = [200, 200];
+const PIP_OP = .63, PIP_SIZE = [132, 132];   // nhỏ nhất có thể: Chrome tự nâng lên cỡ tối thiểu của nó nếu nhỏ hơn
+function pipSess(){ if (pomo.cfg.goal > 0) return `${Math.min(pomo.done, pomo.cfg.goal)}/${pomo.cfg.goal}`; const s = (localFocus()[DT.now().setZone(userTZ).toISODate()] || { s:0 }).s; return s ? `✓ ${s}` : ''; }   // có mục tiêu: đã xong/mục tiêu; không thì số phiên đã xong hôm nay
 function pipPaint(){
   if (pipWin) {
     const d = pipWin.document, n = pipNow(), q = id => d.getElementById(id); if (!q('tt')) return;
     const f = 1 - n.left / n.total;
-    q('tt').textContent = n.txt; q('rf').style.strokeDashoffset = (RING_C * (1 - f)).toFixed(2); q('rf').style.stroke = pipCol();
+    q('tt').textContent = n.txt; q('ss').textContent = pipSess(); q('rf').style.strokeDashoffset = (RING_C * (1 - f)).toFixed(2); q('rf').style.stroke = pipCol();
     q('pp').innerHTML = `<svg viewBox="0 0 24 24">${PIP_SVG[pomo.running ? 'pause' : 'play']}</svg>`; q('pp').title = t(pomo.running ? 'pause' : (n.left < n.total ? 'resume' : 'start'));
     d.title = `${n.txt} · ${n.mode}`;
   }
@@ -517,7 +518,8 @@ function pipPaint(){
     c.fillStyle = '#000'; c.fillRect(0, 0, W, H); c.lineWidth = 6; c.lineCap = 'round';
     c.globalAlpha = PIP_OP * .3; c.strokeStyle = '#fff'; c.beginPath(); c.arc(x, y, R, 0, 7); c.stroke();
     c.globalAlpha = PIP_OP; c.strokeStyle = pipCol(); c.beginPath(); c.arc(x, y, R, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI * f); c.stroke();
-    c.fillStyle = '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = '700 64px system-ui,sans-serif'; c.fillText(n.txt, x, y);
+    c.fillStyle = '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = '700 58px system-ui,sans-serif'; c.fillText(n.txt, x, y - 12);
+    c.globalAlpha = PIP_OP * .85; c.font = '700 26px system-ui,sans-serif'; c.fillText(pipSess(), x, y + 40);
     c.globalAlpha = 1;
   }
 }
@@ -532,14 +534,14 @@ function pipOpenDoc(){
     d.head.innerHTML = `<meta charset="utf-8"><style>
       html,body{margin:0;height:100%;background:#000;color:#fff;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;overflow:hidden;user-select:none}
       #w{height:100%;display:grid;place-items:center;opacity:${PIP_OP};transition:opacity .25s}body:hover #w{opacity:1}
-      #rg{position:relative;display:grid;place-items:center;height:88vmin;aspect-ratio:1}#rg svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+      #rg{position:relative;display:grid;place-items:center;height:94vmin;aspect-ratio:1}#in{position:relative;display:flex;flex-direction:column;align-items:center;gap:1.5vmin}#rg svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
       #rg .b{stroke:rgba(255,255,255,.22);fill:none}#rf{fill:none;stroke-linecap:round;transition:stroke-dashoffset .3s linear}
-      #tt{font-size:23vmin;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.03em;line-height:1;position:relative}
-      #ctl{position:fixed;top:6px;right:6px;display:flex;gap:4px;opacity:0;transition:opacity .2s}body:hover #ctl{opacity:1}
-      button{width:28px;height:28px;border:0;border-radius:8px;background:rgba(255,255,255,.16);color:#fff;cursor:pointer;display:grid;place-items:center;padding:0}
-      button:hover{background:rgba(255,255,255,.3)}button svg{width:15px;height:15px;fill:currentColor}
+      #tt{font-size:21vmin;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.03em;line-height:1}#ss{font-size:10vmin;font-weight:700;line-height:1;opacity:.85;min-height:10vmin}
+      #ctl{position:fixed;top:3px;right:3px;display:flex;gap:2px;opacity:0;transition:opacity .2s}body:hover #ctl{opacity:1}
+      button{width:22px;height:22px;border:0;border-radius:6px;background:rgba(255,255,255,.16);color:#fff;cursor:pointer;display:grid;place-items:center;padding:0}
+      button:hover{background:rgba(255,255,255,.3)}button svg{width:12px;height:12px;fill:currentColor}
     </style>`;
-    d.body.innerHTML = `<div id="w"><div id="rg"><svg viewBox="0 0 120 120"><circle class="b" cx="60" cy="60" r="54" stroke-width="4"/><circle id="rf" cx="60" cy="60" r="54" stroke-width="4" stroke-dasharray="${RING_C.toFixed(2)}" stroke-dashoffset="0"/></svg><div id="tt"></div></div></div>
+    d.body.innerHTML = `<div id="w"><div id="rg"><svg viewBox="0 0 120 120"><circle class="b" cx="60" cy="60" r="54" stroke-width="5"/><circle id="rf" cx="60" cy="60" r="54" stroke-width="5" stroke-dasharray="${RING_C.toFixed(2)}" stroke-dashoffset="0"/></svg><div id="in"><div id="tt"></div><div id="ss"></div></div></div></div>
       <div id="ctl"><button type="button" id="pp"></button><button type="button" id="bk" title="${esc(branding.name)}"><svg viewBox="0 0 24 24">${PIP_SVG.back}</svg></button></div>`;
     d.getElementById('pp').addEventListener('click', () => { pomo.running ? pomoPause() : pomoStart(); pipPaint(); });
     d.getElementById('bk').addEventListener('click', () => { window.focus(); if (route.name !== 'focus') location.hash = '#/focus'; });
