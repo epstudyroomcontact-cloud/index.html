@@ -28,32 +28,32 @@
 <!-- Font Google tải song song, không chặn hiện trang: mạng chậm hoặc chặn Google (vd. Trung Quốc) thì web vẫn mở ngay bằng font máy, có font thì tự đổi -->
 <link id="ep-fonts" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap" rel="stylesheet" media="print">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap" rel="stylesheet"></noscript>
-<link rel="stylesheet" href="app.css?v=198">
+<link rel="stylesheet" href="app.css?v=199">
 <!-- Tải sẵn song song mọi file chạy (trình duyệt vẫn chạy đúng thứ tự như cũ): trước đây mạng chậm phải đợi từng file một nên chờ cả chục vòng mạng -->
 <link rel="preload" as="script" fetchpriority="low" href="vendor/luxon-3.4.4.min.js">
-<link rel="preload" as="script" fetchpriority="low" href="js/fallback-luxon.js?v=198">
+<link rel="preload" as="script" fetchpriority="low" href="js/fallback-luxon.js?v=199">
 <link rel="preload" as="script" fetchpriority="low" href="vendor/firebase-app-compat-10.8.0.js">
-<link rel="preload" as="script" fetchpriority="low" href="js/fallback-firebase-app.js?v=198">
+<link rel="preload" as="script" fetchpriority="low" href="js/fallback-firebase-app.js?v=199">
 <link rel="preload" as="script" fetchpriority="low" href="vendor/firebase-firestore-compat-10.8.0.js">
-<link rel="preload" as="script" fetchpriority="low" href="js/fallback-firebase-firestore.js?v=198">
+<link rel="preload" as="script" fetchpriority="low" href="js/fallback-firebase-firestore.js?v=199">
 <link rel="preload" as="script" fetchpriority="low" href="vendor/firebase-auth-compat-10.8.0.js">
-<link rel="preload" as="script" fetchpriority="low" href="js/fallback-firebase-auth.js?v=198">
-<link rel="preload" as="script" fetchpriority="low" href="js/firebase-config.js?v=198">
-<link rel="preload" as="script" fetchpriority="low" href="js/i18n.js?v=198">
-<link rel="preload" as="script" fetchpriority="low" href="i18n-extra.js?v=198">
-<link rel="preload" as="script" fetchpriority="low" href="js/lang-loader.js?v=198">
-<link rel="preload" as="script" fetchpriority="low" href="js/translate.js?v=198">
-<link rel="preload" as="script" fetchpriority="low" href="js/art.js?v=198">
-<link rel="preload" as="script" fetchpriority="low" href="core.js?v=198">
-<link rel="preload" as="script" fetchpriority="low" href="pages.js?v=198">
-<link rel="preload" as="script" fetchpriority="low" href="moon-story-text.js?v=198">
-<link rel="preload" as="script" fetchpriority="low" href="moon-story.js?v=198">
-<link rel="preload" as="script" fetchpriority="low" href="js/welcome.js?v=198">
-<link rel="preload" as="script" fetchpriority="low" href="js/start.js?v=198">
-<link rel="preload" as="script" fetchpriority="low" href="js/sky.js?v=198">
-<link rel="preload" as="script" fetchpriority="low" href="js/cursor.js?v=198">
-<script src="js/boot-guard.js?v=198"></script>
-<script src="js/fonts.js?v=198" defer></script>
+<link rel="preload" as="script" fetchpriority="low" href="js/fallback-firebase-auth.js?v=199">
+<link rel="preload" as="script" fetchpriority="low" href="js/firebase-config.js?v=199">
+<link rel="preload" as="script" fetchpriority="low" href="js/i18n.js?v=199">
+<link rel="preload" as="script" fetchpriority="low" href="i18n-extra.js?v=199">
+<link rel="preload" as="script" fetchpriority="low" href="js/lang-loader.js?v=199">
+<link rel="preload" as="script" fetchpriority="low" href="js/translate.js?v=199">
+<link rel="preload" as="script" fetchpriority="low" href="js/art.js?v=199">
+<link rel="preload" as="script" fetchpriority="low" href="core.js?v=199">
+<link rel="preload" as="script" fetchpriority="low" href="pages.js?v=199">
+<link rel="preload" as="script" fetchpriority="low" href="moon-story-text.js?v=199">
+<link rel="preload" as="script" fetchpriority="low" href="moon-story.js?v=199">
+<link rel="preload" as="script" fetchpriority="low" href="js/welcome.js?v=199">
+<link rel="preload" as="script" fetchpriority="low" href="js/start.js?v=199">
+<link rel="preload" as="script" fetchpriority="low" href="js/sky.js?v=199">
+<link rel="preload" as="script" fetchpriority="low" href="js/cursor.js?v=199">
+<script src="js/boot-guard.js?v=199"></script>
+<script src="js/fonts.js?v=199" defer></script>
 </head>
 <body>
 
@@ -77,13 +77,13 @@
 <!-- Thư viện (để sau màn chờ để màn chờ hiện ngay, không đợi các file này). Để ngay trên web (thư mục vendor/): một số mạng, trình duyệt và chặn quảng cáo chặn gstatic.com / cdnjs làm web trắng trơn.
      File nào trong vendor/ không tải được (bị tiện ích chặn…) thì dòng ngay sau nó tải bản dự phòng từ CDN. -->
 <script src="vendor/luxon-3.4.4.min.js"></script>
-<script src="js/fallback-luxon.js?v=198"></script>
+<script src="js/fallback-luxon.js?v=199"></script>
 <script src="vendor/firebase-app-compat-10.8.0.js"></script>
-<script src="js/fallback-firebase-app.js?v=198"></script>
+<script src="js/fallback-firebase-app.js?v=199"></script>
 <script src="vendor/firebase-firestore-compat-10.8.0.js"></script>
-<script src="js/fallback-firebase-firestore.js?v=198"></script>
+<script src="js/fallback-firebase-firestore.js?v=199"></script>
 <script src="vendor/firebase-auth-compat-10.8.0.js"></script>
-<script src="js/fallback-firebase-auth.js?v=198"></script>
+<script src="js/fallback-firebase-auth.js?v=199"></script>
 
 <!-- Icon sprite (Lucide-style strokes) -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -93,7 +93,7 @@
   <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></symbol>
   <symbol id="i-skip" viewBox="0 0 24 24"><path d="M5 4l10 8-10 8z"/><path d="M19 5v14"/></symbol>
   <symbol id="i-reset" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></symbol>
-  <symbol id="i-timer" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/></symbol>
+  <symbol id="i-timer" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/></symbol><symbol id="i-pip" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><rect x="12" y="11" width="7" height="6" rx="1"/></symbol>
   <symbol id="i-pen" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol>
   <symbol id="i-bag" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></symbol>
   <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
@@ -188,20 +188,20 @@
 </div>
 <div id="toast"></div>
 
-<script src="js/firebase-config.js?v=198"></script>
-<script src="js/i18n.js?v=198"></script>
-<script src="i18n-extra.js?v=198"></script>
+<script src="js/firebase-config.js?v=199"></script>
+<script src="js/i18n.js?v=199"></script>
+<script src="i18n-extra.js?v=199"></script>
 <!-- Bản dịch lớn hi/ja/ko/zh/fr/es: chỉ tải khi khách đã chọn một trong các tiếng đó (khách tiếng Anh/Việt không phải tải). Đổi ngôn ngữ ở ⚙️ thì core.js tự tải. -->
-<script src="js/lang-loader.js?v=198"></script>
-<script src="js/translate.js?v=198"></script>
-<script src="js/art.js?v=198"></script>
-<script src="core.js?v=198"></script>
-<script src="pages.js?v=198"></script>
-<script src="moon-story-text.js?v=198"></script>
-<script src="moon-story.js?v=198"></script>
-<script src="js/welcome.js?v=198"></script>
-<script src="js/start.js?v=198"></script>
-<script src="js/sky.js?v=198" defer></script>
-<script src="js/cursor.js?v=198" defer></script>
+<script src="js/lang-loader.js?v=199"></script>
+<script src="js/translate.js?v=199"></script>
+<script src="js/art.js?v=199"></script>
+<script src="core.js?v=199"></script>
+<script src="pages.js?v=199"></script>
+<script src="moon-story-text.js?v=199"></script>
+<script src="moon-story.js?v=199"></script>
+<script src="js/welcome.js?v=199"></script>
+<script src="js/start.js?v=199"></script>
+<script src="js/sky.js?v=199" defer></script>
+<script src="js/cursor.js?v=199" defer></script>
 </body>
 </html>
