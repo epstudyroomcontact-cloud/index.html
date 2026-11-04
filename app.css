@@ -1260,3 +1260,5 @@ body:has(#tour-ask) .sofa{display:none}
 .pl-b small{font-weight:700;opacity:.75}
 .pl-warn{font-style:normal;font-weight:700;color:var(--danger,#e0243a)}
 .pl-b.clash{padding-left:5px;padding-right:3px}.pl-b.clash .pl-ck{display:none}
+.grp-cap{text-align:left;font-size:.78rem;color:var(--ink3);padding:10px 0 2px;line-height:1.3}
+.grp-row.away{opacity:.75}.grp-row.away .grp-st{color:var(--ink3);font-size:.78rem}
