@@ -368,14 +368,14 @@ function addFocus(min){
 }
 (function(){
   const G = {
-    en:{ cfg_goal:'Sessions to finish (0 = no limit)', goal_prog:'{d}/{n} sessions done', notify_goal:'All {n} sessions done. Great work, time to rest!' },
-    vi:{ cfg_goal:'Số phiên cần làm (0 = không giới hạn)', goal_prog:'Đã xong {d}/{n} phiên', notify_goal:'Đã xong đủ {n} phiên. Giỏi lắm, nghỉ ngơi thôi!' },
-    ja:{ cfg_goal:'目標セッション数（0 = 無制限）', goal_prog:'{d}/{n} セッション完了', notify_goal:'{n} セッションすべて完了！お疲れさまでした。' },
-    ko:{ cfg_goal:'목표 세션 수 (0 = 제한 없음)', goal_prog:'{d}/{n} 세션 완료', notify_goal:'{n}세션을 모두 마쳤어요. 수고했어요, 푹 쉬세요!' },
-    zh:{ cfg_goal:'目标专注次数（0 = 不限）', goal_prog:'已完成 {d}/{n} 次', notify_goal:'{n} 次专注全部完成，真棒，好好休息吧！' },
-    fr:{ cfg_goal:'Sessions à terminer (0 = illimité)', goal_prog:'{d}/{n} sessions terminées', notify_goal:'Les {n} sessions sont terminées. Bravo, place au repos !' },
-    es:{ cfg_goal:'Sesiones por completar (0 = sin límite)', goal_prog:'{d}/{n} sesiones hechas', notify_goal:'Completaste las {n} sesiones. ¡Buen trabajo, a descansar!' },
-    hi:{ cfg_goal:'पूरे करने के सत्र (0 = कोई सीमा नहीं)', goal_prog:'{d}/{n} सत्र पूरे', notify_goal:'सभी {n} सत्र पूरे हुए। बढ़िया काम, अब आराम करें!' }
+    en:{ pip_rate:'Rate:', cfg_goal:'Sessions to finish (0 = no limit)', goal_prog:'{d}/{n} sessions done', notify_goal:'All {n} sessions done. Great work, time to rest!' },
+    vi:{ pip_rate:'Mức:', cfg_goal:'Số phiên cần làm (0 = không giới hạn)', goal_prog:'Đã xong {d}/{n} phiên', notify_goal:'Đã xong đủ {n} phiên. Giỏi lắm, nghỉ ngơi thôi!' },
+    ja:{ pip_rate:'評価:', cfg_goal:'目標セッション数（0 = 無制限）', goal_prog:'{d}/{n} セッション完了', notify_goal:'{n} セッションすべて完了！お疲れさまでした。' },
+    ko:{ pip_rate:'평가:', cfg_goal:'목표 세션 수 (0 = 제한 없음)', goal_prog:'{d}/{n} 세션 완료', notify_goal:'{n}세션을 모두 마쳤어요. 수고했어요, 푹 쉬세요!' },
+    zh:{ pip_rate:'完成度:', cfg_goal:'目标专注次数（0 = 不限）', goal_prog:'已完成 {d}/{n} 次', notify_goal:'{n} 次专注全部完成，真棒，好好休息吧！' },
+    fr:{ pip_rate:'Niveau :', cfg_goal:'Sessions à terminer (0 = illimité)', goal_prog:'{d}/{n} sessions terminées', notify_goal:'Les {n} sessions sont terminées. Bravo, place au repos !' },
+    es:{ pip_rate:'Nivel:', cfg_goal:'Sesiones por completar (0 = sin límite)', goal_prog:'{d}/{n} sesiones hechas', notify_goal:'Completaste las {n} sesiones. ¡Buen trabajo, a descansar!' },
+    hi:{ pip_rate:'स्तर:', cfg_goal:'पूरे करने के सत्र (0 = कोई सीमा नहीं)', goal_prog:'{d}/{n} सत्र पूरे', notify_goal:'सभी {n} सत्र पूरे हुए। बढ़िया काम, अब आराम करें!' }
   };
   Object.keys(G).forEach(l => { I18N[l] = I18N[l] || {}; Object.keys(G[l]).forEach(k => { if (I18N[l][k] === undefined) I18N[l][k] = G[l][k]; }); });
 })();
@@ -505,11 +505,15 @@ function pipTick(){      // pomoTick → updateTimerUI → pipPaint; hết giờ
   if (pipWin && plLinked() && Date.now() - pipPlAt > 20000) { pipPlAt = Date.now(); (typeof plWeek0 === 'function' ? Promise.resolve() : loadPlanner()).then(() => renderFocusPl()).catch(() => {}); }   // việc hôm nay của Planner đổi bên web thì cửa sổ nổi cũng đổi
   if (pomo.running) pomoTick(); else pipPaint();
 }
-/* Tick xong một việc ngay trong cửa sổ nổi. Việc ghi ở Phòng tập trung: xong luôn, giống tick trên web. Việc của Planner cần chấm mức hoàn thành 1-5 nên đưa khách về web và mở đúng hộp chấm mức đó. */
-function pipDone(id, pl){
-  if (!pl) { saveTodos(todos().map(x => x.id === id ? { ...x, done:true } : x)); renderTodos(); return; }
-  const go = () => { const x = FX_PL.find(v => v.id === id); window.focus(); if (x && !x.done) plLevelForm(x, true); };
-  typeof plLevelForm === 'function' ? go() : loadPlanner().then(go).catch(() => {});
+/* Tick xong một việc ngay trong cửa sổ nổi. Việc ghi ở Phòng tập trung: xong luôn, giống tick trên web. Việc của Planner cần chấm mức hoàn thành 1-5 (như trên web) nên dòng đó đổi thành 5 nút chấm mức ngay tại chỗ, khách không phải quay về web. */
+function pipDone(id){ saveTodos(todos().map(x => x.id === id ? { ...x, done:true } : x)); renderTodos(); }
+function pipRate(id, q){
+  const save = () => plFocusEdit(ts => { const v = ts.find(y => y.id === id); if (!v || v.done) return false; v.done = true; v.q = q; return true; }).then(ok => {
+    if (pipWin) delete pipWin.document.body.dataset.rate;
+    toast(ok ? t('pl_q_fb', { n:q, p:Math.round(PL_QW[q - 1] * 100) }) + (q <= 3 ? ' ' + t('pl_q_fb_lo') : '') : t('pl_err'), 5200);
+    renderFocusPl(); if (route.name === 'planner') render(true);
+  });
+  typeof plFocusEdit === 'function' ? save() : loadPlanner().then(save).catch(() => toast(t('pl_err')));
 }
 const PIP_SVG = { play:'<path d="M8 5v14l11-7z"/>', pause:'<path d="M7 5h4v14H7zM13 5h4v14h-4z"/>', back:'<path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' };
 /* Giao diện cố định (đã chọn): vòng mảnh, nền đen, chữ mờ 63% (rê chuột vào thì rõ hẳn). Trình duyệt vẽ khung cửa sổ nổi nên web không làm nó trong suốt được. */
@@ -530,11 +534,24 @@ function pipPaint(){
     const d = pipWin.document, n = pipNow(), q = id => d.getElementById(id); if (!q('tt')) return;
     const f = 1 - n.left / n.total;
     q('tt').textContent = n.txt; q('ss').textContent = pipSess();
-    const tk = pipTasks(), sig = tk.map(x => x.id + x.text + x.tm).join('|');
+    const tk = pipTasks(), rate = d.body.dataset.rate || '', sig = tk.map(x => x.id + x.text + x.tm).join('|') + '#' + rate;
     if (d.body.dataset.sig !== sig) {
       d.body.dataset.sig = sig; const l = q('lst'); l.textContent = '';
-      tk.slice(0, 3).forEach(x => { const r = d.createElement('div'); r.className = 'r' + (x.cur ? ' c' : ''); r.textContent = (x.tm ? x.tm + ' ' : '') + x.text; r.title = r.textContent;
-        r.addEventListener('click', () => { r.classList.add('x'); setTimeout(() => { pipDone(x.id, x.pl); pipPaint(); }, x.pl ? 0 : 220); }); l.appendChild(r); });
+      tk.slice(0, 3).forEach(x => {
+        const r = d.createElement('div');
+        if (rate === x.id) {                                   // đang chấm mức cho việc Planner này: 1 (thấp) → 5 (tốt nhất)
+          r.className = 'r rt'; r.title = x.text; const lb = d.createElement('span'); lb.textContent = t('pip_rate'); r.appendChild(lb);
+          [1, 2, 3, 4, 5].forEach(k => { const b = d.createElement('button'); b.type = 'button'; b.className = 'q'; b.textContent = k; b.title = t('pl_q_' + k); b.addEventListener('click', () => pipRate(x.id, k)); r.appendChild(b); });
+          const c = d.createElement('button'); c.type = 'button'; c.className = 'q'; c.textContent = '✕'; c.title = t('cancel'); c.addEventListener('click', () => { delete d.body.dataset.rate; pipPaint(); }); r.appendChild(c);
+        } else {
+          r.className = 'r' + (x.cur ? ' c' : ''); r.textContent = (x.tm ? x.tm + ' ' : '') + x.text; r.title = r.textContent;
+          r.addEventListener('click', () => {
+            if (x.pl) { d.body.dataset.rate = x.id; pipPaint(); setTimeout(() => { if (pipWin && d.body.dataset.rate === x.id) { delete d.body.dataset.rate; pipPaint(); } }, 10000); return; }   // quá 10 giây không chấm thì trả về như cũ
+            r.classList.add('x'); setTimeout(() => { pipDone(x.id); pipPaint(); }, 220);
+          });
+        }
+        l.appendChild(r);
+      });
       if (tk.length > 3) { const m = d.createElement('div'); m.className = 'm'; m.textContent = '+' + (tk.length - 3); l.appendChild(m); }
     } q('rf').style.strokeDashoffset = (RING_C * (1 - f)).toFixed(2); q('rf').style.stroke = pipCol();
     q('pp').innerHTML = `<svg viewBox="0 0 24 24">${PIP_SVG[pomo.running ? 'pause' : 'play']}</svg>`; q('pp').title = t(pomo.running ? 'pause' : (n.left < n.total ? 'resume' : 'start'));
@@ -567,7 +584,7 @@ function pipOpenDoc(){
       #rg{position:absolute;top:2%;bottom:2%;left:50%;transform:translateX(-50%);aspect-ratio:1;container-type:size;display:grid;place-items:center}#in{position:relative;display:flex;flex-direction:column;align-items:center;gap:2cqmin}#rg svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
       #rg .b{stroke:rgba(255,255,255,.22);fill:none}#rf{fill:none;stroke-linecap:round;transition:stroke-dashoffset .3s linear}
       #tt{font-size:22cqmin;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.03em;line-height:1}#ss{font-size:10.5cqmin;font-weight:700;line-height:1;opacity:.85;min-height:10.5cqmin}
-      #lst{padding:0 9px 6px;font-size:11px}#lst:empty{display:none}.r{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:17px;cursor:pointer}.r::before{content:'';display:inline-block;width:8px;height:8px;border-radius:3px;border:1.5px solid currentColor;opacity:.6;margin-right:6px;vertical-align:-1px;box-sizing:border-box}.r:hover::before{opacity:1;background:rgba(255,255,255,.25)}.r.c{font-weight:700}.r.x{text-decoration:line-through;opacity:.5}.r.x::before{background:currentColor;opacity:1}.m{text-align:right;opacity:.6;line-height:14px}
+      #lst{padding:0 9px 6px;font-size:11px}#lst:empty{display:none}.r{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:17px;cursor:pointer}.r::before{content:'';display:inline-block;width:8px;height:8px;border-radius:3px;border:1.5px solid currentColor;opacity:.6;margin-right:6px;vertical-align:-1px;box-sizing:border-box}.r:hover::before{opacity:1;background:rgba(255,255,255,.25)}.r.c{font-weight:700}.rt{cursor:default;display:flex;align-items:center;gap:3px;overflow:visible}.rt::before{display:none}.rt span{font-size:10px;opacity:.8;margin-right:2px}.q{width:21px;height:16px;border-radius:5px;font-size:10px;font-weight:700;line-height:1}.r.x{text-decoration:line-through;opacity:.5}.r.x::before{background:currentColor;opacity:1}.m{text-align:right;opacity:.6;line-height:14px}
       #ctl{position:fixed;top:3px;right:3px;display:flex;gap:2px;opacity:0;transition:opacity .2s}body:hover #ctl{opacity:1}
       button{width:22px;height:22px;border:0;border-radius:6px;background:rgba(255,255,255,.16);color:#fff;cursor:pointer;display:grid;place-items:center;padding:0}
       button:hover{background:rgba(255,255,255,.3)}button svg{width:12px;height:12px;fill:currentColor}
