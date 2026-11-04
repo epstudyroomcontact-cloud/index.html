@@ -1247,7 +1247,7 @@ body:has(#tour-ask) .sofa{display:none}
    Các khung bọc được display:contents nên từng ô là một phần tử lưới, xếp theo grid-template-areas; ô dài cuộn trong ô */
 .fx3.fit{align-items:stretch;gap:14px}
 .fx3.fit .fx-main,.fx3.fit .fx-side,.fx3.fit .fx-tabs{display:contents}
-.fx3.fit>.fx-timer{grid-area:timer;align-self:stretch;padding:22px;gap:12px;justify-content:flex-start}
+.fx3.fit>.fx-timer{grid-area:timer;position:static;align-self:stretch;padding:22px;gap:12px;justify-content:flex-start}
 .fx3.fit .fx-tabs>.tab-pane,.fx3.fit .fx-tabs>.tab-pane[hidden]{display:flex;flex-direction:column;min-height:0;min-width:0}
 .fx3.fit .tab-pane>.card,.fx3.fit .tab-pane>section{flex:1 1 auto;min-height:0;margin:0}
 .fx3.fit .tab-pane:is([data-k=todo],[data-k=group],[data-k=music])>:is(.card,section){max-height:min(420px,60vh);overflow:auto}   /* chỉ cuộn trong ô khi danh sách thật sự dài */
