@@ -369,14 +369,14 @@ function addFocus(min){
 }
 (function(){
   const G = {
-    en:{ pip_hint:"Floating timer is on: it stays faint on top of other windows. Hover to see it clearly and tick tasks off, or close it with the X.", pip_rate:'Rate:', cfg_goal:'Sessions to finish (0 = no limit)', goal_prog:'{d}/{n} sessions done', notify_goal:'All {n} sessions done. Great work, time to rest!' },
-    vi:{ pip_hint:"Timer nổi đang bật: nó mờ và nằm trên các cửa sổ khác. Rê chuột vào để xem rõ và tick việc xong, hoặc bấm X để tắt.", pip_rate:'Mức:', cfg_goal:'Số phiên cần làm (0 = không giới hạn)', goal_prog:'Đã xong {d}/{n} phiên', notify_goal:'Đã xong đủ {n} phiên. Giỏi lắm, nghỉ ngơi thôi!' },
-    ja:{ pip_hint:"フローティングタイマーが表示中です。他のウィンドウの上に薄く残ります。マウスを乗せるとはっきり表示されタスクをチェックでき、Xで閉じられます。", pip_rate:'評価:', cfg_goal:'目標セッション数（0 = 無制限）', goal_prog:'{d}/{n} セッション完了', notify_goal:'{n} セッションすべて完了！お疲れさまでした。' },
-    ko:{ pip_hint:"플로팅 타이머가 켜졌어요. 다른 창 위에 흐릿하게 남아요. 마우스를 올리면 또렷해지고 할 일을 체크할 수 있으며, X로 닫을 수 있어요.", pip_rate:'평가:', cfg_goal:'목표 세션 수 (0 = 제한 없음)', goal_prog:'{d}/{n} 세션 완료', notify_goal:'{n}세션을 모두 마쳤어요. 수고했어요, 푹 쉬세요!' },
-    zh:{ pip_hint:"悬浮计时器已开启：它会半透明地浮在其他窗口上方。鼠标移上去会变清晰并可勾选任务，点 X 即可关闭。", pip_rate:'完成度:', cfg_goal:'目标专注次数（0 = 不限）', goal_prog:'已完成 {d}/{n} 次', notify_goal:'{n} 次专注全部完成，真棒，好好休息吧！' },
-    fr:{ pip_hint:"Le minuteur flottant est actif : il reste discret au-dessus des autres fenêtres. Survolez-le pour le voir nettement et cocher vos tâches, ou fermez-le avec la croix.", pip_rate:'Niveau :', cfg_goal:'Sessions à terminer (0 = illimité)', goal_prog:'{d}/{n} sessions terminées', notify_goal:'Les {n} sessions sont terminées. Bravo, place au repos !' },
-    es:{ pip_hint:"El temporizador flotante está activo: se queda tenue sobre otras ventanas. Pasa el ratón para verlo claro y marcar tareas, o ciérralo con la X.", pip_rate:'Nivel:', cfg_goal:'Sesiones por completar (0 = sin límite)', goal_prog:'{d}/{n} sesiones hechas', notify_goal:'Completaste las {n} sesiones. ¡Buen trabajo, a descansar!' },
-    hi:{ pip_hint:"फ़्लोटिंग टाइमर चालू है: यह दूसरी विंडो के ऊपर हल्का दिखता रहता है। माउस ले जाने पर साफ़ दिखता है और काम टिक कर सकते हैं, या X से बंद करें।", pip_rate:'स्तर:', cfg_goal:'पूरे करने के सत्र (0 = कोई सीमा नहीं)', goal_prog:'{d}/{n} सत्र पूरे', notify_goal:'सभी {n} सत्र पूरे हुए। बढ़िया काम, अब आराम करें!' }
+    en:{ pip_cta:"Keeps time over other apps", pip_hint:"Floating timer is on: it stays faint on top of other windows. Hover to see it clearly and tick tasks off, or close it with the X.", pip_rate:'Rate:', cfg_goal:'Sessions to finish (0 = no limit)', goal_prog:'{d}/{n} sessions done', notify_goal:'All {n} sessions done. Great work, time to rest!' },
+    vi:{ pip_cta:"Giờ nổi trên mọi ứng dụng", pip_hint:"Timer nổi đang bật: nó mờ và nằm trên các cửa sổ khác. Rê chuột vào để xem rõ và tick việc xong, hoặc bấm X để tắt.", pip_rate:'Mức:', cfg_goal:'Số phiên cần làm (0 = không giới hạn)', goal_prog:'Đã xong {d}/{n} phiên', notify_goal:'Đã xong đủ {n} phiên. Giỏi lắm, nghỉ ngơi thôi!' },
+    ja:{ pip_cta:"他のアプリの上に表示", pip_hint:"フローティングタイマーが表示中です。他のウィンドウの上に薄く残ります。マウスを乗せるとはっきり表示されタスクをチェックでき、Xで閉じられます。", pip_rate:'評価:', cfg_goal:'目標セッション数（0 = 無制限）', goal_prog:'{d}/{n} セッション完了', notify_goal:'{n} セッションすべて完了！お疲れさまでした。' },
+    ko:{ pip_cta:"다른 앱 위에 표시", pip_hint:"플로팅 타이머가 켜졌어요. 다른 창 위에 흐릿하게 남아요. 마우스를 올리면 또렷해지고 할 일을 체크할 수 있으며, X로 닫을 수 있어요.", pip_rate:'평가:', cfg_goal:'목표 세션 수 (0 = 제한 없음)', goal_prog:'{d}/{n} 세션 완료', notify_goal:'{n}세션을 모두 마쳤어요. 수고했어요, 푹 쉬세요!' },
+    zh:{ pip_cta:"浮在其他应用上方", pip_hint:"悬浮计时器已开启：它会半透明地浮在其他窗口上方。鼠标移上去会变清晰并可勾选任务，点 X 即可关闭。", pip_rate:'完成度:', cfg_goal:'目标专注次数（0 = 不限）', goal_prog:'已完成 {d}/{n} 次', notify_goal:'{n} 次专注全部完成，真棒，好好休息吧！' },
+    fr:{ pip_cta:"Reste visible par-dessus", pip_hint:"Le minuteur flottant est actif : il reste discret au-dessus des autres fenêtres. Survolez-le pour le voir nettement et cocher vos tâches, ou fermez-le avec la croix.", pip_rate:'Niveau :', cfg_goal:'Sessions à terminer (0 = illimité)', goal_prog:'{d}/{n} sessions terminées', notify_goal:'Les {n} sessions sont terminées. Bravo, place au repos !' },
+    es:{ pip_cta:"Visible sobre otras apps", pip_hint:"El temporizador flotante está activo: se queda tenue sobre otras ventanas. Pasa el ratón para verlo claro y marcar tareas, o ciérralo con la X.", pip_rate:'Nivel:', cfg_goal:'Sesiones por completar (0 = sin límite)', goal_prog:'{d}/{n} sesiones hechas', notify_goal:'Completaste las {n} sesiones. ¡Buen trabajo, a descansar!' },
+    hi:{ pip_cta:"दूसरे ऐप के ऊपर दिखे", pip_hint:"फ़्लोटिंग टाइमर चालू है: यह दूसरी विंडो के ऊपर हल्का दिखता रहता है। माउस ले जाने पर साफ़ दिखता है और काम टिक कर सकते हैं, या X से बंद करें।", pip_rate:'स्तर:', cfg_goal:'पूरे करने के सत्र (0 = कोई सीमा नहीं)', goal_prog:'{d}/{n} सत्र पूरे', notify_goal:'सभी {n} सत्र पूरे हुए। बढ़िया काम, अब आराम करें!' }
   };
   Object.keys(G).forEach(l => { I18N[l] = I18N[l] || {}; Object.keys(G[l]).forEach(k => { if (I18N[l][k] === undefined) I18N[l][k] = G[l][k]; }); });
 })();
@@ -522,6 +522,8 @@ const PIP_SVG = { play:'<path d="M8 5v14l11-7z"/>', pause:'<path d="M7 5h4v14H7z
 /* Giao diện cố định (đã chọn): vòng mảnh, nền đen, chữ mờ 63% (rê chuột vào thì rõ hẳn). Trình duyệt vẽ khung cửa sổ nổi nên web không làm nó trong suốt được. */
 const PIP_OP = .63, PIP_SIZE = [132, 132];   // nhỏ nhất có thể: Chrome tự nâng lên cỡ tối thiểu của nó nếu nhỏ hơn
 /* Việc hôm nay hiện dưới vòng: việc đang chọn trước, rồi việc hôm nay của Planner (theo giờ), rồi việc ghi trong Phòng tập trung; tối đa 3 dòng + "+N" */
+const pipCta = () => (!pipCanUse() || store.get('hint_pipcta', false) || pipIsOpen()) ? '' : `<div class="pip-cta" id="pip-cta"><button type="button" class="pc-main" data-act="pip"><svg class="pc-art" viewBox="0 0 64 44" aria-hidden="true"><rect x="2" y="4" width="46" height="32" rx="7" fill="var(--surface2)" stroke="var(--line2)"/><rect x="8" y="11" width="22" height="3.5" rx="1.75" fill="var(--line2)"/><rect x="8" y="18" width="30" height="3.5" rx="1.75" fill="var(--line2)"/><g class="pc-fl"><rect x="34" y="14" width="27" height="27" rx="8" fill="#000" fill-opacity=".78" stroke="rgba(255,255,255,.22)"/><circle cx="47.5" cy="27.5" r="9" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="2"/><path d="M47.5 18.5a9 9 0 0 1 8.5 6" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round"/><rect x="42.5" y="26" width="10" height="3.2" rx="1.6" fill="#fff"/></g></svg><span class="pc-t"><b>${esc(t('pip_on'))}</b><span>${esc(t('pip_cta'))}</span></span></button><button type="button" class="pc-x" data-act="pipCtaOff" aria-label="${esc(t('phone_note_ok'))}">${ic('x', 'sm')}</button></div>`;
+const pipCtaSeen = () => { store.set('hint_pipcta', true); const c = $('pip-cta'); if (c) c.remove(); };
 function pipTasks(){
   const cur = typeof curTodo === 'function' ? curTodo() : null, out = [], seen = new Set();
   const add = (id, text, tm, pl) => { if (id && text && !seen.has(id)) { seen.add(id); out.push({ id, text, tm:tm || '', pl:!!pl, cur:!!cur && cur.id === id }); } };
@@ -556,18 +558,18 @@ function pipPaint(){
         l.appendChild(r);
       });
       if (tk.length > 3) { const m = d.createElement('div'); m.className = 'm'; m.textContent = '+' + (tk.length - 3); l.appendChild(m); }
-    } q('rf').style.strokeDashoffset = (RING_C * (1 - f)).toFixed(2); q('rf').style.stroke = pipCol();
+    } q('rf').style.strokeDashoffset = (RING_C * (1 - f)).toFixed(2); q('rf').style.stroke = pipCol(); d.documentElement.style.setProperty('--ac', pipCol());
     q('pp').innerHTML = `<svg viewBox="0 0 24 24">${PIP_SVG[pomo.running ? 'pause' : 'play']}</svg>`; q('pp').title = t(pomo.running ? 'pause' : (n.left < n.total ? 'resume' : 'start'));
     d.title = `${n.txt} · ${n.mode}`;
   }
   if (pipCv && pipVid && document.pictureInPictureElement === pipVid) {
     const c = pipCv.getContext('2d'), W = pipCv.width, H = pipCv.height, n = pipNow(), f = 1 - n.left / n.total, x = W / 2, tk = pipTasks(), y = tk.length ? 100 : H / 2, R = tk.length ? 78 : 100;
-    c.fillStyle = '#000'; c.fillRect(0, 0, W, H); c.lineWidth = 6; c.lineCap = 'round';
+    c.fillStyle = '#000'; c.fillRect(0, 0, W, H); { const g = c.createRadialGradient(W / 2, H * .36, 0, W / 2, H * .36, W * .78); g.addColorStop(0, pipCol()); g.addColorStop(1, '#000'); c.globalAlpha = .17; c.fillStyle = g; c.fillRect(0, 0, W, H); } c.lineWidth = 6; c.lineCap = 'round';
     c.globalAlpha = PIP_OP * .3; c.strokeStyle = '#fff'; c.beginPath(); c.arc(x, y, R, 0, 7); c.stroke();
     c.globalAlpha = PIP_OP; c.strokeStyle = pipCol(); c.beginPath(); c.arc(x, y, R, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI * f); c.stroke();
-    c.fillStyle = '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = `700 ${tk.length ? 44 : 58}px system-ui,sans-serif`; c.fillText(n.txt, x, y - 10);
-    c.globalAlpha = PIP_OP * .85; c.font = `700 ${tk.length ? 20 : 26}px system-ui,sans-serif`; c.fillText(pipSess(), x, y + (tk.length ? 26 : 40));
-    c.textAlign = 'left'; c.font = '600 16px system-ui,sans-serif'; c.globalAlpha = PIP_OP;
+    c.fillStyle = '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = `700 ${tk.length ? 44 : 58}px 'Baloo 2','Nunito',system-ui,sans-serif`; c.fillText(n.txt, x, y - 10);
+    c.globalAlpha = PIP_OP * .85; c.font = `700 ${tk.length ? 20 : 26}px 'Baloo 2','Nunito',system-ui,sans-serif`; c.fillText(pipSess(), x, y + (tk.length ? 26 : 40));
+    c.textAlign = 'left'; c.font = "700 16px 'Nunito',system-ui,sans-serif"; c.globalAlpha = PIP_OP;
     tk.slice(0, 3).forEach((it, i) => { let tx = (it.tm ? it.tm + ' ' : '') + it.text; while (tx.length > 1 && c.measureText(tx).width > W - 44) tx = tx.slice(0, -2) + '…'; c.fillText('• ' + tx, 18, 196 + i * 22); });
     if (tk.length > 3) { c.textAlign = 'right'; c.fillText('+' + (tk.length - 3), W - 14, 196 + 2 * 22 + 0); }
     c.globalAlpha = 1;
@@ -585,12 +587,13 @@ function pipClose(){
 function pipOpenDoc(){
   documentPictureInPicture.requestWindow({ width:pipSize()[0], height:pipSize()[1] }).then(w => {
     pipWin = w; pipPlAt = 0; const d = w.document;
-    d.head.innerHTML = `<meta charset="utf-8"><style>
-      html,body{margin:0;height:100%;background:#000;color:#fff;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;overflow:hidden;user-select:none}
+    const fl = $('ep-fonts');                                   // cùng bộ chữ với web (Baloo 2 + Nunito), cửa sổ nổi là tài liệu riêng nên phải nạp lại
+    d.head.innerHTML = `<meta charset="utf-8">${fl ? `<link rel="stylesheet" href="${esc(fl.href)}">` : ''}<style>
+      html{background:#000;height:100%}body{margin:0;height:100%;background:radial-gradient(120% 90% at 50% 36%,color-mix(in srgb,var(--ac,#ff3d9a) 17%,#000),#000 72%);color:#fff;font-family:'Nunito',system-ui,-apple-system,'Segoe UI',sans-serif;overflow:hidden;user-select:none}
       #w{height:100%;display:flex;flex-direction:column;opacity:${PIP_OP};transition:opacity .25s}body:hover #w{opacity:1}#area{flex:1;min-height:0;position:relative}
       #rg{position:absolute;top:2%;bottom:2%;left:50%;transform:translateX(-50%);aspect-ratio:1;container-type:size;display:grid;place-items:center}#in{position:relative;display:flex;flex-direction:column;align-items:center;gap:2cqmin}#rg svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
-      #rg .b{stroke:rgba(255,255,255,.22);fill:none}#rf{fill:none;stroke-linecap:round;transition:stroke-dashoffset .3s linear}
-      #tt{font-size:22cqmin;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.03em;line-height:1}#ss{font-size:10.5cqmin;font-weight:700;line-height:1;opacity:.85;min-height:10.5cqmin}
+      #rg .b{stroke:rgba(255,255,255,.22);fill:none}#rf{fill:none;stroke-linecap:round;transition:stroke-dashoffset .3s linear;filter:drop-shadow(0 0 2.5px var(--ac,#ff3d9a))}
+      #tt{font-family:'Baloo 2','Nunito',system-ui,sans-serif;font-size:22cqmin;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em;line-height:1}#ss{font-family:'Baloo 2','Nunito',system-ui,sans-serif;font-size:10.5cqmin;font-weight:700;line-height:1;opacity:.85;min-height:10.5cqmin}
       #lst{padding:0 9px 6px;font-size:11px}#lst:empty{display:none}.r{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:17px;cursor:pointer}.r::before{content:'';display:inline-block;width:8px;height:8px;border-radius:3px;border:1.5px solid currentColor;opacity:.6;margin-right:6px;vertical-align:-1px;box-sizing:border-box}.r:hover::before{opacity:1;background:rgba(255,255,255,.25)}.r.c{font-weight:700}.rt{cursor:default;display:flex;align-items:center;gap:3px;overflow:visible}.rt::before{display:none}.rt span{font-size:10px;opacity:.8;margin-right:2px}.q{width:21px;height:16px;border-radius:5px;font-size:10px;font-weight:700;line-height:1}.r.x{text-decoration:line-through;opacity:.5}.r.x::before{background:currentColor;opacity:1}.m{text-align:right;opacity:.6;line-height:14px}
       #ctl{position:fixed;top:3px;right:3px;display:flex;gap:2px;opacity:0;transition:opacity .2s}body:hover #ctl{opacity:1}
       button{width:22px;height:22px;border:0;border-radius:6px;background:rgba(255,255,255,.16);color:#fff;cursor:pointer;display:grid;place-items:center;padding:0}
@@ -607,6 +610,7 @@ function pipOpenDoc(){
 }
 function pipPrep(){                      // chuẩn bị sẵn video (Safari đòi bấm nút là mở ngay, không chờ được)
   if (pipVid || pipDocOk() || !pipVidOk()) return;
+  if (document.fonts) { document.fonts.load("700 20px 'Baloo 2'").catch(() => {}); document.fonts.load("700 16px 'Nunito'").catch(() => {}); }   // chữ trên canvas cùng font với web
   pipCv = document.createElement('canvas'); pipCv.width = 260; pipCv.height = 260;
   pipVid = document.createElement('video'); pipVid.muted = true; pipVid.playsInline = true; pipVid.setAttribute('aria-hidden', 'true');
   pipVid.style.cssText = 'position:fixed;left:0;bottom:0;width:2px;height:2px;opacity:0;pointer-events:none';
@@ -622,10 +626,12 @@ function pipOpenVid(){
   pipVid.requestPictureInPicture().then(() => pipPaint()).catch(e => { console.warn('pip', e); toast(t('pip_no')); });
 }
 function pipOpen(){
+  pipCtaSeen();
   if (!pipDocOk() && !pipVidOk()) return toast(t('pip_no'));
   pipDocOk() ? pipOpenDoc() : pipOpenVid();
   if (!store.get('hint_pip', false)) { store.set('hint_pip', true); setTimeout(() => toast(t('pip_hint'), 9000), 600); }   // gợi ý một lần, lần đầu cửa sổ nổi mở trên máy này
 }
+ACTIONS.pipCtaOff = () => pipCtaSeen();
 ACTIONS.pip = () => {                     // nút bật / tắt thủ công: tắt thì không tự bật lại, bật thì bỏ dấu tắt
   if (pipIsOpen()) { pipOffSet(true); return pipClose(); }
   pipOffSet(false); pipOpen();
@@ -747,6 +753,7 @@ PAGES.focus = function(){
       <div class="cycle" id="tm-cycle"></div><div class="small muted" id="tm-goal" style="text-align:center;min-height:1.2em"></div><div class="small muted" id="tm-cur" style="text-align:center;min-height:1.2em"></div>
       ${focusLimit() ? `<div class="limit-box"><div class="row between small"><b>${esc(t('focus_limit_used', { u:Math.min(focusUsed(), focusLimit()), l:focusLimit() }))}</b><span class="faint">${esc(t('focus_limit_note', { l:focusLimit() }))}</span></div><div class="progress mt-s"><i style="width:${Math.min(100, focusUsed() / focusLimit() * 100)}%"></i></div></div>` : (state.companion ? `<div class="limit-box">${compBadge(' · ' + esc(t('focus_nolimit')))}</div>` : '')}
       <div class="row"><button class="btn primary lg" id="tm-main" data-act="pstart"></button><button class="btn secondary icon" style="width:48px;height:48px" data-act="preset-reset" title="${esc(t('reset'))}">${ic('reset')}</button><button class="btn secondary icon" style="width:48px;height:48px" data-act="pskip" title="${esc(t('skip'))}">${ic('skip')}</button></div>
+      ${pipCta()}
       ${pipCanUse() ? `<button type="button" class="btn ghost sm tm-pip" id="tm-pip" data-act="pip" title="${esc(t('pip_tip'))}" aria-pressed="false">${ic('pip', 'sm')} ${esc(t('pip_on'))}</button>` : ''}
       ${branding.groupOn === true ? '<div id="grp-strip" class="grp-strip-wrap"></div>' : ''}
       <details class="tm-cfg" ${fxCfgOpen ? 'open' : ''}><summary>${ic('sliders', 'sm')} ${esc(t('fx_cfg'))}</summary>
