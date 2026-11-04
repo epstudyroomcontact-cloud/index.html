@@ -1252,7 +1252,7 @@ body:has(#tour-ask) .sofa{display:none}
 .fx3.fit .tab-pane>.card,.fx3.fit .tab-pane>section{flex:1 1 auto;min-height:0;margin:0}
 .fx3.fit .tab-pane:is([data-k=todo],[data-k=group],[data-k=music])>:is(.card,section){max-height:min(420px,60vh);overflow:auto}   /* chỉ cuộn trong ô khi danh sách thật sự dài */
 .fx3.fit .tab-pane[data-k=live]{grid-area:live}.fx3.fit .tab-pane[data-k=group]{grid-area:group}.fx3.fit .tab-pane[data-k=todo]{grid-area:todo}.fx3.fit .tab-pane[data-k=music]{grid-area:music}
-.fx3.fit .ring{width:min(280px,100%);container-type:inline-size}.fx3.fit .ring .tt{font-size:22cqw}
+.fx3.fit .ring{width:min(280px,100%);container-type:inline-size}.fx3.fit .ring .tt{font-size:22cqw}.fx3.fit .ring .md{font-size:5cqw;letter-spacing:.06em;margin-top:2cqw;white-space:nowrap}
 .fx3.fit .row:has(#tm-main){flex-wrap:nowrap;gap:8px}
 .fx3.fit .music-card{max-height:none}
 .fx3.fit{grid-template-columns:repeat(12,minmax(0,1fr))}
@@ -1263,7 +1263,7 @@ body:has(#tour-ask) .sofa{display:none}
 .fx3.fit:is([data-lay=study],[data-lay=bal]) .tab-pane[data-k=todo]>:is(.card,section){max-height:none;overflow:visible}   /* planner nằm dưới stream, lấp chỗ trống */
 .fx3.fit[data-lay=watch]{grid-template-rows:auto auto auto;grid-template-areas:"live live live live live live live live timer timer timer timer" "live live live live live live live live group group group group" "todo todo todo todo todo todo music music music music music music"}
 .fx3.fit[data-lay=watch].nogrp{grid-template-areas:"live live live live live live live live timer timer timer timer" "live live live live live live live live todo todo todo todo" "music music music music music music music music todo todo todo todo"}
-.fx3.fit[data-lay=watch] .ring{width:110px}.fx3.fit[data-lay=watch]>.fx-timer{gap:8px;padding:14px;position:static;align-self:stretch}.fx3.fit[data-lay=watch]>.fx-timer .seg button{padding:4px 10px}.fx3.fit[data-lay=watch]>.fx-timer .seg{padding:2px}
+.fx3.fit[data-lay=watch] .ring{width:136px}.fx3.fit[data-lay=watch] .ring .md{font-size:7cqw}.fx3.fit[data-lay=watch]>.fx-timer{gap:8px;padding:14px;position:static;align-self:stretch}.fx3.fit[data-lay=watch]>.fx-timer .seg button{padding:4px 10px}.fx3.fit[data-lay=watch]>.fx-timer .seg{padding:2px}
 .fx3.fit[data-lay=watch]>.fx-timer :is(.limit-box,.tm-cfg,.tm-pip,.pip-cta,#grp-strip,.cycle,#tm-goal,#tm-cur){display:none}
 /* nút chọn bố cục: nằm đè góc dưới bên phải dải ảnh, chỉ hiện khi đang ở chế độ vừa khít */
 .fx-lay-wrap{display:none}
