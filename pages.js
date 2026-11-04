@@ -733,6 +733,16 @@ Object.assign(ACTIONS, {
   fnOff: el => { store.set('fn_off', Date.now()); const c = el.closest('.fn-card'); if (c) c.remove(); },
   fnGo: () => { TABS.don = 'comp'; }
 });
+/* Phòng tập trung vừa khít một màn hình (máy tính, màn đủ cao): đo chỗ lưới bắt đầu rồi cho lưới cao đúng phần còn lại, ô nào dài thì cuộn trong ô, trang không phải cuộn */
+function fxFit(){
+  const g = document.querySelector('.fx3'); if (!g) return;
+  const on = window.matchMedia('(min-width:1100px) and (min-height:620px)').matches;
+  g.classList.toggle('fit', on); g.style.height = '';
+  if (on) g.style.height = Math.max(520, innerHeight - (g.getBoundingClientRect().top + scrollY) - 18) + 'px';
+}
+let fxFitT = 0;
+if (typeof MutationObserver !== 'undefined' && $('page')) new MutationObserver(() => { if (route.name === 'focus') requestAnimationFrame(fxFit); }).observe($('page'), { childList:true });   // đóng ghi chú phía trên thì lưới cao thêm
+window.addEventListener('resize', () => { clearTimeout(fxFitT); fxFitT = setTimeout(() => { if (route.name === 'focus') fxFit(); }, 120); });
 let fxIO = null;
 function fxMiniWatch(){                                   // thanh timer mini: hiện khi thẻ timer lớn cuộn ra khỏi màn hình (CSS chỉ cho hiện trên màn hẹp)
   if (fxIO) { fxIO.disconnect(); fxIO = null; }
@@ -772,10 +782,10 @@ PAGES.focus = function(){
     <aside class="stack fx-side" aria-label="${esc(t('fx_side'))}"><div class="tabset fx-tabs" data-tabs="fs">${fsTabs.length > 1 ? `<div class="tab-bar" role="tablist">${fsTabs.map(([k, l, i]) => `<button type="button" role="tab" class="chip ${k === fsCur ? 'on' : ''}" aria-selected="${k === fsCur}" data-act="fsTab" data-g="fs" data-k="${k}">${ic(i, 'sm')} ${esc(l)}</button>`).join('')}</div>` : ''}
       ${branding.groupOn === true ? `<div class="tab-pane" role="tabpanel" data-k="group"${fsCur === 'group' ? '' : ' hidden'}><section class="card pad grp" id="grp-box"><div class="card-h"><h2>${ic('users', 'sm')} ${esc(t('grp_title'))}</h2></div><p class="muted">${esc(t('loading'))}</p></section></div>` : ''}
       <div class="tab-pane" role="tabpanel" data-k="live"${fsCur === 'live' ? '' : ' hidden'}>${streamCard()}</div></div>${focusNudge()}</aside>
-    <div class="fx-stats"><div class="grid g2 keep2"><div class="card tile"><span class="t-l">${esc(t('sessions_today'))}</span><span class="t-v">${td.s}</span></div><div class="card tile"><span class="t-l">${esc(t('minutes_today'))}</span><span class="t-v">${td.m}</span></div></div><section class="card pad"><div class="card-h"><h2>${esc(t('week_chart'))}</h2></div><div class="bars">${days.map((d, i) => `<div><i style="height:${Math.max(3, vals[i] / mx * 100)}%" title="${vals[i]} ${esc(t('min'))}"></i><small>${esc(d.setLocale(state.lang).toFormat('ccc'))}</small></div>`).join('')}</div></section></div>
     </div>
+    <div class="fx-stats"><div class="grid g2 keep2"><div class="card tile"><span class="t-l">${esc(t('sessions_today'))}</span><span class="t-v">${td.s}</span></div><div class="card tile"><span class="t-l">${esc(t('minutes_today'))}</span><span class="t-v">${td.m}</span></div></div><section class="card pad"><div class="card-h"><h2>${esc(t('week_chart'))}</h2></div><div class="bars">${days.map((d, i) => `<div><i style="height:${Math.max(3, vals[i] / mx * 100)}%" title="${vals[i]} ${esc(t('min'))}"></i><small>${esc(d.setLocale(state.lang).toFormat('ccc'))}</small></div>`).join('')}</div></section></div>
     <h2 class="mt" style="font-size:1.3rem;margin:40px 0 14px">${ic('heart', 'sm')} ${esc(t('nav_donate'))}</h2>${donateHTML()}`);   // phần Support nằm ngay trong Focus room
-  renderTodos(); pipPrep(); fxMiniWatch();
+  renderTodos(); pipPrep(); fxMiniWatch(); fxFit();
   if (branding.groupOn === true) loadGroup().then(() => window.EPGroup.mount()).catch(() => { for (const id of ['grp-box', 'grp-strip']) { const b = $(id); if (b) b.remove(); } });
 };
 CHANGES.cfg = el => { const k = el.dataset.k, v = k === 'goal' ? Math.max(0, Math.min(30, parseInt(el.value, 10) || 0)) : Math.max(1, Math.min(180, parseInt(el.value, 10) || 1)); pomo.cfg[k] = v; if (k === 'goal') pomo.done = 0; if (!pomo.running && (k === pomo.mode)) pomo.remaining = pomoDur(pomo.mode); pomoSave(); updateTimerUI(); };

@@ -1245,6 +1245,29 @@ body:has(#tour-ask) .sofa{display:none}
   .fx3 .music-card{max-height:min(520px,70vh);overflow-y:auto}
   .fx-stats{grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:18px}
 }
+/* chế độ vừa khít màn hình (JS thêm lớp .fit và đặt chiều cao): Timer | Live + Nhóm | Việc + Nhạc, thống kê dưới Timer; ô dài cuộn trong ô */
+.fx3.fit{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr) minmax(0,.95fr);grid-template-areas:"timer side main";grid-template-rows:minmax(0,1fr);align-items:stretch;gap:14px;overflow:hidden}
+.fx3.fit>.fx-timer{position:static;align-self:stretch;min-height:0;overflow:auto;padding:16px;gap:10px;justify-content:flex-start}
+.fx3.fit .ring{width:clamp(130px,20vh,210px);container-type:inline-size}.fx3.fit .ring .tt{font-size:22cqw}
+.fx3.fit>.fx-timer .seg{margin:0}.fx3.fit .row:has(#tm-main){flex-wrap:nowrap;gap:8px}.fx3.fit .limit-box{padding:8px 12px}.fx3.fit .limit-box .faint{display:none}
+.fx3.fit>.fx-side,.fx3.fit>.fx-main{align-self:stretch;min-height:0;display:flex;flex-direction:column;gap:12px}
+.fx3.fit .fx-tabs{display:flex;flex-direction:column;flex:1 1 0;min-height:0;gap:12px}
+.fx3.fit .fx-tabs>.tab-pane{min-height:0;display:flex;flex-direction:column}
+.fx3.fit .fx-tabs>.tab-pane>.card,.fx3.fit .fx-tabs>.tab-pane>section{flex:1 1 auto;min-height:0;overflow:auto;margin:0}
+.fx3.fit .fx-side .tab-pane[data-k=live]{flex:0 0 auto}.fx3.fit .fx-side .tab-pane[data-k=live]:only-child{flex:1 1 0}.fx3.fit .fx-side .tab-pane[data-k=group]{flex:1 1 0}
+.fx3.fit .fx-main .tab-pane[data-k=todo]{flex:1 1 0}.fx3.fit .fx-main .tab-pane[data-k=music]{flex:0 1 44%}
+.fx3.fit .music-card{max-height:none}
+.fx3.fit .fn-card{flex:none}
+.fx3+.fx-stats{margin-top:18px}
+@media (min-width:1100px) and (min-height:620px){
+  /* cùng điều kiện với .fit: đầu trang gọn lại để lưới nhường chỗ */
+  #page[data-route=focus] .art-head{height:64px;margin-bottom:12px}
+  #page[data-route=focus] .art-head .art,#page[data-route=focus] .art-head img,#page[data-route=focus] .art-head svg{opacity:.55}
+  #page[data-route=focus] .glass{left:12px;bottom:10px;padding:6px 14px}
+  #page[data-route=focus] .glass h1{font-size:1.15rem}
+  #page[data-route=focus] .hint-note{padding:8px 14px;margin-bottom:8px}#page[data-route=focus] .hint-note p{display:none}
+}
+@media (min-width:1100px) and (min-height:620px) and (max-height:820px){#page[data-route=focus] .art-head{display:none}}   /* màn thấp: bỏ luôn dải ảnh, tên trang đã có trên thanh trên cùng */
 /* điện thoại và máy tính bảng: thanh timer mini dính ở đầu trang, hiện khi bộ đếm lớn đã cuộn khuất */
 .fx-mini{display:none}
 @media (max-width:1099px){
