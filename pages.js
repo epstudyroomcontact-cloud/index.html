@@ -504,22 +504,41 @@ function pipTick(){ if (pomo.running) pomoTick(); else pipPaint(); }    // pomoT
 const PIP_SVG = { play:'<path d="M8 5v14l11-7z"/>', pause:'<path d="M7 5h4v14H7zM13 5h4v14h-4z"/>', back:'<path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' };
 /* Giao diện cố định (đã chọn): vòng mảnh, nền đen, chữ mờ 63% (rê chuột vào thì rõ hẳn). Trình duyệt vẽ khung cửa sổ nổi nên web không làm nó trong suốt được. */
 const PIP_OP = .63, PIP_SIZE = [132, 132];   // nhỏ nhất có thể: Chrome tự nâng lên cỡ tối thiểu của nó nếu nhỏ hơn
+/* Việc hôm nay hiện dưới vòng: việc đang chọn trước, rồi việc hôm nay của Planner (theo giờ), rồi việc ghi trong Phòng tập trung; tối đa 3 dòng + "+N" */
+function pipTasks(){
+  const cur = typeof curTodo === 'function' ? curTodo() : null, out = [], seen = new Set();
+  const add = (id, text, tm) => { if (id && text && !seen.has(id)) { seen.add(id); out.push({ id, text, tm:tm || '', cur:!!cur && cur.id === id }); } };
+  if (cur) add(cur.id, cur.text, '');
+  FX_PL.filter(x => !x.done).forEach(x => add(x.id, x.title, x.start));
+  todos().filter(x => !x.done).forEach(x => add(x.id, x.text, ''));
+  return out;
+}
+function pipSize(){ const n = pipTasks().length; return n ? [176, 132 + Math.min(n, 3) * 17 + (n > 3 ? 14 : 0) + 8] : PIP_SIZE; }
 function pipSess(){ if (pomo.cfg.goal > 0) return `${Math.min(pomo.done, pomo.cfg.goal)}/${pomo.cfg.goal}`; const s = (localFocus()[DT.now().setZone(userTZ).toISODate()] || { s:0 }).s; return s ? `✓ ${s}` : ''; }   // có mục tiêu: đã xong/mục tiêu; không thì số phiên đã xong hôm nay
 function pipPaint(){
   if (pipWin) {
     const d = pipWin.document, n = pipNow(), q = id => d.getElementById(id); if (!q('tt')) return;
     const f = 1 - n.left / n.total;
-    q('tt').textContent = n.txt; q('ss').textContent = pipSess(); q('rf').style.strokeDashoffset = (RING_C * (1 - f)).toFixed(2); q('rf').style.stroke = pipCol();
+    q('tt').textContent = n.txt; q('ss').textContent = pipSess();
+    const tk = pipTasks(), sig = tk.map(x => x.id + x.text + x.tm).join('|');
+    if (d.body.dataset.sig !== sig) {
+      d.body.dataset.sig = sig; const l = q('lst'); l.textContent = '';
+      tk.slice(0, 3).forEach(x => { const r = d.createElement('div'); r.className = 'r' + (x.cur ? ' c' : ''); r.textContent = (x.tm ? x.tm + ' ' : '') + x.text; r.title = r.textContent; l.appendChild(r); });
+      if (tk.length > 3) { const m = d.createElement('div'); m.className = 'm'; m.textContent = '+' + (tk.length - 3); l.appendChild(m); }
+    } q('rf').style.strokeDashoffset = (RING_C * (1 - f)).toFixed(2); q('rf').style.stroke = pipCol();
     q('pp').innerHTML = `<svg viewBox="0 0 24 24">${PIP_SVG[pomo.running ? 'pause' : 'play']}</svg>`; q('pp').title = t(pomo.running ? 'pause' : (n.left < n.total ? 'resume' : 'start'));
     d.title = `${n.txt} · ${n.mode}`;
   }
   if (pipCv && pipVid && document.pictureInPictureElement === pipVid) {
-    const c = pipCv.getContext('2d'), W = pipCv.width, H = pipCv.height, n = pipNow(), f = 1 - n.left / n.total, x = W / 2, y = H / 2, R = 100;
+    const c = pipCv.getContext('2d'), W = pipCv.width, H = pipCv.height, n = pipNow(), f = 1 - n.left / n.total, x = W / 2, tk = pipTasks(), y = tk.length ? 100 : H / 2, R = tk.length ? 78 : 100;
     c.fillStyle = '#000'; c.fillRect(0, 0, W, H); c.lineWidth = 6; c.lineCap = 'round';
     c.globalAlpha = PIP_OP * .3; c.strokeStyle = '#fff'; c.beginPath(); c.arc(x, y, R, 0, 7); c.stroke();
     c.globalAlpha = PIP_OP; c.strokeStyle = pipCol(); c.beginPath(); c.arc(x, y, R, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI * f); c.stroke();
-    c.fillStyle = '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = '700 58px system-ui,sans-serif'; c.fillText(n.txt, x, y - 12);
-    c.globalAlpha = PIP_OP * .85; c.font = '700 26px system-ui,sans-serif'; c.fillText(pipSess(), x, y + 40);
+    c.fillStyle = '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = `700 ${tk.length ? 44 : 58}px system-ui,sans-serif`; c.fillText(n.txt, x, y - 10);
+    c.globalAlpha = PIP_OP * .85; c.font = `700 ${tk.length ? 20 : 26}px system-ui,sans-serif`; c.fillText(pipSess(), x, y + (tk.length ? 26 : 40));
+    c.textAlign = 'left'; c.font = '600 16px system-ui,sans-serif'; c.globalAlpha = PIP_OP;
+    tk.slice(0, 3).forEach((it, i) => { let tx = (it.tm ? it.tm + ' ' : '') + it.text; while (tx.length > 1 && c.measureText(tx).width > W - 44) tx = tx.slice(0, -2) + '…'; c.fillText('• ' + tx, 18, 196 + i * 22); });
+    if (tk.length > 3) { c.textAlign = 'right'; c.fillText('+' + (tk.length - 3), W - 14, 196 + 2 * 22 + 0); }
     c.globalAlpha = 1;
   }
 }
@@ -529,19 +548,20 @@ function pipClose(){
   updateTimerUI();
 }
 function pipOpenDoc(){
-  documentPictureInPicture.requestWindow({ width:PIP_SIZE[0], height:PIP_SIZE[1] }).then(w => {
+  documentPictureInPicture.requestWindow({ width:pipSize()[0], height:pipSize()[1] }).then(w => {
     pipWin = w; const d = w.document;
     d.head.innerHTML = `<meta charset="utf-8"><style>
       html,body{margin:0;height:100%;background:#000;color:#fff;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;overflow:hidden;user-select:none}
-      #w{height:100%;display:grid;place-items:center;opacity:${PIP_OP};transition:opacity .25s}body:hover #w{opacity:1}
-      #rg{position:relative;display:grid;place-items:center;height:94vmin;aspect-ratio:1}#in{position:relative;display:flex;flex-direction:column;align-items:center;gap:1.5vmin}#rg svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+      #w{height:100%;display:flex;flex-direction:column;opacity:${PIP_OP};transition:opacity .25s}body:hover #w{opacity:1}#area{flex:1;min-height:0;position:relative}
+      #rg{position:absolute;top:2%;bottom:2%;left:50%;transform:translateX(-50%);aspect-ratio:1;container-type:size;display:grid;place-items:center}#in{position:relative;display:flex;flex-direction:column;align-items:center;gap:2cqmin}#rg svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
       #rg .b{stroke:rgba(255,255,255,.22);fill:none}#rf{fill:none;stroke-linecap:round;transition:stroke-dashoffset .3s linear}
-      #tt{font-size:21vmin;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.03em;line-height:1}#ss{font-size:10vmin;font-weight:700;line-height:1;opacity:.85;min-height:10vmin}
+      #tt{font-size:22cqmin;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.03em;line-height:1}#ss{font-size:10.5cqmin;font-weight:700;line-height:1;opacity:.85;min-height:10.5cqmin}
+      #lst{padding:0 9px 6px;font-size:11px}#lst:empty{display:none}.r{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:17px}.r::before{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.45;margin-right:6px;vertical-align:middle}.r.c{font-weight:700}.r.c::before{opacity:1}.m{text-align:right;opacity:.6;line-height:14px}
       #ctl{position:fixed;top:3px;right:3px;display:flex;gap:2px;opacity:0;transition:opacity .2s}body:hover #ctl{opacity:1}
       button{width:22px;height:22px;border:0;border-radius:6px;background:rgba(255,255,255,.16);color:#fff;cursor:pointer;display:grid;place-items:center;padding:0}
       button:hover{background:rgba(255,255,255,.3)}button svg{width:12px;height:12px;fill:currentColor}
     </style>`;
-    d.body.innerHTML = `<div id="w"><div id="rg"><svg viewBox="0 0 120 120"><circle class="b" cx="60" cy="60" r="54" stroke-width="5"/><circle id="rf" cx="60" cy="60" r="54" stroke-width="5" stroke-dasharray="${RING_C.toFixed(2)}" stroke-dashoffset="0"/></svg><div id="in"><div id="tt"></div><div id="ss"></div></div></div></div>
+    d.body.innerHTML = `<div id="w"><div id="area"><div id="rg"><svg viewBox="0 0 120 120"><circle class="b" cx="60" cy="60" r="54" stroke-width="5"/><circle id="rf" cx="60" cy="60" r="54" stroke-width="5" stroke-dasharray="${RING_C.toFixed(2)}" stroke-dashoffset="0"/></svg><div id="in"><div id="tt"></div><div id="ss"></div></div></div></div><div id="lst"></div></div>
       <div id="ctl"><button type="button" id="pp"></button><button type="button" id="bk" title="${esc(branding.name)}"><svg viewBox="0 0 24 24">${PIP_SVG.back}</svg></button></div>`;
     d.getElementById('pp').addEventListener('click', () => { pomo.running ? pomoPause() : pomoStart(); pipPaint(); });
     d.getElementById('bk').addEventListener('click', () => { window.focus(); if (route.name !== 'focus') location.hash = '#/focus'; });
@@ -594,6 +614,7 @@ const curLabel = () => { const cur = curTodo(), tmc = $('tm-cur'); if (tmc) tmc.
 if (pomo.running && pomo.endAt <= Date.now()) pomoComplete(true, true);     // hết giờ khi đang đóng tab (đặt sau todos/curTodo: gọi sớm hơn sẽ lỗi "before initialization")
 const plLinked = () => state.companion || state.isAdmin || trialActive() || DEMO;           // có quyền dùng Planner → Focus liên kết với Planner
 function renderTodos(){
+  pipPaint();
   const box = $('todo-list'); if (!box) return;
   if (plLinked() && typeof plFocusEdit !== 'function') { loadPlanner().then(() => renderTodos()).catch(() => {}); }
   const l = todos(), toPl = plLinked() && typeof plFocusEdit === 'function';
