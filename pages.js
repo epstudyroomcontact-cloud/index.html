@@ -500,17 +500,27 @@ function pipIsOpen(){ return !!(pipWin || (pipVid && document.pictureInPictureEl
 const pipNow = () => { const left = pomo.running ? Math.max(0, pomo.endAt - Date.now()) : pomo.remaining, total = pomoDur(pomo.mode) || 1;
   return { left, total, txt:`${String(Math.floor(left / 60000)).padStart(2, '0')}:${String(Math.floor(left % 60000 / 1000)).padStart(2, '0')}`, mode:t('mode_' + pomo.mode) }; };
 const pipCol = () => { const cs = getComputedStyle(document.documentElement), v = k => cs.getPropertyValue(k).trim(); return pomo.mode === 'short' ? (v('--sage') || '#2ee6c8') : pomo.mode === 'long' ? (v('--peach') || '#ffc72c') : (v('--accent') || '#ff3d9a'); };
-function pipTick(){ if (pomo.running) pomoTick(); else pipPaint(); }    // pomoTick → updateTimerUI → pipPaint; hết giờ lúc tab ẩn thì vẫn chuyển khối đúng lúc
+let pipPlAt = 0;
+function pipTick(){      // pomoTick → updateTimerUI → pipPaint; hết giờ lúc tab ẩn thì vẫn chuyển khối đúng lúc
+  if (pipWin && plLinked() && Date.now() - pipPlAt > 20000) { pipPlAt = Date.now(); (typeof plWeek0 === 'function' ? Promise.resolve() : loadPlanner()).then(() => renderFocusPl()).catch(() => {}); }   // việc hôm nay của Planner đổi bên web thì cửa sổ nổi cũng đổi
+  if (pomo.running) pomoTick(); else pipPaint();
+}
+/* Tick xong một việc ngay trong cửa sổ nổi. Việc ghi ở Phòng tập trung: xong luôn, giống tick trên web. Việc của Planner cần chấm mức hoàn thành 1-5 nên đưa khách về web và mở đúng hộp chấm mức đó. */
+function pipDone(id, pl){
+  if (!pl) { saveTodos(todos().map(x => x.id === id ? { ...x, done:true } : x)); renderTodos(); return; }
+  const go = () => { const x = FX_PL.find(v => v.id === id); window.focus(); if (x && !x.done) plLevelForm(x, true); };
+  typeof plLevelForm === 'function' ? go() : loadPlanner().then(go).catch(() => {});
+}
 const PIP_SVG = { play:'<path d="M8 5v14l11-7z"/>', pause:'<path d="M7 5h4v14H7zM13 5h4v14h-4z"/>', back:'<path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' };
 /* Giao diện cố định (đã chọn): vòng mảnh, nền đen, chữ mờ 63% (rê chuột vào thì rõ hẳn). Trình duyệt vẽ khung cửa sổ nổi nên web không làm nó trong suốt được. */
 const PIP_OP = .63, PIP_SIZE = [132, 132];   // nhỏ nhất có thể: Chrome tự nâng lên cỡ tối thiểu của nó nếu nhỏ hơn
 /* Việc hôm nay hiện dưới vòng: việc đang chọn trước, rồi việc hôm nay của Planner (theo giờ), rồi việc ghi trong Phòng tập trung; tối đa 3 dòng + "+N" */
 function pipTasks(){
   const cur = typeof curTodo === 'function' ? curTodo() : null, out = [], seen = new Set();
-  const add = (id, text, tm) => { if (id && text && !seen.has(id)) { seen.add(id); out.push({ id, text, tm:tm || '', cur:!!cur && cur.id === id }); } };
-  if (cur) add(cur.id, cur.text, '');
-  FX_PL.filter(x => !x.done).forEach(x => add(x.id, x.title, x.start));
-  todos().filter(x => !x.done).forEach(x => add(x.id, x.text, ''));
+  const add = (id, text, tm, pl) => { if (id && text && !seen.has(id)) { seen.add(id); out.push({ id, text, tm:tm || '', pl:!!pl, cur:!!cur && cur.id === id }); } };
+  if (cur) add(cur.id, cur.text, '', cur.pl);
+  FX_PL.filter(x => !x.done).forEach(x => add(x.id, x.title, x.start, true));
+  todos().filter(x => !x.done).forEach(x => add(x.id, x.text, '', false));
   return out;
 }
 function pipSize(){ const n = pipTasks().length; return n ? [176, 132 + Math.min(n, 3) * 17 + (n > 3 ? 14 : 0) + 8] : PIP_SIZE; }
@@ -523,7 +533,8 @@ function pipPaint(){
     const tk = pipTasks(), sig = tk.map(x => x.id + x.text + x.tm).join('|');
     if (d.body.dataset.sig !== sig) {
       d.body.dataset.sig = sig; const l = q('lst'); l.textContent = '';
-      tk.slice(0, 3).forEach(x => { const r = d.createElement('div'); r.className = 'r' + (x.cur ? ' c' : ''); r.textContent = (x.tm ? x.tm + ' ' : '') + x.text; r.title = r.textContent; l.appendChild(r); });
+      tk.slice(0, 3).forEach(x => { const r = d.createElement('div'); r.className = 'r' + (x.cur ? ' c' : ''); r.textContent = (x.tm ? x.tm + ' ' : '') + x.text; r.title = r.textContent;
+        r.addEventListener('click', () => { r.classList.add('x'); setTimeout(() => { pipDone(x.id, x.pl); pipPaint(); }, x.pl ? 0 : 220); }); l.appendChild(r); });
       if (tk.length > 3) { const m = d.createElement('div'); m.className = 'm'; m.textContent = '+' + (tk.length - 3); l.appendChild(m); }
     } q('rf').style.strokeDashoffset = (RING_C * (1 - f)).toFixed(2); q('rf').style.stroke = pipCol();
     q('pp').innerHTML = `<svg viewBox="0 0 24 24">${PIP_SVG[pomo.running ? 'pause' : 'play']}</svg>`; q('pp').title = t(pomo.running ? 'pause' : (n.left < n.total ? 'resume' : 'start'));
@@ -549,14 +560,14 @@ function pipClose(){
 }
 function pipOpenDoc(){
   documentPictureInPicture.requestWindow({ width:pipSize()[0], height:pipSize()[1] }).then(w => {
-    pipWin = w; const d = w.document;
+    pipWin = w; pipPlAt = 0; const d = w.document;
     d.head.innerHTML = `<meta charset="utf-8"><style>
       html,body{margin:0;height:100%;background:#000;color:#fff;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;overflow:hidden;user-select:none}
       #w{height:100%;display:flex;flex-direction:column;opacity:${PIP_OP};transition:opacity .25s}body:hover #w{opacity:1}#area{flex:1;min-height:0;position:relative}
       #rg{position:absolute;top:2%;bottom:2%;left:50%;transform:translateX(-50%);aspect-ratio:1;container-type:size;display:grid;place-items:center}#in{position:relative;display:flex;flex-direction:column;align-items:center;gap:2cqmin}#rg svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
       #rg .b{stroke:rgba(255,255,255,.22);fill:none}#rf{fill:none;stroke-linecap:round;transition:stroke-dashoffset .3s linear}
       #tt{font-size:22cqmin;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.03em;line-height:1}#ss{font-size:10.5cqmin;font-weight:700;line-height:1;opacity:.85;min-height:10.5cqmin}
-      #lst{padding:0 9px 6px;font-size:11px}#lst:empty{display:none}.r{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:17px}.r::before{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.45;margin-right:6px;vertical-align:middle}.r.c{font-weight:700}.r.c::before{opacity:1}.m{text-align:right;opacity:.6;line-height:14px}
+      #lst{padding:0 9px 6px;font-size:11px}#lst:empty{display:none}.r{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:17px;cursor:pointer}.r::before{content:'';display:inline-block;width:8px;height:8px;border-radius:3px;border:1.5px solid currentColor;opacity:.6;margin-right:6px;vertical-align:-1px;box-sizing:border-box}.r:hover::before{opacity:1;background:rgba(255,255,255,.25)}.r.c{font-weight:700}.r.x{text-decoration:line-through;opacity:.5}.r.x::before{background:currentColor;opacity:1}.m{text-align:right;opacity:.6;line-height:14px}
       #ctl{position:fixed;top:3px;right:3px;display:flex;gap:2px;opacity:0;transition:opacity .2s}body:hover #ctl{opacity:1}
       button{width:22px;height:22px;border:0;border-radius:6px;background:rgba(255,255,255,.16);color:#fff;cursor:pointer;display:grid;place-items:center;padding:0}
       button:hover{background:rgba(255,255,255,.3)}button svg{width:12px;height:12px;fill:currentColor}
@@ -624,10 +635,11 @@ function renderTodos(){
 }
 /* việc hôm nay của Planner hiện ngay dưới danh sách việc của Focus (chỉ cho người có quyền dùng Planner); tick ở đây = tick bên Planner */
 function renderFocusPl(){
-  const box = $('todo-pl'); if (!box) return;
-  if (!plLinked() || typeof plWeek0 !== 'function') { box.innerHTML = ''; FX_PL = []; return; }
+  const box = $('todo-pl'); if (!box && !pipWin) return;             // đang mở timer nổi thì vẫn nạp việc Planner, kể cả khi không ở trang Phòng tập trung
+  if (!plLinked() || typeof plWeek0 !== 'function') { if (box) box.innerHTML = ''; FX_PL = []; return; }
   plWeek0().then(wk => {
-    const b = $('todo-pl'); if (!b) return;
+    const b = $('todo-pl');
+    if (!b) { FX_PL = (wk || []).filter(x => x.day === plToday0()).sort((x, y) => (x.start || '99').localeCompare(y.start || '99')); pipPaint(); return; }
     wk = wk || [];
     const d0 = plToday0(), l = wk.filter(x => x.day === d0).sort((x, y) => (x.start || '99').localeCompare(y.start || '99')), pm = plPomos(), ids = new Set(wk.map(x => x.id));
     FX_PL = l;
