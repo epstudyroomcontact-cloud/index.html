@@ -1251,6 +1251,8 @@ body:has(#tour-ask) .sofa{display:none}
 .sb-two small{font-size:.68rem;font-weight:800;color:var(--accent-strong);margin-top:2px}
 .sb-item>.sb-new{margin-left:auto}
 .sb-new{margin:0 0 0 2px;flex:none}
+.menu-btn{position:relative}
+.menu-btn.has-dot::after{content:'';position:absolute;top:7px;right:7px;width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 2px var(--bg);animation:sbNew 1.8s ease-out infinite}
 .sb-new{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 0 rgba(var(--accent-rgb),.55);animation:sbNew 1.8s ease-out infinite}
 @keyframes sbNew{70%{box-shadow:0 0 0 7px rgba(var(--accent-rgb),0)}100%{box-shadow:0 0 0 0 rgba(var(--accent-rgb),0)}}
 .grp-home{border:1px solid rgba(var(--accent-rgb),.35);background:linear-gradient(135deg,var(--accent-soft),transparent 70%)}
