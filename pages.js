@@ -467,8 +467,102 @@ function updateTimerUI(){
   document.querySelectorAll('[data-seg]').forEach(b => b.classList.toggle('on', b.dataset.seg === pomo.mode));
   const cyc = $('tm-cycle'); if (cyc) { const f = pomo.cycle % pomo.cfg.every || (pomo.mode === 'long' ? pomo.cfg.every : 0); cyc.innerHTML = Array.from({ length:pomo.cfg.every }, (_, i) => `<i class="${i < f ? 'on' : ''}"></i>`).join(''); }
   document.title = pomo.running ? `${txt} · ${t('mode_' + pomo.mode)} — ${branding.name}` : tabName();
+  const pb = $('tm-pip'); if (pb) { const on = pipIsOpen(); pb.classList.toggle('on', on); pb.setAttribute('aria-pressed', on); pb.innerHTML = `${ic('pip', 'sm')} ${esc(t(on ? 'pip_off' : 'pip_on'))}`; }
+  pipPaint();
 }
 setInterval(pomoTick, 250);
+/* Timer nổi (khách góp ý): một cửa sổ nhỏ luôn nằm trên cùng (Picture-in-Picture), nên chuyển tab, thu nhỏ trình duyệt hay dùng app khác vẫn thấy giờ.
+   Chữ hiện mờ để không làm phiền; rê chuột vào thì rõ lên và hiện nút tạm dừng / tiếp tục, quay lại web.
+   Chrome / Edge máy tính: Document PiP (cửa sổ HTML thật, đếm bằng setInterval của chính cửa sổ đó nên không bị chậm khi tab ẩn).
+   Safari, Chrome Android…: vẽ đồng hồ lên canvas rồi phát thành video PiP, đếm bằng worker js/pip-tick.js. */
+var pipWin = null, pipVid = null, pipCv = null, pipWk = null;   // var + function: updateTimerUI gọi được cả trước khi tới dòng này
+function pipDocOk(){ return 'documentPictureInPicture' in window; }
+function pipVidOk(){ return !!(document.pictureInPictureEnabled && window.HTMLCanvasElement && HTMLCanvasElement.prototype.captureStream); }
+function pipCanUse(){ return pipDocOk() || pipVidOk(); }
+function pipIsOpen(){ return !!(pipWin || (pipVid && document.pictureInPictureElement === pipVid)); }
+const pipNow = () => { const left = pomo.running ? Math.max(0, pomo.endAt - Date.now()) : pomo.remaining, total = pomoDur(pomo.mode) || 1;
+  return { left, total, txt:`${String(Math.floor(left / 60000)).padStart(2, '0')}:${String(Math.floor(left % 60000 / 1000)).padStart(2, '0')}`, mode:t('mode_' + pomo.mode) }; };
+const pipCol = () => { const cs = getComputedStyle(document.documentElement), v = k => cs.getPropertyValue(k).trim(); return pomo.mode === 'short' ? (v('--sage') || '#2ee6c8') : pomo.mode === 'long' ? (v('--peach') || '#ffc72c') : (v('--accent') || '#ff3d9a'); };
+function pipTick(){ if (pomo.running) pomoTick(); else pipPaint(); }    // pomoTick → updateTimerUI → pipPaint; hết giờ lúc tab ẩn thì vẫn chuyển khối đúng lúc
+const PIP_SVG = { play:'<path d="M8 5v14l11-7z"/>', pause:'<path d="M7 5h4v14H7zM13 5h4v14h-4z"/>', back:'<path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' };
+function pipPaint(){
+  if (pipWin) {
+    const d = pipWin.document, n = pipNow(), q = id => d.getElementById(id); if (!q('tt')) return;
+    q('tt').textContent = n.txt; q('md').textContent = n.mode; q('bar').style.width = (100 * (1 - n.left / n.total)).toFixed(1) + '%'; q('bar').style.background = pipCol();
+    q('pp').innerHTML = `<svg viewBox="0 0 24 24">${PIP_SVG[pomo.running ? 'pause' : 'play']}</svg>`; q('pp').title = t(pomo.running ? 'pause' : (n.left < n.total ? 'resume' : 'start'));
+    d.title = `${n.txt} · ${n.mode}`;
+  }
+  if (pipCv && pipVid && document.pictureInPictureElement === pipVid) {
+    const c = pipCv.getContext('2d'), W = pipCv.width, H = pipCv.height, n = pipNow();
+    c.fillStyle = '#0c0c12'; c.fillRect(0, 0, W, H);
+    c.globalAlpha = .5; c.fillStyle = '#ffffff'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.font = '700 22px system-ui,sans-serif'; c.fillText(n.mode.toUpperCase() + (pomo.running ? '' : ' · II'), W / 2, 44);
+    c.font = '700 96px system-ui,sans-serif'; c.fillText(n.txt, W / 2, 128);
+    c.globalAlpha = .18; c.fillRect(40, 196, W - 80, 6);
+    c.globalAlpha = .6; c.fillStyle = pipCol(); c.fillRect(40, 196, (W - 80) * (1 - n.left / n.total), 6); c.globalAlpha = 1;
+  }
+}
+function pipClose(){
+  if (pipWin) { try { pipWin.close(); } catch (e) {} pipWin = null; }
+  if (pipVid && document.pictureInPictureElement === pipVid) document.exitPictureInPicture().catch(() => {});
+  updateTimerUI();
+}
+function pipOpenDoc(){
+  documentPictureInPicture.requestWindow({ width:230, height:118 }).then(w => {
+    pipWin = w; const d = w.document;
+    d.head.innerHTML = `<meta charset="utf-8"><style>
+      html,body{margin:0;height:100%;background:#0c0c12;color:#fff;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;overflow:hidden;user-select:none}
+      #w{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;opacity:.42;transition:opacity .25s}
+      body:hover #w{opacity:1}
+      #md{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+      #tt{font-size:clamp(28px,24vw,72px);font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.03em;line-height:1}
+      #track{width:72%;height:4px;border-radius:4px;background:rgba(255,255,255,.15);overflow:hidden}#bar{height:100%;width:0;border-radius:4px}
+      #ctl{position:fixed;top:6px;right:6px;display:flex;gap:4px;opacity:0;transition:opacity .2s}body:hover #ctl{opacity:1}
+      button{width:28px;height:28px;border:0;border-radius:8px;background:rgba(255,255,255,.14);color:#fff;cursor:pointer;display:grid;place-items:center;padding:0}
+      button:hover{background:rgba(255,255,255,.28)}button svg{width:15px;height:15px;fill:currentColor}
+    </style>`;
+    d.body.innerHTML = `<div id="w"><div id="md"></div><div id="tt"></div><div id="track"><div id="bar"></div></div></div>
+      <div id="ctl"><button type="button" id="pp"></button><button type="button" id="bk" title="${esc(branding.name)}"><svg viewBox="0 0 24 24">${PIP_SVG.back}</svg></button></div>`;
+    d.getElementById('pp').addEventListener('click', () => { pomo.running ? pomoPause() : pomoStart(); pipPaint(); });
+    d.getElementById('bk').addEventListener('click', () => { window.focus(); if (route.name !== 'focus') location.hash = '#/focus'; });
+    w.setInterval(pipTick, 500);
+    w.addEventListener('pagehide', () => { if (pipWin === w) { pipWin = null; updateTimerUI(); } });
+    pipPaint(); updateTimerUI();
+  }).catch(e => { console.warn('pip', e); pipWin = null; if (pipVidOk()) pipOpenVid(); else toast(t('pip_no')); });
+}
+function pipPrep(){                      // chuẩn bị sẵn video (Safari đòi bấm nút là mở ngay, không chờ được)
+  if (pipVid || pipDocOk() || !pipVidOk()) return;
+  pipCv = document.createElement('canvas'); pipCv.width = 480; pipCv.height = 240;
+  pipVid = document.createElement('video'); pipVid.muted = true; pipVid.playsInline = true; pipVid.setAttribute('aria-hidden', 'true');
+  pipVid.style.cssText = 'position:fixed;left:0;bottom:0;width:2px;height:2px;opacity:0;pointer-events:none';
+  pipVid.srcObject = pipCv.captureStream(4); document.body.appendChild(pipVid);
+  pipVid.addEventListener('pause', () => { if (document.pictureInPictureElement === pipVid) pipVid.play().catch(() => {}); });   // nút play/pause của khung video không làm khung đứng hình
+  pipVid.addEventListener('enterpictureinpicture', () => { pipPaint(); try { pipWk = pipWk || new Worker('js/pip-tick.js?v=' + ASSET_V); pipWk.onmessage = pipTick; pipWk.postMessage(500); } catch (e) {} updateTimerUI(); });
+  pipVid.addEventListener('leavepictureinpicture', () => { if (pipWk) pipWk.postMessage(0); updateTimerUI(); });
+  const c = pipCv.getContext('2d'); c.fillStyle = '#0c0c12'; c.fillRect(0, 0, 480, 240); pipVid.play().catch(() => {});
+}
+function pipOpenVid(){
+  pipPrep(); if (!pipVid) return toast(t('pip_no'));
+  pipVid.play().catch(() => {});
+  pipVid.requestPictureInPicture().then(() => pipPaint()).catch(e => { console.warn('pip', e); toast(t('pip_no')); });
+}
+ACTIONS.pip = () => {
+  if (pipIsOpen()) return pipClose();
+  if (pipDocOk()) pipOpenDoc(); else if (pipVidOk()) pipOpenVid(); else toast(t('pip_no'));
+};
+(function(){
+  const G = {
+    en:{ pip_on:'Floating timer', pip_off:'Hide floating timer', pip_tip:'Show a faint timer on top of every window, even when you switch tabs or use another app', pip_no:'Your browser can\'t show a floating timer. Try Chrome or Edge on a computer.' },
+    vi:{ pip_on:'Timer nổi', pip_off:'Tắt timer nổi', pip_tip:'Hiện timer mờ nổi trên mọi cửa sổ, kể cả khi bạn chuyển tab hay dùng phần mềm khác', pip_no:'Trình duyệt này chưa hiện được timer nổi. Bạn thử Chrome hoặc Edge trên máy tính nhé.' },
+    ja:{ pip_on:'フローティングタイマー', pip_off:'フローティングタイマーを閉じる', pip_tip:'タブを切り替えたり他のアプリを使っていても、薄く表示されるタイマーを最前面に表示します', pip_no:'このブラウザではフローティングタイマーを表示できません。パソコンの Chrome か Edge をお試しください。' },
+    ko:{ pip_on:'플로팅 타이머', pip_off:'플로팅 타이머 끄기', pip_tip:'탭을 바꾸거나 다른 앱을 써도 흐릿한 타이머를 모든 창 위에 표시합니다', pip_no:'이 브라우저에서는 플로팅 타이머를 표시할 수 없어요. 컴퓨터의 Chrome 또는 Edge를 사용해 보세요.' },
+    zh:{ pip_on:'悬浮计时器', pip_off:'关闭悬浮计时器', pip_tip:'在所有窗口上方显示半透明计时器，切换标签页或使用其他软件时也能看到', pip_no:'此浏览器无法显示悬浮计时器。请试试电脑上的 Chrome 或 Edge。' },
+    fr:{ pip_on:'Minuteur flottant', pip_off:'Masquer le minuteur flottant', pip_tip:'Affiche un minuteur discret au-dessus de toutes les fenêtres, même quand vous changez d\'onglet ou d\'application', pip_no:'Ce navigateur ne peut pas afficher de minuteur flottant. Essayez Chrome ou Edge sur ordinateur.' },
+    es:{ pip_on:'Temporizador flotante', pip_off:'Ocultar temporizador flotante', pip_tip:'Muestra un temporizador tenue sobre todas las ventanas, aunque cambies de pestaña o uses otra app', pip_no:'Este navegador no puede mostrar un temporizador flotante. Prueba Chrome o Edge en un ordenador.' },
+    hi:{ pip_on:'फ़्लोटिंग टाइमर', pip_off:'फ़्लोटिंग टाइमर बंद करें', pip_tip:'टैब बदलने या दूसरा ऐप इस्तेमाल करने पर भी हल्का टाइमर सभी विंडो के ऊपर दिखाएँ', pip_no:'यह ब्राउज़र फ़्लोटिंग टाइमर नहीं दिखा सकता। कंप्यूटर पर Chrome या Edge आज़माएँ।' }
+  };
+  Object.keys(G).forEach(l => { I18N[l] = I18N[l] || {}; Object.keys(G[l]).forEach(k => { if (I18N[l][k] === undefined) I18N[l][k] = G[l][k]; }); });
+})();
 
 const todos = () => store.get('todos', []);
 const saveTodos = l => { store.set('todos', l); saveProfileSoon(); };
@@ -560,6 +654,7 @@ PAGES.focus = function(){
       <div class="cycle" id="tm-cycle"></div><div class="small muted" id="tm-cur" style="text-align:center;min-height:1.2em"></div>
       ${focusLimit() ? `<div class="limit-box"><div class="row between small"><b>${esc(t('focus_limit_used', { u:Math.min(focusUsed(), focusLimit()), l:focusLimit() }))}</b><span class="faint">${esc(t('focus_limit_note', { l:focusLimit() }))}</span></div><div class="progress mt-s"><i style="width:${Math.min(100, focusUsed() / focusLimit() * 100)}%"></i></div></div>` : (state.companion ? `<div class="limit-box">${compBadge(' · ' + esc(t('focus_nolimit')))}</div>` : '')}
       <div class="row"><button class="btn primary lg" id="tm-main" data-act="pstart"></button><button class="btn secondary icon" style="width:48px;height:48px" data-act="preset-reset" title="${esc(t('reset'))}">${ic('reset')}</button><button class="btn secondary icon" style="width:48px;height:48px" data-act="pskip" title="${esc(t('skip'))}">${ic('skip')}</button></div>
+      ${pipCanUse() ? `<button type="button" class="btn ghost sm tm-pip" id="tm-pip" data-act="pip" title="${esc(t('pip_tip'))}" aria-pressed="false">${ic('pip', 'sm')} ${esc(t('pip_on'))}</button>` : ''}
       ${branding.groupOn === true ? '<div id="grp-strip" class="grp-strip-wrap"></div>' : ''}
       <details class="tm-cfg" ${fxCfgOpen ? 'open' : ''}><summary>${ic('sliders', 'sm')} ${esc(t('fx_cfg'))}</summary>
       <div class="divider" style="width:100%;margin:2px 0"></div>
@@ -580,7 +675,7 @@ PAGES.focus = function(){
     <div class="fx-stats"><div class="grid g2 keep2"><div class="card tile"><span class="t-l">${esc(t('sessions_today'))}</span><span class="t-v">${td.s}</span></div><div class="card tile"><span class="t-l">${esc(t('minutes_today'))}</span><span class="t-v">${td.m}</span></div></div><section class="card pad"><div class="card-h"><h2>${esc(t('week_chart'))}</h2></div><div class="bars">${days.map((d, i) => `<div><i style="height:${Math.max(3, vals[i] / mx * 100)}%" title="${vals[i]} ${esc(t('min'))}"></i><small>${esc(d.setLocale(state.lang).toFormat('ccc'))}</small></div>`).join('')}</div></section></div>
     </div>
     <h2 class="mt" style="font-size:1.3rem;margin:40px 0 14px">${ic('heart', 'sm')} ${esc(t('nav_donate'))}</h2>${donateHTML()}`);   // phần Support nằm ngay trong Focus room
-  renderTodos();
+  renderTodos(); pipPrep();
   if (branding.groupOn === true) loadGroup().then(() => window.EPGroup.mount()).catch(() => { for (const id of ['grp-box', 'grp-strip']) { const b = $(id); if (b) b.remove(); } });
 };
 CHANGES.cfg = el => { const k = el.dataset.k, v = Math.max(1, Math.min(180, parseInt(el.value, 10) || 1)); pomo.cfg[k] = v; if (!pomo.running && (k === pomo.mode)) pomo.remaining = pomoDur(pomo.mode); pomoSave(); updateTimerUI(); };
