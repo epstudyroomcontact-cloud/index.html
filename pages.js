@@ -368,14 +368,14 @@ function addFocus(min){
 }
 (function(){
   const G = {
-    en:{ pip_rate:'Rate:', cfg_goal:'Sessions to finish (0 = no limit)', goal_prog:'{d}/{n} sessions done', notify_goal:'All {n} sessions done. Great work, time to rest!' },
-    vi:{ pip_rate:'Mức:', cfg_goal:'Số phiên cần làm (0 = không giới hạn)', goal_prog:'Đã xong {d}/{n} phiên', notify_goal:'Đã xong đủ {n} phiên. Giỏi lắm, nghỉ ngơi thôi!' },
-    ja:{ pip_rate:'評価:', cfg_goal:'目標セッション数（0 = 無制限）', goal_prog:'{d}/{n} セッション完了', notify_goal:'{n} セッションすべて完了！お疲れさまでした。' },
-    ko:{ pip_rate:'평가:', cfg_goal:'목표 세션 수 (0 = 제한 없음)', goal_prog:'{d}/{n} 세션 완료', notify_goal:'{n}세션을 모두 마쳤어요. 수고했어요, 푹 쉬세요!' },
-    zh:{ pip_rate:'完成度:', cfg_goal:'目标专注次数（0 = 不限）', goal_prog:'已完成 {d}/{n} 次', notify_goal:'{n} 次专注全部完成，真棒，好好休息吧！' },
-    fr:{ pip_rate:'Niveau :', cfg_goal:'Sessions à terminer (0 = illimité)', goal_prog:'{d}/{n} sessions terminées', notify_goal:'Les {n} sessions sont terminées. Bravo, place au repos !' },
-    es:{ pip_rate:'Nivel:', cfg_goal:'Sesiones por completar (0 = sin límite)', goal_prog:'{d}/{n} sesiones hechas', notify_goal:'Completaste las {n} sesiones. ¡Buen trabajo, a descansar!' },
-    hi:{ pip_rate:'स्तर:', cfg_goal:'पूरे करने के सत्र (0 = कोई सीमा नहीं)', goal_prog:'{d}/{n} सत्र पूरे', notify_goal:'सभी {n} सत्र पूरे हुए। बढ़िया काम, अब आराम करें!' }
+    en:{ pip_hint:"Floating timer is on: it stays faint on top of other windows. Hover to see it clearly and tick tasks off, or close it with the X.", pip_rate:'Rate:', cfg_goal:'Sessions to finish (0 = no limit)', goal_prog:'{d}/{n} sessions done', notify_goal:'All {n} sessions done. Great work, time to rest!' },
+    vi:{ pip_hint:"Timer nổi đang bật: nó mờ và nằm trên các cửa sổ khác. Rê chuột vào để xem rõ và tick việc xong, hoặc bấm X để tắt.", pip_rate:'Mức:', cfg_goal:'Số phiên cần làm (0 = không giới hạn)', goal_prog:'Đã xong {d}/{n} phiên', notify_goal:'Đã xong đủ {n} phiên. Giỏi lắm, nghỉ ngơi thôi!' },
+    ja:{ pip_hint:"フローティングタイマーが表示中です。他のウィンドウの上に薄く残ります。マウスを乗せるとはっきり表示されタスクをチェックでき、Xで閉じられます。", pip_rate:'評価:', cfg_goal:'目標セッション数（0 = 無制限）', goal_prog:'{d}/{n} セッション完了', notify_goal:'{n} セッションすべて完了！お疲れさまでした。' },
+    ko:{ pip_hint:"플로팅 타이머가 켜졌어요. 다른 창 위에 흐릿하게 남아요. 마우스를 올리면 또렷해지고 할 일을 체크할 수 있으며, X로 닫을 수 있어요.", pip_rate:'평가:', cfg_goal:'목표 세션 수 (0 = 제한 없음)', goal_prog:'{d}/{n} 세션 완료', notify_goal:'{n}세션을 모두 마쳤어요. 수고했어요, 푹 쉬세요!' },
+    zh:{ pip_hint:"悬浮计时器已开启：它会半透明地浮在其他窗口上方。鼠标移上去会变清晰并可勾选任务，点 X 即可关闭。", pip_rate:'完成度:', cfg_goal:'目标专注次数（0 = 不限）', goal_prog:'已完成 {d}/{n} 次', notify_goal:'{n} 次专注全部完成，真棒，好好休息吧！' },
+    fr:{ pip_hint:"Le minuteur flottant est actif : il reste discret au-dessus des autres fenêtres. Survolez-le pour le voir nettement et cocher vos tâches, ou fermez-le avec la croix.", pip_rate:'Niveau :', cfg_goal:'Sessions à terminer (0 = illimité)', goal_prog:'{d}/{n} sessions terminées', notify_goal:'Les {n} sessions sont terminées. Bravo, place au repos !' },
+    es:{ pip_hint:"El temporizador flotante está activo: se queda tenue sobre otras ventanas. Pasa el ratón para verlo claro y marcar tareas, o ciérralo con la X.", pip_rate:'Nivel:', cfg_goal:'Sesiones por completar (0 = sin límite)', goal_prog:'{d}/{n} sesiones hechas', notify_goal:'Completaste las {n} sesiones. ¡Buen trabajo, a descansar!' },
+    hi:{ pip_hint:"फ़्लोटिंग टाइमर चालू है: यह दूसरी विंडो के ऊपर हल्का दिखता रहता है। माउस ले जाने पर साफ़ दिखता है और काम टिक कर सकते हैं, या X से बंद करें।", pip_rate:'स्तर:', cfg_goal:'पूरे करने के सत्र (0 = कोई सीमा नहीं)', goal_prog:'{d}/{n} सत्र पूरे', notify_goal:'सभी {n} सत्र पूरे हुए। बढ़िया काम, अब आराम करें!' }
   };
   Object.keys(G).forEach(l => { I18N[l] = I18N[l] || {}; Object.keys(G[l]).forEach(k => { if (I18N[l][k] === undefined) I18N[l][k] = G[l][k]; }); });
 })();
@@ -618,7 +618,11 @@ function pipOpenVid(){
   pipVid.play().catch(() => {});
   pipVid.requestPictureInPicture().then(() => pipPaint()).catch(e => { console.warn('pip', e); toast(t('pip_no')); });
 }
-function pipOpen(){ if (pipDocOk()) pipOpenDoc(); else if (pipVidOk()) pipOpenVid(); else toast(t('pip_no')); }
+function pipOpen(){
+  if (!pipDocOk() && !pipVidOk()) return toast(t('pip_no'));
+  pipDocOk() ? pipOpenDoc() : pipOpenVid();
+  if (!store.get('hint_pip', false)) { store.set('hint_pip', true); setTimeout(() => toast(t('pip_hint'), 9000), 600); }   // gợi ý một lần, lần đầu cửa sổ nổi mở trên máy này
+}
 ACTIONS.pip = () => {                     // nút bật / tắt thủ công: tắt thì không tự bật lại, bật thì bỏ dấu tắt
   if (pipIsOpen()) { pipOffSet(true); return pipClose(); }
   pipOffSet(false); pipOpen();
