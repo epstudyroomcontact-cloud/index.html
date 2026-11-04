@@ -6,7 +6,8 @@ const isPhone = () => window.matchMedia && window.matchMedia('(max-width:760px)'
 const phoneNote = () => isPhone() && !store.get('phone_note_off', false) ? `<aside class="phone-note" role="note"><div><b>${esc(t('phone_note_title'))}</b><p>${esc(t('phone_note_text'))}</p></div><button type="button" class="btn secondary sm" data-act="phoneNoteOff">${esc(t('phone_note_ok'))}</button></aside>` : '';   // giải thích vì sao web ưu tiên máy tính, chỉ hiện trên điện thoại và bấm "Đã hiểu" là không hiện nữa
 /* ghi chú "có gì mới" đóng được (nhớ trong máy): key = new_focus / new_tease / new_pl; có href thì thêm nút dẫn tới trang đó */
 const hintNote = (key, href) => store.get('hint_' + key, false) ? '' : `<aside class="phone-note hint-note" role="note"><div><b>${esc(t(key + '_title'))}</b><p>${esc(t(key + '_text'))}</p></div><span class="row" style="flex:none;gap:6px">${href ? `<a class="btn primary sm" href="${esc(safeUrl(href))}" data-act="hintOff" data-key="${key}">${esc(t(key + '_link'))}</a>` : ''}<button type="button" class="btn secondary sm" data-act="hintOff" data-key="${key}">${esc(t('phone_note_ok'))}</button></span></aside>`;
-const page = html => { const el = $('page'); el.dataset.route = route.name; el.innerHTML = phoneNote() + html; };   // data-route: CSS chỉnh riêng từng trang (vd. ảnh đầu trang thấp hơn)
+const NUDGE_ROUTES = ['watch', 'schedule', 'planner', 'blog', 'shop'];   // các trang khách hay vào: nhắc điểm danh ở đây (Trang chủ + Phòng tập trung tự có sẵn)
+const page = html => { const el = $('page'); el.dataset.route = route.name; el.innerHTML = phoneNote() + (NUDGE_ROUTES.includes(route.name) ? moonNudge() : '') + html; };   // data-route: CSS chỉnh riêng từng trang (vd. ảnh đầu trang thấp hơn)
 /* gom vài thẻ thành tab, mỗi lần chỉ hiện 1 thẻ cho đỡ phải cuộn. TABS nhớ tab đang mở của từng nhóm nên trang vẽ lại vẫn giữ đúng tab.
    list: [[khoá, nhãn, html], ...]; cls: lớp thêm cho khung ngoài */
 const TABS = {};

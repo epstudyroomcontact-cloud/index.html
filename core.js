@@ -671,6 +671,7 @@ function renderChrome(){
   $('btn-edit').classList.toggle('hidden', !state.isAdmin);
   $('btn-edit').classList.toggle('on', state.editMode);
   $('tab-title').textContent = tabName();
+  $('btn-menu').classList.toggle('has-dot', moonNeedsCheckin());   // chấm nhắc điểm danh trên nút menu (điện thoại)
   const a = (CONFIG_MISSING && !DEMO) ? 'Firebase chưa được cấu hình — mở file SETUP.md, PHẦN 2, rồi điền js/firebase-config.js' : L(branding.announcement), bar = $('ann-bar'); bar.classList.toggle('hidden', !a); $('ann-text').textContent = a;
 }
 function renderPrefs(){
