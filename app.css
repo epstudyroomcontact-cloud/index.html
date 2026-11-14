@@ -314,10 +314,14 @@ input[type=checkbox],input[type=radio]{accent-color:var(--accent-strong)}
 @media(prefers-reduced-motion:reduce){html:not([data-motion="on"]) .pip-cta .pc-fl{animation:none}}
 .tm-pip{opacity:.8;margin-top:-6px}.tm-pip.on{opacity:1;color:var(--accent);border-color:var(--accent)}
 .cycle{display:flex;gap:6px}.cycle i{width:9px;height:9px;border-radius:50%;background:var(--line2)}.cycle i.on{background:var(--accent)}
-.cfg-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;width:100%}   /* mỗi cài đặt một hàng: nhãn bên trái, ô số bên phải, nhãn dài ở ngôn ngữ nào cũng không làm lệch hàng */
-.cfg-grid .field{display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:14px;padding:2px 0}
-.cfg-grid .field .label{margin:0;flex:1;min-width:0;line-height:1.35}
-.cfg-grid .field .input{flex:none;width:88px;min-height:0;height:40px;padding-top:0;padding-bottom:0;text-align:center}
+.cfg-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px;width:100%}   /* 2 cột, nhãn nằm trên ô số: gọn, nhãn dài ở ngôn ngữ nào cũng chỉ xuống dòng chứ không làm lệch ô */
+.cfg-grid .field{display:flex;flex-direction:column;justify-content:flex-end;gap:6px;min-width:0}
+.cfg-grid .field .label{margin:0;font-size:.78rem;font-weight:600;color:var(--ink2);line-height:1.3;min-height:2.6em;display:flex;align-items:flex-end}
+.stp{display:flex;align-items:stretch;border:1px solid var(--line2,var(--line));border-radius:12px;overflow:hidden;background:var(--surface)}.stp:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.stp button{flex:none;width:36px;border:0;background:transparent;color:var(--ink2);font-size:1.15rem;line-height:1;cursor:pointer}.stp button:hover{background:var(--surface2);color:var(--accent-strong)}
+.stp .input{flex:1;min-width:0;width:100%;height:40px;min-height:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;text-align:center;font-weight:700}
+.cfg-auto{display:flex;align-items:center;align-self:end;gap:8px;min-height:40px;font-size:.84rem;font-weight:600;line-height:1.3;cursor:pointer}.cfg-auto input{flex:none}
+.cfg-chev{transition:transform .2s;color:var(--ink3)}.tm-cfg[open] .cfg-chev{transform:rotate(180deg)}
 .todo-item{display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--line)}
 .todo-item:last-child{border:none}
 .todo-item label{flex:1;display:flex;gap:10px;align-items:center;cursor:pointer;min-width:0}
