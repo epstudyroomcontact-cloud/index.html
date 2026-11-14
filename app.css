@@ -1345,3 +1345,10 @@ body:has(#tour-ask) .sofa{display:none}
 .grp-row.away{opacity:.75}.grp-row.away .grp-st{color:var(--ink3);font-size:.78rem}
 
 .fx3 .tab-pane .row.mt-s{flex-wrap:wrap}.fx3 .tab-pane .row.mt-s .btn{max-width:100%;white-space:normal;text-align:center}
+
+/* Xong phiên: mưa giấy màu, thẻ thống kê Focus */
+.fx-conf{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:480}
+.fx-conf i{position:absolute;top:-16px;border-radius:2px;opacity:0;animation:fxConf var(--d,2.2s) cubic-bezier(.2,.6,.4,1) var(--dl,0s) forwards}
+@keyframes fxConf{0%{opacity:1;transform:translate3d(0,0,0) rotate(0)}85%{opacity:1}100%{opacity:0;transform:translate3d(var(--x,0),105vh,0) rotate(var(--r,540deg))}}
+.bars .today small{color:var(--accent-strong);font-weight:800}
+@media(max-width:640px){.fx-stats .g2.keep2{grid-template-columns:repeat(2,minmax(0,1fr))}.fx-stats .tile{padding:14px}}
