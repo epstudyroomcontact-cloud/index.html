@@ -1345,10 +1345,3 @@ body:has(#tour-ask) .sofa{display:none}
 .grp-row.away{opacity:.75}.grp-row.away .grp-st{color:var(--ink3);font-size:.78rem}
 
 .fx3 .tab-pane .row.mt-s{flex-wrap:wrap}.fx3 .tab-pane .row.mt-s .btn{max-width:100%;white-space:normal;text-align:center}
-
-/* Không gian học một chạm */
-.fx-spaces{display:flex;align-items:center;gap:8px;margin:0 0 14px;padding:2px;overflow-x:auto;scrollbar-width:none}
-.fx-spaces::-webkit-scrollbar{display:none}
-.fx-sp-l{flex:none;font-size:.74rem;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;margin-right:4px}
-.chip.fx-sp{flex:none;display:inline-flex;align-items:center;gap:8px}
-.chip.fx-sp i{flex:none;width:14px;height:14px;border-radius:50%;border:1px solid rgba(255,255,255,.28)}
