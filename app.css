@@ -1354,3 +1354,11 @@ body:has(#tour-ask) .sofa{display:none}
 @keyframes fxGlow{0%{filter:drop-shadow(0 0 0 transparent)}25%{filter:drop-shadow(0 0 16px var(--accent))}100%{filter:drop-shadow(0 0 0 transparent)}}
 .bars .today small{color:var(--accent-strong);font-weight:800}
 @media(max-width:640px){.fx-stats .g2.keep2{grid-template-columns:repeat(2,minmax(0,1fr))}.fx-stats .tile{padding:14px}}
+
+/* Tổng quan: chuỗi ngày + việc của hôm nay dưới đồng hồ */
+.home-mine{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.home-mine .hm-h{font-size:.74rem;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em}
+.hm-todo{list-style:none;margin:0;padding:0;display:grid;gap:6px;width:100%}
+.hm-todo li{position:relative;padding-left:18px;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hm-todo li::before{content:"";position:absolute;left:2px;top:.5em;width:8px;height:8px;border-radius:50%;border:2px solid var(--accent)}
+
