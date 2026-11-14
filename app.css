@@ -1348,7 +1348,9 @@ body:has(#tour-ask) .sofa{display:none}
 
 /* Xong phiên: mưa giấy màu, thẻ thống kê Focus */
 .fx-conf{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:480}
-.fx-conf i{position:absolute;top:-16px;border-radius:2px;opacity:0;animation:fxConf var(--d,2.2s) cubic-bezier(.2,.6,.4,1) var(--dl,0s) forwards}
-@keyframes fxConf{0%{opacity:1;transform:translate3d(0,0,0) rotate(0)}85%{opacity:1}100%{opacity:0;transform:translate3d(var(--x,0),105vh,0) rotate(var(--r,540deg))}}
+.fx-conf i{position:absolute;border-radius:50%;background:radial-gradient(circle,#fff 0,var(--c,var(--accent)) 38%,transparent 72%);opacity:0;animation:fxSpark var(--d,3s) cubic-bezier(.22,.7,.3,1) var(--dl,0s) forwards}
+@keyframes fxSpark{0%{opacity:0;transform:translate3d(0,0,0) scale(.4)}18%{opacity:.85}60%{opacity:.45}100%{opacity:0;transform:translate3d(var(--x,0),var(--y,-120px),0) scale(1.1)}}
+#tm-ring.fx-glow{animation:fxGlow 2.6s ease-out}
+@keyframes fxGlow{0%{filter:drop-shadow(0 0 0 transparent)}25%{filter:drop-shadow(0 0 16px var(--accent))}100%{filter:drop-shadow(0 0 0 transparent)}}
 .bars .today small{color:var(--accent-strong);font-weight:800}
 @media(max-width:640px){.fx-stats .g2.keep2{grid-template-columns:repeat(2,minmax(0,1fr))}.fx-stats .tile{padding:14px}}

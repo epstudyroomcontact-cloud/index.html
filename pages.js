@@ -810,17 +810,20 @@ function fxStreak(){                                      // số ngày liên ti
   for (let i = 0; i < 400 && (fl[d.toISODate()] || {}).m > 0; i++) { n++; d = d.minus({ days:1 }); }
   return n;
 }
-function fxCelebrate(big){                                // xong phiên: mưa giấy màu nhẹ (phiên cuối của mục tiêu thì nhiều hơn); tôn trọng chế độ giảm chuyển động
+function fxCelebrate(big){                                // xong phiên: vài đốm sáng mờ bay lên quanh vòng timer rồi tan dần (phiên cuối của mục tiêu thì nhiều hơn) + vòng timer sáng nhẹ; tôn trọng chế độ giảm chuyển động
   if (motionOff() || document.hidden) return;
   const old = document.querySelector('.fx-conf'); if (old) old.remove();
+  const ring = $('tm-ring'), rc = ring && ring.getBoundingClientRect(), vis = rc && rc.width && rc.bottom > 0 && rc.top < innerHeight;
+  const cx = vis ? rc.left + rc.width / 2 : innerWidth / 2, cy = vis ? rc.top + rc.height / 2 : innerHeight * .55, rad = vis ? rc.width / 2 : 90;
   const wrap = document.createElement('div'); wrap.className = 'fx-conf'; wrap.setAttribute('aria-hidden', 'true');
-  const cols = ['var(--accent)', 'var(--accent-strong)', '#f2c14e', '#7c6cf0', '#4fae5a', '#4fb3f0'], n = big ? 90 : 36;
+  const cols = ['var(--accent)', 'var(--accent-strong)', '#ffe8a3', '#ffffff'], n = big ? 34 : 18;
   for (let i = 0; i < n; i++) {
-    const e = document.createElement('i'), w = 6 + Math.random() * 5;
-    e.style.cssText = `left:${(Math.random() * 100).toFixed(1)}%;width:${w.toFixed(1)}px;height:${(w * 1.7).toFixed(1)}px;background:${cols[i % cols.length]};--x:${((Math.random() - .5) * 160).toFixed(0)}px;--r:${(Math.random() * 900 - 450).toFixed(0)}deg;--d:${(1.8 + Math.random() * 1.4).toFixed(2)}s;--dl:${(Math.random() * (big ? .7 : .35)).toFixed(2)}s`;
+    const e = document.createElement('i'), a = Math.random() * Math.PI * 2, r = rad * (.9 + Math.random() * .25), sz = 5 + Math.random() * 7;
+    e.style.cssText = `left:${(cx + Math.cos(a) * r - sz / 2).toFixed(0)}px;top:${(cy + Math.sin(a) * r - sz / 2).toFixed(0)}px;width:${sz.toFixed(1)}px;height:${sz.toFixed(1)}px;--c:${cols[i % cols.length]};--x:${(Math.cos(a) * (24 + Math.random() * 56) + (Math.random() - .5) * 30).toFixed(0)}px;--y:${(-(70 + Math.random() * 110)).toFixed(0)}px;--d:${(2.6 + Math.random() * 1.2).toFixed(2)}s;--dl:${(Math.random() * (big ? 1.2 : .9)).toFixed(2)}s`;
     wrap.appendChild(e);
   }
-  document.body.appendChild(wrap); setTimeout(() => wrap.remove(), 4200);
+  document.body.appendChild(wrap); setTimeout(() => wrap.remove(), 6200);
+  setTimeout(() => { const g = $('tm-ring'); if (!g) return; g.classList.remove('fx-glow'); void g.offsetWidth; g.classList.add('fx-glow'); setTimeout(() => g.classList.remove('fx-glow'), 2700); }, 80);   // trang vẽ lại sau khi xong phiên nên đợi một nhịp
 }
 PAGES.focus = function(){
   const fl = localFocus(), today = DT.now().setZone(userTZ), days = Array.from({ length:7 }, (_, i) => today.minus({ days:6 - i })), vals = days.map(d => (fl[d.toISODate()] || { m:0 }).m), mx = Math.max(30, ...vals), td = fl[today.toISODate()] || { m:0, s:0 };
