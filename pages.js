@@ -221,7 +221,7 @@ function audio(){ if (!actx) { try { actx = new (window.AudioContext || window.w
    Độ to chuẩn theo mức tai nghe thấy (đo có trọng số A): ồn nâu có chủ ý nhỏ hơn mưa/ồn trắng ~2,5 dB vì tiếng trầm nghe "nặng" hơn số đo. Âm lượng = thanh trượt bình phương
    (nửa thanh = -12 dB), mặc định 40% nên nằm dưới nhạc/giọng nói; đổi âm và đổi âm lượng đều có lướt mượt, không bị "tách". */
 const AMB = ['off', 'calm', 'rain', 'brown', 'white'];
-let ambType = 'off', ambVol = store.get('ambvol', .4), ambNode = null, ambTok = 0;
+let ambType = 'off', ambVol = store.get('ambvol', .3), ambNode = null, ambTok = 0;
 const AMB_LEN = 16, AMB_X = 2, AMB_RMS = { rain:.14, brown:.22, white:.13, calm:.17 }, ambCache = {};   // độ to chuẩn theo từng loại (chỉnh theo độ to tai nghe thấy, xem chú thích đầu mục)
 const ambGain = () => ambVol * ambVol;
 function ambNoise(len, kind){
@@ -252,18 +252,18 @@ function ambRender(type, sr){
   const flt = (ty, f, q) => { const n = off.createBiquadFilter(); n.type = ty; n.frequency.value = f; if (q) n.Q.value = q; return n; };
   const noise = (kind, n = total) => { const b = off.createBuffer(1, n, sr); b.getChannelData(0).set(ambNoise(n, kind)); const sc = off.createBufferSource(); sc.buffer = b; return sc; };
   const master = off.createGain(), merger = off.createChannelMerger(2); master.connect(off.destination);
-  const lpMaster = flt('lowpass', 3600, .5); lpMaster.connect(master);
+  const lpMaster = flt('lowpass', 2600, .5); lpMaster.connect(master);
   if (type === 'brown' || type === 'white') {
     for (let ch = 0; ch < 2; ch++) {
       const sc = noise(type); let n = sc;
-      const chain = type === 'brown' ? [flt('highpass', 55, .7), flt('lowpass', 1000, .6)] : [flt('highpass', 70, .7), flt('lowpass', 8500, .6), flt('highshelf', 3000)];
-      chain.forEach(f => { if (f.type === 'highshelf') f.gain.value = -8; n.connect(f); n = f; });
+      const chain = type === 'brown' ? [flt('highpass', 55, .7), flt('lowpass', 700, .6)] : [flt('highpass', 70, .7), flt('lowpass', 6000, .6), flt('highshelf', 2200)];
+      chain.forEach(f => { if (f.type === 'highshelf') f.gain.value = -10; n.connect(f); n = f; });
       n.connect(merger, 0, ch); sc.start();
     }
     merger.connect(master);
   } else {                                                   // mưa
     for (let ch = 0; ch < 2; ch++) {
-      const bed = noise('pink'), hp = flt('highpass', 300, .7), lp = flt('lowpass', 2400, .7), am = off.createGain(), gb = off.createGain();
+      const bed = noise('pink'), hp = flt('highpass', 250, .7), lp = flt('lowpass', 1800, .7), am = off.createGain(), gb = off.createGain();
       const curve = new Float32Array(48); let v = 1; for (let i = 0; i < curve.length; i++) { v += (Math.random() - .5) * .22; v = Math.max(.7, Math.min(1.2, v)); curve[i] = v; }
       curve[curve.length - 1] = curve[0];
       am.gain.setValueCurveAtTime(curve, 0, dur); gb.gain.value = .5;
@@ -276,7 +276,7 @@ function ambRender(type, sr){
     const L = Math.round(AMB_LEN * sr), X = Math.round(AMB_X * sr), out = [new Float32Array(L), new Float32Array(L)];
     const dat = [r.getChannelData(0), r.getChannelData(1)];
     if (type === 'rain') {                                       // giọt mưa tổng hợp thẳng bằng mã (nhanh hơn dựng hàng nghìn nút âm thanh)
-      ambDrops(dat, sr, 60, [600, 2600, 1.6], [.9, 3], [.015, .15, 3], [.014, .06]);                 // giọt nhỏ ~55 giọt/giây
+      ambDrops(dat, sr, 60, [500, 2000, 1.6], [.8, 2.4], [.012, .1, 3], [.016, .07]);                 // giọt nhỏ ~55 giọt/giây
       ambDrops(dat, sr, 2, [400, 1100, 1], [.8, 2], [.04, .09, 1], [.06, .14]);                          // giọt to trầm, thưa
     }
     let sum = 0;
@@ -302,24 +302,24 @@ function ambCalm(sr){
   const ir = off.createBuffer(2, Math.round(3.6 * sr), sr);
   for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); let y = 0; for (let i = 0; i < d.length; i++) { y += ((Math.random() * 2 - 1) * Math.exp(-3.4 * i / d.length) - y) * Math.max(.07, .5 * Math.exp(-3 * i / d.length)); d[i] = y; } }
   conv.buffer = ir; dry.gain.value = .75; wet.gain.value = .7;
-  const hp = flt('highpass', 90, .6), lp = flt('lowpass', 1500, .4);
+  const hp = flt('highpass', 90, .6), lp = flt('lowpass', 750, .4);
   bus.connect(hp); hp.connect(lp); lp.connect(dry); lp.connect(conv); bells.connect(dry); bells.connect(conv); conv.connect(wet); dry.connect(off.destination); wet.connect(off.destination);
   const CH = [[174.61, 220, 261.63, 329.63], [220, 261.63, 329.63, 392]], NC = 241;
   CH.forEach((notes, k) => {
     const env = off.createGain(), curve = new Float32Array(NC);
     for (let i = 0; i < NC; i++) curve[i] = .5 + .5 * Math.cos(2 * Math.PI * (i * dur / (NC - 1) - pre / sr - k * P / 2) / P);
     env.gain.setValueCurveAtTime(curve, 0, dur); env.connect(bus);
-    notes.forEach((f, j) => [[0, 1, 'sine', 1], [.1875, 1, 'triangle', .3], [-.1875, 1, 'sine', .6], [.0625, 2, 'sine', .22]].forEach(([dt, mul, ty, a], v) => {
+    notes.forEach((f, j) => [[0, 1, 'sine', 1], [.0625, 1, 'sine', .5]].forEach(([dt, mul, ty, a], v) => {
       const o = off.createOscillator(), g = off.createGain(), pn = off.createStereoPanner();
       o.type = ty; o.frequency.value = snap(f * mul + dt); g.gain.value = a * .06; pn.pan.value = ((j * 3 + v * 2) % 7 - 3) / 6;
       o.connect(g); g.connect(pn); pn.connect(env); o.start(0);
     }));
   });
   const PENT = [523.25, 587.33, 659.25, 783.99, 880, 1046.5], ev = [];
-  for (let j = 0; j < 5; j++) ev.push({ t:(j + .15 + Math.random() * .7) * P / 5, f:PENT[Math.floor(Math.random() * PENT.length)], a:.12 + Math.random() * .08, p:Math.random() * 1.4 - .7 });
+  for (let j = 0; j < 3; j++) ev.push({ t:(j + .15 + Math.random() * .7) * P / 3, f:PENT[Math.floor(Math.random() * PENT.length)], a:.05 + Math.random() * .04, p:Math.random() * 1.4 - .7 });
   [-1, 0, 1].forEach(m => ev.forEach(e => {
     const at = pre / sr + e.t + m * P; if (at < 0 || at >= dur) return;
-    [[1, 1, 5], [2, .1, 2]].forEach(([mul, am, len]) => {
+    [[1, 1, 6], [2, .04, 2]].forEach(([mul, am, len]) => {
       const o = off.createOscillator(), g = off.createGain(), pn = off.createStereoPanner(); o.frequency.value = e.f * mul; pn.pan.value = e.p;
       g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(e.a * am, at + .03); g.gain.exponentialRampToValueAtTime(.0005, at + len);
       o.connect(g); g.connect(pn); pn.connect(bells); o.start(at); o.stop(at + len + .1);
