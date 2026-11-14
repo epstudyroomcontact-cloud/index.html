@@ -413,14 +413,14 @@ function addFocus(min){
 }
 (function(){
   const G = {
-    en:{ cfg_note:"Changes apply from the next round while the timer is running.", fx_lay:"Layout", fx_lay_study:"Study", fx_lay_watch:"Watch", fx_lay_bal:"Balanced", pip_cta:"Keeps time over other apps", pip_hint:"Floating timer is on: it stays faint on top of other windows. Hover to see it clearly and tick tasks off, or close it with the X.", pip_rate:'Rate:', cfg_goal:'Sessions to finish (0 = no limit)', goal_prog:'{d}/{n} sessions done', notify_goal:'All {n} sessions done. Great work, time to rest!' },
-    vi:{ cfg_note:"Khi đang chạy, thay đổi áp dụng từ vòng kế tiếp.", fx_lay:"Bố cục", fx_lay_study:"Học", fx_lay_watch:"Xem live", fx_lay_bal:"Cân bằng", pip_cta:"Giờ nổi trên mọi ứng dụng", pip_hint:"Timer nổi đang bật: nó mờ và nằm trên các cửa sổ khác. Rê chuột vào để xem rõ và tick việc xong, hoặc bấm X để tắt.", pip_rate:'Mức:', cfg_goal:'Số phiên cần làm (0 = không giới hạn)', goal_prog:'Đã xong {d}/{n} phiên', notify_goal:'Đã xong đủ {n} phiên. Giỏi lắm, nghỉ ngơi thôi!' },
-    ja:{ cfg_note:"タイマー動作中の変更は次のラウンドから反映されます。", fx_lay:"レイアウト", fx_lay_study:"勉強", fx_lay_watch:"視聴", fx_lay_bal:"バランス", pip_cta:"他のアプリの上に表示", pip_hint:"フローティングタイマーが表示中です。他のウィンドウの上に薄く残ります。マウスを乗せるとはっきり表示されタスクをチェックでき、Xで閉じられます。", pip_rate:'評価:', cfg_goal:'目標セッション数（0 = 無制限）', goal_prog:'{d}/{n} セッション完了', notify_goal:'{n} セッションすべて完了！お疲れさまでした。' },
-    ko:{ cfg_note:"타이머가 실행 중이면 변경은 다음 라운드부터 적용돼요.", fx_lay:"레이아웃", fx_lay_study:"공부", fx_lay_watch:"시청", fx_lay_bal:"균형", pip_cta:"다른 앱 위에 표시", pip_hint:"플로팅 타이머가 켜졌어요. 다른 창 위에 흐릿하게 남아요. 마우스를 올리면 또렷해지고 할 일을 체크할 수 있으며, X로 닫을 수 있어요.", pip_rate:'평가:', cfg_goal:'목표 세션 수 (0 = 제한 없음)', goal_prog:'{d}/{n} 세션 완료', notify_goal:'{n}세션을 모두 마쳤어요. 수고했어요, 푹 쉬세요!' },
-    zh:{ cfg_note:"计时进行中，修改将从下一轮开始生效。", fx_lay:"布局", fx_lay_study:"学习", fx_lay_watch:"看直播", fx_lay_bal:"均衡", pip_cta:"浮在其他应用上方", pip_hint:"悬浮计时器已开启：它会半透明地浮在其他窗口上方。鼠标移上去会变清晰并可勾选任务，点 X 即可关闭。", pip_rate:'完成度:', cfg_goal:'目标专注次数（0 = 不限）', goal_prog:'已完成 {d}/{n} 次', notify_goal:'{n} 次专注全部完成，真棒，好好休息吧！' },
-    fr:{ cfg_note:"Pendant que le minuteur tourne, les changements s'appliquent au prochain cycle.", fx_lay:"Disposition", fx_lay_study:"Étude", fx_lay_watch:"Live", fx_lay_bal:"Équilibré", pip_cta:"Reste visible par-dessus", pip_hint:"Le minuteur flottant est actif : il reste discret au-dessus des autres fenêtres. Survolez-le pour le voir nettement et cocher vos tâches, ou fermez-le avec la croix.", pip_rate:'Niveau :', cfg_goal:'Sessions à terminer (0 = illimité)', goal_prog:'{d}/{n} sessions terminées', notify_goal:'Les {n} sessions sont terminées. Bravo, place au repos !' },
-    es:{ cfg_note:"Con el temporizador en marcha, los cambios se aplican en la siguiente ronda.", fx_lay:"Diseño", fx_lay_study:"Estudio", fx_lay_watch:"En vivo", fx_lay_bal:"Equilibrado", pip_cta:"Visible sobre otras apps", pip_hint:"El temporizador flotante está activo: se queda tenue sobre otras ventanas. Pasa el ratón para verlo claro y marcar tareas, o ciérralo con la X.", pip_rate:'Nivel:', cfg_goal:'Sesiones por completar (0 = sin límite)', goal_prog:'{d}/{n} sesiones hechas', notify_goal:'Completaste las {n} sesiones. ¡Buen trabajo, a descansar!' },
-    hi:{ cfg_note:"टाइमर चलते समय बदलाव अगले राउंड से लागू होंगे।", fx_lay:"लेआउट", fx_lay_study:"पढ़ाई", fx_lay_watch:"लाइव", fx_lay_bal:"संतुलित", pip_cta:"दूसरे ऐप के ऊपर दिखे", pip_hint:"फ़्लोटिंग टाइमर चालू है: यह दूसरी विंडो के ऊपर हल्का दिखता रहता है। माउस ले जाने पर साफ़ दिखता है और काम टिक कर सकते हैं, या X से बंद करें।", pip_rate:'स्तर:', cfg_goal:'पूरे करने के सत्र (0 = कोई सीमा नहीं)', goal_prog:'{d}/{n} सत्र पूरे', notify_goal:'सभी {n} सत्र पूरे हुए। बढ़िया काम, अब आराम करें!' }
+    en:{ fx_streak:"Day streak", fx_week_min:"Minutes in 7 days", cfg_note:"Changes apply from the next round while the timer is running.", fx_lay:"Layout", fx_lay_study:"Study", fx_lay_watch:"Watch", fx_lay_bal:"Balanced", pip_cta:"Keeps time over other apps", pip_hint:"Floating timer is on: it stays faint on top of other windows. Hover to see it clearly and tick tasks off, or close it with the X.", pip_rate:'Rate:', cfg_goal:'Sessions to finish (0 = no limit)', goal_prog:'{d}/{n} sessions done', notify_goal:'All {n} sessions done. Great work, time to rest!' },
+    vi:{ fx_streak:"Chuỗi ngày học", fx_week_min:"Phút trong 7 ngày", cfg_note:"Khi đang chạy, thay đổi áp dụng từ vòng kế tiếp.", fx_lay:"Bố cục", fx_lay_study:"Học", fx_lay_watch:"Xem live", fx_lay_bal:"Cân bằng", pip_cta:"Giờ nổi trên mọi ứng dụng", pip_hint:"Timer nổi đang bật: nó mờ và nằm trên các cửa sổ khác. Rê chuột vào để xem rõ và tick việc xong, hoặc bấm X để tắt.", pip_rate:'Mức:', cfg_goal:'Số phiên cần làm (0 = không giới hạn)', goal_prog:'Đã xong {d}/{n} phiên', notify_goal:'Đã xong đủ {n} phiên. Giỏi lắm, nghỉ ngơi thôi!' },
+    ja:{ fx_streak:"連続学習日数", fx_week_min:"7日間の分数", cfg_note:"タイマー動作中の変更は次のラウンドから反映されます。", fx_lay:"レイアウト", fx_lay_study:"勉強", fx_lay_watch:"視聴", fx_lay_bal:"バランス", pip_cta:"他のアプリの上に表示", pip_hint:"フローティングタイマーが表示中です。他のウィンドウの上に薄く残ります。マウスを乗せるとはっきり表示されタスクをチェックでき、Xで閉じられます。", pip_rate:'評価:', cfg_goal:'目標セッション数（0 = 無制限）', goal_prog:'{d}/{n} セッション完了', notify_goal:'{n} セッションすべて完了！お疲れさまでした。' },
+    ko:{ fx_streak:"연속 학습일", fx_week_min:"7일간 분", cfg_note:"타이머가 실행 중이면 변경은 다음 라운드부터 적용돼요.", fx_lay:"레이아웃", fx_lay_study:"공부", fx_lay_watch:"시청", fx_lay_bal:"균형", pip_cta:"다른 앱 위에 표시", pip_hint:"플로팅 타이머가 켜졌어요. 다른 창 위에 흐릿하게 남아요. 마우스를 올리면 또렷해지고 할 일을 체크할 수 있으며, X로 닫을 수 있어요.", pip_rate:'평가:', cfg_goal:'목표 세션 수 (0 = 제한 없음)', goal_prog:'{d}/{n} 세션 완료', notify_goal:'{n}세션을 모두 마쳤어요. 수고했어요, 푹 쉬세요!' },
+    zh:{ fx_streak:"连续学习天数", fx_week_min:"近7天分钟数", cfg_note:"计时进行中，修改将从下一轮开始生效。", fx_lay:"布局", fx_lay_study:"学习", fx_lay_watch:"看直播", fx_lay_bal:"均衡", pip_cta:"浮在其他应用上方", pip_hint:"悬浮计时器已开启：它会半透明地浮在其他窗口上方。鼠标移上去会变清晰并可勾选任务，点 X 即可关闭。", pip_rate:'完成度:', cfg_goal:'目标专注次数（0 = 不限）', goal_prog:'已完成 {d}/{n} 次', notify_goal:'{n} 次专注全部完成，真棒，好好休息吧！' },
+    fr:{ fx_streak:"Jours d'affilée", fx_week_min:"Minutes sur 7 jours", cfg_note:"Pendant que le minuteur tourne, les changements s'appliquent au prochain cycle.", fx_lay:"Disposition", fx_lay_study:"Étude", fx_lay_watch:"Live", fx_lay_bal:"Équilibré", pip_cta:"Reste visible par-dessus", pip_hint:"Le minuteur flottant est actif : il reste discret au-dessus des autres fenêtres. Survolez-le pour le voir nettement et cocher vos tâches, ou fermez-le avec la croix.", pip_rate:'Niveau :', cfg_goal:'Sessions à terminer (0 = illimité)', goal_prog:'{d}/{n} sessions terminées', notify_goal:'Les {n} sessions sont terminées. Bravo, place au repos !' },
+    es:{ fx_streak:"Días seguidos", fx_week_min:"Minutos en 7 días", cfg_note:"Con el temporizador en marcha, los cambios se aplican en la siguiente ronda.", fx_lay:"Diseño", fx_lay_study:"Estudio", fx_lay_watch:"En vivo", fx_lay_bal:"Equilibrado", pip_cta:"Visible sobre otras apps", pip_hint:"El temporizador flotante está activo: se queda tenue sobre otras ventanas. Pasa el ratón para verlo claro y marcar tareas, o ciérralo con la X.", pip_rate:'Nivel:', cfg_goal:'Sesiones por completar (0 = sin límite)', goal_prog:'{d}/{n} sesiones hechas', notify_goal:'Completaste las {n} sesiones. ¡Buen trabajo, a descansar!' },
+    hi:{ fx_streak:"लगातार दिन", fx_week_min:"7 दिनों के मिनट", cfg_note:"टाइमर चलते समय बदलाव अगले राउंड से लागू होंगे।", fx_lay:"लेआउट", fx_lay_study:"पढ़ाई", fx_lay_watch:"लाइव", fx_lay_bal:"संतुलित", pip_cta:"दूसरे ऐप के ऊपर दिखे", pip_hint:"फ़्लोटिंग टाइमर चालू है: यह दूसरी विंडो के ऊपर हल्का दिखता रहता है। माउस ले जाने पर साफ़ दिखता है और काम टिक कर सकते हैं, या X से बंद करें।", pip_rate:'स्तर:', cfg_goal:'पूरे करने के सत्र (0 = कोई सीमा नहीं)', goal_prog:'{d}/{n} सत्र पूरे', notify_goal:'सभी {n} सत्र पूरे हुए। बढ़िया काम, अब आराम करें!' }
   };
   Object.keys(G).forEach(l => { I18N[l] = I18N[l] || {}; Object.keys(G[l]).forEach(k => { if (I18N[l][k] === undefined) I18N[l][k] = G[l][k]; }); });
 })();
@@ -496,7 +496,7 @@ function pomoComplete(natural, silent){
   pomo.running = !goalHit && !!(pomo.cfg.auto && natural) && !(pomo.mode === 'focus' && focusLimit() && focusUsed() >= focusLimit()); if (pomo.running) { pomo.endAt = Date.now() + pomo.remaining; pomoSave(); }
   if (natural && !silent) {
     const msg = goalHit ? t('notify_goal', { n:goal }) : t(wasFocus ? 'notify_done_focus' : 'notify_done_break');
-    soundPlay(wasFocus ? 'focus' : 'break'); toast(msg);
+    soundPlay(wasFocus ? 'focus' : 'break'); toast(msg); if (wasFocus) fxCelebrate(goalHit);
     if ('Notification' in window && Notification.permission === 'granted') new Notification(branding.name, { body:msg });
   }
   grpPing();
@@ -804,6 +804,24 @@ function fxMiniWatch(){                                   // thanh timer mini: h
   fxIO = new IntersectionObserver(es => { mini.hidden = es[es.length - 1].isIntersecting; }, { rootMargin:'-70px 0px 0px 0px' });
   fxIO.observe(card); updateTimerUI();
 }
+function fxStreak(){                                      // số ngày liên tiếp có học; hôm nay chưa học thì chuỗi vẫn giữ đến hết ngày
+  const fl = localFocus(); let d = DT.now().setZone(userTZ), n = 0;
+  if (!((fl[d.toISODate()] || {}).m > 0)) d = d.minus({ days:1 });
+  for (let i = 0; i < 400 && (fl[d.toISODate()] || {}).m > 0; i++) { n++; d = d.minus({ days:1 }); }
+  return n;
+}
+function fxCelebrate(big){                                // xong phiên: mưa giấy màu nhẹ (phiên cuối của mục tiêu thì nhiều hơn); tôn trọng chế độ giảm chuyển động
+  if (motionOff() || document.hidden) return;
+  const old = document.querySelector('.fx-conf'); if (old) old.remove();
+  const wrap = document.createElement('div'); wrap.className = 'fx-conf'; wrap.setAttribute('aria-hidden', 'true');
+  const cols = ['var(--accent)', 'var(--accent-strong)', '#f2c14e', '#7c6cf0', '#4fae5a', '#4fb3f0'], n = big ? 90 : 36;
+  for (let i = 0; i < n; i++) {
+    const e = document.createElement('i'), w = 6 + Math.random() * 5;
+    e.style.cssText = `left:${(Math.random() * 100).toFixed(1)}%;width:${w.toFixed(1)}px;height:${(w * 1.7).toFixed(1)}px;background:${cols[i % cols.length]};--x:${((Math.random() - .5) * 160).toFixed(0)}px;--r:${(Math.random() * 900 - 450).toFixed(0)}deg;--d:${(1.8 + Math.random() * 1.4).toFixed(2)}s;--dl:${(Math.random() * (big ? .7 : .35)).toFixed(2)}s`;
+    wrap.appendChild(e);
+  }
+  document.body.appendChild(wrap); setTimeout(() => wrap.remove(), 4200);
+}
 PAGES.focus = function(){
   const fl = localFocus(), today = DT.now().setZone(userTZ), days = Array.from({ length:7 }, (_, i) => today.minus({ days:6 - i })), vals = days.map(d => (fl[d.toISODate()] || { m:0 }).m), mx = Math.max(30, ...vals), td = fl[today.toISODate()] || { m:0, s:0 };
   const fxTabs = [['todo', t('fx_tab_todo'), 'check'], ['music', t('fx_tab_music'), 'volume']], fsTabs = [...(branding.groupOn === true ? [['group', t('fx_tab_group'), 'users']] : []), ['live', t('fx_tab_stream'), 'play']];   // Việc + Nhạc cạnh bộ đếm; Nhóm + Live ở khung riêng để xem song song
@@ -838,7 +856,7 @@ PAGES.focus = function(){
       <div class="tab-pane" role="tabpanel" data-k="live"${fsCur === 'live' ? '' : ' hidden'}>${streamCard()}</div></div></aside>
     </div>
     ${focusNudge()}
-    <div class="fx-stats"><div class="grid g2 keep2"><div class="card tile"><span class="t-l">${esc(t('sessions_today'))}</span><span class="t-v">${td.s}</span></div><div class="card tile"><span class="t-l">${esc(t('minutes_today'))}</span><span class="t-v">${td.m}</span></div></div><section class="card pad"><div class="card-h"><h2>${esc(t('week_chart'))}</h2></div><div class="bars">${days.map((d, i) => `<div><i style="height:${Math.max(3, vals[i] / mx * 100)}%" title="${vals[i]} ${esc(t('min'))}"></i><small>${esc(d.setLocale(state.lang).toFormat('ccc'))}</small></div>`).join('')}</div></section></div>
+    <div class="fx-stats"><div class="grid g2 keep2"><div class="card tile"><span class="t-l">${esc(t('sessions_today'))}</span><span class="t-v">${td.s}</span></div><div class="card tile"><span class="t-l">${esc(t('minutes_today'))}</span><span class="t-v">${td.m}</span></div><div class="card tile"><span class="t-l">${esc(t('fx_streak'))}</span><span class="t-v">${fxStreak()}</span></div><div class="card tile"><span class="t-l">${esc(t('fx_week_min'))}</span><span class="t-v">${vals.reduce((a, b) => a + b, 0)}</span></div></div><section class="card pad"><div class="card-h"><h2>${esc(t('week_chart'))}</h2></div><div class="bars">${days.map((d, i) => `<div${i === 6 ? ' class="today"' : ''}><i style="height:${Math.max(3, vals[i] / mx * 100)}%" title="${vals[i]} ${esc(t('min'))}"></i><small>${esc(d.setLocale(state.lang).toFormat('ccc'))}</small></div>`).join('')}</div></section></div>
     <h2 class="mt" style="font-size:1.3rem;margin:40px 0 14px">${ic('heart', 'sm')} ${esc(t('nav_donate'))}</h2>${donateHTML()}`);   // phần Support nằm ngay trong Focus room
   renderTodos(); pipPrep(); fxMiniWatch(); fxFit();
   if (branding.groupOn === true) loadGroup().then(() => window.EPGroup.mount()).catch(() => { for (const id of ['grp-box', 'grp-strip']) { const b = $(id); if (b) b.remove(); } });
