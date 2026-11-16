@@ -21,7 +21,7 @@ const stars = n => `<span class="stars" aria-label="${n}/5">${[1,2,3,4,5].map(i 
 const emptyBox = (icon, title, sub) => `<div class="empty"><div class="ico">${ic(icon, 'lg')}</div><h3>${esc(title)}</h3><p>${esc(sub || '')}</p></div>`;
 /* tranh: ảnh do admin đặt (cimg) hoặc tranh vẽ sẵn bằng paint(cảnh, {crop, seed}) */
 const artOr = (key, scene, opt) => { const u = cimg(key); return u ? `<img class="art" alt="" src="${esc(u)}">` : paint(scene, opt); };
-const helpBtn = () => ['home', 'watch', 'members'].includes(route.name) ? '' : `<button type="button" class="moon-help" data-act="pageHelp" data-p="${route.name}" title="${esc(t('nav_guide'))}" aria-label="${esc(t('nav_guide'))}">${ic('info', 'sm')}<span>${esc(t('nav_guide'))}</span></button>`;   // nút hướng dẫn riêng của trang, Moon chỉ nhanh bằng hình (guide.js)
+const helpBtn = () => ['home', 'watch'].includes(route.name) ? '' : `<button type="button" class="moon-help" data-act="pageHelp" data-p="${route.name}" title="${esc(t('nav_guide'))}" aria-label="${esc(t('nav_guide'))}">${ic('info', 'sm')}<span>${esc(t('nav_guide'))}</span></button>`;   // nút hướng dẫn riêng của trang, Moon chỉ nhanh bằng hình (guide.js)
 const head = (titleKey, subKey, right = '', scene = 'moonwalk', seed = 1) => `<section class="art-head" data-cms-img="banner_${titleKey}">${artOr('banner_' + titleKey, scene, { crop:'banner', seed })}${helpBtn()}<div class="glass"><h1 ${cms(titleKey)}>${esc(ctext(titleKey))}</h1>${subKey ? `<p ${cms(subKey)}>${esc(ctext(subKey))}</p>` : ''}</div></section>${right ? `<div class="row between" style="margin-bottom:18px">${right}</div>` : ''}`;
 const labelOf = s => s.name || (s.type === 'focus' ? `${t('focus')} ${s.n}` : s.type === 'short' ? t('short_break') : s.type === 'prep' ? t('prep_break') : t('long_break'));
 const segBar = (segs, total) => `<div class="pomo-bar">${segs.map(s => `<i class="${s.type[0]}" style="width:${(s.min / total * 100).toFixed(2)}%" title="${esc(labelOf(s))} · ${s.min}′"></i>`).join('')}</div>`;
@@ -124,6 +124,20 @@ function homeMine(){                                      // dưới đồng h�
     <div class="hm-h">${esc(t('home_todo_h'))}</div>
     ${top.length ? `<ul class="hm-todo">${top.map(x => `<li>${esc(x.text)}</li>`).join('')}</ul>${open.length > top.length ? `<a class="small muted" href="#/focus">${esc(t('home_todo_more', { n:open.length - top.length }))}</a>` : ''}` : `<a class="small muted" href="#/focus">${esc(t('home_todo_none'))}</a>`}</div>`;
 }
+/* Số thành viên (số tài khoản đã đăng ký) hiện ở Tổng quan, kể cả khách chưa đăng nhập. Đọc 1 tài liệu công khai site_stats/members do admin cập nhật (admin.js → syncMemberCount). */
+let memCount = null, memCountP = null;
+const memCountPill = () => {
+  if (memCount === null && !memCountP && !DEMO && !CONFIG_MISSING) memCountP = db.collection('site_stats').doc('members').get().then(d => { const n = d.exists ? +d.data().n : 0; memCount = n > 0 ? n : 0; if (route.name === 'home') render(true); }).catch(() => { memCount = 0; });
+  const n = DEMO ? 128 : memCount;
+  return n > 0 ? `<div class="mem-pill"><span class="grp-hero-pill">${ic('users', 'sm')} ${esc(t('home_members', { n:n.toLocaleString(state.lang) }))}</span></div>` : '';
+};
+(function(){
+  const G = {
+    en:{ home_members:"{n} members have joined" }, vi:{ home_members:"{n} thành viên đã tham gia" }, ja:{ home_members:"{n} 人が参加中" }, ko:{ home_members:"{n}명이 함께하고 있어요" },
+    zh:{ home_members:"已有 {n} 位成员加入" }, fr:{ home_members:"{n} membres nous ont rejoints" }, es:{ home_members:"{n} miembros se han unido" }, hi:{ home_members:"{n} सदस्य जुड़ चुके हैं" }
+  };
+  Object.keys(G).forEach(l => { I18N[l] = I18N[l] || {}; Object.keys(G[l]).forEach(k => { if (I18N[l][k] === undefined) I18N[l][k] = G[l][k]; }); });
+})();
 PAGES.home = function(){
   const hs = branding.homeSections || {}, on = k => hs[k] !== false, nowUser = DT.now().setZone(userTZ), hr = nowUser.hour;
   const hello = t(hr < 12 ? 'hello_m' : hr < 18 ? 'hello_a' : 'hello_e') + (state.user ? ', ' + displayName() : '');
@@ -136,7 +150,7 @@ PAGES.home = function(){
       <h1 ${cms('home_title')}>${esc(ctext('home_title'))}</h1>
       <p class="lead" ${cms('home_sub')}>${esc(ctext('home_sub'))}</p>
       <div class="cta"><a class="btn primary lg" href="#/watch">${ic('play', 'sm')} ${esc(t('btn_watch_live'))}</a><a class="btn secondary lg" href="#/schedule">${ic('calendar', 'sm')} ${esc(t('btn_see_schedule'))}</a></div>
-      ${branding.groupOn === true ? '<div class="grp-hero" id="grp-hero"></div>' : ''}<div class="clock mt" data-clock>--:--:--</div></div>
+      ${branding.groupOn === true ? '<div class="grp-hero" id="grp-hero"></div>' : ''}${memCountPill()}<div class="clock mt" data-clock>--:--:--</div></div>
       <div class="next-card" id="next-card"><span class="live-pill" style="padding:5px 8px"><i></i></span><div><small></small><b>—</b></div></div></section>`;
   if (branding.groupOn === true) html += `<section class="card pad grp grp-home mt" id="grp-home"><div class="card-h"><h2>${ic('users', 'sm')} ${esc(t('grp_title'))}</h2></div><p class="muted small">${esc(t('loading'))}</p></section>`;   // ai đang học: nằm ngay dưới khối chào
   if (html) html += trialNudge();
@@ -1104,99 +1118,6 @@ PAGES.gear = function(){
 };
 ACTIONS.gearCat = el => { gearFilter = el.dataset.c || ''; render(true); };
 /* =========================================================
-   THÀNH VIÊN — danh sách người đã tạo tài khoản
-   Mỗi tài khoản tự ghi một tài liệu công khai nhỏ members/<uid> = { n:tên hiển thị, j:ngày tạo tài khoản YYYY-MM-DD, s:chuỗi Hành trình trăng, c:đang là Người đồng hành, t:lúc ghi }.
-   Không bao giờ ghi email. Chưa đặt tên hiển thị (tên chỉ là phần trước @ của email) thì để trống và hiện "Thành viên ẩn danh".
-   Chỉ người đã đăng nhập mới xem được (firestore.rules). Ai muốn ẩn thì tắt "Hiện tôi trong danh sách": tài liệu của họ bị xoá.
-   Ghi lại tối đa 1 lần mỗi ngày (hoặc khi tên / chuỗi / huy hiệu đổi) để danh sách luôn mới mà không tốn lượt ghi.
-   ========================================================= */
-let MEMS = null, memAt = 0, memBusy = false, memErr = false, memQ = '', memSort = 'new';
-const memName = () => {
-  const u = state.user; if (!u) return '';
-  const n = String(profile.displayName || u.displayName || '').trim(), local = (u.email || '').split('@')[0];
-  return n && n.toLowerCase() !== local.toLowerCase() ? n.slice(0, 40) : '';     // tên mặc định = phần đầu email → không công khai
-};
-const memJoin = () => { try { return new Date(state.user.metadata.creationTime).toISOString().slice(0, 10); } catch (e) { return DT.now().toISODate(); } };
-function memberSync(){
-  if (DEMO || CONFIG_MISSING || !state.user || !state.profileReady) return;
-  const uid = state.user.uid, ref = db.collection('members').doc(uid), key = 'memsig_' + uid;
-  if (profile.memHide === true) {
-    if (store.get(key, '') !== 'hidden') ref.delete().then(() => { store.set(key, 'hidden'); memDrop(uid); }).catch(e => console.warn('member hide', e.code));
-    return;
-  }
-  const md = typeof moonData === 'function' ? moonData() : null;
-  const data = { n:memName(), j:memJoin(), s:md ? Math.min(10000, md.days.length) : 0, c:!!state.companion };
-  const sig = DT.now().toISODate() + JSON.stringify(data);
-  if (store.get(key, '') === sig) return;
-  const put = d => ref.set({ ...d, t:TS() });
-  put(data).catch(e => { if (data.c) return put({ ...data, c:false }); throw e; })      // huy hiệu vừa hết hạn mà máy còn nhớ: ghi lại không có huy hiệu
-    .then(() => { store.set(key, sig); if (route.name === 'members') loadMembers(true); })
-    .catch(e => console.warn('member sync', e.code));
-}
-const memDrop = uid => { if (MEMS) { MEMS = MEMS.filter(m => m.id !== uid); if (route.name === 'members') render(true); } };
-async function loadMembers(force){
-  if (DEMO && !MEMS) { const now = Date.now(); MEMS = [['demo', 'Demo', '2026-11-10', 5, false], ['a1', 'Minh Anh', '2026-11-02', 21, true], ['a2', 'Lan', '2026-10-18', 0, false], ['a3', '', '2026-09-30', 3, false], ['a4', 'Hoàng', '2026-08-12', 60, true], ['a5', 'Thảo Vy', '2026-07-01', 9, false]].map(([id, n, j, s, c]) => ({ id, n, j, s, c, t:now })); memAt = now; return; }   // ?demo=1: dữ liệu mẫu
-  if (memBusy || DEMO || CONFIG_MISSING || !state.user) return;
-  if (!force && MEMS && Date.now() - memAt < 5 * 60e3) return;
-  memBusy = true;
-  try { const s = await db.collection('members').orderBy('j', 'desc').limit(3000).get(); MEMS = s.docs.map(d => ({ id:d.id, ...d.data() })); memAt = Date.now(); memErr = false; }
-  catch (e) { console.warn('members', e.code); memErr = true; if (!MEMS) MEMS = []; }
-  memBusy = false;
-  if (route.name === 'members') render(true);
-}
-const memStreak = m => (+m.s > 0 && m.t && tsMs(m.t) > Date.now() - 2 * 86400e3) ? +m.s : 0;   // lâu không ghé thì chuỗi coi như đã đứt
-const memHue = id => { let h = 0; for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) % 360; return h; };
-function memCard(m){
-  const me = state.user && m.id === state.user.uid, name = m.n || t('mem_anon'), sk = memStreak(m), d = DT.fromISO(String(m.j || ''));
-  return `<div class="card mem-card${me ? ' me' : ''}"><span class="avatar mem-av" style="--h:${memHue(m.id)}">${esc(m.n ? m.n.slice(0, 1).toUpperCase() : '?')}</span>
-    <div class="mem-tx"><b class="mem-n${m.n ? '' : ' anon'}">${esc(name)}${m.c ? `<span class="nbadge" title="${esc(t('comp_badge'))}">${ic('moon', 'sm')}</span>` : ''}${me ? ` <span class="badge">${esc(t('mem_you'))}</span>` : ''}</b>
-    <span class="small muted">${d.isValid ? esc(t('mem_joined', { d:d.toFormat('dd/MM/yyyy') })) : ''}</span>${sk ? `<span class="mem-sk">${ic('moon', 'sm')} ${esc(t('mem_streak', { n:sk }))}</span>` : ''}</div></div>`;
-}
-function memListHTML(){
-  const q = memQ.trim().toLowerCase(), list = (MEMS || []).filter(m => !q || String(m.n || t('mem_anon')).toLowerCase().includes(q));
-  if (memSort === 'streak') list.sort((a, b) => memStreak(b) - memStreak(a) || String(b.j).localeCompare(String(a.j)));
-  else if (memSort === 'name') list.sort((a, b) => (!a.n) - (!b.n) || String(a.n || '').localeCompare(String(b.n || ''), state.lang));
-  if (!list.length) return emptyBox('users', t(q ? 'mem_none' : 'mem_empty'), '');
-  return `<div class="grid g3 mem-grid">${list.map(memCard).join('')}</div>`;
-}
-PAGES.members = function(){
-  const hd = head('mem_title', 'mem_sub', '', 'gaze', 4);
-  if (!state.user) return page(`${hd}<div class="auth-wrap lock-wrap"><div class="lock-note">${ic('users')}<div><b>${esc(t('mem_login'))}</b><p class="small muted">${esc(t('mem_login_sub'))}</p></div></div>${authCard(authTab === 'signin' ? t('signin') : t('signup'), t('lock_note'), false)}</div>`);
-  loadMembers();
-  const hidden = profile.memHide === true, anon = !hidden && !memName();
-  const sorts = [['new', 'mem_sort_new'], ['streak', 'mem_sort_streak'], ['name', 'mem_sort_name']];
-  page(`${hd}
-    <section class="card pad mem-me"><div class="switch" style="margin-top:0"><span><b>${esc(t('mem_show'))}</b><br><span class="small muted" style="font-weight:400">${esc(t('mem_show_note'))}</span></span><input type="checkbox" data-change="memShow" ${hidden ? '' : 'checked'} ${state.profileReady ? '' : 'disabled'}></div>
-      ${anon ? `<p class="small muted mt-s">${ic('info', 'sm')} ${esc(t('mem_anon_tip'))} <a class="link" href="#/account">${esc(t('nav_account'))}</a></p>` : ''}</section>
-    <div class="row between mem-bar"><div class="row" style="gap:10px;flex:1 1 320px;min-width:0"><span class="chip">${ic('users', 'sm')} ${esc(MEMS ? t('mem_count', { n:MEMS.length }) : t('loading'))}</span>
-      <input class="input" style="max-width:240px" id="mem-q" data-input="memQ" placeholder="${esc(t('search'))}" value="${esc(memQ)}" aria-label="${esc(t('search'))}"></div>
-      <div class="seg" role="group" aria-label="${esc(t('mem_sort'))}">${sorts.map(([k, l]) => `<button type="button" class="${memSort === k ? 'on' : ''}" data-act="memSort" data-v="${k}" aria-pressed="${memSort === k}">${esc(t(l))}</button>`).join('')}</div></div>
-    ${memErr ? `<div class="banner">${ic('info', 'sm')} <span style="flex:1">${esc(t('mem_err'))}</span><button type="button" class="btn secondary sm" data-act="memReload">${esc(t('mem_retry'))}</button></div>` : ''}
-    <div id="mem-list">${MEMS ? memListHTML() : `<p class="muted">${esc(t('loading'))}</p>`}</div>`);
-};
-ACTIONS.memSort = el => { memSort = el.dataset.v || 'new'; render(true); };
-ACTIONS.memReload = () => loadMembers(true);
-CHANGES.memShow = async el => {
-  const hide = !el.checked; el.disabled = true; profile.memHide = hide;
-  try { if (!DEMO) await db.collection('users').doc(state.user.uid).set({ memHide:hide }, { merge:true }); store.set('memsig_' + state.user.uid, ''); memberSync(); toast(t('saved')); }
-  catch (e) { profile.memHide = !hide; toast(t('err_generic') + (e.code || e.message)); }
-  render(true);
-};
-document.addEventListener('input', e => { if (e.target.dataset && e.target.dataset.input === 'memQ') { memQ = e.target.value; const l = $('mem-list'); if (l && MEMS) l.innerHTML = memListHTML(); } });
-(function(){
-  const G = {
-    en:{ nav_members:"Members", mem_title:"Members", mem_sub:"Everyone who has joined Ép Study Room", mem_login:"Sign in to see members", mem_login_sub:"The member list is only visible to people with an account.", mem_count:"{n} members", mem_sort:"Sort", mem_sort_new:"Newest", mem_sort_streak:"Moon streak", mem_sort_name:"Name A–Z", mem_show:"Show me in the member list", mem_show_note:"Only your display name, join date and Moon Journey streak are shown. Your email is never shown.", mem_anon:"Anonymous member", mem_anon_tip:"You have no display name yet, so you appear as an anonymous member. Set one on your account page.", mem_joined:"Joined {d}", mem_streak:"{n}-day moon streak", mem_you:"You", mem_empty:"No members in the list yet.", mem_none:"No members match your search.", mem_err:"Couldn't load the member list.", mem_retry:"Try again" },
-    vi:{ nav_members:"Thành viên", mem_title:"Thành viên", mem_sub:"Những người bạn đã cùng tham gia Ép Study Room", mem_login:"Đăng nhập để xem thành viên", mem_login_sub:"Danh sách thành viên chỉ hiện cho người đã có tài khoản.", mem_count:"{n} thành viên", mem_sort:"Sắp xếp", mem_sort_new:"Mới tham gia", mem_sort_streak:"Chuỗi trăng", mem_sort_name:"Tên A–Z", mem_show:"Hiện tôi trong danh sách thành viên", mem_show_note:"Chỉ hiện tên hiển thị, ngày tham gia và chuỗi Hành trình trăng. Email không bao giờ được hiện.", mem_anon:"Thành viên ẩn danh", mem_anon_tip:"Bạn chưa đặt tên hiển thị nên đang hiện là thành viên ẩn danh. Đặt tên ở trang", mem_joined:"Tham gia {d}", mem_streak:"Chuỗi trăng {n} ngày", mem_you:"Bạn", mem_empty:"Chưa có thành viên nào trong danh sách.", mem_none:"Không tìm thấy thành viên nào.", mem_err:"Chưa tải được danh sách thành viên.", mem_retry:"Thử lại" },
-    ja:{ nav_members:"メンバー", mem_title:"メンバー", mem_sub:"Ép Study Room に参加したみなさん", mem_login:"ログインしてメンバーを見る", mem_login_sub:"メンバー一覧はアカウントをお持ちの方だけに表示されます。", mem_count:"{n} 人のメンバー", mem_sort:"並び替え", mem_sort_new:"新しい順", mem_sort_streak:"月の連続日数", mem_sort_name:"名前順", mem_show:"メンバー一覧に自分を表示する", mem_show_note:"表示されるのは表示名、参加日、ムーンジャーニーの連続日数だけです。メールアドレスは表示されません。", mem_anon:"匿名メンバー", mem_anon_tip:"表示名が未設定のため、匿名メンバーとして表示されています。アカウントページで設定できます。", mem_joined:"{d} に参加", mem_streak:"月の連続 {n} 日", mem_you:"あなた", mem_empty:"まだメンバーがいません。", mem_none:"一致するメンバーがいません。", mem_err:"メンバー一覧を読み込めませんでした。", mem_retry:"再試行" },
-    ko:{ nav_members:"멤버", mem_title:"멤버", mem_sub:"Ép Study Room에 함께한 모든 분", mem_login:"로그인하고 멤버 보기", mem_login_sub:"멤버 목록은 계정이 있는 분에게만 보여요.", mem_count:"멤버 {n}명", mem_sort:"정렬", mem_sort_new:"최신 가입", mem_sort_streak:"달 연속 기록", mem_sort_name:"이름순", mem_show:"멤버 목록에 나를 표시", mem_show_note:"표시 이름, 가입일, 문 저니 연속 기록만 보여요. 이메일은 절대 표시되지 않아요.", mem_anon:"익명 멤버", mem_anon_tip:"아직 표시 이름이 없어 익명 멤버로 보여요. 계정 페이지에서 설정하세요.", mem_joined:"{d} 가입", mem_streak:"달 연속 {n}일", mem_you:"나", mem_empty:"아직 목록에 멤버가 없어요.", mem_none:"검색과 일치하는 멤버가 없어요.", mem_err:"멤버 목록을 불러오지 못했어요.", mem_retry:"다시 시도" },
-    zh:{ nav_members:"成员", mem_title:"成员", mem_sub:"所有加入 Ép Study Room 的伙伴", mem_login:"登录后查看成员", mem_login_sub:"成员列表仅对已注册账号的人可见。", mem_count:"{n} 位成员", mem_sort:"排序", mem_sort_new:"最新加入", mem_sort_streak:"月亮连续天数", mem_sort_name:"名称 A–Z", mem_show:"在成员列表中显示我", mem_show_note:"只显示昵称、加入日期和月亮旅程连续天数，绝不显示邮箱。", mem_anon:"匿名成员", mem_anon_tip:"你还没有设置昵称，所以显示为匿名成员。可在账号页面设置。", mem_joined:"{d} 加入", mem_streak:"月亮连续 {n} 天", mem_you:"你", mem_empty:"列表中还没有成员。", mem_none:"没有找到匹配的成员。", mem_err:"无法加载成员列表。", mem_retry:"重试" },
-    fr:{ nav_members:"Membres", mem_title:"Membres", mem_sub:"Toutes les personnes qui ont rejoint Ép Study Room", mem_login:"Connectez-vous pour voir les membres", mem_login_sub:"La liste des membres n'est visible que par les personnes ayant un compte.", mem_count:"{n} membres", mem_sort:"Trier", mem_sort_new:"Plus récents", mem_sort_streak:"Série lunaire", mem_sort_name:"Nom A–Z", mem_show:"M'afficher dans la liste des membres", mem_show_note:"Seuls votre nom affiché, votre date d'inscription et votre série du Voyage lunaire sont visibles. Votre e-mail n'est jamais affiché.", mem_anon:"Membre anonyme", mem_anon_tip:"Vous n'avez pas encore de nom affiché, vous apparaissez donc comme membre anonyme. Choisissez-en un sur la page de votre compte.", mem_joined:"Inscrit le {d}", mem_streak:"Série lunaire de {n} jours", mem_you:"Vous", mem_empty:"Aucun membre dans la liste pour l'instant.", mem_none:"Aucun membre ne correspond à votre recherche.", mem_err:"Impossible de charger la liste des membres.", mem_retry:"Réessayer" },
-    es:{ nav_members:"Miembros", mem_title:"Miembros", mem_sub:"Todas las personas que se han unido a Ép Study Room", mem_login:"Inicia sesión para ver a los miembros", mem_login_sub:"La lista de miembros solo es visible para quienes tienen una cuenta.", mem_count:"{n} miembros", mem_sort:"Ordenar", mem_sort_new:"Más recientes", mem_sort_streak:"Racha lunar", mem_sort_name:"Nombre A–Z", mem_show:"Mostrarme en la lista de miembros", mem_show_note:"Solo se muestran tu nombre visible, la fecha en que te uniste y tu racha del Viaje lunar. Tu correo nunca se muestra.", mem_anon:"Miembro anónimo", mem_anon_tip:"Aún no tienes nombre visible, así que apareces como miembro anónimo. Ponte uno en la página de tu cuenta.", mem_joined:"Se unió el {d}", mem_streak:"Racha lunar de {n} días", mem_you:"Tú", mem_empty:"Aún no hay miembros en la lista.", mem_none:"Ningún miembro coincide con tu búsqueda.", mem_err:"No se pudo cargar la lista de miembros.", mem_retry:"Reintentar" },
-    hi:{ nav_members:"सदस्य", mem_title:"सदस्य", mem_sub:"Ép Study Room से जुड़े सभी साथी", mem_login:"सदस्य देखने के लिए साइन इन करें", mem_login_sub:"सदस्य सूची सिर्फ़ खाते वाले लोगों को दिखती है।", mem_count:"{n} सदस्य", mem_sort:"क्रम", mem_sort_new:"नए सदस्य", mem_sort_streak:"चंद्र स्ट्रीक", mem_sort_name:"नाम A–Z", mem_show:"सदस्य सूची में मुझे दिखाएँ", mem_show_note:"सिर्फ़ आपका नाम, जुड़ने की तारीख और चंद्रमा यात्रा की स्ट्रीक दिखती है। आपका ईमेल कभी नहीं दिखता।", mem_anon:"गुमनाम सदस्य", mem_anon_tip:"आपने अभी नाम नहीं रखा है, इसलिए आप गुमनाम सदस्य के रूप में दिखते हैं। खाता पेज पर नाम रखें।", mem_joined:"{d} को जुड़े", mem_streak:"{n} दिन की चंद्र स्ट्रीक", mem_you:"आप", mem_empty:"सूची में अभी कोई सदस्य नहीं है।", mem_none:"खोज से मेल खाता कोई सदस्य नहीं मिला।", mem_err:"सदस्य सूची लोड नहीं हो सकी।", mem_retry:"फिर कोशिश करें" }
-  };
-  Object.keys(G).forEach(l => { I18N[l] = I18N[l] || {}; Object.keys(G[l]).forEach(k => { if (I18N[l][k] === undefined) I18N[l][k] = G[l][k]; }); });
-})();
-/* =========================================================
    ACCOUNT (đăng nhập / đăng ký / hồ sơ / đơn hàng / thư viện)
    ========================================================= */
 let authTab = 'signin', myOrders = null;
@@ -1208,7 +1129,7 @@ const authCard = (title, sub, strip = true) => `<div class="card">${strip ? `<di
         <button class="btn primary lg" type="submit">${esc(authTab === 'signin' ? t('signin') : t('signup'))}</button><div class="small" style="color:var(--danger)" id="au-err"></div>
         ${authTab === 'signin' ? `<button type="button" class="link" style="align-self:center" data-act="forgot">${esc(t('forgot'))}</button>` : ''}</form></div></div>`;
 // mục đang bị khoá với khách chưa đăng nhập: vẫn hiện tiêu đề + tranh của mục đó, kèm lời mời đăng nhập / tạo tài khoản
-const LOCK_HEAD = { home:['nav_home', null, 'moonwalk'], schedule:['sch_title', 'sch_sub', 'curl'], watch:['watch_title', 'watch_sub', 'gaze'], focus:['focus_title', 'focus_sub', 'umbrella'], blog:['blog_title', 'blog_sub', 'book'], club:['club_title', 'club_sub', 'gaze'], planner:['pl_title', 'pl_sub', 'moonwalk'], members:['mem_title', 'mem_sub', 'gaze'], shop:['shop_title', 'shop_sub', 'lantern'], gear:['gear_title', 'gear_sub', 'lantern'], donate:['donate_title', 'donate_sub', 'lantern'], about:['about_title', null, 'moonwalk'] };
+const LOCK_HEAD = { home:['nav_home', null, 'moonwalk'], schedule:['sch_title', 'sch_sub', 'curl'], watch:['watch_title', 'watch_sub', 'gaze'], focus:['focus_title', 'focus_sub', 'umbrella'], blog:['blog_title', 'blog_sub', 'book'], club:['club_title', 'club_sub', 'gaze'], planner:['pl_title', 'pl_sub', 'moonwalk'], shop:['shop_title', 'shop_sub', 'lantern'], gear:['gear_title', 'gear_sub', 'lantern'], donate:['donate_title', 'donate_sub', 'lantern'], about:['about_title', null, 'moonwalk'] };
 PAGES.locked = function(){
   const h = LOCK_HEAD[route.name] || LOCK_HEAD.home;
   page(`${head(h[0], h[1], '', h[2], 3)}<div class="auth-wrap lock-wrap"><div class="lock-note">${ic('lock')}<div><b>${esc(t('lock_title'))}</b><p class="small muted">${esc(t('lock_sub'))}</p></div></div>${authCard(authTab === 'signin' ? t('signin') : t('signup'), t('lock_note'), false)}</div>`);
@@ -1245,7 +1166,7 @@ FORMS.signup = async () => {
 };
 FORMS.profile = async () => {
   const name = $('pf-name').value.trim(); profile.displayName = name;
-  try { await state.user.updateProfile({ displayName:name }); if (!DEMO) await db.collection('users').doc(state.user.uid).set({ displayName:name }, { merge:true }); memberSync(); toast(t('saved')); render(true); } catch (e) { toast(e.message); }
+  try { await state.user.updateProfile({ displayName:name }); if (!DEMO) await db.collection('users').doc(state.user.uid).set({ displayName:name }, { merge:true }); toast(t('saved')); render(true); } catch (e) { toast(e.message); }
 };
 FORMS.challenge = async () => {
   const btn = $('ch-btn'), codename = $('ch-name').value.trim(), email = $('ch-email').value.trim().toLowerCase();
@@ -1358,7 +1279,7 @@ async function moonSave(m){
   const prev = profile.moon;
   profile.moon = m;
   let ok = true;
-  if (!DEMO) try { await db.collection('users').doc(state.user.uid).set({ moon:m }, { merge:true }); store.set('moon_' + state.user.uid, m); memberSync(); }
+  if (!DEMO) try { await db.collection('users').doc(state.user.uid).set({ moon:m }, { merge:true }); store.set('moon_' + state.user.uid, m); }
   catch (e) { ok = false; profile.moon = prev; console.warn('moon save', e.code); toast(t('err_generic') + (e.code || e.message)); }   // lưu lỗi thì trả lại như cũ và báo cho người dùng
   render(true);
   return ok;
