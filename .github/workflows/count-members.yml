@@ -1,0 +1,31 @@
+# Cập nhật số thành viên hiện ở Tổng quan (scripts/count-members.mjs): đếm tài khoản đã đăng ký rồi ghi site_stats/members.
+# Dùng chung secret FIREBASE_SERVICE_ACCOUNT với thông báo đẩy và sao lưu.
+name: Cập nhật số thành viên
+
+on:
+  schedule:
+    - cron: '41 */6 * * *'       # mỗi 6 giờ
+  workflow_dispatch:              # chạy tay: GitHub → Actions → "Cập nhật số thành viên" → Run workflow
+
+concurrency:
+  group: count-members
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  count:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: scripts
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Đếm và ghi
+        run: node scripts/count-members.mjs
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
