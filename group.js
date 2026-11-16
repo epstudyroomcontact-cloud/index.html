@@ -26,7 +26,7 @@ Object.assign(I18N.en, {
   grp_strip_join:'Join the study group to see who is studying and your weekly rank', grp_strip_n:'{n} studying now', grp_strip_0:'Nobody studying yet', grp_rank:'Rank #{r}', grp_rank_none:'No hours this week yet', grp_home_sub:'See who is studying right now.', grp_home_join:'Join the group in the Focus room', grp_home_open:'Open the study group', grp_home_peek:'See how it works', grp_home_up:'Companions can see who is studying right now, with live timers and a weekly leaderboard.',
   grp_trend_up:'▲ {n} today', grp_trend_dn:'▼ {n} today', grp_climb_next:'{m} more to pass {n}', grp_climb_lead:'You lead {n} by {m}', grp_climb_alone:'You are the only one on the board so far', grp_moved:'You moved up to #{r} this week!', grp_top:'You are #1 this week!',
   grp_prev:'Last week', grp_prev_you:'You were #{r} · {t}',
-  grp_live_note:'Time counts from the start of the session, breaks included. The weekly board only counts focus minutes.', grp_leave_moon:"Please don't leave~ Moon will miss you so much 🥺", grp_stay:'Stay with Moon', grp_pub:'{m} joined this week · {n} studying now', grp_pub_m:'{m} joined this week', grp_more:'Show everyone ({n})', grp_less:'Show top {n} only', grp_live0:'Studying now · no minutes logged yet this week',
+  grp_live_note:'Time counts from the start of the session, breaks included. The weekly board only counts focus minutes.', grp_leave_moon:"Please don't leave~ Moon will miss you so much 🥺", grp_stay:'Stay with Moon', grp_pub:'{m} joined the study group · {n} studying now', grp_pub_m:'{m} joined the study group', grp_more:'Show everyone ({n})', grp_less:'Show top {n} only', grp_live0:'Studying now · no minutes logged yet this week',
   grp_err:'Could not load the group. Try again in a moment.', grp_err_rules:'The group is not ready yet. The site owner still needs to publish the latest security rules.', grp_err_quota:'The group is resting for today. Please come back tomorrow.'
 });
 Object.assign(I18N.vi, {
@@ -43,7 +43,7 @@ Object.assign(I18N.vi, {
   grp_strip_join:'Tham gia nhóm học để xem ai đang học và thứ hạng tuần của bạn', grp_strip_n:'{n} người đang học', grp_strip_0:'Chưa ai đang học', grp_rank:'Hạng {r}', grp_rank_none:'Tuần này chưa có giờ học', grp_home_sub:'Xem ai đang học ngay lúc này.', grp_home_join:'Tham gia nhóm ở Phòng tập trung', grp_home_open:'Mở nhóm học', grp_home_peek:'Xem thử cách hoạt động', grp_home_up:'Người đồng hành xem được ai đang học ngay lúc này, kèm đồng hồ trực tiếp và bảng xếp hạng tuần.',
   grp_trend_up:'▲ {n} hạng hôm nay', grp_trend_dn:'▼ {n} hạng hôm nay', grp_climb_next:'Học thêm {m} để vượt {n}', grp_climb_lead:'Bạn hơn {n} {m}', grp_climb_alone:'Hiện mới chỉ có bạn trên bảng', grp_moved:'Bạn vừa lên hạng {r} tuần này!', grp_top:'Bạn đang đứng đầu tuần này!',
   grp_prev:'Tuần trước', grp_prev_you:'Bạn đã đứng hạng {r} · {t}',
-  grp_live_note:'Thời gian tính từ lúc bắt đầu phiên, gồm cả giờ nghỉ. Bảng tuần chỉ tính phút tập trung.', grp_leave_moon:'Đừng rời đi mà~ Moon sẽ nhớ bạn lắm đó 🥺', grp_stay:'Ở lại với Moon', grp_pub:'{m} người đã tham gia tuần này · {n} đang học', grp_pub_m:'{m} người đã tham gia tuần này', grp_more:'Xem tất cả ({n} người)', grp_less:'Chỉ xem top {n}', grp_live0:'Đang học · tuần này chưa có phút nào được ghi',
+  grp_live_note:'Thời gian tính từ lúc bắt đầu phiên, gồm cả giờ nghỉ. Bảng tuần chỉ tính phút tập trung.', grp_leave_moon:'Đừng rời đi mà~ Moon sẽ nhớ bạn lắm đó 🥺', grp_stay:'Ở lại với Moon', grp_pub:'{m} người đã tham gia nhóm học · {n} đang học', grp_pub_m:'{m} người đã tham gia nhóm học', grp_more:'Xem tất cả ({n} người)', grp_less:'Chỉ xem top {n}', grp_live0:'Đang học · tuần này chưa có phút nào được ghi',
   grp_err:'Chưa tải được nhóm. Bạn thử lại sau một lát nhé.', grp_err_rules:'Nhóm chưa sẵn sàng: chủ web cần dán luật bảo mật mới nhất lên Firebase.', grp_err_quota:'Hôm nay nhóm đang nghỉ. Bạn quay lại vào ngày mai nhé.'
 });
 /* Bản dịch cho khách chưa là Người đồng hành (lời mời ở Phòng tập trung và Tổng quan) bằng hi / ja / ko / zh / fr / es; phần dành cho thành viên nhóm (Y) cũng có đủ 8 ngôn ngữ; thiếu khoá nào thì tự dùng tiếng Anh. */
@@ -66,12 +66,12 @@ Object.assign(I18N.vi, {
   };
   Object.keys(X).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], Y[l], X[l]); });   // ghi đè: các bản dịch của khách chưa là Người đồng hành nằm ở đây
   const Z = {   // các khoá bổ sung (rời nhóm có Moon nũng nịu, số người tham gia, xem tất cả, ghi chú đồng hồ) cho 6 ngôn ngữ còn lại
-    hi:{ grp_leave_moon:"प्लीज़ मत जाओ~ Moon को तुम्हारी बहुत याद आएगी 🥺", grp_stay:"Moon के साथ रहें", grp_pub:"इस हफ़्ते {m} लोग जुड़े · {n} अभी पढ़ रहे हैं", grp_pub_m:"इस हफ़्ते {m} लोग जुड़े", grp_more:"सभी देखें ({n})", grp_less:"सिर्फ़ टॉप {n} देखें", grp_live0:"अभी पढ़ रहे हैं · इस हफ़्ते अभी कोई मिनट दर्ज नहीं", grp_live_note:"समय सत्र की शुरुआत से गिना जाता है, ब्रेक सहित। साप्ताहिक बोर्ड सिर्फ़ फ़ोकस मिनट गिनता है।" },
-    ja:{ grp_leave_moon:"行かないで〜 Moonはさみしいよ 🥺", grp_stay:"Moonといっしょにいる", grp_pub:"今週{m}人が参加 · {n}人が勉強中", grp_pub_m:"今週{m}人が参加", grp_more:"全員を見る({n})", grp_less:"上位{n}人だけ表示", grp_live0:"勉強中 · 今週はまだ記録された時間がありません", grp_live_note:"時間はセッション開始からの経過で、休憩も含みます。週間ボードは集中時間だけを数えます。" },
-    ko:{ grp_leave_moon:"가지 마요~ Moon이 너무 보고 싶을 거예요 🥺", grp_stay:"Moon이랑 있을게요", grp_pub:"이번 주 {m}명 참여 · {n}명 공부 중", grp_pub_m:"이번 주 {m}명 참여", grp_more:"모두 보기 ({n})", grp_less:"상위 {n}명만 보기", grp_live0:"공부 중 · 이번 주 기록된 시간이 아직 없어요", grp_live_note:"시간은 세션 시작부터 계산하며 휴식도 포함돼요. 주간 순위는 집중 시간만 세요." },
-    zh:{ grp_leave_moon:"别走嘛~ Moon 会很想你的 🥺", grp_stay:"留下陪 Moon", grp_pub:"本周已有 {m} 人加入 · {n} 人正在学习", grp_pub_m:"本周已有 {m} 人加入", grp_more:"查看全部({n})", grp_less:"只看前 {n} 名", grp_live0:"正在学习 · 本周还没有记录时长", grp_live_note:"时间从本次学习开始计算,包含休息。每周排行榜只统计专注时长。" },
-    fr:{ grp_leave_moon:"Ne pars pas~ Moon va tellement te manquer 🥺", grp_stay:"Rester avec Moon", grp_pub:"{m} personnes ont rejoint cette semaine · {n} étudient en ce moment", grp_pub_m:"{m} personnes ont rejoint cette semaine", grp_more:"Voir tout le monde ({n})", grp_less:"Voir seulement le top {n}", grp_live0:"En train d'étudier · aucune minute enregistrée cette semaine", grp_live_note:"Le temps compte depuis le début de la session, pauses comprises. Le classement hebdomadaire ne compte que la concentration." },
-    es:{ grp_leave_moon:"No te vayas~ Moon te va a extrañar muchísimo 🥺", grp_stay:"Quedarme con Moon", grp_pub:"{m} personas se unieron esta semana · {n} estudiando ahora", grp_pub_m:"{m} personas se unieron esta semana", grp_more:"Ver a todos ({n})", grp_less:"Ver solo el top {n}", grp_live0:"Estudiando ahora · aún sin minutos esta semana", grp_live_note:"El tiempo cuenta desde el inicio de la sesión, descansos incluidos. El ranking semanal solo cuenta minutos de enfoque." }
+    hi:{ grp_leave_moon:"प्लीज़ मत जाओ~ Moon को तुम्हारी बहुत याद आएगी 🥺", grp_stay:"Moon के साथ रहें", grp_pub:"{m} लोग स्टडी ग्रुप से जुड़े · {n} अभी पढ़ रहे हैं", grp_pub_m:"{m} लोग स्टडी ग्रुप से जुड़े", grp_more:"सभी देखें ({n})", grp_less:"सिर्फ़ टॉप {n} देखें", grp_live0:"अभी पढ़ रहे हैं · इस हफ़्ते अभी कोई मिनट दर्ज नहीं", grp_live_note:"समय सत्र की शुरुआत से गिना जाता है, ब्रेक सहित। साप्ताहिक बोर्ड सिर्फ़ फ़ोकस मिनट गिनता है।" },
+    ja:{ grp_leave_moon:"行かないで〜 Moonはさみしいよ 🥺", grp_stay:"Moonといっしょにいる", grp_pub:"{m}人が勉強グループに参加 · {n}人が勉強中", grp_pub_m:"{m}人が勉強グループに参加", grp_more:"全員を見る({n})", grp_less:"上位{n}人だけ表示", grp_live0:"勉強中 · 今週はまだ記録された時間がありません", grp_live_note:"時間はセッション開始からの経過で、休憩も含みます。週間ボードは集中時間だけを数えます。" },
+    ko:{ grp_leave_moon:"가지 마요~ Moon이 너무 보고 싶을 거예요 🥺", grp_stay:"Moon이랑 있을게요", grp_pub:"{m}명이 스터디 그룹에 참여 · {n}명 공부 중", grp_pub_m:"{m}명이 스터디 그룹에 참여", grp_more:"모두 보기 ({n})", grp_less:"상위 {n}명만 보기", grp_live0:"공부 중 · 이번 주 기록된 시간이 아직 없어요", grp_live_note:"시간은 세션 시작부터 계산하며 휴식도 포함돼요. 주간 순위는 집중 시간만 세요." },
+    zh:{ grp_leave_moon:"别走嘛~ Moon 会很想你的 🥺", grp_stay:"留下陪 Moon", grp_pub:"已有 {m} 人加入学习小组 · {n} 人正在学习", grp_pub_m:"已有 {m} 人加入学习小组", grp_more:"查看全部({n})", grp_less:"只看前 {n} 名", grp_live0:"正在学习 · 本周还没有记录时长", grp_live_note:"时间从本次学习开始计算,包含休息。每周排行榜只统计专注时长。" },
+    fr:{ grp_leave_moon:"Ne pars pas~ Moon va tellement te manquer 🥺", grp_stay:"Rester avec Moon", grp_pub:"{m} personnes ont rejoint le groupe d'étude · {n} étudient en ce moment", grp_pub_m:"{m} personnes ont rejoint le groupe d'étude", grp_more:"Voir tout le monde ({n})", grp_less:"Voir seulement le top {n}", grp_live0:"En train d'étudier · aucune minute enregistrée cette semaine", grp_live_note:"Le temps compte depuis le début de la session, pauses comprises. Le classement hebdomadaire ne compte que la concentration." },
+    es:{ grp_leave_moon:"No te vayas~ Moon te va a extrañar muchísimo 🥺", grp_stay:"Quedarme con Moon", grp_pub:"{m} personas se unieron al grupo de estudio · {n} estudiando ahora", grp_pub_m:"{m} personas se unieron al grupo de estudio", grp_more:"Ver a todos ({n})", grp_less:"Ver solo el top {n}", grp_live0:"Estudiando ahora · aún sin minutos esta semana", grp_live_note:"El tiempo cuenta desde el inicio de la sesión, descansos incluidos. El ranking semanal solo cuenta minutos de enfoque." }
   };
   Object.keys(Z).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], Z[l]); });
   const R = {
@@ -98,11 +98,13 @@ Object.assign(I18N.vi, {
   /* Danh sách thành viên giữ qua các tuần (study_roster/all = { m:{ uid:{ n, w:tuần học gần nhất } } }): bảng tuần về trống mỗi thứ Hai nhưng tên người tham gia thì ở lại,
      để thấy ai từng học và đang tụt hạng. Mỗi người tự ghi mục của mình tối đa một lần mỗi tuần; đọc tối đa một lần mỗi 6 giờ rồi lưu trong máy. */
   const rosRef = () => db.collection('study_roster').doc('all');
-  let roster = (store.get('grp_ros', null) || {}).m || {}, rosAt = +(store.get('grp_ros', null) || {}).at || 0, rosBusy = false;
+  let rosOk = false, roster = (store.get('grp_ros', null) || {}).m || {}, rosAt = +(store.get('grp_ros', null) || {}).at || 0, rosBusy = false;
   const rosSave = () => store.set('grp_ros', { at:rosAt, m:roster });
   function rosLoad(){
-    if (rosBusy || DEMO || Date.now() - rosAt < 6 * 3600e3) return; rosBusy = true;
-    rosRef().get().then(d => { const m = d.exists && d.data().m; roster = m && typeof m === 'object' ? m : {}; rosAt = Date.now(); rosSave(); }).catch(() => { rosAt = Date.now() - 5.5 * 3600e3; }).then(() => { rosBusy = false; renderBox(); });   // chưa dán luật mới / offline: thử lại sau 30 phút, bảng vẫn chạy bình thường
+    if (rosBusy || DEMO) return;
+    if (Date.now() - rosAt < 6 * 3600e3) { if (rosAt > 0 && !rosOk && store.get('grp_ros_ok', 0)) { rosOk = true; pushStats(); } return; }   // bản trong máy còn mới (đã tải thành công lần trước)
+    rosBusy = true;
+    rosRef().get().then(d => { const m = d.exists && d.data().m; roster = m && typeof m === 'object' ? m : {}; rosAt = Date.now(); rosOk = true; store.set('grp_ros_ok', 1); rosSave(); pushStats(); }).catch(() => { rosAt = Date.now() - 5.5 * 3600e3; store.set('grp_ros_ok', 0); }).then(() => { rosBusy = false; renderBox(); });   // chưa dán luật mới / offline: thử lại sau 30 phút, bảng vẫn chạy bình thường
   }
   function rosMark(){                    // sau một lần ghi thành công: ghi tên + tuần hiện tại của mình vào danh sách (một lần mỗi tuần / mỗi lần đổi tên)
     const m = me(), id = state.user && state.user.uid; if (!m || !id || DEMO) return;
@@ -202,10 +204,10 @@ Object.assign(I18N.vi, {
      khách đọc đúng 1 lượt khi mở trang rồi lưu trong máy 10 phút, không tải lại liên tục, nên số lượt đọc tăng theo số lượt khách mở web chứ không theo thời gian. */
   const statsRef = () => db.collection('study_stats').doc('current');
   let pub = store.get('grp_pub', null), pubBusy = false;
-  const counts = () => { const ids = new Set([...Object.keys(board), ...liveRows().map(r => r.id)]); return { m:ids.size, n:liveRows().length }; };
-  function pubNums(){ if (on() && known() && loadedWk === wk()) return counts(); return pub && pub.wk === wk() ? { m:pub.m, n:pub.n } : null; }
+  const counts = () => { const ids = new Set([...Object.keys(roster), ...Object.keys(board), ...liveRows().map(r => r.id)]); return { m:ids.size, n:liveRows().length }; };   // m = mọi người từng tham gia (danh sách study_roster giữ qua các tuần + bảng tuần này), không về 0 mỗi thứ Hai
+  function pubNums(){ if (on() && known() && loadedWk === wk()) return counts(); return pub ? { m:pub.m, n:pub.n } : null; }   // tổng số người đã tham gia không phụ thuộc tuần; số người đang học đã tự về 0 nếu số liệu cũ hơn 15 phút
   function pushStats(){
-    if (!on() || !lead()) return; const now = Date.now();   // không cần đã tham gia nhóm: admin / Người đồng hành đang xem nhóm cũng cập nhật số liệu được
+    if (!on() || !lead() || (!rosOk && !DEMO)) return; const now = Date.now();   // chờ danh sách thành viên vừa tải xong, nếu không số ghi lên sẽ thấp hơn thật   // không cần đã tham gia nhóm: admin / Người đồng hành đang xem nhóm cũng cập nhật số liệu được
     if (now - (+store.get('grp_pubw', 0) || 0) < 5 * 60e3) return; store.set('grp_pubw', now);
     const c = counts();
     statsRef().set({ wk:wk(), members:c.m, live:c.n, t:TS() }).catch(() => {});   // bị luật từ chối (có người khác vừa ghi) thì bỏ qua
