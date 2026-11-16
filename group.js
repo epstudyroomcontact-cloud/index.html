@@ -86,14 +86,14 @@ Object.assign(I18N.vi, {
   };   // thành viên ở lại danh sách qua các tuần (người chưa học tuần này, tụt hạng)
   Object.keys(R).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], R[l]); });
   const C = {   // nút cổ vũ
-    en:{ grp_cheer:"Cheer", grp_cheer_tip:"Cheer {n} on", grp_cheered:"Cheered", grp_cheer_got:"{n} new cheer(s) for you! 👏", grp_cheer_max:"You can cheer up to {n} people a week.", grp_cheer_err:"Couldn't send the cheer. Try again." },
-    vi:{ grp_cheer:"Cổ vũ", grp_cheer_tip:"Cổ vũ {n}", grp_cheered:"Đã cổ vũ", grp_cheer_got:"Bạn nhận thêm {n} lượt cổ vũ! 👏", grp_cheer_max:"Mỗi tuần bạn cổ vũ được tối đa {n} người.", grp_cheer_err:"Chưa gửi được cổ vũ, thử lại nhé." },
-    ja:{ grp_cheer:"応援", grp_cheer_tip:"{n}さんを応援", grp_cheered:"応援済み", grp_cheer_got:"新しい応援が{n}件届きました！👏", grp_cheer_max:"応援できるのは週に{n}人までです。", grp_cheer_err:"応援を送れませんでした。もう一度お試しください。" },
-    ko:{ grp_cheer:"응원", grp_cheer_tip:"{n}님 응원하기", grp_cheered:"응원함", grp_cheer_got:"새 응원 {n}개를 받았어요! 👏", grp_cheer_max:"한 주에 최대 {n}명까지 응원할 수 있어요.", grp_cheer_err:"응원을 보내지 못했어요. 다시 시도해 주세요." },
-    zh:{ grp_cheer:"加油", grp_cheer_tip:"为 {n} 加油", grp_cheered:"已加油", grp_cheer_got:"你收到了 {n} 个新的加油！👏", grp_cheer_max:"每周最多可以为 {n} 个人加油。", grp_cheer_err:"加油没有发出去，请再试一次。" },
-    fr:{ grp_cheer:"Encourager", grp_cheer_tip:"Encourager {n}", grp_cheered:"Encouragé", grp_cheer_got:"{n} nouvel(s) encouragement(s) pour vous ! 👏", grp_cheer_max:"Vous pouvez encourager jusqu'à {n} personnes par semaine.", grp_cheer_err:"Impossible d'envoyer l'encouragement. Réessayez." },
-    es:{ grp_cheer:"Animar", grp_cheer_tip:"Animar a {n}", grp_cheered:"Animado", grp_cheer_got:"¡Tienes {n} ánimo(s) nuevo(s)! 👏", grp_cheer_max:"Puedes animar a hasta {n} personas por semana.", grp_cheer_err:"No se pudo enviar el ánimo. Inténtalo de nuevo." },
-    hi:{ grp_cheer:"हौसला बढ़ाएँ", grp_cheer_tip:"{n} का हौसला बढ़ाएँ", grp_cheered:"हौसला बढ़ाया", grp_cheer_got:"आपको {n} नए चीयर मिले! 👏", grp_cheer_max:"हर हफ़्ते आप ज़्यादा से ज़्यादा {n} लोगों का हौसला बढ़ा सकते हैं।", grp_cheer_err:"चीयर नहीं भेज सके। फिर कोशिश करें।" }
+    en:{ grp_cheer_one:"{n} just clapped for you 👏", grp_cheer_many:"{n} and {k} more just clapped for you 👏", grp_cheer:"Cheer", grp_cheer_tip:"Cheer {n} on", grp_cheered:"Cheered", grp_cheer_got:"{n} new cheer(s) for you! 👏", grp_cheer_max:"You can cheer up to {n} people a week.", grp_cheer_err:"Couldn't send the cheer. Try again." },
+    vi:{ grp_cheer_one:"{n} vừa vỗ tay cho bạn 👏", grp_cheer_many:"{n} và {k} người khác vừa vỗ tay cho bạn 👏", grp_cheer:"Cổ vũ", grp_cheer_tip:"Cổ vũ {n}", grp_cheered:"Đã cổ vũ", grp_cheer_got:"Bạn nhận thêm {n} lượt cổ vũ! 👏", grp_cheer_max:"Mỗi tuần bạn cổ vũ được tối đa {n} người.", grp_cheer_err:"Chưa gửi được cổ vũ, thử lại nhé." },
+    ja:{ grp_cheer_one:"{n}さんが拍手を送りました 👏", grp_cheer_many:"{n}さんほか{k}人が拍手を送りました 👏", grp_cheer:"応援", grp_cheer_tip:"{n}さんを応援", grp_cheered:"応援済み", grp_cheer_got:"新しい応援が{n}件届きました！👏", grp_cheer_max:"応援できるのは週に{n}人までです。", grp_cheer_err:"応援を送れませんでした。もう一度お試しください。" },
+    ko:{ grp_cheer_one:"{n}님이 박수를 보냈어요 👏", grp_cheer_many:"{n}님 외 {k}명이 박수를 보냈어요 👏", grp_cheer:"응원", grp_cheer_tip:"{n}님 응원하기", grp_cheered:"응원함", grp_cheer_got:"새 응원 {n}개를 받았어요! 👏", grp_cheer_max:"한 주에 최대 {n}명까지 응원할 수 있어요.", grp_cheer_err:"응원을 보내지 못했어요. 다시 시도해 주세요." },
+    zh:{ grp_cheer_one:"{n} 为你鼓掌了 👏", grp_cheer_many:"{n} 等 {k} 人为你鼓掌了 👏", grp_cheer:"加油", grp_cheer_tip:"为 {n} 加油", grp_cheered:"已加油", grp_cheer_got:"你收到了 {n} 个新的加油！👏", grp_cheer_max:"每周最多可以为 {n} 个人加油。", grp_cheer_err:"加油没有发出去，请再试一次。" },
+    fr:{ grp_cheer_one:"{n} vient de vous applaudir 👏", grp_cheer_many:"{n} et {k} autre(s) viennent de vous applaudir 👏", grp_cheer:"Encourager", grp_cheer_tip:"Encourager {n}", grp_cheered:"Encouragé", grp_cheer_got:"{n} nouvel(s) encouragement(s) pour vous ! 👏", grp_cheer_max:"Vous pouvez encourager jusqu'à {n} personnes par semaine.", grp_cheer_err:"Impossible d'envoyer l'encouragement. Réessayez." },
+    es:{ grp_cheer_one:"{n} acaba de aplaudirte 👏", grp_cheer_many:"{n} y {k} más acaban de aplaudirte 👏", grp_cheer:"Animar", grp_cheer_tip:"Animar a {n}", grp_cheered:"Animado", grp_cheer_got:"¡Tienes {n} ánimo(s) nuevo(s)! 👏", grp_cheer_max:"Puedes animar a hasta {n} personas por semana.", grp_cheer_err:"No se pudo enviar el ánimo. Inténtalo de nuevo." },
+    hi:{ grp_cheer_one:"{n} ने आपके लिए ताली बजाई 👏", grp_cheer_many:"{n} और {k} अन्य ने आपके लिए ताली बजाई 👏", grp_cheer:"हौसला बढ़ाएँ", grp_cheer_tip:"{n} का हौसला बढ़ाएँ", grp_cheered:"हौसला बढ़ाया", grp_cheer_got:"आपको {n} नए चीयर मिले! 👏", grp_cheer_max:"हर हफ़्ते आप ज़्यादा से ज़्यादा {n} लोगों का हौसला बढ़ा सकते हैं।", grp_cheer_err:"चीयर नहीं भेज सके। फिर कोशिश करें।" }
   };
   Object.keys(C).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], C[l]); });
 })();
@@ -310,14 +310,31 @@ Object.assign(I18N.vi, {
   const myCheers = () => { const l = state.user && cheers[state.user.uid]; return Array.isArray(l) ? l : []; };
   const cheerBtn = (id, n) => {
     const c = cheerOf(id), cnt = c ? `<span class="grp-ch-n">${c}</span>` : '';
-    if (id === state.user.uid) return c ? `<span class="grp-ch me" title="${esc(t('grp_cheer'))}">👏${cnt}</span>` : '';
+    if (id === state.user.uid) return c ? `<span class="grp-ch me${pulse ? ' pop' : ''}" title="${esc(t('grp_cheer'))}">👏${cnt}</span>` : '';
     const done = myCheers().includes(id);
     return `<button type="button" class="grp-ch${done ? ' on' : ''}" data-act="grpCheer" data-id="${esc(id)}" ${done ? 'disabled' : ''} title="${esc(done ? t('grp_cheered') : t('grp_cheer_tip', { n }))}" aria-label="${esc(done ? t('grp_cheered') : t('grp_cheer_tip', { n }))}">👏${cnt}</button>`;
   };
-  function cheerWatch(){                 // có cổ vũ mới (so với lần thấy trước) thì báo một lần
-    if (!state.user || !me() || loadedWk !== wk()) return; const id = state.user.uid, c = cheerOf(id), w = wk(), p = store.get('grp_cheer', null);
-    if (p && p.wk === w && p.id === id && c > p.n && document.visibilityState === 'visible') toast(t('grp_cheer_got', { n:c - p.n }));
-    if (!p || p.wk !== w || p.id !== id || p.n !== c) store.set('grp_cheer', { wk:w, id, n:c });
+  /* Hiệu ứng vỗ tay: vài biểu tượng 👏 bay lên từ chỗ bấm (người gửi) hoặc từ giữa dưới màn hình (người nhận); tôn trọng chế độ giảm chuyển động */
+  function clapFx(x, y, n, big){
+    if (motionOff()) return;
+    for (let i = 0; i < n; i++) {
+      const e = document.createElement('span'); e.className = 'clap-p' + (big ? ' big' : ''); e.textContent = i % 5 === 4 ? '✨' : '👏'; e.setAttribute('aria-hidden', 'true');
+      e.style.left = (x + (Math.random() - .5) * (big ? 160 : 24)) + 'px'; e.style.top = y + 'px';
+      e.style.setProperty('--dx', ((Math.random() - .5) * (big ? 220 : 90)).toFixed(0) + 'px'); e.style.setProperty('--dy', (-(big ? 120 : 50) - Math.random() * (big ? 160 : 60)).toFixed(0) + 'px'); e.style.setProperty('--r', ((Math.random() - .5) * 50).toFixed(0) + 'deg');
+      e.style.animationDelay = (i * (big ? 70 : 40)) + 'ms'; document.body.appendChild(e); setTimeout(() => e.remove(), 1700 + i * 80);
+    }
+  }
+  const nameOfId = id => { const e = board[id] || live[id] || roster[id]; return e && e.n ? dn(id, e.n) : '?'; };
+  const cheerFrom = id => Object.entries(cheers).filter(([, l]) => Array.isArray(l) && l.includes(id)).map(([k]) => k);
+  let pulse = false;
+  function cheerWatch(){                 // có người vừa vỗ tay cho mình (so với lần thấy trước) thì báo tên người đó một lần, kèm hiệu ứng
+    if (!state.user || !me() || loadedWk !== wk()) return; const id = state.user.uid, w = wk(), from = cheerFrom(id), p = store.get('grp_cheer', null);
+    const old = p && p.wk === w && p.id === id ? (Array.isArray(p.from) ? p.from : from) : null, fresh = old ? from.filter(k => !old.includes(k)) : [];
+    if (fresh.length && document.visibilityState === 'visible') {
+      toast(fresh.length === 1 ? t('grp_cheer_one', { n:nameOfId(fresh[0]) }) : t('grp_cheer_many', { n:nameOfId(fresh[0]), k:fresh.length - 1 }), 3600);
+      clapFx(innerWidth / 2, innerHeight - 110, Math.min(14, 6 + fresh.length * 2), true); pulse = true;
+    }
+    if (!old || old.length !== from.length || fresh.length) store.set('grp_cheer', { wk:w, id, from });
   }
   function boardRows(){               // bảng tuần; số phút của chính mình cộng thêm phần đang chờ ghi, nên luôn mới nhất
     const id = state.user.uid, p = me() ? pend() : 0, tms = e => e && e.t && typeof e.t.toMillis === 'function' ? e.t.toMillis() : 0, now = Date.now();
@@ -394,7 +411,7 @@ Object.assign(I18N.vi, {
       : `<p class="muted small">${esc(t(busy || !known() ? 'loading' : 'grp_none'))}</p>`)
       + (me() ? '' : `<div class="row mt-s"><a class="btn primary sm" href="#/focus" data-act="grpOpen">${ic('timer', 'sm')} ${esc(t('grp_home_join'))}</a></div>`);
   }
-  function renderBox(){ dupCount(); renderMain(); renderStrip(); renderHome(); renderHero(); }
+  function renderBox(){ dupCount(); renderMain(); renderStrip(); renderHome(); renderHero(); pulse = false; }
   const errHTML = () => err ? `<p class="hint grp-err">${esc(t(err === 'rules' ? 'grp_err_rules' : err === 'quota' ? 'grp_err_quota' : 'grp_err'))}</p>` : '';
   function liveCols(){
     const rows = liveRows(), id = state.user.uid, now = Date.now();
@@ -449,6 +466,7 @@ Object.assign(I18N.vi, {
     grpCheer: async el => {
       const to = el.dataset.id, id = state.user && state.user.uid; if (!id || !to || to === id || !me() || !on() || myCheers().includes(to)) return;
       if (myCheers().length >= CHEER_MAX) return toast(t('grp_cheer_max', { n:CHEER_MAX }));
+      const r = el.getBoundingClientRect(); clapFx(r.left + r.width / 2, r.top + r.height / 2, 6, false);
       cheers[id] = [...myCheers(), to]; renderBox();                                       // hiện ngay, lỗi thì trả lại
       try { await ref().set({ cheers:{ [id]:firebase.firestore.FieldValue.arrayUnion(to) } }, { merge:true }); }
       catch (e) { cheers[id] = myCheers().filter(x => x !== to); renderBox(); toast(t('grp_cheer_err')); }
