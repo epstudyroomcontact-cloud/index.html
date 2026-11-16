@@ -1373,3 +1373,9 @@ body:has(#tour-ask) .sofa{display:none}
 .grp-ch.me{border-color:transparent;background:transparent;padding:0 2px}
 .grp-ch-n{font-size:.74rem;font-weight:800;color:var(--accent-strong)}
 @media(prefers-reduced-motion:reduce){.grp-ch{transition:none}.grp-ch:hover:not(:disabled){transform:none}}
+.clap-p{position:fixed;z-index:9999;pointer-events:none;font-size:1.15rem;line-height:1;opacity:0;animation:clapUp 1.2s ease-out forwards;will-change:transform,opacity}
+.clap-p.big{font-size:1.9rem;animation-duration:1.6s}
+@keyframes clapUp{0%{opacity:0;transform:translate(0,0) scale(.4) rotate(0)}15%{opacity:1;transform:translate(calc(var(--dx)*.15),calc(var(--dy)*.2)) scale(1.15) rotate(var(--r))}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.9) rotate(calc(var(--r)*-1))}}
+.grp-ch.pop{animation:chPop .7s ease-out 2}
+@keyframes chPop{0%,100%{transform:scale(1)}40%{transform:scale(1.5) rotate(-10deg)}70%{transform:scale(1.2) rotate(8deg)}}
+@media(prefers-reduced-motion:reduce){.clap-p,.grp-ch.pop{animation:none;display:none}}
