@@ -93,6 +93,21 @@ service cloud.firestore {
                       : (nw[uid].f == request.time && nw[uid].z == old[uid].mins))))
           : (nw[uid].mins <= 180 && nw[uid].f == request.time && nw[uid].z == 0)));
     }
+    // cheers[uid] = danh sách uid người được mình cổ vũ trong tuần: chỉ ghi được danh sách của chính mình, chỉ thêm (không bớt, không trùng, không tự cổ vũ),
+    // mỗi lần thêm tối đa 1 người, người nhận phải đang có tên trong live hoặc board của tuần, tối đa 20 người / tuần.
+    function grpCheerOk(uid, nw, old, ol, ob) {
+      let m = nw.get('cheers', {});
+      let oc = old == null ? {} : old.get('cheers', {});
+      return m.diff(oc).affectedKeys().hasOnly([uid])
+        && m.size() <= 400
+        && (!(uid in m) || (uid in oc && m[uid] == oc[uid]) || (
+          m[uid] is list && m[uid].size() <= 20
+          && m[uid].toSet().size() == m[uid].size()
+          && !(uid in m[uid])
+          && m[uid].hasOnly(ol.keys().concat(ob.keys()))
+          && m[uid].size() <= oc.get(uid, []).size() + 1
+          && m[uid].hasAll(oc.get(uid, []))));
+    }
     function grpWriteOk() {
       let uid = request.auth.uid;
       let nw = request.resource.data;
@@ -100,11 +115,12 @@ service cloud.firestore {
       let board = nw.get('board', {});
       let ol = resource == null ? {} : resource.data.get('live', {});
       let ob = resource == null ? {} : resource.data.get('board', {});
-      return nw.keys().hasOnly(['live', 'board'])
+      return nw.keys().hasOnly(['live', 'board', 'cheers'])
         && live.diff(ol).affectedKeys().hasOnly([uid])
         && board.diff(ob).affectedKeys().hasOnly([uid])
         && live.size() <= 1500 && board.size() <= 1500
-        && grpLiveOk(uid, live, ol) && grpBoardOk(uid, board, ob);
+        && grpLiveOk(uid, live, ol) && grpBoardOk(uid, board, ob)
+        && grpCheerOk(uid, nw, resource == null ? null : resource.data, ol, ob);
     }
     // Giao diện, nội dung chữ/ảnh, thông tin thanh toán hiển thị cho khách, lịch live: ai cũng xem, chỉ admin sửa
     match /settings/{id}         { allow read: if true; allow write: if isAdmin(); }
