@@ -1365,3 +1365,11 @@ body:has(#tour-ask) .sofa{display:none}
 
 /* Tổng quan: số thành viên dưới nút ở khối chào */
 .mem-pill{margin-top:12px}
+
+/* Nhóm học: nút cổ vũ */
+.grp-ch{flex:none;display:inline-flex;align-items:center;gap:3px;min-width:28px;height:26px;padding:0 7px;border-radius:99px;border:1px solid var(--line2);background:var(--surface);font-size:.8rem;line-height:1;transition:.15s}
+.grp-ch:hover:not(:disabled){border-color:var(--accent);background:var(--accent-soft);transform:scale(1.06)}
+.grp-ch.on{background:var(--accent-soft);border-color:transparent;cursor:default}
+.grp-ch.me{border-color:transparent;background:transparent;padding:0 2px}
+.grp-ch-n{font-size:.74rem;font-weight:800;color:var(--accent-strong)}
+@media(prefers-reduced-motion:reduce){.grp-ch{transition:none}.grp-ch:hover:not(:disabled){transform:none}}
