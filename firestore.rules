@@ -225,20 +225,8 @@ service cloud.firestore {
       }
     }
 
-    // Mục Thành viên: mỗi tài khoản tự ghi một thẻ công khai nhỏ members/<uid> (tên hiển thị, ngày tham gia, chuỗi trăng, huy hiệu Người đồng hành, lúc ghi).
-    // Chỉ người đã đăng nhập mới đọc được; không có ô email nên không lộ email. Huy hiệu chỉ ghi được khi thật sự đang là Người đồng hành.
-    // Người dùng xoá thẻ của mình khi tắt "Hiện tôi trong danh sách"; admin xoá được mọi thẻ (VD tên không phù hợp).
-    match /members/{uid} {
-      allow read: if signedIn();
-      allow delete: if isAdmin() || (signedIn() && request.auth.uid == uid);
-      allow create, update: if signedIn() && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['n', 'j', 's', 'c', 't'])
-        && request.resource.data.n is string && request.resource.data.n.size() <= 40
-        && request.resource.data.j is string && request.resource.data.j.matches('^20[0-9]{2}-[01][0-9]-[0-3][0-9]$')
-        && request.resource.data.s is int && request.resource.data.s >= 0 && request.resource.data.s <= 10000
-        && request.resource.data.c is bool && (request.resource.data.c == false || compActive(uid))
-        && request.resource.data.t == request.time;
-    }
+    // Số thành viên hiện công khai ở Tổng quan (khách chưa đăng nhập cũng xem được): site_stats/members = { n:số tài khoản, t:lúc cập nhật }. Chỉ admin ghi.
+    match /site_stats/{id} { allow read: if true; allow write: if isAdmin(); }
 
     // Người đồng hành (ủng hộ hằng tháng): chỉ admin ghi; người dùng chỉ đọc được tài liệu của chính mình
     match /companions/{uid} {

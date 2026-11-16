@@ -104,6 +104,10 @@ async function publishSite(quiet){
   } catch (e) { console.warn('publish', e); if (!quiet) fail(e); }
   pubBusy = false;
 }
+async function syncMemberCount(){            // cập nhật số thành viên công khai (Tổng quan), tối đa 1 lần / 6 giờ mỗi máy admin
+  if (DEMO || Date.now() - (store.get('memcount_at', 0) || 0) < 6 * 3600e3) return;
+  try { const c = await countDocs('users'); if (c.more) return; await db.collection('site_stats').doc('members').set({ n:c.length, t:TS() }); store.set('memcount_at', Date.now()); } catch (e) { console.warn('member count', e.code || e); }
+}
 async function ensureSitePublished(){        // lần đầu (hoặc khi nâng cấp bản gộp) tự xuất bản, không cần admin làm gì
   if (DEMO) return;
   try { const d = await db.collection('settings').doc('site').get(); if (!d.exists || !((d.data().v || 0) >= SITE_V)) await publishSite(true); } catch (e) { console.warn('ensure site', e); }

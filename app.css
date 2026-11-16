@@ -1363,17 +1363,5 @@ body:has(#tour-ask) .sofa{display:none}
 .hm-todo li::before{content:"";position:absolute;left:2px;top:.5em;width:8px;height:8px;border-radius:50%;border:2px solid var(--accent)}
 
 
-/* Thành viên: danh sách người đã có tài khoản */
-.mem-me{margin-bottom:16px}
-.mem-bar{gap:12px;flex-wrap:wrap;margin-bottom:16px}
-.mem-grid{gap:12px}
-.mem-card{display:flex;align-items:center;gap:12px;padding:14px 16px;min-width:0}
-.mem-card.me{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
-.mem-av{width:44px;height:44px;font-size:1.05rem;background:hsl(var(--h) 70% 88%);color:hsl(var(--h) 45% 32%)}
-.mem-tx{display:flex;flex-direction:column;gap:2px;min-width:0}
-.mem-n{display:flex;align-items:center;gap:4px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mem-n.anon{font-style:italic;color:var(--ink2)}
-.mem-n .nbadge{margin-left:2px}
-.mem-sk{display:inline-flex;align-items:center;gap:4px;font-size:.78rem;font-weight:700;color:var(--accent-strong)}
-.mem-sk .ic{width:13px;height:13px}
-@media(max-width:640px){.mem-bar .input{max-width:none!important}.mem-bar .seg{width:100%}.mem-bar .seg button{flex:1;padding:6px 8px}}
+/* Tổng quan: số thành viên dưới nút ở khối chào */
+.mem-pill{margin-top:12px}
