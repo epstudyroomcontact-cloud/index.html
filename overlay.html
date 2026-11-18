@@ -46,6 +46,8 @@
      sound=0         tắt chuông khi sang đoạn (mặc định bật; sound=break chỉ báo khi vào nghỉ; vol=0…100)
      autostart=0     không tự bắt đầu khi bấm Start Streaming trong OBS (mặc định: bấm Start Streaming = buổi live bắt đầu từ lúc đó;
                      cần Properties → Page permissions ≥ "Read access to OBS status information")
+     view=cat        mèo Moon ngồi ở góc màn hình stream (nền trong suốt): thêm thành Browser Source riêng, kéo vào góc trống.
+                     flip=1 quay sang trái · align=left|center · heart=0 tắt tim bay · motion=0 đứng yên · img=file.png dùng ảnh thật thay bản vẽ
      demo=1          xem thử bằng một buổi mẫu đang chạy (để căn chỉnh khi chưa tới giờ live; ago=-10: buổi mẫu bắt đầu sau 10 phút)
    ========================================================= -->
 <style>
@@ -217,11 +219,34 @@ html.noteonly .note{margin:0}
 .lbk small{margin-left:auto;color:var(--muted);font-size:.8rem;font-weight:800;font-variant-numeric:tabular-nums}
 .total{text-align:center;color:var(--muted);font-weight:700;font-size:.8rem;padding-top:.45rem}
 .empty{color:var(--muted);font-weight:700;font-size:.95rem}
+/* view=cat: mèo Moon ở góc màn hình stream. Mèo co giãn theo khung Browser Source, đứng sát đáy; không chặn chuột. */
+html.catv body{padding:0;display:flex;align-items:flex-end;justify-content:flex-end;pointer-events:none}
+html.catv[data-align="left"] body{justify-content:flex-start}
+html.catv[data-align="center"] body{justify-content:center}
+html.catv .catbox{position:relative;width:min(100vw,calc(100vh * 25 / 31));height:min(100vh,calc(100vw * 31 / 25));background:none;box-shadow:none;padding:0;border:0;border-radius:0}
+html.catv .moon-cat{display:block;width:100%;height:100%;object-fit:contain;object-position:bottom;overflow:visible;filter:drop-shadow(0 .4vh .9vh rgba(10,14,40,.35))}
+html.catv.flip .moon-cat{transform:scaleX(-1)}
+.moon-cat .mja{transform-box:fill-box}
+.moon-cat .mja-breath{transform-origin:50% 100%;animation:mjaBreath 4.2s ease-in-out infinite}
+.moon-cat .mja-tail{transform-origin:0 100%;animation:mjaTail 3.4s ease-in-out infinite}
+.moon-cat .mja-blink{transform-origin:50% 50%;animation:mjaBlink 5.6s infinite}
+.moon-cat .mja-tilt{animation:mjaTilt 10s ease-in-out infinite}
+.moon-cat .mja-ear{transform-origin:20% 100%;animation:mjaEar 7s infinite}
+@keyframes mjaBreath{0%,100%{transform:scale(1,1)}45%{transform:scale(1.01,1.028)}}
+@keyframes mjaTail{0%,100%{transform:rotate(-12deg)}30%{transform:rotate(10deg)}42%{transform:rotate(15deg)}62%{transform:rotate(2deg)}80%{transform:rotate(-6deg)}}
+@keyframes mjaBlink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes mjaTilt{0%,35%,100%{transform:rotate(0)}45%,58%{transform:rotate(-5deg)}68%,78%{transform:rotate(3deg)}88%{transform:rotate(0)}}
+@keyframes mjaEar{0%,80%,88%,100%{transform:rotate(0)}82%{transform:rotate(-16deg)}84%{transform:rotate(4deg)}86%{transform:rotate(-8deg)}}
+html.catv .cheart{position:absolute;left:46%;top:8%;font-style:normal;font-size:max(12px,9vh);line-height:1;color:#ff6fae;text-shadow:0 0 .3em rgba(255,111,174,.5);opacity:0;animation:catHeart 4s ease-out forwards}
+html.catv.flip .cheart{left:30%}
+@keyframes catHeart{0%{transform:translate(0,0) scale(.5);opacity:0}15%{opacity:.95}100%{transform:translate(1.2em,-2.4em) scale(1);opacity:0}}
+html.catv.still *{animation:none !important}
+@media (prefers-reduced-motion:reduce){html.catv *{animation:none !important}}
 </style>
 </head>
 <body>
 <div class="card" id="card"><div class="empty" id="msg"></div></div>
 <div class="note" id="note" hidden></div>
-<script src="overlay.js?v=106"></script>
+<script src="overlay.js?v=107"></script>
 </body>
 </html>
