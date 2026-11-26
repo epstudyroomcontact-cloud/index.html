@@ -337,40 +337,59 @@ Object.assign(I18N.vi, {
   function dupCount(){ const c = {}, seen = new Set(); [board, live, roster].forEach(m => Object.entries(m).forEach(([k, e]) => { if (e && e.n && !seen.has(k)) { seen.add(k); c[nk(e.n)] = (c[nk(e.n)] || 0) + 1; } })); dup = c; }
   const dn = (k, n) => (dup[nk(n)] || 0) > 1 ? `${n} #${String(k).slice(-3).toUpperCase()}` : n;
   const avatar = n => `<i class="grp-av" style="--h:${hue(n)}">${esc(String(n).slice(0, 1).toUpperCase())}</i>`;
-  /* ---------- Bể bơi minh họa trên bảng tuần ----------
-     Mỗi người một làn (tối đa 5: top 4 + chính mình nếu ở ngoài top), bơi càng xa khi càng nhiều phút; người dẫn đầu sát vạch đích.
-     Mũ bơi cùng màu với ảnh đại diện trong danh sách bên dưới. Vẽ SVG thuần (không dùng ảnh ngoài), dựng từ dữ liệu bảng tuần sẵn có:
-     không thêm lượt đọc / ghi Firestore. Hoạt hình bơi vào chỉ chạy lần đầu mỗi lần mở trang và tắt khi bật giảm chuyển động. */
-  let poolPlayed = false;
-  const POOL_SUIT = ['#1d3557', '#2a9d8f', '#e76f51', '#6a4c93', '#264653', '#c1121f'], POOL_SKIN = '#e8a77d';
+  /* ---------- Bể bơi đêm trăng trên bảng tuần (cùng phong cách Hành trình trăng) ----------
+     Mỗi người một làn (tối đa 5: top 4 + chính mình nếu ở ngoài top), bơi càng xa khi càng nhiều phút; người dẫn đầu chạm bến, nơi Moon ngồi đợi.
+     Vẽ bằng chính bộ vẽ của Hành trình trăng (moon-art.js: trời sao, trăng, nước có vệt trăng, đom đóm, mèo Moon, lớp chất liệu sáp):
+     file đó chỉ nạp khi cần, xong thì vẽ lại bảng. Mũ bơi cùng màu với ảnh đại diện trong danh sách bên dưới.
+     Dựng từ dữ liệu bảng tuần sẵn có: không thêm lượt đọc / ghi Firestore. Hoạt hình bơi vào chỉ chạy lần đầu mỗi lần mở trang và tắt khi bật giảm chuyển động. */
+  let poolPlayed = false, poolLoad = false, poolN = 0;
+  const POOL_SUIT = ['#8fb4ff', '#ffb78a', '#9be3c5', '#d4b4ff', '#ffe08f', '#ff9db5'], POOL_RANK = [['#fff2c4', '#4a3a12'], ['#d7dff5', '#222c4d'], ['#f0c39a', '#4a2c14']];
   function poolSvg(rows, meId, play){
     if (!rows.length) return '';
-    const W = 420, T0 = 34, LH = 44, H = T0 + rows.length * LH + 10, X0 = 64, XR = 338, lead = Math.max(1, rows[0].mins), WR = 408;
-    const med = ['#ffd166', '#dfe6ee', '#e0a070'], flags = ['#1d4ed8', '#ef476f', '#9fd0ff'];
-    const sag = x => 5 + 5 * Math.sin(Math.PI * x / W);
-    let o = `<defs><pattern id="grpFin" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#fff"/><rect width="4" height="4" fill="#12284c"/><rect x="4" y="4" width="4" height="4" fill="#12284c"/></pattern></defs>`;
-    o += `<rect width="${W}" height="${H}" fill="#fbf7ef"/>`;
-    o += `<path d="M0 ${sag(0)} Q${W / 2} ${sag(W / 2) + 7} ${W} ${sag(W)}" fill="none" stroke="#12284c" stroke-width="1.3" opacity=".7"/>`;
-    for (let x = 14, i = 0; x < W; x += 30, i++) { const y = sag(x) + 3.4; o += `<polygon points="${x - 10},${y} ${x + 10},${y} ${x},${y + 19}" fill="${flags[i % 3]}"/>`; }
-    o += `<rect x="6" y="${T0}" width="${WR - 6}" height="${rows.length * LH}" rx="3" fill="#2f9bf0"/>`;
-    rows.forEach((x, i) => { if (i % 2) o += `<rect x="6" y="${T0 + i * LH}" width="${WR - 6}" height="${LH}" fill="#4aaef7" opacity=".55"/>`; });
-    o += `<rect x="392" y="${T0}" width="8" height="${rows.length * LH}" fill="url(#grpFin)"/>`;
-    for (let i = 0; i <= rows.length; i++) { const y = T0 + i * LH, c = i % 2 ? '#1d4ed8' : '#e63946'; o += `<line x1="6" y1="${y}" x2="${WR}" y2="${y}" stroke="#fff" stroke-width="4.4"/><line x1="6" y1="${y}" x2="${WR}" y2="${y}" stroke="${c}" stroke-width="4.4" stroke-dasharray="6 6"/>`; }
+    const W = 400, SK = 58, LH = 40, N = rows.length, H = SK + N * LH, BX = 44, DX = 350, X0 = BX + 38, XR = DX - 40, lead = Math.max(1, rows[0].mins);
+    if (typeof mjCtx !== 'function' || typeof mjTexDefs !== 'function') {
+      if (!poolLoad && typeof loadMoonArt === 'function') { poolLoad = true; loadMoonArt().then(() => { poolLoad = false; renderBox(); }).catch(() => { poolLoad = false; }); }
+      return `<div class="grp-pool wait" style="aspect-ratio:${W}/${H}"></div>`;
+    }
+    poolPlayed = true;
+    const k = 'grp' + (++poolN), c = mjCtx(21 + poolN % 7, k), cy = i => SK + i * LH + LH / 2, mx = 132;
+    let s = mjSkyN(c, '#0a1431', '#1b3266', SK, { streaks:16, stars:34, sparks:3, starH:.9 });
+    s += mjMoonN(c, mx, 26, 11, { halo:3.6 });
+    s += `<path d="M0 ${SK}V${SK - 9}Q64 ${SK - 22} 128 ${SK - 8}T262 ${SK - 11}T400 ${SK - 6}V${SK}Z" fill="#0b1630"/>`;
+    for (let x = 6; x < BX - 4; x += 9 + c.r() * 5) s += mjPine(x, SK + 3, 22 + c.r() * 12, c.r() < .5 ? '#0e1f3a' : '#12284a');
+    s += mjWater(c, SK, H, { path:mx, spread:64, n:150, glints:110 });
+    rows.forEach((x, i) => { if (x.k === meId) s += `<rect x="${BX}" y="${SK + i * LH}" width="${DX - BX}" height="${LH}" fill="#9fc4ff" opacity=".12"/>`; });
+    // phao hạt đèn ngăn làn
+    for (let i = 1; i < N; i++) {
+      const y = SK + i * LH, col = i % 2 ? '#ffd98a' : '#a9c8ff';
+      s += `<path d="M${BX} ${y}H${DX}" stroke="#8da2d6" stroke-width=".8" opacity=".5" fill="none"/><path d="M${BX + 4} ${y}H${DX}" stroke="${col}" stroke-width="7" stroke-dasharray="0 10" stroke-linecap="round" opacity=".2" fill="none"/>`
+        + mjA(c, 'mja-shim', `<path d="M${BX + 4} ${y}H${DX}" stroke="${col}" stroke-width="3" stroke-dasharray="0 10" stroke-linecap="round" opacity=".9" fill="none"/>`, 3.4);
+    }
+    // bờ trái (số hạng) và bến gỗ bên phải, nơi Moon đợi
+    s += `<rect y="${SK}" width="${BX}" height="${N * LH}" fill="${mjLin(c, [[0, '#101c3d'], [1, '#0a1329']], 1, 0)}"/>` + mjS(c, 36, [0, SK, BX, H], ['#1a2c58', '#0b1531', '#223a6c'], { ang:84, len:[8, 18], w:[2, 3], op:.7, jit:10 });
+    s += `<rect x="${DX}" y="${SK}" width="${W - DX}" height="${N * LH}" fill="${mjLin(c, [[0, '#2b2347'], [1, '#1b1633']], 1, 0)}"/>`;
+    for (let i = 0; i <= N; i++) s += `<path d="M${DX} ${SK + i * LH}H${W}" stroke="#4a3d6e" stroke-width="1.3" opacity=".8"/>`;
+    s += mjS(c, 24, [DX, SK, W, H], ['#4a3d6e', '#1b1633'], { ang:0, len:[6, 16], w:[1.2, 2], op:.6, jit:3 });
+    s += `<path d="M${DX} ${SK}V${H}" stroke="#ffe9a0" stroke-width="1.8" stroke-dasharray="4 4" opacity=".85"/>` + mjGlow(c, DX, SK + N * LH / 2, N * LH * .6, 'w', .22);
+    s += mjGlow(c, W - 9, SK + 9, 30, 'w', .75) + `<rect x="${W - 11}" y="${SK + 2}" width="4" height="9" rx="1" fill="#ffd27a"/>` + mjGlow(c, W - 9, H - 9, 24, 'w', .55) + `<rect x="${W - 11}" y="${H - 16}" width="4" height="9" rx="1" fill="#ffd27a"/>`;
+    s += mjCat(c, 377, cy(0) + 14, 1.35, 'sitF', { eyes:'open', shadow:false, tail:'M4 -1Q9 -1 9 -4' });
+    s += mjFlies(c, 9, [BX + 10, SK + 4, DX - 10, H - 4], { sz:.85 });
     rows.forEach((x, i) => {
-      const cy = T0 + i * LH + LH / 2, px = X0 + (x.mins / lead) * (XR - X0), mine = x.k === meId, cap = `hsl(${hue(x.n)},78%,58%)`, bg = med[x.r - 1] || '#fff';
-      o += `<circle cx="26" cy="${cy}" r="11" fill="${bg}" stroke="#12284c" stroke-width="1.4"/><text x="26" y="${cy + 4.3}" text-anchor="middle" font-size="12.5" font-weight="800" fill="#12284c" font-family="inherit">${x.r}</text>`;
-      if (i === 0) o += `<path d="M${px + 34} ${cy - 15}q9 7 0 15t0 15M${px + 42} ${cy - 11}q7 5 0 11t0 11" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity=".6"/>`;
-      o += `<g transform="translate(${px.toFixed(1)} ${cy}) scale(1.25)"><title>${esc(x.n)} · ${esc(fmt(x.mins * 60000))}</title><g class="grp-sw-i" style="--dx:${((X0 - px) / 1.25).toFixed(0)}px">`
-        + `<ellipse cx="9" cy="4" rx="14" ry="6.5" fill="#12408c" opacity=".28"/>`
-        + `<path d="M-14 -11q-7 11 0 22M-24 -9q-6 9 0 18M-34 -6q-4 6 0 12" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" opacity=".75"/>`
-        + `<path d="M32 -8q8 8 0 16" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" opacity=".7"/>`
-        + `<path d="M-6 -2.5L-22 -5.5M-6 2.5L-22 5.5" stroke="${POOL_SKIN}" stroke-width="3" stroke-linecap="round"/>`
+      const y = cy(i), px = X0 + (x.mins / lead) * (XR - X0), mine = x.k === meId, cap = `hsl(${hue(x.n)},78%,62%)`, [rb, rt] = POOL_RANK[x.r - 1] || ['#2c3d73', '#dfe8ff'];
+      s += `<circle cx="22" cy="${y}" r="12" fill="${rb}" stroke="#fff2c4" stroke-opacity="${x.r < 4 ? .9 : .35}" stroke-width="1.3"/>` + (x.r === 1 ? mjGlow(c, 22, y, 26, 'm', .55) : '') + `<text x="22" y="${y + 4.6}" text-anchor="middle" font-size="13" font-weight="800" fill="${rt}" font-family="inherit">${x.r}</text>`;
+      if (i === 0) s += mjA(c, 'mja-tw', mjSpark(px + 36, y - 13, 5.5, '#fffbea'), 3);
+      s += `<g transform="translate(${px.toFixed(1)} ${y}) scale(1.12)"><title>${esc(x.n)} · ${esc(fmt(x.mins * 60000))}</title><g class="grp-sw-i" style="--dx:${((X0 - px) / 1.12).toFixed(0)}px">`
+        + mjGlow(c, 12, 0, 26, 'c', .6)
+        + `<path d="M-14 -11q-7 11 0 22M-24 -9q-6 9 0 18M-34 -6q-4 6 0 12" fill="none" stroke="#cfe0ff" stroke-width="1.8" stroke-linecap="round" opacity=".6"/>`
+        + `<path d="M32 -8q8 8 0 16" fill="none" stroke="#cfe0ff" stroke-width="1.8" stroke-linecap="round" opacity=".55"/>`
+        + `<path d="M-6 -2.5L-22 -5.5M-6 2.5L-22 5.5" stroke="${MJN.skin}" stroke-width="3" stroke-linecap="round"/>`
         + `<ellipse cx="6" cy="0" rx="12" ry="6.5" fill="${POOL_SUIT[i % POOL_SUIT.length]}"/>`
-        + `<path d="M13 -4.5q9 -6 17 -3M13 4.5q9 6 17 3" fill="none" stroke="${POOL_SKIN}" stroke-width="3" stroke-linecap="round"/>`
-        + `<circle cx="15" cy="0" r="5.6" fill="${cap}" stroke="#fff" stroke-width=".9"/>`
-        + (mine ? `<ellipse cx="2" cy="0" rx="33" ry="14.5" fill="none" stroke="#fff" stroke-width="1.7" stroke-dasharray="3.5 3.5"/>` : '') + `</g></g>`;
+        + `<path d="M13 -4.5q9 -6 17 -3M13 4.5q9 6 17 3" fill="none" stroke="${MJN.skin}" stroke-width="3" stroke-linecap="round"/>`
+        + `<circle cx="15" cy="0" r="5.6" fill="${cap}" stroke="#fff2c4" stroke-width=".9"/>`
+        + (mine ? `<ellipse cx="2" cy="0" rx="33" ry="14.5" fill="none" stroke="#ffe9a0" stroke-width="1.6" stroke-dasharray="3.5 3.5"/>` : '') + `</g></g>`;
+      if (mine) s += `<text x="${(px + 2).toFixed(1)}" y="${y - 17}" text-anchor="middle" font-size="9.5" font-weight="700" fill="#ffe9a0" stroke="#0d1633" stroke-width="3" paint-order="stroke" font-family="inherit">${esc(t('grp_you'))}</text>`;
     });
-    return `<div class="grp-pool ${play ? 'play' : ''}"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t('grp_board'))}" xmlns="http://www.w3.org/2000/svg">${o}</svg></div>`;
+    return `<div class="grp-pool ${play ? 'play' : ''}"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t('grp_board'))}" xmlns="http://www.w3.org/2000/svg"><defs>${mjTexDefs(k, (9 + poolN) % 50)}${c.d}</defs><rect width="${W}" height="${H}" fill="${MJN.navy}"/>${s}<rect width="${W}" height="${H}" fill="url(#${k}v)"/><g pointer-events="none"><rect width="${W}" height="${H}" filter="url(#${k}B)" style="mix-blend-mode:soft-light" opacity=".55"/><rect width="${W}" height="${H}" filter="url(#${k}T)" style="mix-blend-mode:soft-light"/></g></svg></div>`;
   }
   const kick = id => state.isAdmin && id !== state.user.uid ? `<button type="button" class="grp-x" data-act="grpKick" data-id="${esc(id)}" title="${esc(t('grp_remove'))}" aria-label="${esc(t('grp_remove'))}">${ic('x', 'sm')}</button>` : '';
   const plus = (id, n) => state.isAdmin ? `<button type="button" class="grp-x" data-act="grpAdd" data-id="${esc(id)}" data-n="${esc(n)}" title="Cộng bù phút" aria-label="Cộng bù phút">${ic('plus', 'sm')}</button>` : '';   // chỉ admin: cộng bù phút bị mất do lỗi cũ
@@ -491,7 +510,6 @@ Object.assign(I18N.vi, {
     const awayShown = showAll ? away : away.slice(0, Math.max(0, TOP - top.length - zero.length)), more = all.length > TOP || away.length > Math.max(0, TOP - Math.min(all.length, TOP) - zero.length) ? `<button type="button" class="grp-toggle ${showAll ? 'open' : ''}" data-act="grpMore" aria-expanded="${showAll}"><i class="grp-tri" aria-hidden="true"></i> ${esc(showAll ? t('grp_less', { n:TOP }) : t('grp_more', { n:all.length + zero.length + away.length }))}</button>` : '';
     const cl = climb(), sum = cl ? `<p class="grp-climb small"><b>${esc(t('grp_rank', { r:cl.r }))}</b>${trendHTML(cl)}<span class="muted">${esc(gapText(cl))}</span></p>` : '';
     const pr = (mine >= 5 ? all.slice(0, 4).concat([all[mine]]) : all.slice(0, 5)).map(x => ({ ...x, r:all.indexOf(x) + 1 })), play = !poolPlayed && pr.length > 1 && !(typeof motionOff === 'function' && motionOff());
-    if (pr.length) poolPlayed = true;
     return `<h3 class="grp-h">${esc(t('grp_board'))}</h3>${sum}${poolSvg(pr, id, play)}` + (all.length || zero.length || away.length
       ? `<ol class="grp-list">${top.map(row).join('')}${!showAll && mine >= TOP ? `<li class="grp-gap" aria-hidden="true">…</li>${row(all[mine], mine)}` : ''}${zero.map(zrow).join('')}${awayShown.length ? `<li class="grp-gap grp-cap" role="presentation">${esc(t('grp_ab_h', { n:away.length }))}</li>${awayShown.map(arow).join('')}` : ''}</ol>${more}` : `<p class="muted small">${esc(t(known() ? 'grp_board_none' : 'loading'))}</p>`) + `<p class="small faint mt-s">${esc(t('grp_reset'))}</p>` + prevHTML();
   }

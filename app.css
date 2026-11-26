@@ -1530,3 +1530,5 @@ body:has(#tour-ask) .sofa{display:none}
 @keyframes grpSwim{from{transform:translateX(var(--dx))}to{transform:none}}
 @media (prefers-reduced-motion:reduce){html:not([data-motion="on"]) .grp-pool.play .grp-sw-i{animation:none}}
 html[data-calm] .grp-pool.play .grp-sw-i{animation:none}
+.grp-pool{background:#0d1633}
+.grp-pool.wait{min-height:120px}
