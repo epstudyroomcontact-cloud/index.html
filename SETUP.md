@@ -649,6 +649,17 @@ Làm một lần, sau đó mỗi buổi chỉ cần bấm Start Streaming trong 
 - Muốn sửa chữ từng bước: `TOUR_PS` trong `guide.js` (đủ 8 ngôn ngữ, mỗi bước là [tiêu đề, một câu]); muốn đổi chỗ Moon chỉ hoặc thứ tự: `PGS` (bộ chọn, dáng Moon, khoá chữ).
 - Phòng tập trung, Hành trình trăng và Kế hoạch tuần dùng lại ba hình của hướng dẫn chung. Muốn đổi chữ dưới hình: sửa trong `guide.js` ở `TOUR_PG` (các trang mới) hoặc `fi` / `ci` / `pi` trong `TOUR_T`.
 
+### 22.aq. Nhóm học: lời nhắn cổ vũ giữa người học (CẦN DÁN LUẬT MỚI)
+- **Cách dùng:** trong khung **Nhóm học** của Phòng tập trung, cạnh người **đang học** có nút 👏. Bấm vào là mở 6 lời có sẵn: 💪 Cố lên nào!, ✨ Bạn đang làm rất tốt, 🌙 Moon đang cổ vũ bạn đó, 🔥 Bạn đang cháy hết mình!, 🍵 Nhớ uống chút nước nha, 👏 Mình cùng học nè. Chọn một lời là gửi. Đủ 8 ngôn ngữ (người nhận thấy lời theo ngôn ngữ của họ).
+- **Không có ô gõ chữ** nên không ai spam hay viết lời khó nghe được. Luật Firestore chỉ nhận số thứ tự 0 đến 5 của lời có sẵn.
+- **Giới hạn:** chỉ gửi cho người đang chạy đồng hồ; cùng một người thì cách nhau ít nhất **10 phút**; mỗi tuần gửi cho tối đa **30 người** khác nhau. Sau khi gửi, nút đổi thành ✓ và ghi "có thể cổ vũ lại sau N phút".
+- **Người nhận không bị làm phiền:** lời cổ vũ không phát âm thanh. Nếu đang trong **khối tập trung**, lời cổ vũ được để dành, dưới đồng hồ chỉ hiện một số nhỏ 💌 1; tới **giờ nghỉ** (hoặc khi tạm dừng đồng hồ) mới hiện một thông báo nhỏ ở cuối màn hình. Người chọn giảm chuyển động không thấy biểu tượng bay.
+- **Tắt nhận cổ vũ:** trong khung Nhóm học có công tắc **Nhận lời cổ vũ**. Tắt thì người khác thấy 🔕 cạnh tên bạn và không gửi được (luật Firestore cũng chặn). Lựa chọn được nhớ qua các tuần.
+- Người không còn đang học (chỉ có tên trên bảng tuần) vẫn có nút 👏 vỗ tay một lần mỗi tuần như cũ. Số cạnh 👏 vẫn là số người đã cổ vũ bạn trong tuần.
+- **Chi phí Firebase:** lời cổ vũ nằm ngay trong tài liệu nhóm của tuần, người nhận thấy qua lần tải lại 60 giây sẵn có nên **không tốn thêm lượt đọc**. Mỗi lần gửi tốn **1 lượt ghi**; bật/tắt nhận cổ vũ tốn 1 lượt ghi (và 1 lượt mỗi tuần nếu đang tắt).
+- **Việc phải làm 1 lần:** dán lại `firestore.rules` mới (4 bước ở mục 2.3), rồi tải lên GitHub các file `group.js`, `app.css`, `index.html`, `firestore.rules`, `SETUP.md`. Chưa dán luật thì bấm gửi sẽ báo "Chưa gửi được cổ vũ", các phần khác của nhóm vẫn chạy bình thường.
+- Giới hạn đã biết: người nhận chỉ thấy lời cổ vũ khi đang mở web (ở Phòng tập trung, hoặc Tổng quan mỗi 3 phút). Lời gửi lúc họ đóng web sẽ hiện khi họ mở lại trong vòng 1 giờ; quá 1 giờ thì chỉ còn tính vào số 👏 của tuần.
+
 ### 22.ap. Đếm ngược ngày thi / mục tiêu lớn (CẦN DÁN LUẬT MỚI)
 - Ở **Tổng quan** (thẻ Phòng tập trung, ngay dưới nút Bắt đầu tập trung) và ở **Phòng tập trung** (dưới bộ đếm) có nút **Đặt đếm ngược (ngày thi, mục tiêu lớn)**. Bấm vào, khách gõ tên mốc (ví dụ "Thi cuối kỳ", tối đa 60 ký tự) và chọn ngày (từ hôm nay trở đi). Sau đó hai nơi này hiện số ngày còn lại, ví dụ **50 · Thi cuối kỳ · còn 50 ngày · 15 thg 1, 2027**. Đúng ngày thì hiện "Là hôm nay. Bạn làm được mà!", qua ngày thì hiện "Đã qua mốc này" (màu nhạt) để khách đặt mốc mới.
 - Nút bút chì bên phải để **sửa** hoặc **xoá** mốc. Mỗi người một mốc. Số ngày tính theo múi giờ của khách.
