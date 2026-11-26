@@ -60,6 +60,15 @@ Chỉ đúng email này (đã xác minh) mới có quyền admin. Người khác
 
 ## PHẦN 4 — Làm quen trang quản trị (Admin console)
 
+Trang quản trị chia thành **5 nhóm** (hàng nút lớn), mỗi nhóm có các tab con:
+- **Tổng quan**: số liệu nhanh, đơn mới, xuất bản dữ liệu cho người xem, sao lưu, gửi thông báo live.
+- **Live & Lịch**: lịch live từng tuần, nút bắt đầu buổi live thật (web và OBS).
+- **Trang web & Nội dung**: Giao diện & Menu · Chữ, dịch & FAQ · Bài viết · Nhạc · Đồ mình dùng.
+- **Thành viên & Người đồng hành**: Thành viên & duyệt · Gói & quyền lợi · Mã dùng thử · Sự kiện học chung.
+- **Cửa hàng & Thanh toán**: Sản phẩm · Đơn hàng · Mã giảm giá · Đánh giá · Thanh toán.
+
+Không nhớ một cài đặt nằm ở đâu: gõ vào ô **Tìm nhanh mục cài đặt** (gõ không dấu cũng được, ví dụ `logo`, `momo`, `gia ung ho`, `faq`), bấm kết quả là tới đúng thẻ. Phím tắt: bấm `/` để nhảy vào ô tìm.
+
 Các tab và việc chính:
 - **Giao diện & Menu**: tên trang, logo, màu chủ đạo, font, ẩn/đổi tên các mục ở menu, thông báo chạy chữ, mạng xã hội, YouTube.
 - **Lịch live**: mỗi buổi live có thể chọn **"Mẫu Pomodoro (tự tính)"** (VD 50/10/30) **hoặc "Tự sắp xếp từng đoạn"**: bạn thêm từng đoạn *Tập trung / Nghỉ ngắn / Nghỉ dài* với số phút tuỳ ý, theo thứ tự tuỳ ý (VD: 25 – 5 – 25 – 15 – 40). Có thể huỷ từng buổi hoặc cả ngày kèm lý do.
@@ -648,6 +657,15 @@ Làm một lần, sau đó mỗi buổi chỉ cần bấm Start Streaming trong 
 - Bấm nút là Moon dẫn khách đi **từng bước, chỉ thẳng vào nút thật trên trang** (khoảng 4 đến 8 bước mỗi trang, ví dụ Lịch live: chuyển tuần, bảng màu, múi giờ, hôm nay, xem kế hoạch, chuông nhắc; Phòng tập trung: chế độ, đồng hồ, bắt đầu, cài đặt, việc và nhạc, nhóm và live, số liệu). Bước cuối là bản tóm tắt ba hình như trước. Trang nào thiếu phần tử đó (ví dụ khách chưa có nhóm học, hoặc Kế hoạch tuần chỉ hiện bản giới thiệu) thì bước ấy tự bỏ. Có nút **Quay lại / Tiếp** và phím mũi tên; trang tự cuộn tới chỗ Moon chỉ. Không nhắc giá.
 - Muốn sửa chữ từng bước: `TOUR_PS` trong `guide.js` (đủ 8 ngôn ngữ, mỗi bước là [tiêu đề, một câu]); muốn đổi chỗ Moon chỉ hoặc thứ tự: `PGS` (bộ chọn, dáng Moon, khoá chữ).
 - Phòng tập trung, Hành trình trăng và Kế hoạch tuần dùng lại ba hình của hướng dẫn chung. Muốn đổi chữ dưới hình: sửa trong `guide.js` ở `TOUR_PG` (các trang mới) hoặc `fi` / `ci` / `pi` trong `TOUR_T`.
+
+### 22.as. Trang quản trị gọn hơn: 5 nhóm, tìm nhanh, xem tổng quát từng mục, báo "Chưa lưu"
+- 16 tab cũ nằm một hàng dài (trên điện thoại chiếm gần hết màn hình đầu) nay gộp thành **5 nhóm** theo mục đích, mỗi nhóm có hàng tab con và một dòng chú thích ngắn. Trên điện thoại hai hàng này vuốt ngang được. Link cũ `#/admin/<tab>` vẫn dùng được như trước.
+- Ô **Tìm nhanh mục cài đặt** ở đầu trang: gõ tên mục hoặc từ khoá (logo, momo, paypal, faq, lịch, nhạc…), bấm kết quả (hoặc Enter) là mở đúng tab và cuộn tới đúng thẻ.
+- **Xem tổng quát trước, bấm Sửa mới mở**: mỗi thẻ cài đặt (có ô nhập và nút Lưu) mặc định chỉ hiện bản tóm tắt các giá trị đang cài: tên ô và giá trị, ô trống ghi "(trống)", ô tích ghi Bật / Tắt, danh sách (menu, mạng xã hội, FAQ, nhạc, đồ dùng…) ghi số mục kèm tên từng mục (mục đang ẩn bị gạch). Bấm **Sửa** (hoặc tiêu đề thẻ) để mở form, bấm **Thu gọn** để quay lại bản tóm tắt. Thẻ chỉ để xem (đơn hàng, thành viên…), thẻ tạo mới và thẻ Bắt đầu buổi live luôn mở.
+- **Bảng tổng hợp** (nhóm thứ hai, ngay sau Tổng quan): một trang gom mọi cài đặt đang dùng (giao diện, menu, nội dung, nhạc, đồ dùng, gói Ủng hộ, thanh toán…) theo nhóm, mỗi dòng ghi giá trị đang cài. Có ô lọc (gõ `momo`, `logo`, `120`…). Bấm **Sửa** ở dòng nào là nhảy tới đúng tab, đúng mục và mở sẵn form. Các tab dạng danh sách (đơn hàng, thành viên, bài viết…) chỉ có dòng **Mở tab**. Trang này chỉ đọc, không ghi gì.
+- Tab có từ 3 thẻ trở lên có hàng **Đi tới** ở đầu, kèm nút **Xem tổng quát / Mở hết để sửa**.
+- Gõ vào một thẻ mà chưa bấm Lưu: thẻ hiện **● Chưa lưu**, cuối màn hình có thanh nhắc (nút **Tới chỗ cần Lưu**), và web hỏi lại nếu bạn rời tab hay đóng trang. Lưu xong thẻ hiện **✔ Đã lưu lúc HH:mm** (bản xem thử `?demo=1` hiện "Xem thử: chưa lưu thật").
+- Chỉ là giao diện: không đổi dữ liệu, cách lưu hay `firestore.rules` (**không cần dán luật mới**). Tên vài tab rút gọn trong nhóm: "Nội dung & FAQ" → **Chữ, dịch & FAQ**, "Gói Người đồng hành" → **Gói & quyền lợi**, "Thành viên" → **Thành viên & duyệt**. Tăng phiên bản file lên v=245.
 
 ### 22.ar. Nhóm học: lời nhắn cổ vũ giữa người học (CẦN DÁN LUẬT MỚI)
 - **Cách dùng:** trong khung **Nhóm học** của Phòng tập trung, cạnh người **đang học** có nút 👏. Bấm vào là mở 6 lời có sẵn: 💪 Cố lên nào!, ✨ Bạn đang làm rất tốt, 🌙 Moon đang cổ vũ bạn đó, 🔥 Bạn đang cháy hết mình!, 🍵 Nhớ uống chút nước nha, 👏 Mình cùng học nè. Chọn một lời là gửi. Đủ 8 ngôn ngữ (người nhận thấy lời theo ngôn ngữ của họ).
