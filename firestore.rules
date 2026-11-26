@@ -51,6 +51,14 @@ service cloud.firestore {
         && (c.get('maxUses', 0) == 0 || n <= c.maxUses);
     }
     function pushListOk(m, k) { return !(m is map) || !(m.get(k, []) is list) || m.get(k, []).size() <= 50; }
+    // Đếm ngược ngày thi trong hồ sơ: users/<uid>.exam = { n:tên (tối đa 60 ký tự), d:'YYYY-MM-DD' hoặc '' (đã xoá), t:lúc sửa }. Không có thì bỏ qua.
+    function examOk(d) {
+      return !('exam' in d) || d.exam == null
+        || (d.exam is map && d.exam.keys().hasOnly(['n', 'd', 't'])
+            && d.exam.get('n', '') is string && d.exam.get('n', '').size() <= 60
+            && d.exam.get('d', '') is string && (d.exam.get('d', '') == '' || d.exam.get('d', '').matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'))
+            && d.exam.get('t', 0) is number);
+    }
     function moonStreakOk(uid) {
       let m = get(/databases/$(database)/documents/users/$(uid)).data.moon;
       return m.get('best', 0) >= 60 || m.days.size() >= 60;
@@ -234,7 +242,8 @@ service cloud.firestore {
       allow create, update: if signedIn() && request.auth.uid == uid
         && pushListOk(request.resource.data.get('plPush', {}), 'tokens')
         && pushListOk(request.resource.data.get('plPush', {}), 'pinTokens')
-        && pushListOk(request.resource.data.get('mjPush', {}), 'tokens');
+        && pushListOk(request.resource.data.get('mjPush', {}), 'tokens')
+        && examOk(request.resource.data);
       match /library/{pid} {
         allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
         allow write: if isAdmin();                            // admin cấp quyền tải khi xác nhận đã thanh toán

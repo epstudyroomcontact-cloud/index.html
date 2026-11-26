@@ -466,6 +466,14 @@ async function loadTrial(u, force){
 }
 const localTodos = () => store.get('todos', []);
 const todosGone = () => store.get('todos_gone', []);                  // id các việc đã xoá (để máy khác / lần tải sau không "sống lại" việc đã xoá)
+/* Đếm ngược ngày thi / mục tiêu lớn: một mốc { n:tên, d:'YYYY-MM-DD', t:lúc sửa (ms), u:uid chủ mốc ('' = khách chưa đăng nhập) } lưu trong máy (store 'exam')
+   và trong hồ sơ users/<uid>.exam = { n, d, t }. Xoá = ghi mốc rỗng (n và d là '') kèm t mới, để máy khác không làm "sống lại" mốc cũ. Hai bên thì bản sửa sau cùng (t lớn hơn) thắng.
+   Mốc của tài khoản khác trên cùng máy (đã đăng xuất) bị ẩn, không bị chép sang tài khoản đang đăng nhập. */
+const EXAM_RE = /^\d{4}-\d{2}-\d{2}$/;
+const examClean = e => (e && typeof e === 'object') ? { n:String(e.n || '').trim().slice(0, 60), d:EXAM_RE.test(e.d || '') ? e.d : '', t:Math.max(0, Math.round(+e.t || 0)), u:String(e.u || '') } : null;
+const examRaw = () => { const e = examClean(store.get('exam', null)); return e && (!e.u || (state.user && e.u === state.user.uid)) ? e : null; };   // mốc của người đang dùng máy (kể cả mốc rỗng đã xoá)
+const examGet = () => { const e = examRaw(); return e && e.d ? e : null; };
+const examSet = (n, d) => { store.set('exam', { n:String(n || '').trim().slice(0, 60), d:d || '', t:Date.now(), u:state.user ? state.user.uid : '' }); saveProfileNow(); };
 /* Sổ tập trung theo ngày { 'yyyy-mm-dd': { m:phút, s:phiên } }. Một ngày không thể quá 1440 phút, và mỗi phiên ít nhất 1 phút:
    ngày nào vượt là số liệu hỏng (lỗi cộng lặp cũ) → đưa về 0 để không hiện số vô lý và không đồng bộ tiếp lên tài khoản. */
 const cleanFocus = fl => { const o = {}; Object.entries(fl && typeof fl === 'object' ? fl : {}).forEach(([k, v]) => { const m = Math.round(+(v && v.m) || 0), s = Math.round(+(v && v.s) || 0); o[k] = (m >= 0 && s >= 0 && m <= 1440 && s <= m) ? { m, s } : { m:0, s:0 }; }); return o; };
@@ -488,6 +496,7 @@ async function loadProfile(u, first){
     store.set('todos_gone', [...gone].slice(-300));
     const fl = cleanFocus(profile.focusLog); Object.entries(localFocus()).forEach(([k, v]) => { const o = fl[k] || { m:0, s:0 }; fl[k] = { m:Math.max(o.m, v.m), s:Math.max(o.s, v.s) }; });
     store.set('todos', todos); store.set('focus', fl); profile.todos = todos; profile.focusLog = fl;
+    { const pe = examClean(profile.exam), le = examRaw(), ex = pe && (!le || pe.t >= le.t) ? pe : le; store.set('exam', ex ? { ...ex, u:u.uid } : null); }   // mốc đếm ngược: bản sửa sau cùng thắng
     if (!d.exists || !profile.displayName) { profile.displayName = profile.displayName || u.displayName || (u.email || '').split('@')[0]; }
     state.profileReady = true; state.profileFailed = false; state.profileErr = '';   // hồ sơ đã tải xong → mới được hiện/ghi Moon Journey
     if (typeof grpPing === 'function') grpPing();                   // đã tham gia nhóm học và đồng hồ đang chạy → báo lại trạng thái
@@ -522,6 +531,7 @@ auth.onAuthStateChanged(async u => {
 const saveProfileNow = () => {
   if (!state.user || DEMO) return;
   const data = { displayName: profile.displayName || state.user.displayName || '', email: state.user.email, todos: store.get('todos', []), todosGone: todosGone(), focusLog: localFocus() };
+  const ex = state.profileReady && examRaw(); if (ex && ex.t) data.exam = { n:ex.n, d:ex.d, t:ex.t };   // chỉ ghi mốc khi hồ sơ đã tải xong (không đè mốc mới hơn trên máy khác)
   const sig = state.user.uid + JSON.stringify(data);
   if (store.get('profsig', '') === sig) return;          // không có gì thay đổi thì không ghi (tiết kiệm lượt ghi)
   db.collection('users').doc(state.user.uid).set({ ...data, updatedAt: TS() }, { merge:true }).then(() => store.set('profsig', sig)).catch(e => console.warn('save profile', e.code));

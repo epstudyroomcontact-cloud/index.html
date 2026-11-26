@@ -649,6 +649,13 @@ Làm một lần, sau đó mỗi buổi chỉ cần bấm Start Streaming trong 
 - Muốn sửa chữ từng bước: `TOUR_PS` trong `guide.js` (đủ 8 ngôn ngữ, mỗi bước là [tiêu đề, một câu]); muốn đổi chỗ Moon chỉ hoặc thứ tự: `PGS` (bộ chọn, dáng Moon, khoá chữ).
 - Phòng tập trung, Hành trình trăng và Kế hoạch tuần dùng lại ba hình của hướng dẫn chung. Muốn đổi chữ dưới hình: sửa trong `guide.js` ở `TOUR_PG` (các trang mới) hoặc `fi` / `ci` / `pi` trong `TOUR_T`.
 
+### 22.ap. Đếm ngược ngày thi / mục tiêu lớn (CẦN DÁN LUẬT MỚI)
+- Ở **Tổng quan** (thẻ Phòng tập trung, ngay dưới nút Bắt đầu tập trung) và ở **Phòng tập trung** (dưới bộ đếm) có nút **Đặt đếm ngược (ngày thi, mục tiêu lớn)**. Bấm vào, khách gõ tên mốc (ví dụ "Thi cuối kỳ", tối đa 60 ký tự) và chọn ngày (từ hôm nay trở đi). Sau đó hai nơi này hiện số ngày còn lại, ví dụ **50 · Thi cuối kỳ · còn 50 ngày · 15 thg 1, 2027**. Đúng ngày thì hiện "Là hôm nay. Bạn làm được mà!", qua ngày thì hiện "Đã qua mốc này" (màu nhạt) để khách đặt mốc mới.
+- Nút bút chì bên phải để **sửa** hoặc **xoá** mốc. Mỗi người một mốc. Số ngày tính theo múi giờ của khách.
+- Khách chưa đăng nhập vẫn đặt được (lưu trong máy đó). Đã đăng nhập thì mốc lưu vào hồ sơ `users/<uid>.exam` nên mở máy khác cũng thấy; sửa ở hai máy thì bản sửa sau cùng thắng. Đăng xuất thì mốc của tài khoản đó bị ẩn, không lộ sang tài khoản khác dùng chung máy. Không thêm lượt đọc Firestore nào (đọc cùng hồ sơ có sẵn), chỉ ghi khi khách lưu hoặc xoá mốc.
+- **Cần dán lại `firestore.rules`** (PHẦN 2.3): luật mới chỉ cho ghi mốc đúng dạng (tên tối đa 60 ký tự, ngày dạng YYYY-MM-DD). Chưa dán thì tính năng vẫn chạy (luật cũ không chặn trường mới), chỉ là chưa có lớp kiểm tra này.
+- Chữ có đủ 8 ngôn ngữ, nằm trong `pages.js` (tìm `ex_add`).
+
 ### 22.ao. Moon ở góc sofa: đi dạo khắp màn hình và giận khi bị bấm
 - **Đi dạo:** lần đầu chỉ sau khoảng 5 đến 9 giây kể từ khi sofa hiện, sau đó máy tính khoảng 25 đến 45 giây một lần, điện thoại khoảng 45 đến 80 giây (đang bận như cuộn hay gõ chữ thì thử lại sau 4 giây). Moon rời sofa, đi qua 3 đến 4 điểm ngẫu nhiên **khắp màn hình** rồi quay về chỗ cũ. Sofa mờ đi lúc Moon rời chỗ và hiện lại (còn trống) khi Moon quay về.
 - **Hình dáng:** Moon vẽ **giống hệt Moon ở trang Hành trình trăng** (thân kem, viền xanh nhạt mảnh, mảng cam có vằn trên đầu và tai, mắt cười, má hồng, râu). Các hình ngồi, đi ngang, đi xa, ngủ được lấy trực tiếp từ hàm vẽ `mjCat` trong `moon-art.js` (dán sẵn vào `MOON_WALK`, không phải tải thêm tệp), và dùng chung các nhịp chuyển động `.mja-*` của Hành trình trăng (bước chân chéo, vẫy đuôi, thở, nghiêng đầu).

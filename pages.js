@@ -124,6 +124,46 @@ function homeMine(){                                      // dưới đồng h�
     <div class="hm-h">${esc(t('home_todo_h'))}</div>
     ${top.length ? `<ul class="hm-todo">${top.map(x => `<li>${esc(x.text)}</li>`).join('')}</ul>${open.length > top.length ? `<a class="small muted" href="#/focus">${esc(t('home_todo_more', { n:open.length - top.length }))}</a>` : ''}` : `<a class="small muted" href="#/focus">${esc(t('home_todo_none'))}</a>`}</div>`;
 }
+/* Đếm ngược ngày thi / mục tiêu lớn (lưu ở core.js: examGet/examSet). Hiện ở Tổng quan (thẻ Phòng tập trung) và ở Phòng tập trung (dưới bộ đếm).
+   Một mốc duy nhất: tên + ngày. Khách chưa đăng nhập vẫn đặt được (lưu trong máy), đăng nhập thì đồng bộ vào hồ sơ. */
+const examToday = () => DT.now().setZone(userTZ).startOf('day');
+const examDays = e => Math.round(DT.fromISO(e.d, { zone:userTZ }).startOf('day').diff(examToday(), 'days').days);
+function examBox(where){
+  const e = examGet();
+  if (!e) return `<button type="button" class="ex-add ex-${where}" data-act="examEdit">${ic('calendar', 'sm')} <span>${esc(t('ex_add'))}</span></button>`;
+  const n = examDays(e), dl = DT.fromISO(e.d).setLocale(state.lang).toLocaleString(DT.DATE_MED), name = e.n || t('ex_noname');
+  const big = n > 0 ? `<span class="ex-n">${n}</span>` : `<span class="ex-n ex-ic">${ic(n === 0 ? 'star' : 'check')}</span>`;
+  const sub = n > 1 ? t('ex_left', { n }) : n === 1 ? t('ex_left1') : n === 0 ? t('ex_today') : t('ex_past');
+  return `<div class="ex-box ex-${where}${n < 0 ? ' past' : n === 0 ? ' now' : ''}" role="group" aria-label="${esc(t('ex_h'))}">${big}<span class="ex-t"><b>${esc(name)}</b><small>${esc(sub)} · ${esc(dl)}</small></span><button type="button" class="btn ghost icon sm ex-ed" data-act="examEdit" title="${esc(t('ex_edit'))}" aria-label="${esc(t('ex_edit'))}">${ic('pen', 'sm')}</button></div>`;
+}
+ACTIONS.examEdit = () => {
+  const e = examGet(), min = examToday().toISODate();
+  openModal(`<h2 style="padding-right:36px">${ic('calendar')} ${esc(t('ex_title'))}</h2><p class="small muted">${esc(t('ex_desc'))}</p>
+    <form class="stack mt-s" data-form="exam"><div class="field"><label class="label" for="ex-name">${esc(t('ex_name'))}</label><input class="input" id="ex-name" maxlength="60" autocomplete="off" placeholder="${esc(t('ex_name_ph'))}" value="${esc(e ? e.n : '')}" required></div>
+    <div class="field"><label class="label" for="ex-date">${esc(t('ex_date'))}</label><input class="input" id="ex-date" type="date" min="${min}" max="${examToday().plus({ years:10 }).toISODate()}" value="${esc(e && e.d >= min ? e.d : '')}" required></div>
+    <div class="row"><button class="btn primary" type="submit">${esc(t('save'))}</button>${e ? `<button type="button" class="btn danger" data-act="examDel">${ic('trash', 'sm')} ${esc(t('ex_del'))}</button>` : ''}<button type="button" class="btn ghost" data-act="closeModal">${esc(t('cancel'))}</button></div></form>`, true);
+  setTimeout(() => { const i = $('ex-name'); if (i && !isPhone()) i.focus(); }, 30);
+};
+ACTIONS.examDel = () => { examSet('', ''); closeModal(); toast(t('ex_deleted')); render(true); };
+FORMS.exam = () => {
+  const n = $('ex-name').value.trim().slice(0, 60), d = $('ex-date').value, min = examToday().toISODate();
+  if (!n) return $('ex-name').focus();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || d < min || !DT.fromISO(d).isValid) { toast(t('ex_bad_date')); return $('ex-date').focus(); }
+  examSet(n, d); closeModal(); toast(t('saved')); render(true);
+};
+(function(){
+  const G = {
+    en:{ ex_add:"Set a countdown (exam or big goal)", ex_h:"Countdown", ex_left:"{n} days left", ex_left1:"1 day left, tomorrow!", ex_today:"It's today. You've got this!", ex_past:"This date has passed", ex_edit:"Edit countdown", ex_title:"Countdown", ex_desc:"Add one big date, like an exam or a deadline. You will see how many days are left on the Overview and in the Focus room.", ex_name:"What is it?", ex_name_ph:"e.g. Final exam", ex_date:"Date", ex_del:"Delete", ex_deleted:"Countdown deleted", ex_bad_date:"Pick a date from today on.", ex_noname:"My goal" },
+    vi:{ ex_add:"Đặt đếm ngược (ngày thi, mục tiêu lớn)", ex_h:"Đếm ngược", ex_left:"còn {n} ngày", ex_left1:"còn 1 ngày, ngày mai rồi!", ex_today:"Là hôm nay. Bạn làm được mà!", ex_past:"Đã qua mốc này", ex_edit:"Sửa đếm ngược", ex_title:"Đếm ngược", ex_desc:"Đặt một mốc quan trọng như ngày thi hay hạn nộp. Số ngày còn lại sẽ hiện ở Tổng quan và Phòng tập trung.", ex_name:"Mốc gì?", ex_name_ph:"Ví dụ: Thi cuối kỳ", ex_date:"Ngày", ex_del:"Xoá", ex_deleted:"Đã xoá đếm ngược", ex_bad_date:"Bạn chọn ngày từ hôm nay trở đi nhé.", ex_noname:"Mục tiêu của tôi" },
+    ja:{ ex_add:"カウントダウンを設定（試験・大きな目標）", ex_h:"カウントダウン", ex_left:"あと {n} 日", ex_left1:"あと 1 日、明日です！", ex_today:"今日が本番。きっと大丈夫！", ex_past:"この日は過ぎました", ex_edit:"カウントダウンを編集", ex_title:"カウントダウン", ex_desc:"試験や締め切りなど大切な日を一つ登録しましょう。残り日数が概要と集中ルームに表示されます。", ex_name:"内容", ex_name_ph:"例：期末試験", ex_date:"日付", ex_del:"削除", ex_deleted:"カウントダウンを削除しました", ex_bad_date:"今日以降の日付を選んでください。", ex_noname:"私の目標" },
+    ko:{ ex_add:"D-day 설정 (시험, 큰 목표)", ex_h:"D-day", ex_left:"{n}일 남음", ex_left1:"1일 남음, 내일이에요!", ex_today:"바로 오늘이에요. 할 수 있어요!", ex_past:"이 날짜는 지났어요", ex_edit:"D-day 수정", ex_title:"D-day", ex_desc:"시험이나 마감일 같은 중요한 날짜를 하나 정해 보세요. 남은 날이 개요와 집중 룸에 표시돼요.", ex_name:"무엇인가요?", ex_name_ph:"예: 기말고사", ex_date:"날짜", ex_del:"삭제", ex_deleted:"D-day를 삭제했어요", ex_bad_date:"오늘 이후 날짜를 골라 주세요.", ex_noname:"나의 목표" },
+    zh:{ ex_add:"设置倒计时（考试或大目标）", ex_h:"倒计时", ex_left:"还剩 {n} 天", ex_left1:"还剩 1 天，就是明天！", ex_today:"就是今天，你一定可以！", ex_past:"这个日期已经过了", ex_edit:"编辑倒计时", ex_title:"倒计时", ex_desc:"设置一个重要日子，比如考试或截止日期。剩余天数会显示在概览和专注室。", ex_name:"是什么？", ex_name_ph:"例如：期末考试", ex_date:"日期", ex_del:"删除", ex_deleted:"已删除倒计时", ex_bad_date:"请选择今天或之后的日期。", ex_noname:"我的目标" },
+    fr:{ ex_add:"Ajouter un compte à rebours (examen, grand objectif)", ex_h:"Compte à rebours", ex_left:"encore {n} jours", ex_left1:"encore 1 jour, c'est demain !", ex_today:"C'est aujourd'hui. Tu vas y arriver !", ex_past:"Cette date est passée", ex_edit:"Modifier le compte à rebours", ex_title:"Compte à rebours", ex_desc:"Ajoute une date importante, comme un examen ou une échéance. Les jours restants s'affichent sur l'Aperçu et dans la salle de concentration.", ex_name:"Quoi ?", ex_name_ph:"ex. : Examen final", ex_date:"Date", ex_del:"Supprimer", ex_deleted:"Compte à rebours supprimé", ex_bad_date:"Choisis une date à partir d'aujourd'hui.", ex_noname:"Mon objectif" },
+    es:{ ex_add:"Poner una cuenta atrás (examen o gran meta)", ex_h:"Cuenta atrás", ex_left:"faltan {n} días", ex_left1:"falta 1 día, ¡es mañana!", ex_today:"Es hoy. ¡Tú puedes!", ex_past:"Esta fecha ya pasó", ex_edit:"Editar cuenta atrás", ex_title:"Cuenta atrás", ex_desc:"Añade una fecha importante, como un examen o una entrega. Verás los días que faltan en el Resumen y en la sala de concentración.", ex_name:"¿Qué es?", ex_name_ph:"p. ej.: Examen final", ex_date:"Fecha", ex_del:"Eliminar", ex_deleted:"Cuenta atrás eliminada", ex_bad_date:"Elige una fecha de hoy en adelante.", ex_noname:"Mi meta" },
+    hi:{ ex_add:"काउंटडाउन सेट करें (परीक्षा या बड़ा लक्ष्य)", ex_h:"काउंटडाउन", ex_left:"{n} दिन बाकी", ex_left1:"1 दिन बाकी, कल है!", ex_today:"आज ही है। आप कर सकते हैं!", ex_past:"यह तारीख निकल चुकी है", ex_edit:"काउंटडाउन बदलें", ex_title:"काउंटडाउन", ex_desc:"परीक्षा या डेडलाइन जैसी एक ज़रूरी तारीख जोड़ें। बचे हुए दिन ओवरव्यू और फ़ोकस रूम में दिखेंगे।", ex_name:"क्या है?", ex_name_ph:"जैसे: फ़ाइनल परीक्षा", ex_date:"तारीख", ex_del:"हटाएँ", ex_deleted:"काउंटडाउन हटा दिया गया", ex_bad_date:"आज या उसके बाद की तारीख चुनें।", ex_noname:"मेरा लक्ष्य" }
+  };
+  Object.keys(G).forEach(l => { I18N[l] = I18N[l] || {}; Object.keys(G[l]).forEach(k => { if (I18N[l][k] === undefined) I18N[l][k] = G[l][k]; }); });
+})();
 /* Số thành viên (số tài khoản đã đăng ký) hiện ở Tổng quan, kể cả khách chưa đăng nhập. Đọc 1 tài liệu công khai site_stats/members do admin cập nhật (admin.js → syncMemberCount). */
 let memCount = null, memCountP = null;
 const memCountPill = () => {
@@ -169,7 +209,7 @@ PAGES.home = function(){
           return `<div class="today-item ${live ? 'live' : ''} ${x.cancelled ? 'off' : ''}"><span class="tm">${su.toFormat('HH:mm')} – ${eu.toFormat('HH:mm')}</span><div style="flex:1;min-width:0">${x.slot.title ? `<div style="font-weight:600;font-size:.9rem">${esc(x.slot.title)}</div>` : ''}<div class="pomo-chip">${esc(slotChip(x.slot, x.mins))}</div></div>${live ? `<span class="badge live">${esc(t('live_now'))}</span>` : wait ? `<span class="badge warn">${esc(t('live_waiting'))}</span>` : x.cancelled ? `<span class="badge danger">${esc(t('cancelled'))}</span>` : ''}</div>`; }).join('') : emptyBox('calendar', t('nothing_today'), '')}</section>
       <div class="stack">
         <section class="card pad"><div class="card-h"><h2>${esc(t('nav_focus'))}</h2><span class="badge" data-pomo-mode>${esc(t('mode_focus'))}</span></div>
-          <div class="mono" style="font-size:2.6rem;font-weight:700;letter-spacing:-.04em" data-pomo-time>25:00</div><a class="btn primary mt-s" href="#/focus">${ic('timer', 'sm')} ${esc(t('btn_start_focus'))}</a>${homeMine()}</section>
+          <div class="mono" style="font-size:2.6rem;font-weight:700;letter-spacing:-.04em" data-pomo-time>25:00</div><a class="btn primary mt-s" href="#/focus">${ic('timer', 'sm')} ${esc(t('btn_start_focus'))}</a>${examBox('home')}${homeMine()}</section>
         ${v0 ? `<a class="card vcard" href="#/watch" data-act="playVideo" data-id="${esc(v0.id)}" style="padding:12px"><div class="th"><img loading="lazy" alt="" src="https://i.ytimg.com/vi/${esc(v0.id)}/hqdefault.jpg"></div><h4>${esc(v0.title || t('latest_videos'))}</h4></a>` : ''}
       </div></div>`;
   }
@@ -873,6 +913,7 @@ PAGES.focus = function(){
       ${pipCta()}
       ${pipCanUse() ? `<button type="button" class="btn ghost sm tm-pip" id="tm-pip" data-act="pip" title="${esc(t('pip_tip'))}" aria-pressed="false">${ic('pip', 'sm')} ${esc(t('pip_on'))}</button>` : ''}
       ${branding.groupOn === true ? '<div id="grp-strip" class="grp-strip-wrap"></div>' : ''}
+      ${examBox('fx')}
       <details class="tm-cfg" ${fxCfgOpen ? 'open' : ''}><summary>${ic('sliders', 'sm')} ${esc(t('fx_cfg'))}<svg class="cfg-chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
       <div class="divider" style="width:100%;margin:2px 0"></div>
       <div class="row" style="width:100%"><span class="small muted">${esc(t('presets'))}:</span>${Object.entries(PRESETS).map(([k, p]) => `<button type="button" class="chip" data-act="ppreset" data-p="${k}">${p.focus}/${p.short}/${p.long}</button>`).join('')}</div>
