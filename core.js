@@ -583,7 +583,7 @@ function readRoute(){
 }
 /* Mục cần đăng nhập: khách chưa đăng nhập vẫn thấy menu và tiêu đề của mọi mục,
    nhưng khi mở các mục "khoá" thì được mời đăng nhập / tạo tài khoản để tham gia (admin chỉnh ở tab Giao diện & Menu). */
-const LOCKABLE = ['home', 'schedule', 'watch', 'focus', 'blog', 'club', 'planner', 'shop', 'gear', 'donate', 'about'];
+const LOCKABLE = ['home', 'schedule', 'watch', 'focus', 'group', 'blog', 'club', 'planner', 'shop', 'gear', 'donate', 'about'];
 const loginRequired = () => !DEMO && !CONFIG_MISSING && branding.requireLogin !== false;
 const lockedPages = () => Array.isArray(branding.lockedPages) ? branding.lockedPages : ['schedule', 'watch', 'focus', 'blog', 'club', 'shop'];
 const isLocked = name => loginRequired() && !state.user && lockedPages().includes(name);
@@ -659,7 +659,7 @@ function trialMoonSync(){
 }
 const NAV_DEFAULT = [
   { id:'home', icon:'home', path:'/' }, { id:'guide', icon:'info', path:'/guide' }, { id:'schedule', icon:'calendar', path:'/schedule' }, { id:'watch', icon:'play', path:'/watch' },
-  { id:'focus', icon:'timer', path:'/focus' }, { id:'blog', icon:'pen', path:'/blog' }, { id:'club', icon:'moon', path:'/club' }, { id:'planner', icon:'chart', path:'/planner' }, { id:'shop', icon:'bag', path:'/shop' }, { id:'gear', icon:'tag', path:'/gear' }, { id:'donate', icon:'heart', path:'/donate' }, { id:'about', icon:'info', path:'/about' }
+  { id:'focus', icon:'timer', path:'/focus' }, { id:'group', icon:'users', path:'/group' }, { id:'blog', icon:'pen', path:'/blog' }, { id:'club', icon:'moon', path:'/club' }, { id:'planner', icon:'chart', path:'/planner' }, { id:'shop', icon:'bag', path:'/shop' }, { id:'gear', icon:'tag', path:'/gear' }, { id:'donate', icon:'heart', path:'/donate' }, { id:'about', icon:'info', path:'/about' }
 ];
 function navItems(){
   const saved = branding.nav; if (!Array.isArray(saved) || !saved.length) return NAV_DEFAULT.map(n => ({ ...n, visible:true }));
@@ -670,14 +670,14 @@ function navItems(){
 }
 const navLabel = n => (n.label && (n.label[state.lang] || (isNativeContent() ? '' : n.label.en) || n.label.en || n.label.vi)) || t('nav_' + n.id);
 function renderChrome(){
-  const items = navItems().filter(n => n.visible !== false && n.id !== 'about');   // About đã gộp vào Overview
+  const items = navItems().filter(n => n.visible !== false && n.id !== 'about' && (n.id !== 'group' || branding.groupOn === true));   // About đã gộp vào Overview
   const cartN = cartCount();
   const logo = `<img src="${esc(branding.logoUrl || 'icons/logo.svg')}" alt="">`;
   $('sidebar').innerHTML = `
     <a class="sb-brand" href="#/"><span class="logo-mark${branding.logoUrl ? '' : ' is-moon'}">${logo}</span><span>${esc(branding.name)}</span></a>
     ${items.map(n => n.url
       ? `<a class="sb-item" href="${esc(safeUrl(n.url))}" target="_blank" rel="noopener">${ic('link')}<span>${esc(navLabel(n))}</span></a>`
-      : `<a class="sb-item ${route.name === n.id || (n.id === 'home' && route.name === 'home') ? 'active' : ''}" href="#${n.path}" data-act="${n.id === 'focus' && branding.groupOn === true ? 'grpSeen' : 'closeNav'}">${ic(n.icon)}${n.id === 'focus' && branding.groupOn === true ? `<span class="sb-two">${esc(navLabel(n))}<small>+ ${esc(t('nav_group'))}</small></span>${store.get('grp_seen', 0) ? '' : '<i class="sb-new" aria-hidden="true"></i>'}` : `<span>${esc(navLabel(n))}</span>`}${n.id === 'shop' && cartN ? `<span class="count">${cartN}</span>` : ''}${n.id === 'club' && typeof moonNeedsCheckin === 'function' && moonNeedsCheckin() ? `<i class="sb-new" role="img" title="${esc(t('mjn_dot'))}" aria-label="${esc(t('mjn_dot'))}"></i>` : ''}${isLocked(n.id) ? `<span class="lk" title="${esc(t('lock_title'))}">${ic('lock', 'sm')}</span>` : ''}</a>`).join('')}
+      : `<a class="sb-item ${route.name === n.id || (n.id === 'home' && route.name === 'home') ? 'active' : ''}" href="#${n.path}" data-act="${n.id === 'group' ? 'grpSeen' : 'closeNav'}">${ic(n.icon)}<span>${esc(navLabel(n))}</span>${n.id === 'group' && !store.get('grp_seen', 0) ? '<i class="sb-new" aria-hidden="true"></i>' : ''}${n.id === 'shop' && cartN ? `<span class="count">${cartN}</span>` : ''}${n.id === 'club' && typeof moonNeedsCheckin === 'function' && moonNeedsCheckin() ? `<i class="sb-new" role="img" title="${esc(t('mjn_dot'))}" aria-label="${esc(t('mjn_dot'))}"></i>` : ''}${isLocked(n.id) ? `<span class="lk" title="${esc(t('lock_title'))}">${ic('lock', 'sm')}</span>` : ''}</a>`).join('')}
     ${state.user ? `<div class="sb-label">${esc(t('nav_account'))}</div>
       <a class="sb-item ${route.name === 'account' && route.args[0] === 'library' ? 'active' : ''}" href="#/account/library" data-act="closeNav">${ic('download')}<span>${esc(t('nav_library'))}</span>${library.length ? `<span class="count">${library.length}</span>` : ''}</a>` : ''}
     ${pwaStandalone() ? '' : `<button type="button" class="sb-item sb-install" data-act="pwaInstall">${ic('download')}<span>${esc(t('pwa_install'))}</span></button>`}
@@ -685,7 +685,7 @@ function renderChrome(){
     <div class="sb-foot">${state.user
       ? `<a class="sb-user" href="#/account" data-act="closeNav"><span class="avatar">${esc((displayName() || '?').slice(0, 1).toUpperCase())}</span><div><span class="sb-name"><b>${esc(displayName())}</b>${nameBadge()}</span><small>${esc(state.isAdmin ? 'Admin' : t('nav_account'))}</small></div></a>`
       : `<a class="btn primary" style="width:100%" href="#/account" data-act="closeNav">${ic('user', 'sm')} ${esc(t('nav_signin'))}</a>`}</div>`;
-  const titles = { home:'nav_home', schedule:'nav_schedule', watch:'nav_watch', focus:'nav_focus', blog:'nav_blog', club:'nav_club', planner:'nav_planner', shop:'nav_shop', gear:'nav_gear', donate:'nav_donate', about:'nav_about', account:'nav_account', admin:'nav_admin' };
+  const titles = { home:'nav_home', schedule:'nav_schedule', watch:'nav_watch', focus:'nav_focus', group:'nav_group', blog:'nav_blog', club:'nav_club', planner:'nav_planner', shop:'nav_shop', gear:'nav_gear', donate:'nav_donate', about:'nav_about', account:'nav_account', admin:'nav_admin' };
   $('tb-title').textContent = t(titles[route.name] || 'nav_home');
   const dot = $('cart-dot'); dot.textContent = cartN; dot.classList.toggle('hidden', !cartN);
   $('btn-edit').classList.toggle('hidden', !state.isAdmin);
