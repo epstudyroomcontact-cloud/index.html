@@ -1097,13 +1097,10 @@ html.paw-live :not(textarea,input:not([type=checkbox],[type=radio],[type=range],
 @media (prefers-reduced-motion:reduce){html:not([data-motion="on"]) .ep-paw{display:none}}
 html[data-calm="1"] .ep-paw{display:none}
 
-/* ---------- Nhóm học trực tiếp (group.js, nằm trong Phòng tập trung) ---------- */
+/* ---------- Nhóm học trực tiếp (group.js): trang riêng #/group; Phòng tập trung chỉ có dải tóm tắt dưới đồng hồ ---------- */
 .grp{margin-top:18px}
 .grp-me{gap:10px;margin-bottom:12px;flex-wrap:wrap}
 .grp-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.2);vertical-align:middle}
-.grp-cols{display:grid;grid-template-columns:1fr 1fr;gap:22px}
-@media (max-width:760px){.grp-cols{grid-template-columns:1fr}}
-.grp-cols>div{min-width:0}
 .grp-h{font-size:.95rem;margin:0 0 8px;display:flex;align-items:center;gap:8px}
 .grp-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
 .grp-row{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:10px;min-width:0}
@@ -1153,7 +1150,6 @@ html[data-calm="1"] .ep-paw{display:none}
 .stack>.grp{margin-top:0}
 .grp-home .grp-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));column-gap:14px}
 .grp-home{margin-top:18px}
-.stack>.grp .grp-cols{grid-template-columns:1fr}
 .goal{padding:12px 14px;border-radius:14px;background:var(--accent-soft)}
 .goal .progress{height:10px}
 .perday{margin:6px 0 0}
@@ -1214,7 +1210,7 @@ html[data-calm="1"] .ep-paw{display:none}
 /* Phòng tập trung: bảng tab Việc / Nhạc / Nhóm / Live ngay cạnh bộ đếm, không phải cuộn xuống */
 .fx-tabs>.tab-bar{padding-bottom:12px}
 .fx-tabs>.tab-bar .chip{display:inline-flex;align-items:center;gap:6px}
-.fx-tabs .grp .grp-cols{grid-template-columns:1fr}
+
 .fx-tabs .tab-pane>.card{margin:0}
 .todo-linked{display:flex;flex-direction:column}.todo-linked>#todo-list{order:1}.todo-linked>.hint{order:2}
 .fx-add .fx-time,.fx-edit .fx-time{flex:0 0 112px;width:112px;padding-left:10px;padding-right:6px}
@@ -1532,3 +1528,32 @@ body:has(#tour-ask) .sofa{display:none}
 html[data-calm] .grp-pool.play .grp-sw-i{animation:none}
 .grp-pool{background:#0d1633}
 .grp-pool.wait{min-height:120px}
+
+/* trang Nhóm học: tiêu đề, rồi minh hoạ bể bơi | bảng tuần đầy đủ, dưới cùng là ai đang học */
+.grp-page{margin-top:0}
+.grp-pg-h{margin:4px 0 16px}
+.grp-pg-h h1{display:flex;align-items:center;gap:10px;margin:0;font-size:1.6rem;letter-spacing:-.02em}
+.grp-pg-h p{margin:6px 0 0;max-width:640px}
+.grp-pg{display:grid;gap:18px;grid-template-columns:minmax(0,1fr);grid-template-areas:"pool" "board" "live"}
+.grp-pg>.card{margin:0;min-width:0}
+.grp-pg-pool{grid-area:pool}.grp-pg-board{grid-area:board}.grp-pg-live{grid-area:live}
+.grp-pg-pool .grp-pool{margin-bottom:0}
+.grp-pg-live .grp-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));column-gap:14px}
+.grp-pg-set{margin-top:18px}
+@media (min-width:900px){
+  .grp-pg{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);grid-template-areas:"pool board" "live live";align-items:start}
+  .grp-pg-pool{position:sticky;top:80px}
+}
+/* dải tóm tắt dưới đồng hồ (Phòng tập trung): ai đang học, top 3 tuần, hạng của mình, link mở trang Nhóm học */
+.grp-mini{list-style:none;margin:0;padding:6px 0 0;flex:1 1 100%;display:grid;gap:3px;border-top:1px solid rgba(var(--accent-rgb),.25)}
+.grp-mini li{display:flex;align-items:center;gap:4px;min-width:0;font-size:.8rem}
+.grp-mini li.me b{color:var(--accent-strong)}
+.grp-mini .grp-rank{width:18px}
+.grp-mini b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+.grp-mini small{flex:none;margin-left:auto;color:var(--ink2);font-variant-numeric:tabular-nums}
+.grp-strip-more{flex:1 1 100%;display:flex;align-items:center;justify-content:flex-end;gap:4px;color:var(--accent-strong);font-weight:700}
+.grp-strip-more:hover{text-decoration:underline}
+a.grp-strip-r,a.grp-strip-join{text-decoration:none}
+.grp-pg .grp-n{min-width:4.5em}
+.grp-pg .grp-st{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.grp-pg-pool .grp-climb{margin:0 0 10px}
