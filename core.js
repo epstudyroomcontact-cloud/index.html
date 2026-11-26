@@ -29,6 +29,10 @@ const EMAILJS_SERVICE = 'service_a098n5f', EMAILJS_CHALLENGE_TPL = 'template_lhv
 const CONFIG_MISSING = !window.FIREBASE_CONFIG || /PASTE_|PLACEHOLDER/.test(JSON.stringify(window.FIREBASE_CONFIG));
 firebase.initializeApp(window.FIREBASE_CONFIG || { apiKey:'AIzaSyPLACEHOLDER', projectId:'none', appId:'none' });
 const db = firebase.firestore(), auth = firebase.auth();
+// Web chỉ đăng nhập bằng email/mật khẩu, không dùng popup/redirect của Google. Trên điện thoại & Safari, Firebase Auth vẫn tự tải
+// trước apis.google.com/js/api.js + iframe của authDomain để chuẩn bị cho popup/redirect, bị CSP chặn (kiểm tra sức khoẻ báo lỗi).
+// Tắt việc tải trước đó thay vì mở CSP cho apis.google.com. Nếu sau này thêm "Đăng nhập bằng Google" thì bỏ dòng này và thêm nguồn vào CSP.
+try { const r = auth._delegate && auth._delegate._popupRedirectResolver; if (r) Object.defineProperty(r, '_shouldInitProactively', { value:false, configurable:true }); } catch (e) {}
 try { db.settings({ experimentalForceLongPolling:true, merge:true }); } catch (e) { console.warn('firestore settings', e); }   // một số mạng/trình duyệt chặn hoặc làm chậm kết nối streaming nên lần đọc đầu báo 'unavailable' (Planner không tải được): dùng long-polling luôn, ổn định hơn cho web nhỏ này
 let storage = null;   // tải bằng loadStorage() khi cần
 const TS = () => firebase.firestore.FieldValue.serverTimestamp(), DEL = () => firebase.firestore.FieldValue.delete();
