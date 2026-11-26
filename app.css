@@ -1356,6 +1356,19 @@ body:has(#tour-ask) .sofa{display:none}
 @media(max-width:640px){.fx-stats .g2.keep2{grid-template-columns:repeat(2,minmax(0,1fr))}.fx-stats .tile{padding:14px}}
 
 /* Tổng quan: chuỗi ngày + việc của hôm nay dưới đồng hồ */
+/* Đếm ngược ngày thi / mục tiêu lớn (Tổng quan + Phòng tập trung) */
+.ex-box{display:flex;align-items:center;gap:12px;width:100%;margin-top:14px;padding:10px 8px 10px 12px;border:1px solid var(--line);border-radius:14px;background:var(--surface2);text-align:left}
+.ex-box .ex-n{flex:none;min-width:48px;height:48px;padding:0 8px;display:grid;place-items:center;border-radius:12px;background:var(--accent);color:#fff;font-weight:800;font-size:1.35rem;line-height:1;font-variant-numeric:tabular-nums}
+.ex-box .ex-n.ex-ic .ic{width:22px;height:22px}
+.ex-box.past .ex-n{background:var(--line2);color:var(--ink2)}
+.ex-box .ex-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.ex-box .ex-t b{font-size:.95rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ex-box .ex-t small{font-size:.8rem;color:var(--ink2)}
+.ex-box.past .ex-t small{color:var(--ink3)}
+.ex-box .ex-ed{flex:none}
+.ex-add{display:inline-flex;align-items:center;gap:8px;margin-top:14px;padding:8px 12px;border:1px dashed var(--line2);border-radius:12px;background:none;color:var(--ink2);font:inherit;font-size:.85rem;font-weight:700;cursor:pointer;text-align:left}
+.ex-add:hover,.ex-add:focus-visible{border-color:var(--accent);color:var(--ink)}
+.ex-fx.ex-add{align-self:center}
 .home-mine{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
 .home-mine .hm-h{font-size:.74rem;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em}
 .hm-todo{list-style:none;margin:0;padding:0;display:grid;gap:6px;width:100%}
