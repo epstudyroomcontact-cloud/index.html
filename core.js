@@ -22,6 +22,8 @@ let plannerP = null;
 const loadPlanner = () => typeof PAGES.planner === 'function' ? Promise.resolve() : (plannerP || (plannerP = Promise.all([loadScript('planner-i18n.js?v=' + ASSET_V).catch(() => {}), loadScript('planner.js?v=' + ASSET_V)]).catch(e => { plannerP = null; throw e; })));   // planner-i18n.js = bản dịch hi/ja/ko/zh/fr/es; thiếu thì dùng tiếng Anh
 let guideP = null;   // guide.js (hướng dẫn từng bước có mèo Moon): chỉ tải khi cần chạy hoặc hỏi khách
 const loadGuide = () => typeof PAGES.guide === 'function' ? Promise.resolve() : (guideP || (guideP = loadScript('guide.js?v=' + ASSET_V).catch(e => { guideP = null; throw e; })));
+let backupP = null;   // js/backup.js (Sao lưu / xuất dữ liệu học): chỉ tải khi mở Tài khoản → Hồ sơ
+const loadBackup = () => typeof bkCard === 'function' ? Promise.resolve() : (backupP || (backupP = loadScript('js/backup.js?v=' + ASSET_V).catch(e => { backupP = null; throw e; })));
 let groupP = null;   // group.js (Nhóm học trực tiếp): chỉ tải khi mở Phòng tập trung hoặc khi khách đã tham gia và đồng hồ đổi trạng thái
 const loadGroup = () => window.EPGroup ? Promise.resolve() : (groupP || (groupP = loadScript('group.js?v=' + ASSET_V).catch(e => { groupP = null; throw e; })));
 const EMAILJS_SERVICE = 'service_a098n5f', EMAILJS_CHALLENGE_TPL = 'template_lhv0y0n';
