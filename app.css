@@ -1527,7 +1527,7 @@ body:has(#tour-ask) .sofa{display:none}
 .grp-pool{margin:4px 0 12px;border-radius:14px;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.12)}
 .grp-pool svg{display:block;width:100%;height:auto}
 .grp-pool.play .grp-sw-i{animation:grpSwim 1.5s cubic-bezier(.2,.7,.2,1) both}
-@keyframes grpSwim{from{transform:translateX(var(--dx))}to{transform:none}}
+@keyframes grpSwim{from{transform:translate(var(--dx),var(--dy)) scale(var(--k))}to{transform:none}}
 @media (prefers-reduced-motion:reduce){html:not([data-motion="on"]) .grp-pool.play .grp-sw-i{animation:none}}
 html[data-calm] .grp-pool.play .grp-sw-i{animation:none}
 .grp-pool{background:#0d1633}
