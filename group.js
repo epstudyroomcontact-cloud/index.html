@@ -339,71 +339,114 @@ Object.assign(I18N.vi, {
   function dupCount(){ const c = {}, seen = new Set(); [board, live, roster].forEach(m => Object.entries(m).forEach(([k, e]) => { if (e && e.n && !seen.has(k)) { seen.add(k); c[nk(e.n)] = (c[nk(e.n)] || 0) + 1; } })); dup = c; }
   const dn = (k, n) => (dup[nk(n)] || 0) > 1 ? `${n} #${String(k).slice(-3).toUpperCase()}` : n;
   const avatar = n => `<i class="grp-av" style="--h:${hue(n)}">${esc(String(n).slice(0, 1).toUpperCase())}</i>`;
-  /* ---------- Bể bơi đêm trăng trên bảng tuần (cùng phong cách Hành trình trăng) ----------
-     Mỗi người một làn dọc (tối đa 5: top 4 + chính mình nếu ở ngoài top), bơi từ vạch xuất phát lên phía mặt trăng (đích) càng cao khi càng nhiều phút; Moon ngồi trên bờ ngắm trăng.
-     Vẽ bằng chính bộ vẽ của Hành trình trăng (moon-art.js: trời sao, trăng, nước có vệt trăng, đom đóm, mèo Moon, lớp chất liệu sáp):
-     file đó chỉ nạp khi cần, xong thì vẽ lại bảng. Mũ bơi cùng màu với ảnh đại diện trong danh sách bên dưới.
-     Dựng từ dữ liệu bảng tuần sẵn có: không thêm lượt đọc / ghi Firestore. Hoạt hình bơi vào chỉ chạy lần đầu mỗi lần mở trang và tắt khi bật giảm chuyển động. */
+  /* ---------- Hồ bơi trong nhà trên bảng tuần (vẽ bằng bộ vẽ của Hành trình trăng) ----------
+     Mỗi người một làn (tối đa 5: top 4 + chính mình nếu ở ngoài top), bơi từ bục xuất phát về tường đích, càng nhiều phút càng gần đích; Moon ngồi chờ ở đích cạnh cúp.
+     Mọi người bơi đều có thẻ tên và số hạng. moon-art.js chỉ nạp khi cần, xong thì vẽ lại bảng. Mũ bơi cùng màu với ảnh đại diện trong danh sách.
+     Dựng từ dữ liệu bảng tuần sẵn có: không thêm lượt đọc / ghi Firestore. Chuyển động (bơi vào, sải tay, gợn nước, cờ, ánh nước) tắt khi bật giảm chuyển động. */
   let poolPlayed = false, poolLoad = false, poolN = 0;
   const POOL_SUIT = ['#8fb4ff', '#ffb78a', '#9be3c5', '#d4b4ff', '#ffe08f', '#ff9db5'], POOL_RANK = [['#fff2c4', '#4a3a12'], ['#d7dff5', '#222c4d'], ['#f0c39a', '#4a2c14']];
   function poolSvg(rows, meId, play){
     if (!rows.length) return '';
-    const W = 400, HY = 96, YN = 308, H = YN + 46, N = rows.length, HWN = N * 38, MX = W / 2, YF = HY + Math.round((YN - HY) * .42), K = 1 / (YN - HY);
+    const W = 400, H = 344, VX = 200, VY = -34, WL = 64, WR = 336, YW = 104, YP = 114, YN = H - 42, N = rows.length, HWN = N * 36;
     if (typeof mjCtx !== 'function' || typeof mjTexDefs !== 'function') {
       if (!poolLoad && typeof loadMoonArt === 'function') { poolLoad = true; loadMoonArt().then(() => { poolLoad = false; renderBox(); }).catch(() => { poolLoad = false; }); }
       return `<div class="grp-pool wait" style="aspect-ratio:${W}/${H}"></div>`;
     }
     poolPlayed = true;
-    // phối cảnh: các làn thu dần về chân trời (nơi có mặt trăng); hw(y) = nửa bề ngang bể ở độ cao y, sc(y) = tỉ lệ vật thể theo độ xa
-    const k = 'grp' + (++poolN), c = mjCtx(21 + poolN % 7, k), hw = y => HWN * (y - HY) * K, sc = y => (y - HY) * K, ex = (i, y) => MX + (i / N * 2 - 1) * hw(y), lc = (i, y) => MX + ((i + .5) / N * 2 - 1) * hw(y);
-    const inPool = (x, y) => y >= YF && Math.abs(x - MX) < hw(y), inL = (x, y) => y >= YF - 4 && x < MX - hw(y) - 6, inR = (x, y) => y >= YF - 4 && x > MX + hw(y) + 6;
-    let s = mjSkyN(c, '#0a1431', '#223c78', HY, { streaks:20, stars:52, sparks:4, starH:.95 });
-    s += mjMoonN(c, MX, 52, 22, { halo:3.2 });
-    s += `<path d="M0 ${HY}V${HY - 11}Q60 ${HY - 25} 126 ${HY - 9}T262 ${HY - 13}T400 ${HY - 8}V${HY}Z" fill="#0b1630"/>` + mjDots(c, 26, [0, HY - 7, W, HY - 1], ['#ffd27a', '#ffe9b0'], [.9, 1.6], .8);
-    s += mjWater(c, HY, YN, { top:'#254a8c', bot:'#091329', path:MX, spread:150, n:240, glints:200 });
-    // bể: mặt nước sáng hơn, nằm trong hình thang
-    const L0 = MX - hw(YF), R0 = MX + hw(YF), pool = `M${L0} ${YF}H${R0}L${MX + HWN} ${YN}H${MX - HWN}Z`;
-    s += `<path d="${pool}" fill="${mjLin(c, [[0, '#4a86d8', .32], [1, '#1d4690', .5]])}"/>` + mjS(c, 150, [0, YF, W, YN], ['#5d96e6', '#3a74c4', '#9fc4ff'], { ang:0, len:[8, 36], w:[1.2, 2.2], op:.5, jit:2, in:inPool });
-    rows.forEach((x, i) => { if (x.k === meId) s += `<path d="M${ex(i, YF)} ${YF}L${ex(i + 1, YF)} ${YF}L${ex(i + 1, YN)} ${YN}L${ex(i, YN)} ${YN}Z" fill="#cfe0ff" opacity=".14"/>`; });
-    // hai bờ và bờ gần (đá, cỏ, thông), có lề đá dọc bể
-    const gnd = mjLin(c, [[0, '#14224a'], [1, '#0a1329']]);
-    s += `<path d="M0 ${YF - 4}H${L0 - 6}L${MX - HWN - 6} ${YN}H0Z" fill="${gnd}"/><path d="M${W} ${YF - 4}H${R0 + 6}L${MX + HWN + 6} ${YN}H${W}Z" fill="${gnd}"/>`
-      + mjS(c, 70, [0, YF - 4, MX - 40, YN], ['#1a2c58', '#223a6c', '#0b1531'], { ang:70, len:[8, 22], w:[2, 3.4], op:.7, jit:12, in:inL }) + mjS(c, 70, [MX + 40, YF - 4, W, YN], ['#1a2c58', '#223a6c', '#0b1531'], { ang:110, len:[8, 22], w:[2, 3.4], op:.7, jit:12, in:inR });
-    s += `<path d="M${L0 - 3} ${YF}L${MX - HWN - 3} ${YN}M${R0 + 3} ${YF}L${MX + HWN + 3} ${YN}" stroke="#aebbe0" stroke-width="2.4" stroke-linecap="round" opacity=".55"/>`;
-    s += `<rect y="${YN}" width="${W}" height="${H - YN}" fill="${mjLin(c, [[0, '#16254f'], [1, '#0a1329']])}"/>` + mjS(c, 36, [0, YN, W, H], ['#1a2c58', '#223a6c', '#0b1531'], { ang:2, len:[10, 26], w:[2, 3], op:.7, jit:4 }) + `<path d="M${MX - HWN - 6} ${YN}H${MX + HWN + 6}" stroke="#aebbe0" stroke-width="2.6" opacity=".5"/>`;
-    for (let x = 6; x < L0 - 22; x += 12 + c.r() * 10) s += mjPine(x, YF + 6 + c.r() * 8, 30 + c.r() * 14, c.r() < .5 ? '#0e1f3a' : '#12284a');
-    // phao hạt đèn: hạt xa nhỏ và sát nhau, hạt gần to và thưa (chia đều theo độ xa thật)
-    const zn = 1 / (YN - HY - 2), zf = 1 / (YF - HY), nb = 20;
+    /* Hồ bơi trong nhà, nhìn theo phối cảnh một điểm tụ (VX, VY): tường cuối có bảng điểm, hai tường bên có đèn, sàn gạch, cờ bơi ngửa căng ngang hồ,
+       phao làn bằng hạt màu, bục xuất phát ở mép gần mang số hạng; Moon ngồi chờ ở mép đích cạnh cúp. Người bơi nhìn từ phía sau, có sải tay, đạp chân,
+       gợn nước (SMIL, chỉ khi không bật giảm chuyển động), và luôn có thẻ tên. */
+    const an = !(typeof motionOff === 'function' && motionOff()), k = 'grp' + (++poolN), c = mjCtx(31 + poolN % 7, k), r = c.r;
+    const sc = y => (y - VY) / (YN - VY), hw = y => HWN * sc(y), ex = (i, y) => VX + (i / N * 2 - 1) * hw(y), lc = (i, y) => VX + ((i + .5) / N * 2 - 1) * hw(y), f1 = n => n.toFixed(1);
+    const inPool = (x, y) => y >= YP && y <= YN && Math.abs(x - VX) < hw(y), yz = (a, b, u) => VY + 1 / (1 / (a - VY) + (1 / (b - VY) - 1 / (a - VY)) * u);   // yz: chia đều theo độ xa thật
+    const AN = (attr, vals, dur, beg = 0, extra = '') => an ? `<animate attributeName="${attr}" values="${vals}" dur="${dur}s" begin="${f1(beg)}s" repeatCount="indefinite"${extra}/>` : '';
+    const AT = (type, vals, dur, beg = 0) => an ? `<animateTransform attributeName="transform" type="${type}" values="${vals}" dur="${dur}s" begin="${f1(beg)}s" repeatCount="indefinite"/>` : '';
+    const sideY = VY + (YW - VY) * VX / (VX - WL);   // nơi mép sàn – tường bên chạm mép ảnh
+    let s = '';
+    // tường cuối, hai tường bên, sàn
+    s += `<rect width="${W}" height="${YW}" fill="${mjLin(c, [[0, '#0a1230'], [1, '#18275a']])}"/>`;
+    s += `<path d="M0 0H${WL}V${YW}L0 ${f1(sideY)}Z" fill="${mjLin(c, [[0, '#0c1636'], [1, '#132250']], 1, 0)}"/><path d="M${W} 0H${WR}V${YW}L${W} ${f1(sideY)}Z" fill="${mjLin(c, [[0, '#0c1636'], [1, '#132250']], 0, 0, 1, 0)}"/>`;
+    { let d = ''; for (let y = 12; y < YW; y += 11) d += `M${WL} ${y}H${WR}`; for (let x = WL + 17; x < WR; x += 17) d += `M${x} 0V${YW}`;
+      for (let y = 10; y < sideY; y += 14) { const t = (y - VY) / (YW - VY); d += `M0 ${f1(VY + (y - VY))}L${WL} ${f1(VY + (y - VY) * (VX - WL) / VX)}M${W} ${f1(y)}L${WR} ${f1(VY + (y - VY) * (VX - WL) / VX)}`; }
+      s += `<path d="${d}" stroke="#2a3c78" stroke-width=".6" opacity=".45" fill="none"/>`; }
+    s += `<path d="M${WL} 0V${YW}M${WR} 0V${YW}" stroke="#0a1230" stroke-width="1.5" opacity=".7"/>`;
+    s += `<path d="M${WL} ${YW}H${WR}L${W} ${f1(sideY)}V${H}H0V${f1(sideY)}Z" fill="${mjLin(c, [[0, '#26335f'], [1, '#18224a']])}"/>`;
+    { let d = ''; for (let xb = -360; xb <= 760; xb += 36) d += `M${f1(VX + (xb - VX) * sc(YW))} ${YW}L${xb} ${H}`; for (let j = 1; j < 16; j++) { const y = yz(YW, H, j / 16); d += `M0 ${f1(y)}H${W}`; }
+      s += `<g clip-path="${mjClip(c, `<path d="M${WL} ${YW}H${WR}L${W} ${f1(sideY)}V${H}H0V${f1(sideY)}Z"/>`)}"><path d="${d}" stroke="#3a4a7e" stroke-width=".7" opacity=".55" fill="none"/></g>`; }
+    // đèn tường (tường bên + hai bên bảng điểm), quầng sáng thở nhẹ
+    [[22, 58, 1], [W - 22, 58, 1], [WL + 34, 40, .8], [WR - 34, 40, .8]].forEach(([x, y, z]) => { s += mjA(c, 'mja-breathe', mjGlow(c, x, y, 46 * z, 'w', .55)) + `<path d="M${x - 4 * z} ${y + 5 * z}h${8 * z}l${-1.6 * z} ${-10 * z}h${-4.8 * z}z" fill="#ffd27a"/><rect x="${x - 5 * z}" y="${y - 6 * z}" width="${10 * z}" height="${2 * z}" rx="${z}" fill="#3b2d4f"/>`; });
+    // bảng điểm ở tường cuối: "Tuần này" + người dẫn đầu
+    { const L = rows[0], nm = String(L.n).length > 12 ? String(L.n).slice(0, 11) + '…' : String(L.n);
+      s += mjGlow(c, VX, 40, 70, 'c', .35) + `<rect x="${VX - 56}" y="18" width="112" height="44" rx="5" fill="#070c1d" stroke="#3b4f8a" stroke-width="1.4"/><rect x="${VX - 51}" y="23" width="102" height="34" rx="3" fill="#0b1430"/>`
+        + `<text x="${VX}" y="34" text-anchor="middle" font-size="8.5" font-weight="800" letter-spacing="1.2" fill="#ffd27a" font-family="inherit">${esc(String(t('grp_board')).toUpperCase())}</text>`
+        + `<text x="${VX}" y="50" text-anchor="middle" font-size="10" font-weight="700" fill="#eaf2ff" font-family="inherit">🏆 ${esc(nm)} · ${esc(fmt(L.mins * 60000))}</text>`
+        + mjA(c, 'mja-tw', `<circle cx="${VX - 46}" cy="27.5" r="1.4" fill="#ff6b8b"/><circle cx="${VX + 46}" cy="27.5" r="1.4" fill="#ff6b8b"/>`, 1.6); }
+    // hồ: nước sáng đèn dưới đáy, vạch làn dưới đáy, ánh nước lăn tăn chuyển động
+    const pool = `M${f1(VX - hw(YP))} ${YP}H${f1(VX + hw(YP))}L${VX + HWN} ${YN}H${VX - HWN}Z`, clip = mjClip(c, `<path d="${pool}"/>`);
+    s += `<path d="M${f1(VX - hw(YP) - 6)} ${YP - 3}H${f1(VX + hw(YP) + 6)}L${VX + HWN + 9} ${YN + 4}H${VX - HWN - 9}Z" fill="#c9d4ee" opacity=".85"/>`;
+    s += `<path d="${pool}" fill="${mjLin(c, [[0, '#2f9fd2'], [.55, '#2178b8'], [1, '#17518f']])}"/>`;
+    s += `<g clip-path="${clip}">`;
+    for (let i = 0; i < N; i++) { const y0 = YP + 12, y1 = YN - 10, w0 = 1.5 * sc(y0) * 2, w1 = 1.5 * sc(y1) * 2; s += `<path d="M${f1(lc(i, y1) - w1)} ${y1}L${f1(lc(i, y1) + w1)} ${y1}L${f1(lc(i, y0) + w0)} ${y0}L${f1(lc(i, y0) - w0)} ${y0}Z" fill="#0e3a74" opacity=".55"/><path d="M${f1(lc(i, y0) - 9 * sc(y0))} ${y0}H${f1(lc(i, y0) + 9 * sc(y0))}" stroke="#0e3a74" stroke-width="${f1(3 * sc(y0))}" opacity=".55"/>`; }
+    for (let j = 0; j < 9; j++) { const y = yz(YP, YN, (j + .5) / 9), R = 40 * sc(y); s += mjGlow(c, VX - hw(y) + 2, y, R, 'c', .5) + mjGlow(c, VX + hw(y) - 2, y, R, 'c', .5); }
+    s += mjGlow(c, VX, YP + 6, 60, 'w', .25);
+    const caus = (n, cols, op) => mjS(c, n, [VX - HWN, YP, VX + HWN, YN], cols, { ang:0, len:[4, 11], w:[.6, 1, 1.4], op, jit:70, bend:.9, in:inPool });
+    s += `<g>${AT('translate', '0 0;5 1.5;0 0', 7)}${caus(320, ['#d6fbff', '#a9ecff'], .55)}</g><g>${AT('translate', '0 0;-4 -1;0 0', 5.5, -2)}${caus(220, ['#ffffff', '#c8f4ff'], .45)}</g>`;
+    s += `<rect x="0" y="${YP}" width="${W}" height="${YN - YP}" fill="${mjLin(c, [[0, '#0a1a3a', .0], [1, '#0a1a3a', .25]])}"/></g>`;
+    s += `<path d="M${f1(VX - hw(YP))} ${YP}H${f1(VX + hw(YP))}" stroke="#eef3ff" stroke-width="1.6" opacity=".9"/><path d="M${f1(VX - hw(YP))} ${YP + 1.5}H${f1(VX + hw(YP))}" stroke="#ffd27a" stroke-width="1.2" stroke-dasharray="3 3" opacity=".9"/>`;
+    // phao làn: hạt hồng ở hai đầu, giữa xen vàng – trắng; hạt xa nhỏ và sát, hạt gần to và thưa
     for (let i = 0; i <= N; i++) {
-      const col = i % 2 ? '#a9c8ff' : '#ffd98a'; let d = '', g = '';
-      for (let j = 0; j <= nb; j++) { const y = HY + 1 / (zn + (zf - zn) * j / nb), x = ex(i, y), r = .8 + 2.2 * sc(y); d += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(2)}"/>`; if (j % 2 === 0) g += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(r * 2.2).toFixed(1)}"/>`; }
-      s += `<path d="M${ex(i, YN - 2)} ${YN - 2}L${ex(i, YF)} ${YF}" stroke="#8da2d6" stroke-width=".8" opacity=".45" fill="none"/><g fill="${col}" opacity=".17">${g}</g>` + mjA(c, 'mja-shim', `<g fill="${col}" opacity=".95">${d}</g>`, 3.4);
+      const nb = 46, B = { p:'', y:'', w:'' }; let g = '';
+      for (let j = 0; j <= nb; j++) { const y = yz(YN - 2, YP + 1, j / nb), x = ex(i, y), rr = .9 + 2.3 * sc(y), key = j < 7 || j > nb - 7 ? 'p' : j % 2 ? 'y' : 'w'; B[key] += `<circle cx="${f1(x)}" cy="${f1(y)}" r="${rr.toFixed(2)}"/>`; g += `<circle cx="${f1(x - rr * .3)}" cy="${f1(y - rr * .35)}" r="${(rr * .35).toFixed(2)}"/>`; }
+      s += `<g>${AT('translate', '0 0;0 .5;0 0', 2.4, -i * .4)}<g fill="#ff8fa8">${B.p}</g><g fill="#ffd36e">${B.y}</g><g fill="#f4f7ff">${B.w}</g><g fill="#fff" opacity=".7">${g}</g></g>`;
     }
-    // đích: vạch vàng ngay dưới chân trời, hai cột đèn
-    s += mjGlow(c, MX, YF, hw(YF) * 1.2, 'w', .22) + `<path d="M${L0 - 3} ${YF}H${R0 + 3}" stroke="#ffe9a0" stroke-width="1.8" stroke-dasharray="4 4" opacity=".95"/>`;
-    [L0 - 8, R0 + 8].forEach(x => { s += `<path d="M${x} ${YF + 2}V${YF - 24}" stroke="#3b2d4f" stroke-width="2.6" stroke-linecap="round"/>` + mjGlow(c, x, YF - 27, 26, 'w', .85) + `<rect x="${x - 2.4}" y="${YF - 31}" width="4.8" height="8" rx="1.2" fill="#ffd27a"/>`; });
-    s += mjCat(c, 46, YF + 36, .85, 'sitB', { shadow:false });
-    s += mjGlow(c, 356, YF + 56, 34, 'w', .7) + `<path d="M356 ${YF + 70}V${YF + 50}" stroke="#3b2d4f" stroke-width="3" stroke-linecap="round"/><rect x="353.5" y="${YF + 44}" width="5" height="9" rx="1.3" fill="#ffd27a"/>`;
-    s += mjFlies(c, 12, [30, HY + 6, W - 30, YN - 10], { sz:.85, in:(x, y) => y < YF + 40 || inPool(x, y) });
-    // người bơi: nhìn từ phía sau, bơi về phía trăng; vẽ từ xa tới gần để người gần che người xa
-    const zs = 1 / (YN - 40 - HY), ze = 1 / (YF + 16 - HY), lead = Math.max(1, rows[0].mins), S0 = 1.45, ys = YN - 40;
-    rows.map((x, i) => ({ x, i, y:HY + 1 / (zs + (ze - zs) * (x.mins / lead)) })).sort((a, b) => a.y - b.y).forEach(({ x, i, y:py }) => {
-      const cx = lc(i, py), q = S0 * sc(py), mine = x.k === meId, cap = `hsl(${hue(x.n)},78%,62%)`, [rb, rt] = POOL_RANK[x.r - 1] || ['#2c3d73', '#dfe8ff'], bx = lc(i, YN) , by = YN + 25;
-      s += `<g transform="translate(${cx.toFixed(1)} ${py.toFixed(1)}) scale(${q.toFixed(3)})"><title>${esc(x.n)} · ${esc(fmt(x.mins * 60000))}</title><g class="grp-sw-i" style="--dx:${((lc(i, ys) - cx) / q).toFixed(0)}px;--dy:${((ys - py) / q).toFixed(0)}px;--k:${(sc(ys) / sc(py)).toFixed(2)}">`
-        + mjGlow(c, 0, -8, 34, 'c', .55)
-        + `<ellipse cx="0" cy="5" rx="23" ry="7" fill="none" stroke="#cfe0ff" stroke-width="1.5" opacity=".5"/><ellipse cx="0" cy="5" rx="34" ry="10.5" fill="none" stroke="#cfe0ff" stroke-width="1.1" opacity=".25"/>`
-        + `<path d="M-7 7L-27 22M7 7L27 22" stroke="#cfe0ff" stroke-width="1.7" stroke-linecap="round" opacity=".45" fill="none"/>`
-        + `<path d="M-3 7q-2 6 -4 10M3 7q2 6 4 10" fill="none" stroke="${MJN.skin}" stroke-width="3.2" stroke-linecap="round"/><path d="M-11 15q3 -4 7 0M4 15q3 -4 7 0" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity=".8"/>`
-        + `<path d="M-8 -2Q-18 -13 -10 -26" fill="none" stroke="${MJN.skin}" stroke-width="3.6" stroke-linecap="round"/>`
-        + `<ellipse cx="0" cy="0" rx="11.5" ry="6.6" fill="${POOL_SUIT[i % POOL_SUIT.length]}"/>`
-        + `<path d="M9 -1Q17 -6 14 -14" fill="none" stroke="${MJN.skin}" stroke-width="3.6" stroke-linecap="round"/>`
-        + `<circle cx="0" cy="-9" r="5.8" fill="${cap}" stroke="#fff2c4" stroke-width=".9"/>`
-        + (mine ? `<ellipse cx="0" cy="-5" rx="27" ry="25" fill="none" stroke="#ffe9a0" stroke-width="1.6" stroke-dasharray="3.5 3.5"/>` : '') + `</g></g>`;
-      if (mine) s += `<text x="${cx.toFixed(1)}" y="${(py + 20 * q + 11).toFixed(1)}" text-anchor="middle" font-size="9.5" font-weight="700" fill="#ffe9a0" stroke="#0d1633" stroke-width="3" paint-order="stroke" font-family="inherit">${esc(t('grp_you'))}</text>`;
-      if (x.r === 1) s += mjA(c, 'mja-tw', mjSpark(cx + 16 * q, py - 30 * q, 5 + 2 * q, '#fffbea'), 3);
-      s += `<circle cx="${bx.toFixed(1)}" cy="${by}" r="12" fill="${rb}" stroke="#fff2c4" stroke-opacity="${x.r < 4 ? .9 : .35}" stroke-width="1.3"/>` + (x.r === 1 ? mjGlow(c, bx, by, 26, 'm', .55) : '') + `<text x="${bx.toFixed(1)}" y="${by + 4.6}" text-anchor="middle" font-size="13" font-weight="800" fill="${rt}" font-family="inherit">${x.r}</text>`;
+    // cờ bơi ngửa căng ngang hồ, gần tường đích
+    { const yf = YP + 26, q = sc(yf), xl = VX - hw(yf) - 10 * q * 2.2, xr = VX + hw(yf) + 10 * q * 2.2, top = yf - 62 * q, cols = ['#ff8fa8', '#ffd36e', '#8fc4ff', '#f4f7ff'];
+      s += `<path d="M${f1(xl)} ${yf + 2}V${f1(top)}M${f1(xr)} ${yf + 2}V${f1(top)}" stroke="#aab6d6" stroke-width="${f1(2.4 * q + .6)}" stroke-linecap="round"/>`;
+      s += `<path d="M${f1(xl)} ${f1(top)}Q${VX} ${f1(top + 10 * q)} ${f1(xr)} ${f1(top)}" stroke="#dfe6f7" stroke-width=".8" fill="none"/>`;
+      let fl = ''; const nf = 13; for (let j = 1; j < nf; j++) { const u = j / nf, x = xl + (xr - xl) * u, y = top + 10 * q * 2 * u * (1 - u) * 2 * .5 + 0, hh = 13 * q, ww = (xr - xl) / nf * .42; fl += `<path d="M${f1(x - ww)} ${f1(y)}L${f1(x + ww)} ${f1(y)}L${f1(x)} ${f1(y + hh)}Z" fill="${cols[j % 4]}">${AN('d', `M${f1(x - ww)} ${f1(y)}L${f1(x + ww)} ${f1(y)}L${f1(x)} ${f1(y + hh)}Z;M${f1(x - ww)} ${f1(y)}L${f1(x + ww)} ${f1(y)}L${f1(x + 1.6 * q)} ${f1(y + hh * .94)}Z;M${f1(x - ww)} ${f1(y)}L${f1(x + ww)} ${f1(y)}L${f1(x)} ${f1(y + hh)}Z`, 2.2 + r() * .8, -r() * 2)}</path>`; }
+      s += fl; }
+    // Moon và cúp ở mép đích
+    { const mx = VX + hw(YP) + 26, cx = mx + 16; s += mjGlow(c, cx, YP - 10, 22, 'w', .7) + `<path d="M${cx - 4} ${YP - 15}h8v3q0 5 -4 5.5q-4 -.5 -4 -5.5z" fill="#ffcf5a"/><path d="M${cx - 4} ${YP - 13}q-3 0 -3 2.5t3 2.5M${cx + 4} ${YP - 13}q3 0 3 2.5t-3 2.5" stroke="#ffcf5a" stroke-width="1" fill="none"/><rect x="${cx - 1}" y="${YP - 6.5}" width="2" height="3" fill="#e6a93a"/><rect x="${cx - 3.5}" y="${YP - 4}" width="7" height="2" rx=".6" fill="#e6a93a"/>` + mjA(c, 'mja-tw', mjSpark(cx + 5, YP - 16, 2.4, '#fffbea'), 2.4);
+      s += mjCat(c, mx, YP - 1, .95, 'sitF', { eyes:'open', shadow:true, tail:'M4 -1Q9 -1 9 -4' }); }
+    // người bơi: vẽ từ xa tới gần; thẻ tên đặt tránh chồng lên nhau
+    const ys = YN - 30, ye = YP + 14, lead = Math.max(1, rows[0].mins), S0 = 1.2, tags = [], RK = [['#f2c45a', '#3b2a05'], ['#d9e1f2', '#1c2645'], ['#e6a873', '#3a1f08']];
+    const sw = rows.map((x, i) => ({ x, i, y:yz(ys, ye, x.mins / lead) }));
+    sw.sort((a, b) => a.y - b.y).forEach(({ x, i, y:py }) => {
+      const cx = lc(i, py), q = S0 * sc(py), mine = x.k === meId, cap = `hsl(${hue(x.n)},78%,62%)`, D = 1.15 + r() * .35, b0 = -r() * D, suit = POOL_SUIT[i % POOL_SUIT.length], skin = MJN.skin;
+      const armL = ['M-8 -2Q-17 -14 -9 -27', 'M-8 -2Q-15 3 -11 9', 'M-8 -2Q-21 -5 -18 -15', 'M-8 -2Q-17 -14 -9 -27'];
+      s += `<g transform="translate(${f1(cx)} ${f1(py)}) scale(${q.toFixed(3)})"><title>${esc(x.n)} · ${esc(fmt(x.mins * 60000))}</title><g class="grp-sw-i" style="--dx:${((lc(i, ys) - cx) / q).toFixed(0)}px;--dy:${((ys - py) / q).toFixed(0)}px;--k:${(sc(ys) / sc(py)).toFixed(2)}">`
+        + mjGlow(c, 0, -6, 34, 'c', .5)
+        + [0, 1].map(j => `<ellipse cx="0" cy="5" rx="16" ry="5" fill="none" stroke="#e6fbff" stroke-width="1.4" opacity="${an ? 0 : .45}">${AN('rx', '14;36', 2.4, b0 - j * 1.2)}${AN('ry', '4.5;11.5', 2.4, b0 - j * 1.2)}${AN('opacity', '.7;0', 2.4, b0 - j * 1.2)}</ellipse>`).join('')
+        + `<path d="M-6 8L-24 24M6 8L24 24" stroke="#e6fbff" stroke-width="1.6" stroke-linecap="round" opacity=".45" fill="none"/>`
+        + `<g>${AT('translate', '0 0;0 1.3;0 0', D, b0)}`
+        + `<path d="M-3 7q-2 6 -4 10M3 7q2 6 4 10" fill="none" stroke="${skin}" stroke-width="3.2" stroke-linecap="round" opacity=".8">${AN('d', 'M-3 7q-2 6 -4 10M3 7q2 6 4 10;M-3 7q-1 6 -2 11M3 7q1 5 5 9;M-3 7q-2 6 -4 10M3 7q2 6 4 10', D / 2, b0)}</path>`
+        + `<path d="M-10 16q3 -4 7 0M3 16q3 -4 7 0" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity=".8">${AN('opacity', '.9;.2;.9', D / 2, b0)}</path>`
+        + `<path d="${armL[0]}" fill="none" stroke="${skin}" stroke-width="3.6" stroke-linecap="round">${AN('d', armL.join(';'), D, b0, ' keyTimes="0;.45;.75;1"')}</path>`
+        + `<ellipse cx="0" cy="0" rx="11.5" ry="6.6" fill="${suit}"/><path d="M-9 -2q9 -6 18 0" stroke="#fff" stroke-width="1" opacity=".35" fill="none"/>`
+        + `<path d="M8 -2Q15 3 11 9" fill="none" stroke="${skin}" stroke-width="3.6" stroke-linecap="round">${AN('d', 'M8 -2Q15 3 11 9;M8 -2Q21 -5 18 -15;M8 -2Q17 -14 9 -27;M8 -2Q15 3 11 9', D, b0, ' keyTimes="0;.3;.55;1"')}</path>`
+        + `<g>${AT('translate', '0 0;0 0;1.6 .4;0 0', D * 2, b0)}<circle cx="0" cy="-9" r="5.8" fill="${cap}" stroke="#fff2c4" stroke-width=".9"/><path d="M-3.4 -12.4q3.4 -2.2 6.8 0" stroke="#fff" stroke-width="1" opacity=".55" fill="none"/></g>`
+        + (an ? `<circle cx="-9" cy="-27" r="0" fill="none" stroke="#fff" stroke-width="1.2">${AN('r', '0;0;4;5', D, b0, ' keyTimes="0;.02;.12;.2"')}${AN('opacity', '0;1;.6;0', D, b0, ' keyTimes="0;.02;.12;.2"')}</circle><circle cx="9" cy="-27" r="0" fill="none" stroke="#fff" stroke-width="1.2">${AN('r', '0;0;4;5', D, b0 - D * .45, ' keyTimes="0;.02;.12;.2"')}${AN('opacity', '0;1;.6;0', D, b0 - D * .45, ' keyTimes="0;.02;.12;.2"')}</circle>` : '')
+        + `</g>` + (mine ? `<ellipse cx="0" cy="2" rx="26" ry="11" fill="none" stroke="#ff7eb3" stroke-width="1.8" stroke-dasharray="4 3"/>` : '') + `</g></g>`;
+      // thẻ tên
+      const nm = String(dn(x.k, x.n)), lab = nm.length > 12 ? nm.slice(0, 11) + '…' : nm, fs = 9 + 3 * sc(py), tw = lab.length * fs * .56 + fs * 2.4, th = fs + 6;
+      let ty = py - 34 * q - th, tx = cx - tw / 2; tx = Math.max(2, Math.min(W - tw - 2, tx));
+      for (let guard = 0; guard < 8 && tags.some(R => tx < R[0] + R[2] + 2 && tx + tw + 2 > R[0] && ty < R[1] + R[3] + 2 && ty + th + 2 > R[1]); guard++) ty -= th + 3;
+      tags.push([tx, ty, tw, th, cx, py - 30 * q, x, mine, fs, lab]);
     });
-    return `<div class="grp-pool ${play ? 'play' : ''}"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t('grp_board'))}" xmlns="http://www.w3.org/2000/svg"><defs>${mjTexDefs(k, (9 + poolN) % 50)}${c.d}</defs><rect width="${W}" height="${H}" fill="${MJN.navy}"/>${s}<rect width="${W}" height="${H}" fill="url(#${k}v)"/><g pointer-events="none"><rect width="${W}" height="${H}" filter="url(#${k}B)" style="mix-blend-mode:soft-light" opacity=".55"/><rect width="${W}" height="${H}" filter="url(#${k}T)" style="mix-blend-mode:soft-light"/></g></svg></div>`;
+    tags.forEach(([tx, ty, tw, th, hx, hy, x, mine, fs, lab]) => {
+      const [rb] = RK[x.r - 1] || ['#6f86c9'];
+      if (ty + th < hy - 4) s += `<path d="M${f1(hx)} ${f1(ty + th)}V${f1(hy)}" stroke="${mine ? '#ff7eb3' : '#eaf2ff'}" stroke-width=".8" opacity=".6"/>`;
+      s += `<g><rect x="${f1(tx)}" y="${f1(ty)}" width="${f1(tw)}" height="${f1(th)}" rx="${f1(th / 2)}" fill="${mine ? '#e8457f' : '#0b132e'}" fill-opacity="${mine ? 1 : .82}" stroke="${mine ? '#ffd1e3' : '#fff2c4'}" stroke-opacity="${mine ? .9 : .35}" stroke-width=".8"/>`
+        + `<circle cx="${f1(tx + th / 2)}" cy="${f1(ty + th / 2)}" r="${f1(fs * .42)}" fill="${rb}"/><text x="${f1(tx + th / 2)}" y="${f1(ty + th / 2 + fs * .3)}" text-anchor="middle" font-size="${f1(fs * .72)}" font-weight="800" fill="#0b132e" font-family="inherit">${x.r}</text>`
+        + `<text x="${f1(tx + th + 1.5)}" y="${f1(ty + th / 2 + fs * .36)}" font-size="${f1(fs)}" font-weight="700" fill="#fff" font-family="inherit">${esc(lab)}</text></g>`;
+    });
+    // bục xuất phát ở mép gần, mang số hạng
+    rows.forEach((x, i) => {
+      const bx = lc(i, YN), [rb, rt] = RK[x.r - 1] || ['#3a4f8c', '#e6ecff'], mine = x.k === meId;
+      s += `<path d="M${f1(bx - 13)} ${YN + 6}L${f1(bx + 13)} ${YN + 6}L${f1(bx + 15)} ${YN + 30}L${f1(bx - 15)} ${YN + 30}Z" fill="${rb}" stroke="${mine ? '#ff7eb3' : '#0b132e'}" stroke-width="${mine ? 1.8 : .8}"/><path d="M${f1(bx - 13)} ${YN + 6}L${f1(bx + 13)} ${YN + 6}L${f1(bx + 12)} ${YN + 11}L${f1(bx - 12)} ${YN + 11}Z" fill="#fff" opacity=".35"/>`
+        + `<text x="${f1(bx)}" y="${YN + 25}" text-anchor="middle" font-size="12" font-weight="800" fill="${rt}" font-family="inherit">${x.r}</text>`;
+    });
+    return `<div class="grp-pool ${play ? 'play' : ''}"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t('grp_board'))}" xmlns="http://www.w3.org/2000/svg"><defs>${mjTexDefs(k, (9 + poolN) % 50)}${c.d}</defs><rect width="${W}" height="${H}" fill="${MJN.navy}"/>${s}<rect width="${W}" height="${H}" fill="url(#${k}v)"/><g pointer-events="none"><rect width="${W}" height="${H}" filter="url(#${k}B)" style="mix-blend-mode:soft-light" opacity=".45"/><rect width="${W}" height="${H}" filter="url(#${k}T)" style="mix-blend-mode:soft-light" opacity=".8"/></g></svg></div>`;
   }
   const kick = id => state.isAdmin && id !== state.user.uid ? `<button type="button" class="grp-x" data-act="grpKick" data-id="${esc(id)}" title="${esc(t('grp_remove'))}" aria-label="${esc(t('grp_remove'))}">${ic('x', 'sm')}</button>` : '';
   const plus = (id, n) => state.isAdmin ? `<button type="button" class="grp-x" data-act="grpAdd" data-id="${esc(id)}" data-n="${esc(n)}" title="Cộng bù phút" aria-label="Cộng bù phút">${ic('plus', 'sm')}</button>` : '';   // chỉ admin: cộng bù phút bị mất do lỗi cũ
