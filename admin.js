@@ -137,14 +137,26 @@ function aSummary(card){
 const aEditable = c => c.id !== 'onair' && !/^(tạo|sửa)/i.test(aCardTitle(c)) && !!c.querySelector('input:not([type=hidden]),select,textarea') && ([...c.querySelectorAll('button')].some(aIsSaveBtn) || aBodySave($('admin-body') || c));
 function aDrawSum(card){
   let el = card.querySelector(':scope > .a-sum'); if (!el) { el = document.createElement('div'); el.className = 'a-sum'; card.firstElementChild.after(el); }
-  el.innerHTML = aSumHTML(aSummary(card), 8);
+  el.innerHTML = aSumHTML(aSummary(card), 5);
 }
+const aEmptyV = v => /^<span class="faint">\((trống|chưa có|không mục nào)\)<\/span>$/.test(v);
+function aCompactV(v){        // danh sách -> "12/12 đang hiện (Tổng quan, Hướng dẫn, +10)"; giá trị thường giữ nguyên
+  const d = document.createElement('div'); d.innerHTML = v; const cs = d.querySelector('.a-sum-cs');
+  if (!cs) return v;
+  const head = d.querySelector('b'), names = [...d.querySelectorAll('.a-sum-cs:not(.off) .a-sum-c')].map(x => x.textContent), n = names.length;
+  return esc((head ? head.textContent : '') + (n ? ' (' + names.slice(0, 3).join(', ') + (n > 3 ? ', +' + (n - 3) : '') + ')' : ''));
+}
+/* Tóm tắt gọn: mỗi mục một đoạn "tên: giá trị · tên: giá trị", tối đa 3 dòng, để cả tab xem được gần như trong một màn hình */
 function aSumHTML(items, max){
-  return items.length ? items.slice(0, max).map(([l, v, w]) => `<div class="a-sum-i ${w || ''}"><span class="a-sum-l">${esc(l)}</span><span class="a-sum-v">${v}</span></div>`).join('') + (items.length > max ? `<div class="a-sum-i"><span class="a-sum-l">&nbsp;</span><span class="a-sum-v faint">+ ${items.length - max} mục khác, bấm Sửa để xem</span></div>` : '') : '<p class="small faint" style="margin:0">Bấm Sửa để xem chi tiết.</p>';
+  const full = items.filter(i => !aEmptyV(i[1])), empty = items.filter(i => aEmptyV(i[1]));
+  if (!full.length && !empty.length) return '<p class="small faint" style="margin:0">Bấm Sửa để xem chi tiết.</p>';
+  const rows = full.slice(0, max).map(([l, v]) => `<span class="a-ci">${l === 'Các mục' ? '' : `<span class="a-ck">${esc(aCut(l, 36))}</span> `}<span class="a-cv">${aCompactV(v)}</span></span>`).join('')
+    + (full.length > max ? `<span class="a-ci faint">+${full.length - max} mục khác</span>` : '');
+  return `<div class="a-cs">${rows || '<span class="a-ci faint">Chưa điền gì</span>'}</div>` + (full.length && empty.length ? `<div class="a-kv-empty">Chưa điền: ${empty.length} ô</div>` : '');
 }
 function aSetFold(card, on, remember = true){
   if (on) aDrawSum(card);
-  card.classList.toggle('fold', on);
+  card.classList.toggle('fold', on); if (on) card.dataset.act = 'aFold'; else delete card.dataset.act;   // thu gọn: cả ô là nút bấm
   const bt = card.querySelector('.a-fold'); if (bt) { bt.setAttribute('aria-expanded', String(!on)); bt.innerHTML = on ? `${ic('pen', 'sm')} Sửa` : 'Thu gọn'; bt.classList.toggle('primary', on); }
   if (remember) { const k = aKey(card); if (on) AS.open.delete(k); else AS.open.add(k); }
 }
@@ -176,14 +188,7 @@ function aEnhance(){
     else if (h) { delete h.dataset.act; h.removeAttribute('role'); h.removeAttribute('tabindex'); }
     if (ed) aSetFold(c, !(AS.open.has(k) || AS.dirty.has(k)), false); aMark(c);
   });
-  let toc = $('a-toc');
-  const sig = tab + ':' + cards.map(c => c.id + aCardTitle(c)).join('|');
-  if (cards.length >= 3) {
-    if (!toc || toc.dataset.sig !== sig) {
-      if (toc) toc.remove();
-      b.insertAdjacentHTML('afterbegin', `<div class="a-toc" id="a-toc" data-sig="${esc(sig)}"><span class="small faint">Đi tới:</span>${cards.map(c => `<button type="button" class="a-chip" data-act="aJump" data-id="${esc(c.id)}">${esc(aCardTitle(c))}</button>`).join('')}${cards.some(c => c.classList.contains('a-ed')) ? `<span class="a-toc-r"><button type="button" class="btn ghost sm" data-act="aFoldAll" data-on="1">Xem tổng quát</button><button type="button" class="btn ghost sm" data-act="aFoldAll" data-on="0">Mở hết để sửa</button></span>` : ''}</div>`);
-    } else if (b.firstElementChild !== toc) b.insertBefore(toc, b.firstElementChild);
-  } else if (toc) toc.remove();
+  b.classList.toggle('a-tiles', cards.some(c => c.classList.contains('a-ed')));   // thẻ cài đặt thu gọn hiện thành lưới ô, bấm vào ô mới mở chi tiết
   aBar();
 }
 function aFlash(el){ if (!el) return; el.scrollIntoView({ behavior:'smooth', block:'start' }); el.classList.remove('a-flash'); void el.offsetWidth; el.classList.add('a-flash'); }
@@ -217,7 +222,7 @@ function aGo(tab, title){
 }
 function aLeaveOk(){ if (!AS.dirty.size) return true; if (!confirm('Bạn có thay đổi CHƯA LƯU. Rời đi thì mất các thay đổi đó. Vẫn rời đi?')) return false; AS.dirty.clear(); aBar(); return true; }
 Object.assign(ACTIONS, {
-  aFold:el => { const c = el.closest('.a-card.a-ed'); if (!c) return; const open = c.classList.contains('fold'); aSetFold(c, !open); if (open) { const f = c.querySelector(':scope > :not(.a-head):not(.a-sum) input:not([type=hidden]):not([type=checkbox]):not([readonly]), :scope > :not(.a-head):not(.a-sum) textarea'); c.scrollIntoView({ behavior:'smooth', block:'nearest' }); if (f && el.classList.contains('a-fold')) f.focus({ preventScroll:true }); } },
+  aFold:el => { const c = el.closest('.a-card.a-ed'); if (!c) return; const open = c.classList.contains('fold'); aSetFold(c, !open); if (open) { const f = c.querySelector(':scope > :not(.a-head):not(.a-sum) input:not([type=hidden]):not([type=checkbox]):not([readonly]), :scope > :not(.a-head):not(.a-sum) textarea'); c.scrollIntoView({ behavior:'smooth', block:'start' }); if (f && el.classList.contains('a-fold')) f.focus({ preventScroll:true }); } },
   aFoldAll:el => { document.querySelectorAll('#admin-body .a-card.a-ed').forEach(c => aSetFold(c, el.dataset.on === '1')); },
   aJump:el => aFlash($(el.dataset.id)),
   aFindGo:el => aGo(el.dataset.tab, el.dataset.t),
@@ -299,28 +304,31 @@ function tabAll(){
   const sec = A_GROUPS.filter(g => g[0] !== 'all' && g[0] !== 'home').map(g => {
     const body = g[3].map(tab => {
       const nm = A_SUB[tab][0];
-      if (!A_ALL_TABS.includes(tab)) return `<div class="a-all-r lk" data-q="${esc(aNorm(nm + ' ' + A_SUB[tab][1]))}"><div class="a-all-h"><b>${esc(nm)}</b><small>Danh sách / thao tác, mở tab để xem</small></div><p class="small muted a-all-d">${esc(A_SUB[tab][1])}</p><a class="btn secondary sm" href="#/admin/${tab}">Mở tab</a></div>`;
-      return aCapture(tab).map(c => `<div class="a-all-r" data-q="${esc(aNorm(c.title + ' ' + nm + ' ' + c.items.map(i => i[0] + ' ' + txt(i[1])).join(' ')))}"><div class="a-all-h"><b>${esc(c.title)}</b><small>${esc(nm)}</small></div><div class="a-sum">${aSumHTML(c.items, 6)}</div><button type="button" class="btn primary sm" data-act="aFindGo" data-tab="${tab}" data-t="${esc(c.title)}">${ic('pen', 'sm')} Sửa</button></div>`).join('');
+      if (!A_ALL_TABS.includes(tab)) return `<a class="a-all-r lk" href="#/admin/${tab}" data-q="${esc(aNorm(nm + ' ' + A_SUB[tab][1]))}"><b>${esc(nm)}</b><small>Mở tab</small></a>`;
+      return aCapture(tab).map(c => `<button type="button" class="a-all-r" data-q="${esc(aNorm(c.title + ' ' + nm + ' ' + c.items.map(i => i[0] + ' ' + txt(i[1])).join(' ')))}" data-act="aFindGo" data-tab="${tab}" data-t="${esc(c.title)}"><b>${esc(c.title)}</b><small>${esc(nm)}</small></button>`).join('');
     }).join('');
-    return `<section class="a-all-g"><h2>${ic(g[1], 'sm')} ${esc(g[2])}</h2>${body}</section>`;
+    return `<section class="a-all-g" id="ag-${g[0]}"><h2>${ic(g[1], 'sm')} ${esc(g[2])}</h2><div class="a-all-list">${body}</div></section>`;
   }).join('');
-  A(`<div class="a-all-top"><input class="input" id="all-q" type="search" autocomplete="off" placeholder="Lọc bảng này… (ví dụ: logo, momo, đang tắt, 120)"><span class="small faint" id="all-n"></span></div>${sec}<p class="small faint" id="all-none" hidden>Không có mục nào khớp.</p>`);
+  A(`<div class="a-all-top"><input class="input" id="all-q" type="search" autocomplete="off" placeholder="Lọc bảng này… (ví dụ: logo, momo, đang tắt, 120)"><span class="small faint" id="all-n"></span></div><div class="a-all-jump">${[['all', 'Tất cả']].concat(A_GROUPS.filter(g => g[0] !== 'all' && g[0] !== 'home').map(g => [g[0], g[2]])).map(([k, l]) => `<button type="button" class="a-chip a-pill ${(AS.allG || 'page') === k ? 'on' : ''}" data-act="allGroup" data-g="${k}">${esc(l)}</button>`).join('')}</div>${sec}<p class="small faint" id="all-none" hidden>Không có mục nào khớp.</p>`);
   allFilter();
 }
 function allFilter(){
   const q = aNorm(($('all-q') || {}).value || ''), words = q.split(' ').filter(Boolean); let n = 0, all = 0;
   document.querySelectorAll('#admin-body .a-all-r').forEach(r => { all++; const ok = words.every(w => (r.dataset.q || '').includes(w)); r.hidden = !ok; if (ok) n++; });
-  document.querySelectorAll('#admin-body .a-all-g').forEach(g => { g.hidden = !g.querySelector('.a-all-r:not([hidden])'); });
+  const G = AS.allG || 'page';
+  document.querySelectorAll('#admin-body .a-all-g').forEach(g => { g.hidden = (!q && G !== 'all' && g.id !== 'ag-' + G) || !g.querySelector('.a-all-r:not([hidden])'); });
+  document.querySelectorAll('#admin-body .a-pill').forEach(b => b.classList.toggle('on', b.dataset.g === G));
   const nn = $('all-n'); if (nn) nn.textContent = q ? `${n}/${all} mục` : `${all} mục`;
   const no = $('all-none'); if (no) no.hidden = n > 0;
 }
 document.addEventListener('input', e => { if (e.target && e.target.id === 'all-q') allFilter(); });
+Object.assign(ACTIONS, { allGroup:el => { AS.allG = el.dataset.g; const q = $('all-q'); if (q) q.value = ''; allFilter(); } });
 function aNav(tab){
   const g = aGroupOf(tab), last = store.get('a_last', {}) || {}, pend = state.compPending ? ` <span class="count">${state.compPending}</span>` : '';
   return `<div class="a-nav"><div class="a-find"><label class="sr-only" for="a-find">Tìm nhanh mục cài đặt</label><span class="a-find-ic" aria-hidden="true">⌕</span><input class="input" id="a-find" type="text" autocomplete="off" placeholder="Tìm nhanh mục cài đặt… (logo, giá, momo, FAQ)"><div class="a-find-res" id="a-find-res" hidden></div></div>
     <nav class="a-groups" aria-label="Nhóm quản trị">${A_GROUPS.map(([k, icn, l, tabs]) => { const to = tabs.includes(last[k]) ? last[k] : tabs[0]; return `<a href="#/admin/${to}" class="${g[0] === k ? 'on' : ''}">${ic(icn, 'sm')} ${esc(l)}${k === 'people' ? pend : ''}</a>`; }).join('')}</nav>
     ${g[3].length > 1 ? `<nav class="a-tabs" aria-label="${esc(g[2])}">${g[3].map(k => `<a href="#/admin/${k}" class="${tab === k ? 'on' : ''}">${ic(A_TABS.find(x => x[0] === k)[1], 'sm')} ${esc(A_SUB[k][0])}${k === 'members' ? pend : ''}</a>`).join('')}</nav>` : ''}
-    <p class="a-desc small muted">${esc(A_SUB[tab][1])}</p></div>`;
+    ${tab === 'all' ? '' : `<p class="a-desc small muted">${esc(A_SUB[tab][1])}</p>`}</div>`;
 }
 
 PAGES.admin = function(){

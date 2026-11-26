@@ -658,14 +658,17 @@ Làm một lần, sau đó mỗi buổi chỉ cần bấm Start Streaming trong 
 - Muốn sửa chữ từng bước: `TOUR_PS` trong `guide.js` (đủ 8 ngôn ngữ, mỗi bước là [tiêu đề, một câu]); muốn đổi chỗ Moon chỉ hoặc thứ tự: `PGS` (bộ chọn, dáng Moon, khoá chữ).
 - Phòng tập trung, Hành trình trăng và Kế hoạch tuần dùng lại ba hình của hướng dẫn chung. Muốn đổi chữ dưới hình: sửa trong `guide.js` ở `TOUR_PG` (các trang mới) hoặc `fi` / `ci` / `pi` trong `TOUR_T`.
 
-### 22.as. Trang quản trị gọn hơn: 5 nhóm, tìm nhanh, xem tổng quát từng mục, báo "Chưa lưu"
+### 22.as. Trang quản trị gọn hơn: nhóm tab, tìm nhanh, báo "Chưa lưu"
 - 16 tab cũ nằm một hàng dài (trên điện thoại chiếm gần hết màn hình đầu) nay gộp thành **5 nhóm** theo mục đích, mỗi nhóm có hàng tab con và một dòng chú thích ngắn. Trên điện thoại hai hàng này vuốt ngang được. Link cũ `#/admin/<tab>` vẫn dùng được như trước.
 - Ô **Tìm nhanh mục cài đặt** ở đầu trang: gõ tên mục hoặc từ khoá (logo, momo, paypal, faq, lịch, nhạc…), bấm kết quả (hoặc Enter) là mở đúng tab và cuộn tới đúng thẻ.
-- **Xem tổng quát trước, bấm Sửa mới mở**: mỗi thẻ cài đặt (có ô nhập và nút Lưu) mặc định chỉ hiện bản tóm tắt các giá trị đang cài: tên ô và giá trị, ô trống ghi "(trống)", ô tích ghi Bật / Tắt, danh sách (menu, mạng xã hội, FAQ, nhạc, đồ dùng…) ghi số mục kèm tên từng mục (mục đang ẩn bị gạch). Bấm **Sửa** (hoặc tiêu đề thẻ) để mở form, bấm **Thu gọn** để quay lại bản tóm tắt. Thẻ chỉ để xem (đơn hàng, thành viên…), thẻ tạo mới và thẻ Bắt đầu buổi live luôn mở.
 - **Bảng tổng hợp** (nhóm thứ hai, ngay sau Tổng quan): một trang gom mọi cài đặt đang dùng (giao diện, menu, nội dung, nhạc, đồ dùng, gói Ủng hộ, thanh toán…) theo nhóm, mỗi dòng ghi giá trị đang cài. Có ô lọc (gõ `momo`, `logo`, `120`…). Bấm **Sửa** ở dòng nào là nhảy tới đúng tab, đúng mục và mở sẵn form. Các tab dạng danh sách (đơn hàng, thành viên, bài viết…) chỉ có dòng **Mở tab**. Trang này chỉ đọc, không ghi gì.
-- Tab có từ 3 thẻ trở lên có hàng **Đi tới** ở đầu, kèm nút **Xem tổng quát / Mở hết để sửa**.
 - Gõ vào một thẻ mà chưa bấm Lưu: thẻ hiện **● Chưa lưu**, cuối màn hình có thanh nhắc (nút **Tới chỗ cần Lưu**), và web hỏi lại nếu bạn rời tab hay đóng trang. Lưu xong thẻ hiện **✔ Đã lưu lúc HH:mm** (bản xem thử `?demo=1` hiện "Xem thử: chưa lưu thật").
 - Chỉ là giao diện: không đổi dữ liệu, cách lưu hay `firestore.rules` (**không cần dán luật mới**). Tên vài tab rút gọn trong nhóm: "Nội dung & FAQ" → **Chữ, dịch & FAQ**, "Gói Người đồng hành" → **Gói & quyền lợi**, "Thành viên" → **Thành viên & duyệt**. Tăng phiên bản file lên v=245.
+
+### 22.at. Admin chỉ hiện ô, bấm vào ô mới xem chi tiết
+- Trong mỗi tab, các mục cài đặt là một **lưới ô chỉ có tên** (không còn đoạn tóm tắt). Bấm vào ô nào thì ô đó mở rộng ra thành form đầy đủ ngay tại chỗ; bấm **Thu gọn** để quay lại thành ô. Mục chỉ để xem (đơn hàng, thành viên…) và mục tạo mới vẫn hiện sẵn như cũ.
+- **Bảng tổng hợp** là lưới ô của mọi mục, chia theo nhóm bằng hàng nút (Tất cả · Live & Lịch · Trang web & Nội dung · …), mỗi lần một nhóm. Bấm một ô là nhảy tới đúng tab và mở sẵn form của mục đó. Ô viền nét đứt là tab dạng danh sách, bấm để mở tab. Ô lọc tìm cả theo giá trị đang cài (ví dụ `momo`, `120`).
+- Chỉ là giao diện, không đổi dữ liệu hay `firestore.rules`.
 
 ### 22.ar. Nhóm học: lời nhắn cổ vũ giữa người học (CẦN DÁN LUẬT MỚI)
 - **Cách dùng:** trong khung **Nhóm học** của Phòng tập trung, cạnh người **đang học** có nút 👏. Bấm vào là mở 6 lời có sẵn: 💪 Cố lên nào!, ✨ Bạn đang làm rất tốt, 🌙 Moon đang cổ vũ bạn đó, 🔥 Bạn đang cháy hết mình!, 🍵 Nhớ uống chút nước nha, 👏 Mình cùng học nè. Chọn một lời là gửi. Đủ 8 ngôn ngữ (người nhận thấy lời theo ngôn ngữ của họ).
