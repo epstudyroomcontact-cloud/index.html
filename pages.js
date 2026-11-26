@@ -225,10 +225,11 @@ PAGES.watch = function(){
 /* =========================================================
    FOCUS ROOM — Pomodoro + to-do (cho người xem)
    ========================================================= */
-const pomoDefault = () => ({ cfg:{ focus:25, short:5, long:15, every:4, auto:false, noise:false, goal:0 }, mode:'focus', running:false, endAt:0, remaining:25 * 60e3, cycle:0, done:0 });   // goal = số phiên mục tiêu (0 = không giới hạn), done = số phiên đã xong trong mục tiêu này
+const pomoDefault = () => ({ cfg:{ focus:25, short:5, long:15, every:4, auto:false, noise:false, goal:0 }, mode:'focus', running:false, endAt:0, remaining:25 * 60e3, cycle:0, done:0, tip:Math.floor(Math.random() * 1e3) });   // goal = số phiên mục tiêu (0 = không giới hạn), done = số phiên đã xong trong mục tiêu này
 let pomo = { ...pomoDefault(), ...store.get('pomo', {}) }; pomo.cfg = { ...pomoDefault().cfg, ...(pomo.cfg || {}) };
 const pomoDur = m => (pomo.cfg[m] || 25) * 60e3;
 const pomoSave = () => store.set('pomo', pomo);
+const pomoTipNext = () => { if (pomo.mode !== 'focus') pomo.tip = (pomo.tip | 0) + 1; };   // vào giờ nghỉ: sang gợi ý kế tiếp (js/break-tips.js), lần nghỉ sau không trùng lần trước
 let actx = null;
 function audio(){ if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (actx && actx.state !== 'running' && actx.state !== 'closed') { const r = actx.resume(); if (r && r.catch) r.catch(() => {}); } return actx; }
 /* ---- Âm thanh nền tự tạo (không cần mạng, không bản quyền): mưa / ồn nâu / ồn trắng ----
@@ -502,7 +503,7 @@ function pomoStart(){
 }
 function pomoPause(){ if (!pomo.running) return; pomo.remaining = Math.max(0, pomo.endAt - Date.now()); pomo.running = false; pomoSave(); updateTimerUI(); grpPing(); }
 function pomoReset(){ pomo.running = false; pomo.blockMin = 0; pomo.remaining = pomoDur(pomo.mode); pomoSave(); updateTimerUI(); grpPing(); }
-function pomoMode(m){ pomo.mode = m; pomo.running = false; pomo.blockMin = 0; pomo.remaining = pomoDur(m); pomoSave(); updateTimerUI(); grpPing(); }
+function pomoMode(m){ if (m !== pomo.mode) { pomo.mode = m; pomoTipNext(); } pomo.running = false; pomo.blockMin = 0; pomo.remaining = pomoDur(m); pomoSave(); updateTimerUI(); grpPing(); }
 function pomoComplete(natural, silent){
   const wasFocus = pomo.mode === 'focus', doneMin = pomo.blockMin || pomo.cfg.focus;
   if (wasFocus && natural) pomo.cycle++;
@@ -510,7 +511,7 @@ function pomoComplete(natural, silent){
   pomo.blockMin = 0; pomo.running = false;
   pomo.mode = wasFocus ? ((pomo.cycle % pomo.cfg.every === 0 && natural) ? 'long' : 'short') : 'focus';
   if (goalHit) { pomo.mode = 'focus'; pomo.cycle = 0; pomo.done = 0; }
-  pomo.remaining = pomoDur(pomo.mode);
+  pomo.remaining = pomoDur(pomo.mode); pomoTipNext();
   pomoSave();                                                          // chốt trạng thái TRƯỚC khi cộng phút: lỗi phía sau không làm phiên bị cộng lặp mỗi 250ms
   if (wasFocus && natural) { try { addFocus(doneMin); } catch (e) { console.warn('addFocus', e); } }
   pomo.running = !goalHit && !!(pomo.cfg.auto && natural) && !(pomo.mode === 'focus' && focusLimit() && focusUsed() >= focusLimit()); if (pomo.running) { pomo.endAt = Date.now() + pomo.remaining; pomoSave(); }
@@ -552,9 +553,20 @@ function updateTimerUI(){
   const cyc = $('tm-cycle'); if (cyc) { const f = pomo.cycle % pomo.cfg.every || (pomo.mode === 'long' ? pomo.cfg.every : 0); cyc.innerHTML = Array.from({ length:pomo.cfg.every }, (_, i) => `<i class="${i < f ? 'on' : ''}"></i>`).join(''); }
   document.querySelectorAll('[data-act=ppreset]').forEach(b => { const q = PRESETS[b.dataset.p], c = pomo.cfg; b.classList.toggle('on', !!q && c.focus === q.focus && c.short === q.short && c.long === q.long && c.every === q.longEvery); });
   const cn = $('tm-cfgnote'); if (cn) cn.hidden = !pomo.running;
+  tipPaint();
   document.title = pomo.running ? `${txt} · ${t('mode_' + pomo.mode)} — ${branding.name}` : tabName();
   const pb = $('tm-pip'); if (pb) { const on = pipIsOpen(); pb.classList.toggle('on', on); pb.setAttribute('aria-pressed', on); pb.innerHTML = `${ic('pip', 'sm')} ${esc(t(on ? 'pip_off' : 'pip_on'))}`; }
   pipPaint();
+}
+/* Gợi ý việc làm trong giờ nghỉ (uống nước, giãn cơ, nhìn xa…): chỉ hiện ở Nghỉ ngắn / Nghỉ dài, mỗi lần nghỉ một gợi ý khác. Danh sách ở js/break-tips.js (dùng chung với overlay OBS). */
+function tipPaint(){
+  const el = $('tm-tip'), B = window.EP_BREAK_TIPS; if (!el) return;
+  const on = !!B && pomo.mode !== 'focus'; if (el.hidden !== !on) el.hidden = !on;
+  if (!on) return;
+  const x = B.pick(pomo.tip, state.lang), key = `${pomo.mode}|${pomo.tip}|${state.lang}`;
+  if (el.dataset.k === key) return;
+  el.dataset.k = key; el.className = 'brk-tip m-' + pomo.mode;
+  el.innerHTML = `<span class="bt-e" aria-hidden="true">${x.e}</span><span class="bt-t"><b>${esc(x.title)}</b>${esc(x.text)}</span>`;
 }
 setInterval(pomoTick, 250);
 /* Timer nổi (khách góp ý): một cửa sổ nhỏ luôn nằm trên cùng (Picture-in-Picture), nên chuyển tab, thu nhỏ trình duyệt hay dùng app khác vẫn thấy giờ.
@@ -855,7 +867,7 @@ PAGES.focus = function(){
     <div class="grid g-main fx3${branding.groupOn === true ? '' : ' nogrp'}" data-lay="${fxLayGet()}"><section class="card timer-card fx-timer">
       <div class="seg"><button type="button" data-seg="focus" data-act="pmode" data-m="focus">${esc(t('mode_focus'))}</button><button type="button" data-seg="short" data-act="pmode" data-m="short">${esc(t('mode_short'))}</button><button type="button" data-seg="long" data-act="pmode" data-m="long">${esc(t('mode_long'))}</button></div>
       <div class="ring" id="tm-ring"><svg viewBox="0 0 120 120"><circle class="bg" cx="60" cy="60" r="54" stroke-width="7"/><circle class="fg" id="tm-fg" cx="60" cy="60" r="54" stroke-width="7" stroke-dasharray="${RING_C.toFixed(2)}" stroke-dashoffset="0"/></svg><div class="center"><div class="tt" data-pomo-time>25:00</div><div class="md" data-pomo-mode></div></div></div>
-      <div class="cycle" id="tm-cycle"></div><div class="small muted" id="tm-goal" style="text-align:center;min-height:1.2em"></div><div class="small muted" id="tm-cur" style="text-align:center;min-height:1.2em"></div>
+      <div class="cycle" id="tm-cycle"></div><div class="brk-tip" id="tm-tip" role="status" hidden></div><div class="small muted" id="tm-goal" style="text-align:center;min-height:1.2em"></div><div class="small muted" id="tm-cur" style="text-align:center;min-height:1.2em"></div>
       ${focusLimit() ? `<div class="limit-box"><div class="row between small"><b>${esc(t('focus_limit_used', { u:Math.min(focusUsed(), focusLimit()), l:focusLimit() }))}</b><span class="faint">${esc(t('focus_limit_note', { l:focusLimit() }))}</span></div><div class="progress mt-s"><i style="width:${Math.min(100, focusUsed() / focusLimit() * 100)}%"></i></div></div>` : (state.companion ? `<div class="limit-box">${compBadge(' · ' + esc(t('focus_nolimit')))}</div>` : '')}
       <div class="row"><button class="btn primary lg" id="tm-main" data-act="pstart"></button><button class="btn secondary icon" style="width:48px;height:48px" data-act="preset-reset" title="${esc(t('reset'))}">${ic('reset')}</button><button class="btn secondary icon" style="width:48px;height:48px" data-act="pskip" title="${esc(t('skip'))}">${ic('skip')}</button></div>
       ${pipCta()}

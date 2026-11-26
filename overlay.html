@@ -78,6 +78,8 @@ html[data-theme="clear"] .tv{color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.6),0 0
 .tv .cd{font-family:'Baloo 2','Nunito',sans-serif;font-weight:800;font-size:4.3em;line-height:1;font-variant-numeric:tabular-nums}
 .tv .cd.big{font-size:3.1em}
 .tv .nx{font-weight:700;font-size:.8em;opacity:.8;margin-top:.15em}
+.tv .tip{display:flex;gap:.35em;align-items:baseline;font-weight:700;font-size:.62em;line-height:1.25;margin:.2em 0 .1em;max-width:22em}
+html.timer[data-align="right"] .tv .tip{margin-left:auto;justify-content:flex-end}html.timer[data-align="center"] .tv .tip{margin-left:auto;margin-right:auto;justify-content:center}
 .tv.flash .cd{animation:tflash 1.2s}
 @keyframes tflash{0%,40%{color:var(--accent)}}
 .tc{position:fixed;left:50%;bottom:.4rem;transform:translateX(-50%);display:flex;gap:.3rem;opacity:0;transition:opacity .2s}
@@ -195,6 +197,7 @@ html.clock .card .kp .r span{background:#c2185b !important;color:#fff !important
 .big .bp{height:.3rem;border-radius:9px;background:var(--line);overflow:hidden;margin-bottom:.45rem}
 .big .bp i{display:block;height:100%;background:var(--c)}
 .big .bn{font-weight:800;font-size:.85rem;line-height:1.25;color:var(--muted)}
+.big .btip{display:flex;gap:.4rem;align-items:baseline;margin-top:.45rem;padding-top:.4rem;border-top:1px dashed var(--line);font-weight:700;font-size:.82rem;line-height:1.3;color:var(--ink)}
 html.bigonly .card{padding:0;background:transparent;box-shadow:none}
 html.bigonly .big{margin:0;background:var(--card)}
 html.cmp body,html.bigonly body,html.noteonly body{display:flex;flex-direction:column;align-items:flex-start}
@@ -222,6 +225,7 @@ html.noteonly .note{margin:0}
 <body>
 <div class="card" id="card"><div class="empty" id="msg"></div></div>
 <div class="note" id="note" hidden></div>
-<script src="overlay.js?v=106"></script>
+<script src="js/break-tips.js?v=107"></script>
+<script src="overlay.js?v=107"></script>
 </body>
 </html>

@@ -34,6 +34,14 @@ const TXT = {
 const tr = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => o[k]);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 const COLOR = { focus:'var(--accent)', short:'var(--short)', long:'var(--long)', prep:'var(--prep)' };
+/* Gợi ý giờ nghỉ (js/break-tips.js, cùng danh sách với Phòng tập trung): hiện dưới số đếm khi đang Nghỉ ngắn / Nghỉ dài. tip=0 để ẩn.
+   Chọn theo ngày + thứ tự lần nghỉ trong buổi, nên mọi nguồn overlay (bảng lịch, view=timer, máy khác) cùng hiện một gợi ý, và lần nghỉ sau đổi gợi ý khác.
+   lang=hi|ja|ko|zh|fr|es: gợi ý theo tiếng đó (phần còn lại của overlay vẫn tiếng Anh). */
+const TIPL = ['hi', 'ja', 'ko', 'zh', 'fr', 'es'].includes(Q.get('lang')) ? Q.get('lang') : OPT.lang;
+const isBrk = g => !!g && (g.type === 'short' || g.type === 'long');
+const brkNo = (segs, i) => segs.slice(0, i).filter(isBrk).length;            // lần nghỉ thứ mấy trong buổi
+const tipOf = (ms, k) => window.EP_BREAK_TIPS && !off('tip') ? window.EP_BREAK_TIPS.pick(Math.floor((ms + 7 * 3600e3) / 864e5) * 5 + k, TIPL) : null;
+const tipHTML = (x, cls) => x ? `<div class="${cls}"><span aria-hidden="true">${x.e}</span><span>${esc(x.text)}</span></div>` : '';
 
 /* ---------- lịch live: cùng cách tính với core.js (normSlot, slotSegs, buildPlan, weekKeyFor) ---------- */
 const VN_OFF = 7 * 3600e3, DAY = 864e5;                 // Việt Nam luôn UTC+7
@@ -276,7 +284,8 @@ function render(){
     const lb = !r ? tr(TXT.soon, { t:'' }).trim() : g.type === 'focus' ? `${TXT.focus} ${g.n}/${nf}` : labelOf(g) + (li && longs.length > 1 ? ` ${li}/${longs.length}` : '');
     const sub = !r ? `${labelOf(g)} ${TXT.at} ${hm(s.start)}` : [g.type === 'focus' && g.name ? g.name : '', nx ? `${TXT.next}: ${labelOf(nx.g)} ${TXT.at} ${hm(nx.a)}` : tr(TXT.end, { t:hm(s.end) })].filter(Boolean).join(' · ');
     const pct = r ? ((now - r.a) / (r.b - r.a) * 100).toFixed(1) : 0;
-    big = `<div class="big" style="--c:${COLOR[g.type]}"><div class="bl"><span>${esc(lb)}</span>${CMP && r && !off('status') ? `<span class="pill live"><i></i>LIVE</span>` : ''}</div><div class="bc">${clock(r ? r.b - now : s.start - now)}</div>${r ? `<div class="bp"><i style="width:${pct}%"></i></div>` : ''}<div class="bn">${esc(sub)}</div></div>`;
+    const tip = r && isBrk(g) ? tipOf(s.start, brkNo(segs, cur)) : null;
+    big = `<div class="big" style="--c:${COLOR[g.type]}"><div class="bl"><span>${esc(lb)}</span>${CMP && r && !off('status') ? `<span class="pill live"><i></i>LIVE</span>` : ''}</div><div class="bc">${clock(r ? r.b - now : s.start - now)}</div>${r ? `<div class="bp"><i style="width:${pct}%"></i></div>` : ''}<div class="bn">${esc(sub)}</div>${tipHTML(tip, 'btip')}</div>`;
   }
   if (Q.get('view') === 'big') { root.classList.add('bigonly'); card.classList.toggle('hide', !big); card.innerHTML = big; return; }
   let h = big + (CMP && big ? '' : `<div class="top"><div class="range">${hm(s.start)} – ${hm(s.end)}</div>${off('status') ? '' : pill}</div>`);
@@ -317,7 +326,7 @@ function render(){
   if (!off('total')) h += `<div class="total">${esc(tr(TXT.total, { m:s.mins }))}</div>`;
   card.innerHTML = h;
   const list = document.getElementById('list');
-  fit(list, `${s.start}|${p.mode}|${segs.length}|${innerWidth}x${innerHeight}`);
+  fit(list, `${s.start}|${p.mode}|${segs.length}|${innerWidth}x${innerHeight}|${big.includes('btip') ? cur : ''}`);
   if (list) {                                           // giữ đoạn đang chạy trong khung: chừa 1 dòng đã qua phía trên
     const li = list.children;
     if (OPT.rows && !CMP && li.length > OPT.rows) list.style.maxHeight = (li[0].offsetHeight * OPT.rows) + 'px';
@@ -465,7 +474,7 @@ if (Q.get('view') === 'timer') {
     const p = pick(now); if (!p || p.mode === 'done') return null;
     if (p.mode === 'soon') return { lb:T.soon, ms:p.s.start - now, nx:p.s.segs && p.s.segs[0] };
     let t = p.s.start; const segs = p.s.segs || [];
-    for (let i = 0; i < segs.length; i++) { const b = t + segs[i].min * 60e3; if (now < b) return { lb:nameOf(segs[i]), ms:b - now, nx:segs[i + 1], g:segs[i] }; t = b; }
+    for (let i = 0; i < segs.length; i++) { const b = t + segs[i].min * 60e3; if (now < b) return { lb:nameOf(segs[i]), ms:b - now, nx:segs[i + 1], g:segs[i], tip:isBrk(segs[i]) ? tipOf(p.s.start, brkNo(segs, i)) : null }; t = b; }
     return null;
   }
   let lastAutoLb = '', lastMs = 0;
@@ -476,22 +485,22 @@ if (Q.get('view') === 'timer') {
       const over = now - st.endAt; go(st.idx + 1, false); if (over < 5e3) chime(st.done ? 'end' : kindOf(segs[st.idx]));
       if (!st.done) { st.endAt = now - over + segMs(st.idx); save(); }
     }
-    let lb, ms, nx, sub = '', g;
+    let lb, ms, nx, sub = '', g, tip = null;
     if (AUTO) {
       const a = sessions === null ? null : autoState(now);
       if (!a) { if (lastAutoLb && lastMs < 3e3) chime('end'); lastAutoLb = ''; card.innerHTML = ''; card.classList.add('hide'); return; }
-      ({ lb, ms, nx, g } = a); card.classList.remove('hide');
+      ({ lb, ms, nx, g, tip } = a); card.classList.remove('hide');
       if (lb !== lastAutoLb) { if (lastAutoLb && g) { if (g.min * 60e3 - ms < 10e3) chime(kindOf(g)); scene(g); } lastAutoLb = lb; }   // chỉ báo khi hiệp vừa bắt đầu (không báo khi dời giờ trong Admin)
       lastMs = ms;
     } else {
       card.classList.remove('hide');
       if (st.done) { lb = T.done; ms = 0; }
-      else { g = segs[st.idx]; lb = nameOf(g); ms = left(); nx = segs[st.idx + 1]; sub = !st.started ? T.ready : !st.running ? T.paused : ''; }
+      else { g = segs[st.idx]; lb = nameOf(g); ms = left(); nx = segs[st.idx + 1]; sub = !st.started ? T.ready : !st.running ? T.paused : ''; if (st.started && isBrk(g)) tip = tipOf(now, brkNo(segs, st.idx)); }
     }
     const big = ms >= 3600e3;
     card.innerHTML = `<div class="tv${now - flash < 1200 ? ' flash' : ''}"><div class="lb">${esc(lb)}${sub ? ` <span class="st">· ${esc(sub)}</span>` : ''}</div>`
       + `<div class="cd${big ? ' big' : ''}">${st.done && !AUTO ? '' : clock(ms)}</div>`
-      + (nx && !off('next') ? `<div class="nx">${esc(T.next)}: ${esc(nameOf(nx))} · ${nx.min}′</div>` : '') + `</div>`;
+      + tipHTML(tip, 'tip') + (nx && !off('next') ? `<div class="nx">${esc(T.next)}: ${esc(nameOf(nx))} · ${nx.min}′</div>` : '') + `</div>`;
   }
   draw(); setInterval(draw, 250);
   if (AUTO || !custom) {                                 // cần lịch Admin: đọc giống bảng lịch (3 phút / lần)
