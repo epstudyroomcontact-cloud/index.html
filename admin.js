@@ -156,7 +156,7 @@ function aSumHTML(items, max){
 }
 function aSetFold(card, on, remember = true){
   if (on) aDrawSum(card);
-  card.classList.toggle('fold', on);
+  card.classList.toggle('fold', on); if (on) card.dataset.act = 'aFold'; else delete card.dataset.act;   // thu gọn: cả ô là nút bấm
   const bt = card.querySelector('.a-fold'); if (bt) { bt.setAttribute('aria-expanded', String(!on)); bt.innerHTML = on ? `${ic('pen', 'sm')} Sửa` : 'Thu gọn'; bt.classList.toggle('primary', on); }
   if (remember) { const k = aKey(card); if (on) AS.open.delete(k); else AS.open.add(k); }
 }
@@ -188,14 +188,7 @@ function aEnhance(){
     else if (h) { delete h.dataset.act; h.removeAttribute('role'); h.removeAttribute('tabindex'); }
     if (ed) aSetFold(c, !(AS.open.has(k) || AS.dirty.has(k)), false); aMark(c);
   });
-  let toc = $('a-toc');
-  const sig = tab + ':' + cards.map(c => c.id + aCardTitle(c)).join('|');
-  if (cards.length >= 3) {
-    if (!toc || toc.dataset.sig !== sig) {
-      if (toc) toc.remove();
-      b.insertAdjacentHTML('afterbegin', `<div class="a-toc" id="a-toc" data-sig="${esc(sig)}"><span class="small faint">Đi tới:</span>${cards.map(c => `<button type="button" class="a-chip" data-act="aJump" data-id="${esc(c.id)}">${esc(aCardTitle(c))}</button>`).join('')}${cards.some(c => c.classList.contains('a-ed')) ? `<span class="a-toc-r"><button type="button" class="btn ghost sm" data-act="aFoldAll" data-on="1">Xem tổng quát</button><button type="button" class="btn ghost sm" data-act="aFoldAll" data-on="0">Mở hết để sửa</button></span>` : ''}</div>`);
-    } else if (b.firstElementChild !== toc) b.insertBefore(toc, b.firstElementChild);
-  } else if (toc) toc.remove();
+  b.classList.toggle('a-tiles', cards.some(c => c.classList.contains('a-ed')));   // thẻ cài đặt thu gọn hiện thành lưới ô, bấm vào ô mới mở chi tiết
   aBar();
 }
 function aFlash(el){ if (!el) return; el.scrollIntoView({ behavior:'smooth', block:'start' }); el.classList.remove('a-flash'); void el.offsetWidth; el.classList.add('a-flash'); }
@@ -229,7 +222,7 @@ function aGo(tab, title){
 }
 function aLeaveOk(){ if (!AS.dirty.size) return true; if (!confirm('Bạn có thay đổi CHƯA LƯU. Rời đi thì mất các thay đổi đó. Vẫn rời đi?')) return false; AS.dirty.clear(); aBar(); return true; }
 Object.assign(ACTIONS, {
-  aFold:el => { const c = el.closest('.a-card.a-ed'); if (!c) return; const open = c.classList.contains('fold'); aSetFold(c, !open); if (open) { const f = c.querySelector(':scope > :not(.a-head):not(.a-sum) input:not([type=hidden]):not([type=checkbox]):not([readonly]), :scope > :not(.a-head):not(.a-sum) textarea'); c.scrollIntoView({ behavior:'smooth', block:'nearest' }); if (f && el.classList.contains('a-fold')) f.focus({ preventScroll:true }); } },
+  aFold:el => { const c = el.closest('.a-card.a-ed'); if (!c) return; const open = c.classList.contains('fold'); aSetFold(c, !open); if (open) { const f = c.querySelector(':scope > :not(.a-head):not(.a-sum) input:not([type=hidden]):not([type=checkbox]):not([readonly]), :scope > :not(.a-head):not(.a-sum) textarea'); c.scrollIntoView({ behavior:'smooth', block:'start' }); if (f && el.classList.contains('a-fold')) f.focus({ preventScroll:true }); } },
   aFoldAll:el => { document.querySelectorAll('#admin-body .a-card.a-ed').forEach(c => aSetFold(c, el.dataset.on === '1')); },
   aJump:el => aFlash($(el.dataset.id)),
   aFindGo:el => aGo(el.dataset.tab, el.dataset.t),
@@ -311,8 +304,8 @@ function tabAll(){
   const sec = A_GROUPS.filter(g => g[0] !== 'all' && g[0] !== 'home').map(g => {
     const body = g[3].map(tab => {
       const nm = A_SUB[tab][0];
-      if (!A_ALL_TABS.includes(tab)) return `<div class="a-all-r lk" data-q="${esc(aNorm(nm + ' ' + A_SUB[tab][1]))}"><div class="a-all-hd"><div><b>${esc(nm)}</b><small>Danh sách / thao tác</small></div><a class="btn secondary sm" href="#/admin/${tab}">Mở tab</a></div><p class="muted a-all-d">${esc(A_SUB[tab][1])}</p></div>`;
-      return aCapture(tab).map(c => `<div class="a-all-r" data-q="${esc(aNorm(c.title + ' ' + nm + ' ' + c.items.map(i => i[0] + ' ' + txt(i[1])).join(' ')))}"><div class="a-all-hd"><div><b>${esc(c.title)}</b><small>${esc(nm)}</small></div><button type="button" class="btn primary sm" data-act="aFindGo" data-tab="${tab}" data-t="${esc(c.title)}">${ic('pen', 'sm')} Sửa</button></div>${aSumHTML(c.items, 4)}</div>`).join('');
+      if (!A_ALL_TABS.includes(tab)) return `<a class="a-all-r lk" href="#/admin/${tab}" data-q="${esc(aNorm(nm + ' ' + A_SUB[tab][1]))}"><b>${esc(nm)}</b><small>Mở tab</small></a>`;
+      return aCapture(tab).map(c => `<button type="button" class="a-all-r" data-q="${esc(aNorm(c.title + ' ' + nm + ' ' + c.items.map(i => i[0] + ' ' + txt(i[1])).join(' ')))}" data-act="aFindGo" data-tab="${tab}" data-t="${esc(c.title)}"><b>${esc(c.title)}</b><small>${esc(nm)}</small></button>`).join('');
     }).join('');
     return `<section class="a-all-g" id="ag-${g[0]}"><h2>${ic(g[1], 'sm')} ${esc(g[2])}</h2><div class="a-all-list">${body}</div></section>`;
   }).join('');
