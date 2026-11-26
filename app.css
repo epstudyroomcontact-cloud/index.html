@@ -1422,6 +1422,24 @@ body:has(#tour-ask) .sofa{display:none}
 .grp-ch.pop{animation:chPop .7s ease-out 2}
 @keyframes chPop{0%,100%{transform:scale(1)}40%{transform:scale(1.5) rotate(-10deg)}70%{transform:scale(1.2) rotate(8deg)}}
 @media(prefers-reduced-motion:reduce){.clap-p,.grp-ch.pop{animation:none;display:none}}
+/* Lời nhắn cổ vũ (group.js): chọn 1 trong 6 lời có sẵn ngay dưới tên người đang học */
+.grp-ch.cv.open{border-color:var(--accent);background:var(--accent-soft)}
+.grp-ch.on:disabled{opacity:.8}
+.grp-cv-pick{display:flex;flex-wrap:wrap;gap:6px;padding:6px 8px 10px 42px;align-items:center}
+.grp-cv-o{display:inline-flex;align-items:center;gap:5px;min-height:34px;padding:5px 11px;border-radius:99px;border:1px solid var(--line2);background:var(--surface);color:var(--ink);font-size:.8rem;font-weight:600;line-height:1.2;text-align:left}
+.grp-cv-o:hover,.grp-cv-o:focus-visible{border-color:var(--accent);background:var(--accent-soft)}
+.grp-cv-x{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:99px;color:var(--ink3)}
+.grp-cv-x:hover{background:var(--accent-soft);color:var(--ink)}
+.grp-cv-held{flex:none;font-size:.76rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--surface);color:var(--accent-strong)}
+.grp-cv-opt{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;padding:10px 12px;border-radius:12px;background:var(--accent-soft)}
+.grp-cv-opt p{margin:2px 0 0}
+.grp-sw{flex:none;position:relative;width:44px;height:26px;border-radius:99px;background:var(--line2);transition:background .2s}
+.grp-sw i{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
+.grp-sw.on{background:var(--accent)}
+.grp-sw.on i{transform:translateX(18px)}
+@media (max-width:520px){.grp-cv-pick{padding-left:8px}.grp-cv-o{flex:1 1 calc(50% - 6px)}}
+@media(prefers-reduced-motion:reduce){.grp-sw,.grp-sw i{transition:none}}
+
 .sev-top{list-style:decimal;margin:4px 0 0;padding-left:22px;display:grid;gap:2px}
 .sev-top li span{display:inline-block;min-width:120px;color:var(--ink)}
 .sev-top li b{margin:0 6px;font-variant-numeric:tabular-nums}

@@ -96,6 +96,41 @@ Object.assign(I18N.vi, {
     hi:{ grp_cheer_one:"{n} ने आपके लिए ताली बजाई 👏", grp_cheer_many:"{n} और {k} अन्य ने आपके लिए ताली बजाई 👏", grp_cheer:"हौसला बढ़ाएँ", grp_cheer_tip:"{n} का हौसला बढ़ाएँ", grp_cheered:"हौसला बढ़ाया", grp_cheer_got:"आपको {n} नए चीयर मिले! 👏", grp_cheer_max:"हर हफ़्ते आप ज़्यादा से ज़्यादा {n} लोगों का हौसला बढ़ा सकते हैं।", grp_cheer_err:"चीयर नहीं भेज सके। फिर कोशिश करें।" }
   };
   Object.keys(C).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], C[l]); });
+  const V = {   // lời nhắn cổ vũ có sẵn (grp_cv_p0..p5 đi cùng biểu tượng CV trong group.js; không cho gõ chữ tự do)
+    en:{ grp_cv_p0:"Keep going!", grp_cv_p1:"You're doing great", grp_cv_p2:"Moon is cheering for you", grp_cv_p3:"You're on fire!", grp_cv_p4:"Remember to drink some water", grp_cv_p5:"We're studying together",
+      grp_cv_pick:"Send {n} a cheer", grp_cv_sent:"Cheer sent to {n}", grp_cv_one:"{n} sent you {e} “{p}”", grp_cv_many:"{n} and {k} more cheered you on {e}", grp_cv_wait:"You can cheer {n} again in {m} min",
+      grp_cv_held:"{k} cheer(s) waiting for your break", grp_cv_off_tip:"{n} has turned cheers off", grp_cv_lbl:"Receive cheers", grp_cv_hint:"Cheers are short preset messages with no sound. During a focus block they wait until your break.",
+      grp_cv_on_t:"Cheers turned on", grp_cv_off_t:"Cheers turned off. Nobody can send you cheers now.", grp_cv_close:"Close" },
+    vi:{ grp_cv_p0:"Cố lên nào!", grp_cv_p1:"Bạn đang làm rất tốt", grp_cv_p2:"Moon đang cổ vũ bạn đó", grp_cv_p3:"Bạn đang cháy hết mình!", grp_cv_p4:"Nhớ uống chút nước nha", grp_cv_p5:"Mình cùng học nè",
+      grp_cv_pick:"Gửi lời cổ vũ cho {n}", grp_cv_sent:"Đã gửi cổ vũ cho {n}", grp_cv_one:"{n} gửi bạn {e} “{p}”", grp_cv_many:"{n} và {k} người khác cổ vũ bạn {e}", grp_cv_wait:"Bạn có thể cổ vũ {n} lại sau {m} phút",
+      grp_cv_held:"{k} lời cổ vũ đang chờ tới giờ nghỉ", grp_cv_off_tip:"{n} đang tắt nhận cổ vũ", grp_cv_lbl:"Nhận lời cổ vũ", grp_cv_hint:"Lời cổ vũ là các câu ngắn có sẵn, không phát âm thanh. Trong khối tập trung, lời cổ vũ chờ tới giờ nghỉ mới hiện.",
+      grp_cv_on_t:"Đã bật nhận cổ vũ", grp_cv_off_t:"Đã tắt nhận cổ vũ. Không ai gửi cổ vũ cho bạn được nữa.", grp_cv_close:"Đóng" },
+    ja:{ grp_cv_p0:"がんばって！", grp_cv_p1:"いい調子だよ", grp_cv_p2:"Moonが応援してるよ", grp_cv_p3:"絶好調だね！", grp_cv_p4:"お水を飲むのを忘れずに", grp_cv_p5:"一緒に勉強しよう",
+      grp_cv_pick:"{n}さんに応援を送る", grp_cv_sent:"{n}さんに応援を送りました", grp_cv_one:"{n}さんから {e}「{p}」", grp_cv_many:"{n}さんほか{k}人から応援が届きました {e}", grp_cv_wait:"{n}さんへの次の応援は{m}分後に送れます",
+      grp_cv_held:"休憩を待っている応援が{k}件", grp_cv_off_tip:"{n}さんは応援の受け取りをオフにしています", grp_cv_lbl:"応援を受け取る", grp_cv_hint:"応援は決まった短いメッセージで、音は鳴りません。集中ブロック中は休憩になってから表示されます。",
+      grp_cv_on_t:"応援の受け取りをオンにしました", grp_cv_off_t:"応援の受け取りをオフにしました。今は誰もあなたに応援を送れません。", grp_cv_close:"閉じる" },
+    ko:{ grp_cv_p0:"힘내요!", grp_cv_p1:"정말 잘하고 있어요", grp_cv_p2:"Moon이 응원하고 있어요", grp_cv_p3:"불타오르네요!", grp_cv_p4:"물 마시는 거 잊지 마요", grp_cv_p5:"우리 같이 공부해요",
+      grp_cv_pick:"{n}님에게 응원 보내기", grp_cv_sent:"{n}님에게 응원을 보냈어요", grp_cv_one:"{n}님의 응원: {e} “{p}”", grp_cv_many:"{n}님 외 {k}명이 응원했어요 {e}", grp_cv_wait:"{m}분 후에 {n}님을 다시 응원할 수 있어요",
+      grp_cv_held:"휴식을 기다리는 응원 {k}개", grp_cv_off_tip:"{n}님은 응원 받기를 꺼 두었어요", grp_cv_lbl:"응원 받기", grp_cv_hint:"응원은 정해진 짧은 메시지이고 소리가 나지 않아요. 집중 시간에는 휴식이 시작되면 보여 드려요.",
+      grp_cv_on_t:"응원 받기를 켰어요", grp_cv_off_t:"응원 받기를 껐어요. 이제 아무도 응원을 보낼 수 없어요.", grp_cv_close:"닫기" },
+    zh:{ grp_cv_p0:"加油！", grp_cv_p1:"你做得很好", grp_cv_p2:"Moon 在为你加油", grp_cv_p3:"状态火热！", grp_cv_p4:"记得喝点水", grp_cv_p5:"我们一起学习",
+      grp_cv_pick:"为 {n} 送上加油", grp_cv_sent:"已为 {n} 送上加油", grp_cv_one:"{n} 给你发来 {e}“{p}”", grp_cv_many:"{n} 等 {k} 人为你加油 {e}", grp_cv_wait:"{m} 分钟后可以再为 {n} 加油",
+      grp_cv_held:"有 {k} 条加油等到休息时显示", grp_cv_off_tip:"{n} 已关闭接收加油", grp_cv_lbl:"接收加油", grp_cv_hint:"加油是预设的短句，不会发出声音。专注时段内会等到休息时再显示。",
+      grp_cv_on_t:"已开启接收加油", grp_cv_off_t:"已关闭接收加油，现在没有人能为你加油。", grp_cv_close:"关闭" },
+    fr:{ grp_cv_p0:"Courage, continuez !", grp_cv_p1:"Vous vous en sortez très bien", grp_cv_p2:"Moon vous encourage", grp_cv_p3:"Vous êtes en feu !", grp_cv_p4:"Pensez à boire un peu d’eau", grp_cv_p5:"On étudie ensemble",
+      grp_cv_pick:"Encourager {n}", grp_cv_sent:"Encouragement envoyé à {n}", grp_cv_one:"{n} vous envoie {e} « {p} »", grp_cv_many:"{n} et {k} autre(s) vous encouragent {e}", grp_cv_wait:"Vous pourrez encourager {n} à nouveau dans {m} min",
+      grp_cv_held:"{k} encouragement(s) en attente de votre pause", grp_cv_off_tip:"{n} a désactivé les encouragements", grp_cv_lbl:"Recevoir des encouragements", grp_cv_hint:"Les encouragements sont de courts messages prédéfinis, sans son. Pendant un bloc de concentration, ils attendent votre pause.",
+      grp_cv_on_t:"Encouragements activés", grp_cv_off_t:"Encouragements désactivés. Personne ne peut plus vous en envoyer.", grp_cv_close:"Fermer" },
+    es:{ grp_cv_p0:"¡Sigue así!", grp_cv_p1:"Lo estás haciendo genial", grp_cv_p2:"Moon te está animando", grp_cv_p3:"¡Estás que ardes!", grp_cv_p4:"Acuérdate de beber agua", grp_cv_p5:"Estudiamos juntos",
+      grp_cv_pick:"Enviar ánimo a {n}", grp_cv_sent:"Ánimo enviado a {n}", grp_cv_one:"{n} te envía {e} «{p}»", grp_cv_many:"{n} y {k} más te animan {e}", grp_cv_wait:"Podrás animar a {n} de nuevo en {m} min",
+      grp_cv_held:"{k} ánimo(s) esperando a tu descanso", grp_cv_off_tip:"{n} desactivó los ánimos", grp_cv_lbl:"Recibir ánimos", grp_cv_hint:"Los ánimos son mensajes cortos predefinidos, sin sonido. Durante un bloque de concentración esperan hasta tu descanso.",
+      grp_cv_on_t:"Ánimos activados", grp_cv_off_t:"Ánimos desactivados. Ahora nadie puede enviarte ánimos.", grp_cv_close:"Cerrar" },
+    hi:{ grp_cv_p0:"लगे रहो!", grp_cv_p1:"आप बहुत अच्छा कर रहे हैं", grp_cv_p2:"Moon आपका हौसला बढ़ा रहा है", grp_cv_p3:"आप तो कमाल कर रहे हैं!", grp_cv_p4:"थोड़ा पानी पीना न भूलें", grp_cv_p5:"हम साथ पढ़ रहे हैं",
+      grp_cv_pick:"{n} को हौसला भेजें", grp_cv_sent:"{n} को हौसला भेजा गया", grp_cv_one:"{n} ने आपको भेजा {e} “{p}”", grp_cv_many:"{n} और {k} अन्य ने आपका हौसला बढ़ाया {e}", grp_cv_wait:"{m} मिनट बाद आप {n} को फिर से हौसला भेज सकते हैं",
+      grp_cv_held:"{k} हौसला संदेश आपके ब्रेक का इंतज़ार कर रहे हैं", grp_cv_off_tip:"{n} ने हौसला संदेश बंद किए हैं", grp_cv_lbl:"हौसला संदेश पाएँ", grp_cv_hint:"हौसला संदेश पहले से तय छोटे संदेश हैं, कोई आवाज़ नहीं। फ़ोकस के दौरान ये ब्रेक शुरू होने पर दिखते हैं।",
+      grp_cv_on_t:"हौसला संदेश चालू", grp_cv_off_t:"हौसला संदेश बंद। अब कोई आपको हौसला नहीं भेज सकता।", grp_cv_close:"बंद करें" }
+  };
+  Object.keys(V).forEach(l => { I18N[l] = I18N[l] || {}; Object.assign(I18N[l], V[l]); });
 })();
 (function(){
   const TZ = 'Asia/Ho_Chi_Minh', BEAT = 4 * 60e3, STALE = 9 * 60e3, POLL = 60e3, POLL_SLOW = 180e3, IDLE = 10 * 60e3, SESS_GAP = 15 * 60e3, TOP = 5, FLUSH = 3 * 60e3;   // nhịp báo, quá hạn thì ẩn, tải lại (Phòng tập trung / trang khác), ngừng tải khi không đụng vào gì, nghỉ quá lâu thì tính phiên mới, số người trong bảng
@@ -105,7 +140,7 @@ Object.assign(I18N.vi, {
   const me = () => state.user ? store.get(key(), null) : null;                    // { n:biệt danh } khi đã tham gia
   const access = () => !!state.user && !DEMO && typeof plLinked === 'function' && plLinked();   // cùng điều kiện với Planner (chốt cuối cùng ở firestore.rules)
   const on = () => branding.groupOn === true && access();
-  let showAll = false, cheers = {}, live = {}, board = {}, loadedAt = 0, err = '', busy = false, leaving = false, lastSent = '', lastBeat = 0, lastWeek = '', denied = 0, timers = false, lastFlush = 0, loadedWk = '', retried = false;
+  let showAll = false, cheers = {}, live = {}, board = {}, loadedAt = 0, err = '', busy = false, leaving = false, lastSent = '', lastBeat = 0, lastWeek = '', denied = 0, timers = false, lastFlush = 0, loadedWk = '', retried = false, cvs = {}, qt = {}, pick = '';
   /* Danh sách thành viên giữ qua các tuần (study_roster/all = { m:{ uid:{ n, w:tuần học gần nhất } } }): bảng tuần về trống mỗi thứ Hai nhưng tên người tham gia thì ở lại,
      để thấy ai từng học và đang tụt hạng. Mỗi người tự ghi mục của mình tối đa một lần mỗi tuần; đọc tối đa một lần mỗi 6 giờ rồi lưu trong máy. */
   const rosRef = () => db.collection('study_roster').doc('all');
@@ -178,7 +213,7 @@ Object.assign(I18N.vi, {
     }
   }
   function sync(force){                  // gọi mỗi khi đồng hồ đổi trạng thái và mỗi 30 giây (để báo nhịp)
-    accrue();
+    accrue(); if (!focusing()) cvShow();
     const m = me(); if (!m || !on() || !lead()) return;
     const k = want(), now = Date.now();
     if (!k) { flush(true); return enqueue(async () => { if (lastSent) { lastSent = ''; await clearLive(); renderBox(); } }); }
@@ -268,7 +303,7 @@ Object.assign(I18N.vi, {
     const w0 = wk();
     try {
       const d = await ref().get(), x = d.exists ? d.data() : {};
-      live = x.live || {}; board = x.board || {}; cheers = x.cheers || {}; loadedAt = Date.now(); loadedWk = w0; err = ''; saveSnap(); rankWatch(); cheerWatch(); prevLoad(); pushStats(); rosLoad();
+      live = x.live || {}; board = x.board || {}; cheers = x.cheers || {}; cvs = x.cv || {}; qt = x.qt || {}; loadedAt = Date.now(); loadedWk = w0; err = ''; saveSnap(); rankWatch(); cheerWatch(); cvWatch(); qtSync(); prevLoad(); pushStats(); rosLoad();
       const id = state.user.uid, mine = board[id] || live[id], nn = mine && nameOk(mine.n);
       if (nn && !me()) { store.set(key(), { n:nn }); sync(true); }                // đã tham gia ở thiết bị khác của tài khoản này: nhận lại biệt danh, nếu không thiết bị này không báo "đang học" và không cộng phút
       if (live[id] && !want()) clearLive();          // sót lại từ lần đóng web đột ngột
@@ -308,8 +343,9 @@ Object.assign(I18N.vi, {
      mỗi người nhận một lần mỗi tuần, tối đa CHEER_MAX người; số cổ vũ của một người = số danh sách có tên họ. Hết tuần tự về trống cùng bảng tuần. */
   const CHEER_MAX = 20, cheerOf = id => Object.values(cheers).reduce((a, l) => a + (Array.isArray(l) && l.includes(id) ? 1 : 0), 0);
   const myCheers = () => { const l = state.user && cheers[state.user.uid]; return Array.isArray(l) ? l : []; };
-  const cheerBtn = (id, n) => {
+  const cheerBtn = (id, n, at) => {
     const c = cheerOf(id), cnt = c ? `<span class="grp-ch-n">${c}</span>` : '';
+    if (id !== state.user.uid && isLive(id)) return cvBtn(id, n, cnt, at);
     if (id === state.user.uid) return c ? `<span class="grp-ch me${pulse ? ' pop' : ''}" title="${esc(t('grp_cheer'))}">👏${cnt}</span>` : '';
     const done = myCheers().includes(id);
     return `<button type="button" class="grp-ch${done ? ' on' : ''}" data-act="grpCheer" data-id="${esc(id)}" ${done ? 'disabled' : ''} title="${esc(done ? t('grp_cheered') : t('grp_cheer_tip', { n }))}" aria-label="${esc(done ? t('grp_cheered') : t('grp_cheer_tip', { n }))}">👏${cnt}</button>`;
@@ -330,12 +366,76 @@ Object.assign(I18N.vi, {
   function cheerWatch(){                 // có người vừa vỗ tay cho mình (so với lần thấy trước) thì báo tên người đó một lần, kèm hiệu ứng
     if (!state.user || !me() || loadedWk !== wk()) return; const id = state.user.uid, w = wk(), from = cheerFrom(id), p = store.get('grp_cheer', null);
     const old = p && p.wk === w && p.id === id ? (Array.isArray(p.from) ? p.from : from) : null, fresh = old ? from.filter(k => !old.includes(k)) : [];
-    if (fresh.length && document.visibilityState === 'visible') {
-      toast(fresh.length === 1 ? t('grp_cheer_one', { n:nameOfId(fresh[0]) }) : t('grp_cheer_many', { n:nameOfId(fresh[0]), k:fresh.length - 1 }), 3600);
-      clapFx(innerWidth / 2, innerHeight - 110, Math.min(14, 6 + fresh.length * 2), true); pulse = true;
+    const loud = fresh.filter(k => !cvTo(k, id));                    // người gửi đã dùng lời nhắn cổ vũ mới: cvWatch báo rồi, không báo hai lần
+    if (loud.length && !cvOff() && !focusing() && document.visibilityState === 'visible') {
+      toast(loud.length === 1 ? t('grp_cheer_one', { n:nameOfId(loud[0]) }) : t('grp_cheer_many', { n:nameOfId(loud[0]), k:loud.length - 1 }), 3600);
+      clapFx(innerWidth / 2, innerHeight - 110, Math.min(14, 6 + loud.length * 2), true); pulse = true;
     }
     if (!old || old.length !== from.length || fresh.length) store.set('grp_cheer', { wk:w, id, from });
   }
+  /* ---------- Lời nhắn cổ vũ (nâng cấp từ nút 👏) ----------
+     Bấm 👏 cạnh một người ĐANG HỌC (còn trong live) để chọn 1 trong 6 lời có sẵn (CV + grp_cv_p0..p5). Không có ô gõ chữ nên không spam / chửi bới được.
+     Dữ liệu nằm ngay trong tài liệu tuần (người nhận thấy qua lần tải lại 60 giây sẵn có, KHÔNG tốn thêm lượt đọc; mỗi lần gửi = 1 lượt ghi):
+       cv: { <người gửi>: { to:<người nhận gần nhất>, h:{ <người nhận>: { e:<0..5>, t:giờ máy chủ } } } }   mỗi người nhận giữ đúng lời gần nhất
+       qt: { <uid>: true }                                                                                   người tắt nhận cổ vũ
+     Luật Firestore: chỉ ghi phần của chính mình; người nhận phải đang trong live, chưa tắt nhận; cùng một người nhận cách nhau ít nhất 10 phút; tối đa 30 người nhận / tuần.
+     Người nhận: lời cổ vũ không phát âm thanh; đang trong khối tập trung thì để dành (chỉ hiện số nhỏ dưới đồng hồ), tới giờ nghỉ / dừng đồng hồ mới hiện. */
+  const CV = ['💪', '✨', '🌙', '🔥', '🍵', '👏'], CV_GAP = 10 * 60e3, CV_MAX = 30, CV_AGE = 60 * 60e3;
+  const isLive = id => { const e = live[id]; return !!(e && typeof e.s === 'number' && Date.now() - e.b < STALE); };
+  const focusing = () => !!(pomo.running && pomo.mode === 'focus');
+  const cvOff = () => !!(state.user && store.get('grp_cvoff_' + state.user.uid, 0));
+  const cvTo = (s, to) => { const x = cvs[s], e = x && x.h && typeof x.h === 'object' ? x.h[to] : null; return e && Number.isInteger(e.e) && e.e >= 0 && e.e < CV.length ? e : null; };
+  const cvMine = () => { const x = state.user && cvs[state.user.uid]; return x && x.h && typeof x.h === 'object' ? x.h : {}; };
+  const cvLeft = to => { const e = cvMine()[to], at = e ? ms(e.t) : 0; return at ? Math.max(0, at + CV_GAP + 15e3 - Date.now()) : 0; };   // +15 giây cho lệch giờ máy so với máy chủ
+  function cvBtn(id, n, cnt, at){
+    if (qt[id]) return `<span class="grp-ch on" title="${esc(t('grp_cv_off_tip', { n }))}" aria-label="${esc(t('grp_cv_off_tip', { n }))}">🔕${cnt}</span>`;
+    const left = cvLeft(id);
+    if (left > 0) { const tip = t('grp_cv_wait', { n, m:Math.max(1, Math.round(left / 60000)) }); return `<button type="button" class="grp-ch on" disabled title="${esc(tip)}" aria-label="${esc(tip)}">✓${cnt}</button>`; }
+    const open = pick === id + '|' + at, tip = t('grp_cv_pick', { n });
+    return `<button type="button" class="grp-ch cv${open ? ' open' : ''}" data-act="grpCvPick" data-id="${esc(id)}" data-at="${at}" aria-expanded="${open}" title="${esc(tip)}" aria-label="${esc(tip)}">👏${cnt}</button>`;
+  }
+  function cvPick(id, n, at){
+    if (pick !== id + '|' + at || id === state.user.uid || !isLive(id) || qt[id] || cvLeft(id) > 0) return '';
+    return `<li class="grp-cv-pick" role="group" aria-label="${esc(t('grp_cv_pick', { n }))}">${CV.map((e, i) => `<button type="button" class="grp-cv-o" data-act="grpCvSend" data-id="${esc(id)}" data-e="${i}"><span aria-hidden="true">${e}</span> ${esc(t('grp_cv_p' + i))}</button>`).join('')}<button type="button" class="grp-cv-x" data-act="grpCvPick" data-id="${esc(id)}" data-at="${at}" aria-label="${esc(t('grp_cv_close'))}" title="${esc(t('grp_cv_close'))}">${ic('x', 'sm')}</button></li>`;
+  }
+  const heldKey = () => 'grp_cvheld_' + state.user.uid;
+  const held = () => { const l = state.user && store.get(heldKey(), null); return Array.isArray(l) ? l : []; };
+  function cvWatch(){                    // lời cổ vũ mới gửi cho mình (so với mốc đã thấy): xếp vào hàng chờ rồi hiện khi hợp lúc
+    if (!state.user || !me() || loadedWk !== wk()) return;
+    const id = state.user.uid, sk = 'grp_cvseen_' + id, now = Date.now(), s0 = +store.get(sk, 0) || 0, seen = s0 || now - CV_AGE; let top = seen; const got = [];
+    Object.keys(cvs).forEach(s => { if (s === id) return; const e = cvTo(s, id), at = e ? ms(e.t) : 0; if (!at) return; if (at > seen && now - at < CV_AGE) got.push({ s, e:e.e, at }); if (at > top) top = at; });
+    if (top !== s0) store.set(sk, top);
+    if (got.length && !cvOff()) { const l = held().concat(got).filter((x, i, a) => a.findIndex(y => y.s === x.s && y.at === x.at) === i).slice(-20); store.set(heldKey(), l); }
+    cvShow();
+  }
+  function cvShow(){                     // không làm phiền khi đang tập trung: chờ tới giờ nghỉ hoặc lúc dừng đồng hồ
+    if (!state.user) return; const l = held(); if (!l.length) return;
+    if (cvOff()) { store.set(heldKey(), []); return renderStrip(); }
+    if (focusing() || document.visibilityState !== 'visible') return renderStrip();
+    store.set(heldKey(), []);
+    const g = l.sort((a, b) => a.at - b.at), z = g[g.length - 1], who = [...new Set(g.map(x => x.s))];
+    toast(g.length === 1 ? t('grp_cv_one', { n:nameOfId(z.s), e:CV[z.e], p:t('grp_cv_p' + z.e) }) : t('grp_cv_many', { n:nameOfId(z.s), k:who.length - 1, e:[...new Set(g.map(x => CV[x.e]))].join('') }), 4200);
+    cvFx(g.map(x => CV[x.e]));
+    renderStrip();
+  }
+  function cvFx(list){                   // vài biểu tượng bay nhẹ lên từ giữa dưới màn hình (tắt khi khách chọn giảm chuyển động)
+    if (motionOff()) return;
+    for (let i = 0; i < 5; i++) {
+      const e = document.createElement('span'); e.className = 'clap-p'; e.textContent = list[i % list.length]; e.setAttribute('aria-hidden', 'true');
+      e.style.left = (innerWidth / 2 + (Math.random() - .5) * 120) + 'px'; e.style.top = (innerHeight - 90) + 'px';
+      e.style.setProperty('--dx', ((Math.random() - .5) * 120).toFixed(0) + 'px'); e.style.setProperty('--dy', (-70 - Math.random() * 80).toFixed(0) + 'px'); e.style.setProperty('--r', ((Math.random() - .5) * 40).toFixed(0) + 'deg');
+      e.style.animationDelay = (i * 90) + 'ms'; document.body.appendChild(e); setTimeout(() => e.remove(), 1700 + i * 90);
+    }
+  }
+  function qtSync(){                     // tắt nhận cổ vũ được nhớ trong máy; tài liệu tuần mới (thứ Hai) chưa có dấu tắt thì ghi lại một lần
+    if (!state.user || !me() || !on() || DEMO || loadedWk !== wk()) return; const id = state.user.uid, tag = wk() + '|' + id, w = store.get('grp_qtw', '');
+    if (qt[id] && !cvOff()) { store.set('grp_cvoff_' + id, 1); store.set('grp_qtw', tag); return renderBox(); }   // thiết bị khác của bạn đã tắt
+    if (!qt[id] && cvOff()) {
+      if (w === tag) { store.set('grp_cvoff_' + id, 0); return renderBox(); }                                     // tuần này đã ghi dấu tắt mà giờ không còn: thiết bị khác đã bật lại
+      store.set('grp_qtw', tag); ref().set({ qt:{ [id]:true } }, { merge:true }).then(() => { qt[id] = true; }).catch(() => store.set('grp_qtw', ''));
+    }
+  }
+  const cvOpt = () => { const off = cvOff(); return `<div class="grp-cv-opt"><div><b class="small">${esc(t('grp_cv_lbl'))}</b><p class="small faint">${esc(t('grp_cv_hint'))}</p></div><button type="button" class="grp-sw${off ? '' : ' on'}" role="switch" aria-checked="${!off}" aria-label="${esc(t('grp_cv_lbl'))}" data-act="grpCvMute"><i aria-hidden="true"></i></button></div>`; };
   function boardRows(){               // bảng tuần; số phút của chính mình cộng thêm phần đang chờ ghi, nên luôn mới nhất
     const id = state.user.uid, p = me() ? pend() : 0, tms = e => e && e.t && typeof e.t.toMillis === 'function' ? e.t.toMillis() : 0, now = Date.now();
     const o = Object.entries(board).map(([k, e]) => ({ k, n:(e && e.n) || '?', mins:((e && e.mins) | 0) + (k === id ? p : 0), at:k === id && p > 0 ? now : tms(e) }));
@@ -344,7 +444,7 @@ Object.assign(I18N.vi, {
   }
   function boardHTML(){
     const id = state.user.uid, all = boardRows();
-    const top = all.slice(0, showAll ? 1500 : TOP), mine = all.findIndex(x => x.k === id), row = (x, i) => `<li class="grp-row ${x.k === id ? 'me' : ''}"><span class="grp-rank r${i < 3 ? i + 1 : 0}">${i + 1}</span>${avatar(x.n)}<b class="grp-n">${esc(dn(x.k, x.n))}${x.k === id ? ` <span class="badge">${esc(t('grp_you'))}</span>` : ''}</b><span class="grp-t">${esc(fmt(x.mins * 60000))}</span>${cheerBtn(x.k, x.n)}${plus(x.k, x.n)}${kick(x.k)}</li>`;
+    const top = all.slice(0, showAll ? 1500 : TOP), mine = all.findIndex(x => x.k === id), row = (x, i) => `<li class="grp-row ${x.k === id ? 'me' : ''}"><span class="grp-rank r${i < 3 ? i + 1 : 0}">${i + 1}</span>${avatar(x.n)}<b class="grp-n">${esc(dn(x.k, x.n))}${x.k === id ? ` <span class="badge">${esc(t('grp_you'))}</span>` : ''}</b><span class="grp-t">${esc(fmt(x.mins * 60000))}</span>${cheerBtn(x.k, x.n, 'b')}${plus(x.k, x.n)}${kick(x.k)}</li>${cvPick(x.k, x.n, 'b')}`;
     const zero = liveRows().filter(r => !all.some(x => x.k === r.id));   // đang học nhưng chưa có phút trên bảng tuần này: vẫn hiện, để không ai "biến mất" khỏi bảng
     const zrow = r => `<li class="grp-row ${r.id === id ? 'me' : ''}"><span class="grp-rank r0">–</span>${avatar(r.n)}<b class="grp-n">${esc(dn(r.id, r.n))}${r.id === id ? ` <span class="badge">${esc(t('grp_you'))}</span>` : ''}</b><span class="grp-st f">${esc(t('grp_live0'))}</span>${kick(r.id)}</li>`;
     const here = new Set([...all.map(x => x.k), ...zero.map(r => r.id)]), me0 = me();
@@ -372,6 +472,7 @@ Object.assign(I18N.vi, {
         <button type="button" class="btn secondary sm" data-act="grpRefresh" ${busy ? 'disabled' : ''}>${ic('reset', 'sm')} ${esc(t('grp_refresh'))}</button></div>
       ${errHTML()}
       <div class="grp-cols"><div>${liveCols()}</div><div>${boardHTML()}</div></div>
+      ${cvOpt()}
       <details class="grp-opts mt"><summary class="small muted">${esc(m.n)} · ${esc(t('grp_save_nick'))}</summary><div class="mt-s">${nickForm(true, m.n)}</div></details>
       <div class="mt-s grp-leave">${leaving ? `<div class="grp-moon">${moonBeg()}<div class="grp-moon-t"><b>${esc(t('grp_leave_moon'))}</b><p class="small muted">${esc(t('grp_leave_ask'))}</p><div class="row grp-moon-b"><button type="button" class="btn primary sm" data-act="grpLeaveNo">${esc(t('grp_stay'))}</button><button type="button" class="btn ghost sm" data-act="grpLeaveYes">${esc(t('grp_leave_yes'))}</button></div></div></div>` : `<button type="button" class="btn ghost sm" data-act="grpLeave">${esc(t('grp_leave'))}</button>`}</div>`;
   }
@@ -398,7 +499,8 @@ Object.assign(I18N.vi, {
     if (!state.user || !on()) { el.innerHTML = ''; return; }
     if (!me()) { el.innerHTML = `<button type="button" class="grp-strip-join" data-act="grpGo">${ic('users', 'sm')} ${esc(t('grp_strip_join'))}</button>`; return; }
     const rows = liveRows(), rk = rankOf(), cl = climb();
-    el.innerHTML = `<div class="grp-strip"><div class="grp-strip-l"><span class="grp-avs">${rows.slice(0, 5).map(r => avatar(r.n)).join('')}</span><span class="small">${esc(rows.length ? t('grp_strip_n', { n:rows.length }) : known() ? t('grp_strip_0') : t('loading'))}</span></div>
+    const hl = cvOff() ? 0 : held().length, hc = hl ? `<span class="grp-cv-held" title="${esc(t('grp_cv_held', { k:hl }))}" aria-label="${esc(t('grp_cv_held', { k:hl }))}">💌 ${hl}</span>` : '';
+    el.innerHTML = `<div class="grp-strip"><div class="grp-strip-l"><span class="grp-avs">${rows.slice(0, 5).map(r => avatar(r.n)).join('')}</span><span class="small">${esc(rows.length ? t('grp_strip_n', { n:rows.length }) : known() ? t('grp_strip_0') : t('loading'))}</span>${hc}</div>
       <button type="button" class="grp-strip-r small" data-act="grpGo" title="${esc(gapText(cl))}">${rk ? `<b>${esc(t('grp_rank', { r:rk.r }))}</b> · ${esc(fmt(rk.mins * 60000))}${trendHTML(cl)}` : esc(known() ? t('grp_rank_none') : '')}</button></div>`;
   }
   function renderHome(){             // thẻ ở trang Tổng quan: ai đang học (khách chưa là Người đồng hành chỉ thấy lời mời)
@@ -416,7 +518,7 @@ Object.assign(I18N.vi, {
   function liveCols(){
     const rows = liveRows(), id = state.user.uid, now = Date.now();
     return `<h3 class="grp-h">${esc(t('grp_now'))} <span class="badge">${rows.length}</span></h3>` + (rows.length
-      ? `<ul class="grp-list">${rows.map(r => `<li class="grp-row ${r.id === id ? 'me' : ''}">${avatar(r.n)}<b class="grp-n">${esc(dn(r.id, r.n))}${r.id === id ? ` <span class="badge">${esc(t('grp_you'))}</span>` : ''}</b><span class="grp-st ${r.k}">${esc(t(r.k === 'b' ? 'grp_break' : 'grp_focus'))}</span><span class="grp-t" data-s="${r.s}">${esc(fmt(now - r.s))}</span>${cheerBtn(r.id, r.n)}${kick(r.id)}</li>`).join('')}</ul><p class="small faint mt-s">${esc(t('grp_live_note'))}</p>` : `<p class="muted small">${esc(t(known() ? 'grp_none' : 'loading'))}</p>`);
+      ? `<ul class="grp-list">${rows.map(r => `<li class="grp-row ${r.id === id ? 'me' : ''}">${avatar(r.n)}<b class="grp-n">${esc(dn(r.id, r.n))}${r.id === id ? ` <span class="badge">${esc(t('grp_you'))}</span>` : ''}</b><span class="grp-st ${r.k}">${esc(t(r.k === 'b' ? 'grp_break' : 'grp_focus'))}</span><span class="grp-t" data-s="${r.s}">${esc(fmt(now - r.s))}</span>${cheerBtn(r.id, r.n, 'l')}${kick(r.id)}</li>${cvPick(r.id, r.n, 'l')}`).join('')}</ul><p class="small faint mt-s">${esc(t('grp_live_note'))}</p>` : `<p class="muted small">${esc(t(known() ? 'grp_none' : 'loading'))}</p>`);
   }
 
   /* ---------- mở / đóng ---------- */
@@ -463,6 +565,29 @@ Object.assign(I18N.vi, {
   };
   Object.assign(ACTIONS, {
     grpRefresh: () => load(true),
+    grpCvPick: el => { const k = el.dataset.id + '|' + el.dataset.at; pick = pick === k ? '' : k; renderBox(); if (pick) { const b = document.querySelector('.grp-cv-pick .grp-cv-o'); if (b) b.focus({ preventScroll:true }); } },
+    grpCvSend: async el => {
+      const to = el.dataset.id, e = +el.dataset.e, id = state.user && state.user.uid, n = nameOfId(to);
+      if (!id || !to || to === id || !me() || !on() || !Number.isInteger(e) || e < 0 || e >= CV.length) return;
+      pick = '';
+      if (qt[to]) { renderBox(); return toast(t('grp_cv_off_tip', { n })); }
+      if (!isLive(to)) return renderBox();
+      const left = cvLeft(to); if (left > 0) { renderBox(); return toast(t('grp_cv_wait', { n, m:Math.max(1, Math.round(left / 60000)) })); }
+      const h = cvMine(); if (!(to in h) && Object.keys(h).length >= CV_MAX) { renderBox(); return toast(t('grp_cheer_max', { n:CV_MAX })); }
+      const r = el.getBoundingClientRect(); if (!motionOff()) clapFx(r.left + 18, r.top + r.height / 2, 4, false);
+      const prevCv = cvs[id], addList = !myCheers().includes(to) && myCheers().length < CHEER_MAX;   // vẫn tính vào số 👏 tuần (mỗi người gửi tính một lần cho mỗi người nhận)
+      cvs[id] = { to, h:{ ...h, [to]:{ e, t:wrapMs(Date.now()) } } }; if (addList) cheers[id] = [...myCheers(), to]; renderBox();   // hiện ngay, lỗi thì trả lại
+      const o = { cv:{ [id]:{ to, h:{ [to]:{ e, t:TS() } } } } }; if (addList) o.cheers = { [id]:firebase.firestore.FieldValue.arrayUnion(to) };
+      try { await ref().set(o, { merge:true }); toast(t('grp_cv_sent', { n })); }
+      catch (err) { if (prevCv) cvs[id] = prevCv; else delete cvs[id]; if (addList) cheers[id] = myCheers().filter(x => x !== to); renderBox(); toast(t('grp_cheer_err')); }
+    },
+    grpCvMute: async () => {
+      const id = state.user && state.user.uid; if (!id || !me()) return; const off = !cvOff();
+      store.set('grp_cvoff_' + id, off ? 1 : 0); store.set('grp_qtw', ''); if (off) { store.set(heldKey(), []); qt[id] = true; } else delete qt[id];
+      renderBox(); toast(t(off ? 'grp_cv_off_t' : 'grp_cv_on_t'));
+      const tag = wk() + '|' + id;
+      if (!DEMO) ref().set({ qt:{ [id]: off ? true : DEL() } }, { merge:true }).then(() => { if (off && cvOff()) store.set('grp_qtw', tag); }).catch(() => {});   // chưa dán luật mới: người khác vẫn thấy nút, nhưng máy này vẫn không hiện lời cổ vũ
+    },
     grpCheer: async el => {
       const to = el.dataset.id, id = state.user && state.user.uid; if (!id || !to || to === id || !me() || !on() || myCheers().includes(to)) return;
       if (myCheers().length >= CHEER_MAX) return toast(t('grp_cheer_max', { n:CHEER_MAX }));
@@ -478,7 +603,7 @@ Object.assign(I18N.vi, {
     grpLeaveNo: () => { leaving = false; renderBox(); },
     grpLeaveYes: async () => {
       const id = state.user.uid; leaving = false; store.set(key(), null); store.set('grp_pend', 0); lastSent = ''; delete live[id]; delete board[id]; rosDrop(id); renderBox(); toast(t('grp_left_toast'));
-      try { await ref().update({ ['live.' + id]: DEL(), ['board.' + id]: DEL(), ['cheers.' + id]: DEL() }); } catch (e) { /* chưa có tài liệu / offline */ }
+      try { await ref().update({ ['live.' + id]: DEL(), ['board.' + id]: DEL(), ['cheers.' + id]: DEL(), ['cv.' + id]: DEL(), ['qt.' + id]: DEL() }); } catch (e) { /* chưa có tài liệu / offline */ }
     },
     grpKick: async el => { const id = el.dataset.id; if (!state.isAdmin || !id) return; delete live[id]; delete board[id]; rosDrop(id); renderBox(); try { await ref().update({ ['live.' + id]: DEL(), ['board.' + id]: DEL() }); } catch (e) { toast(t('grp_err')); } }
   });

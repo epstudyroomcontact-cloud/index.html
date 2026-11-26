@@ -116,6 +116,36 @@ service cloud.firestore {
           && m[uid].size() <= oc.get(uid, []).size() + 1
           && m[uid].hasAll(oc.get(uid, []))));
     }
+    // Lời nhắn cổ vũ: cv[uid] = { to:<người nhận của lần gửi này>, h:{ <người nhận>: { e:số thứ tự lời có sẵn 0-5, t:giờ máy chủ } } }.
+    // Không có chữ tự do (chỉ số 0-5). Chỉ ghi phần của chính mình, mỗi lần đổi đúng 1 người nhận (là 'to'); người nhận phải đang có trong live,
+    // không tự gửi cho mình, chưa tắt nhận (qt); cùng một người nhận cách nhau ít nhất 10 phút; tối đa 30 người nhận khác nhau / tuần. Xoá cả mục (rời nhóm) thì được.
+    function grpCvOk(uid, nw, old, ol) {
+      let m = nw.get('cv', {});
+      let oc = old == null ? {} : old.get('cv', {});
+      let q = nw.get('qt', {});
+      let mine = m.get(uid, {});
+      let wasH = oc.get(uid, {}).get('h', {});
+      return m.diff(oc).affectedKeys().hasOnly([uid])
+        && m.size() <= 1500
+        && (!(uid in m) || (uid in oc && m[uid] == oc[uid]) || (
+          mine.keys().hasOnly(['to', 'h'])
+          && mine.to is string && mine.to != uid
+          && mine.to in ol
+          && !(mine.to in q)
+          && mine.h is map && mine.h.size() <= 30
+          && mine.to in mine.h
+          && mine.h.diff(wasH).affectedKeys().hasOnly([mine.to])
+          && mine.h[mine.to].keys().hasOnly(['e', 't'])
+          && mine.h[mine.to].e is int && mine.h[mine.to].e >= 0 && mine.h[mine.to].e <= 5
+          && mine.h[mine.to].t == request.time
+          && (!(mine.to in wasH) || request.time > wasH[mine.to].t + duration.value(10, 'm'))));
+    }
+    // qt[uid] = true: người này tắt nhận lời cổ vũ. Chỉ bật / tắt của chính mình.
+    function grpQtOk(uid, nw, old) {
+      let q = nw.get('qt', {});
+      let oq = old == null ? {} : old.get('qt', {});
+      return q.diff(oq).affectedKeys().hasOnly([uid]) && q.size() <= 1500 && (!(uid in q) || q[uid] == true);
+    }
     function grpWriteOk() {
       let uid = request.auth.uid;
       let nw = request.resource.data;
@@ -123,12 +153,14 @@ service cloud.firestore {
       let board = nw.get('board', {});
       let ol = resource == null ? {} : resource.data.get('live', {});
       let ob = resource == null ? {} : resource.data.get('board', {});
-      return nw.keys().hasOnly(['live', 'board', 'cheers'])
+      return nw.keys().hasOnly(['live', 'board', 'cheers', 'cv', 'qt'])
         && live.diff(ol).affectedKeys().hasOnly([uid])
         && board.diff(ob).affectedKeys().hasOnly([uid])
         && live.size() <= 1500 && board.size() <= 1500
         && grpLiveOk(uid, live, ol) && grpBoardOk(uid, board, ob)
-        && grpCheerOk(uid, nw, resource == null ? null : resource.data, ol, ob);
+        && grpCheerOk(uid, nw, resource == null ? null : resource.data, ol, ob)
+        && grpCvOk(uid, nw, resource == null ? null : resource.data, ol)
+        && grpQtOk(uid, nw, resource == null ? null : resource.data);
     }
     // Sự kiện học chung theo mùa: settings/season = { id, on, s, e (ms), g, ... } do admin đặt.
     // season_event/<id>.c[uid] = { m:tổng phút người đó đã góp, t:giờ máy chủ lần ghi cuối, f:giờ máy chủ lần góp đầu }.
@@ -162,7 +194,7 @@ service cloud.firestore {
     match /settings/{id}         { allow read: if true; allow write: if isAdmin(); }
     match /weekly_schedules/{id} { allow read: if true; allow write: if isAdmin(); }
 
-    // Nhóm học trực tiếp: mỗi tuần (giờ Việt Nam) một tài liệu study_group/<năm>-W<tuần> = { live:{ uid:{...} }, board:{ uid:{...} } }.
+    // Nhóm học trực tiếp: mỗi tuần (giờ Việt Nam) một tài liệu study_group/<năm>-W<tuần> = { live:{ uid:{...} }, board:{ uid:{...} }, cheers, cv (lời nhắn cổ vũ), qt (tắt nhận cổ vũ) }.
     // Chỉ người có quyền (grpAccess) đọc được. Mỗi người chỉ ghi được khoá của chính mình trong live và board; admin xoá được mọi khoá.
     match /study_group/{wk} {
       allow read: if grpAccess();
