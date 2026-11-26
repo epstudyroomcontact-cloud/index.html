@@ -1363,6 +1363,29 @@ body:has(#tour-ask) .sofa{display:none}
 @media(max-width:640px){.fx-stats .g2.keep2{grid-template-columns:repeat(2,minmax(0,1fr))}.fx-stats .tile{padding:14px}}
 
 /* Tổng quan: chuỗi ngày + việc của hôm nay dưới đồng hồ */
+/* Sự kiện học chung theo mùa (Tổng quan + Phòng tập trung) */
+.sev{display:flex;flex-direction:column;gap:8px;text-align:left}
+.sev.card{border-color:rgba(var(--accent-rgb),.35);background:linear-gradient(135deg,var(--accent-soft),transparent 70%),var(--surface)}
+.sev-fx{width:100%;margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--surface2)}
+.sev-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sev-ic{display:grid;place-items:center;width:26px;height:26px;border-radius:8px;background:var(--accent);color:var(--on-accent)}
+.sev-k{font-size:.74rem;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;margin-right:auto}
+.sev-n{font-weight:800;font-size:1.15rem;line-height:1.25;overflow-wrap:anywhere}
+.sev-fx .sev-n{font-size:.98rem}
+.sev-bar{position:relative;height:12px;border-radius:99px;background:var(--line);overflow:hidden}
+.sev-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--accent-strong));transition:width .8s ease}
+.sev-bar b{position:absolute;top:2px;bottom:2px;width:2px;margin-left:-1px;border-radius:2px;background:var(--surface);opacity:.75}
+.sev-bar b.on{opacity:.35}
+.sev-s{font-size:.85rem;color:var(--ink2);font-variant-numeric:tabular-nums}
+.sev-s b{color:var(--ink);font-size:1rem}
+.sev-win{font-weight:700;font-size:.9rem;color:var(--accent-strong)}
+.sev-me{color:var(--ink2)}
+.sev-go{align-self:flex-start}
+.sev-done .sev-ic{background:var(--live)}
+.sev-end .sev-bar i{background:var(--ink3)}.sev-end.sev-done .sev-bar i{background:linear-gradient(90deg,var(--accent),var(--accent-strong))}
+.sev-cheer{animation:sevPop 1.2s ease 2}
+@keyframes sevPop{0%,100%{box-shadow:0 0 0 0 rgba(var(--accent-rgb),0)}40%{box-shadow:0 0 0 6px rgba(var(--accent-rgb),.35)}}
+@media(prefers-reduced-motion:reduce){.sev-cheer{animation:none}.sev-bar i{transition:none}}
 /* Đếm ngược ngày thi / mục tiêu lớn (Tổng quan + Phòng tập trung) */
 .ex-box{display:flex;align-items:center;gap:12px;width:100%;margin-top:14px;padding:10px 8px 10px 12px;border:1px solid var(--line);border-radius:14px;background:var(--surface2);text-align:left}
 .ex-box .ex-n{flex:none;min-width:48px;height:48px;padding:0 8px;display:grid;place-items:center;border-radius:12px;background:var(--accent);color:#fff;font-weight:800;font-size:1.35rem;line-height:1;font-variant-numeric:tabular-nums}
@@ -1399,3 +1422,6 @@ body:has(#tour-ask) .sofa{display:none}
 .grp-ch.pop{animation:chPop .7s ease-out 2}
 @keyframes chPop{0%,100%{transform:scale(1)}40%{transform:scale(1.5) rotate(-10deg)}70%{transform:scale(1.2) rotate(8deg)}}
 @media(prefers-reduced-motion:reduce){.clap-p,.grp-ch.pop{animation:none;display:none}}
+.sev-top{list-style:decimal;margin:4px 0 0;padding-left:22px;display:grid;gap:2px}
+.sev-top li span{display:inline-block;min-width:120px;color:var(--ink)}
+.sev-top li b{margin:0 6px;font-variant-numeric:tabular-nums}

@@ -6,7 +6,7 @@
 const A_TABS = [
   ['overview', 'chart', 'Tổng quan'], ['site', 'sliders', 'Giao diện & Menu'], ['schedule', 'calendar', 'Lịch live'], ['blog', 'pen', 'Bài viết'], ['music', 'volume', 'Nhạc'],
   ['products', 'bag', 'Sản phẩm'], ['gear', 'tag', 'Đồ mình dùng'], ['orders', 'box', 'Đơn hàng'], ['coupons', 'tag', 'Mã giảm giá'], ['trials', 'timer', 'Mã dùng thử'], ['content', 'info', 'Nội dung & FAQ'],
-  ['reviews', 'star', 'Đánh giá'], ['payments', 'credit', 'Thanh toán'], ['plan', 'heart', 'Gói Người đồng hành'], ['members', 'users', 'Thành viên']
+  ['reviews', 'star', 'Đánh giá'], ['payments', 'credit', 'Thanh toán'], ['plan', 'heart', 'Gói Người đồng hành'], ['season', 'star', 'Sự kiện học chung'], ['members', 'users', 'Thành viên']
 ];
 const A = html => { const b = $('admin-body'); if (b) b.innerHTML = html; };
 const fail = e => alert('Lỗi: ' + (e && e.message || e));
@@ -49,9 +49,9 @@ PAGES.admin = function(){
   page(`<div class="page-head"><div><h1>Trang quản trị</h1><p>Tuỳ chỉnh giao diện, nội dung, sản phẩm và đơn hàng của bạn.</p><p class="faint small">Phiên bản web: ${esc(BUILD)} · mã ${esc(ASSET_V)}</p><div id="ver-note"></div></div><button class="btn primary" data-act="startEdit">${ic('pen', 'sm')} Sửa chữ & ảnh trực tiếp trên trang</button></div>
     <nav class="a-tabs">${A_TABS.map(([k, icn, l]) => `<a href="#/admin/${k}" class="${tab === k ? 'on' : ''}">${ic(icn, 'sm')} ${esc(l)}${k === 'members' && state.compPending ? ` <span class="count">${state.compPending}</span>` : ''}</a>`).join('')}</nav><div id="admin-body"></div>`);
   checkNewVersion();
-  ({ overview:tabOverview, site:tabSite, schedule:tabSchedule, blog:tabBlog, music:tabMusic, products:tabProducts, gear:tabGear, orders:tabOrders, coupons:tabCoupons, trials:tabTrials, content:tabContent, reviews:tabReviews, payments:tabPayments, plan:tabPlan, members:tabMembers })[tab]();
+  ({ overview:tabOverview, site:tabSite, schedule:tabSchedule, blog:tabBlog, music:tabMusic, products:tabProducts, gear:tabGear, orders:tabOrders, coupons:tabCoupons, trials:tabTrials, content:tabContent, reviews:tabReviews, payments:tabPayments, plan:tabPlan, season:tabSeason, members:tabMembers })[tab]();
 };
-const reloadTab = () => { const f = ({ overview:tabOverview, site:tabSite, schedule:tabSchedule, blog:tabBlog, music:tabMusic, products:tabProducts, gear:tabGear, orders:tabOrders, coupons:tabCoupons, trials:tabTrials, content:tabContent, reviews:tabReviews, payments:tabPayments, plan:tabPlan, members:tabMembers })[route.args[0] || 'overview']; if (f) f(); };
+const reloadTab = () => { const f = ({ overview:tabOverview, site:tabSite, schedule:tabSchedule, blog:tabBlog, music:tabMusic, products:tabProducts, gear:tabGear, orders:tabOrders, coupons:tabCoupons, trials:tabTrials, content:tabContent, reviews:tabReviews, payments:tabPayments, plan:tabPlan, season:tabSeason, members:tabMembers })[route.args[0] || 'overview']; if (f) f(); };
 /* chỉ cần SỐ lượng thì đừng đọc cả tài liệu (hồ sơ người dùng khá nặng): dùng count() nếu bản Firebase có, không thì đọc tối đa 50 và ghi "50+" */
 const countDocs = async col => {
   if (DEMO) return { length:0, more:false };
@@ -74,7 +74,7 @@ function plain(v){
 }
 async function gatherSite(){
   const g = async id => { const d = await db.collection('settings').doc(id).get(); return d.exists ? d.data() : {}; };
-  const [br, ct, pay, mu, ge, su] = await Promise.all(['branding', 'content', 'payments', 'music', 'gear', 'supporters'].map(g));
+  const [br, ct, pay, mu, ge, su, se] = await Promise.all(['branding', 'content', 'payments', 'music', 'gear', 'supporters', 'season'].map(g));
   const [ps, pr, rv] = await Promise.all([db.collection('posts').where('published', '==', true).get(), db.collection('products').where('active', '==', true).get(), db.collection('reviews').where('approved', '==', true).get()]);
   const postsFull = ps.docs.map(d => ({ id:d.id, ...d.data() }));
   const idx = postsFull.map(p => ({ id:p.id, slug:p.slug || p.id, title:p.title || {}, excerpt:p.excerpt || {}, cover:p.cover || '', category:p.category || '', tags:p.tags || [], pinned:!!p.pinned, publishAt:p.publishAt ? tsMs(p.publishAt) : null, createdAt:tsMs(p.createdAt), published:true,
@@ -82,7 +82,7 @@ async function gatherSite(){
   const products_ = pr.docs.map(d => { const x = d.data(); delete x.updatedAt; return { id:d.id, ...x, createdAt:tsMs(x.createdAt) }; });
   const reviews_ = rv.docs.map(d => ({ id:d.id, ...d.data() })).sort((a, b) => tsMs(b.createdAt) - tsMs(a.createdAt)).slice(0, 30).map(r => ({ id:r.id, name:r.name || '', rating:r.rating || 5, text:r.text || '', createdAt:tsMs(r.createdAt) }));
   const weeks = {}; await Promise.all(SITE_WEEKS.map(async off => { const key = weekKeyFor(off); const d = await db.collection('weekly_schedules').doc(key).get(); weeks[key] = d.exists ? (d.data().days || []) : null; }));
-  const site = plain({ v:SITE_V, updatedAt:Date.now(), branding:br, content:ct, payments:pay, music:mu, gear:ge, supporters:su, posts:idx, products:products_, reviews:reviews_, weeks });
+  const site = plain({ v:SITE_V, updatedAt:Date.now(), branding:br, content:ct, payments:pay, music:mu, gear:ge, supporters:su, posts:idx, products:products_, reviews:reviews_, weeks, season:se && se.id ? se : null });
   return { site, postsFull };
 }
 let pubTimer = null, pubBusy = false;
@@ -732,6 +732,65 @@ function tabPlan(){
       <div class="row mt-s"><button class="btn primary" data-act="saveGroup">Lưu</button></div>
       <p class="hint">Nhóm chỉ đọc 1 tài liệu mỗi lần làm mới (60 giây) nên rất nhẹ cho gói miễn phí; nếu hôm nào hết hạn mức miễn phí của Firebase thì nhóm tạm nghỉ đến hôm sau, bạn không bị tính tiền. Tắt ô này bất cứ lúc nào để ẩn nhóm.</p>`)}`);
 }
+
+/* ---------------- Sự kiện học chung theo mùa (xem pages.js → SEV) ----------------
+   settings/season = { id, on, n:{tên 8 ngôn ngữ}, s, e (ms), sd, ed ('YYYY-MM-DD' giờ Việt Nam), g:mục tiêu phút, t }.
+   Phút góp nằm ở season_event/<id>.c = { uid:{ m, t, f } }. Admin xem tổng, top 10 và xoá được phần góp của một người (khi nghi gian lận). */
+let sevNewMode = false;
+async function tabSeason(){
+  const e = season && season.id ? season : null, fresh = sevNewMode || !e, ph = e ? sevPhase(e) : '';
+  const z = DT.now().setZone(SEV_TZ), today = z.toISODate();
+  const f = fresh ? { vi:'Thử thách 7 ngày', en:'7-day challenge', sd:today, ed:z.plus({ days:6 }).toISODate(), g:10000 } : { vi:(e.n || {}).vi || '', en:(e.n || {}).en || '', sd:e.sd, ed:e.ed, g:e.g };
+  const stTxt = !e ? 'Chưa có sự kiện nào.' : e.on === false ? 'Đang ẩn (khách không thấy).' : ph === 'soon' ? 'Sắp diễn ra (khách thấy trước 7 ngày).' : ph === 'live' ? 'Đang diễn ra.' : 'Đã kết thúc (khách còn thấy kết quả 7 ngày).';
+  A(`${e ? aCard('Sự kiện hiện tại', `<p><b>${esc(L(e.n) || '(không tên)')}</b> · ${esc(DT.fromISO(e.sd).toFormat('dd/MM/yyyy'))} đến ${esc(DT.fromISO(e.ed).toFormat('dd/MM/yyyy'))} · mục tiêu ${sevNum(e.g)} phút</p>
+      <p class="small muted">${esc(stTxt)} Mã sự kiện: <code>${esc(e.id)}</code></p><div id="sev-stats" class="mt-s small muted">${ph === 'soon' ? 'Chưa bắt đầu nên chưa có phút góp.' : 'Đang tải số phút…'}</div>
+      <div class="row mt-s">${ph !== 'end' && e.on !== false ? '<button class="btn secondary" data-act="sevEndNow">Kết thúc ngay</button>' : ''}<button class="btn secondary" data-act="sevToggle">${e.on === false ? 'Hiện lại cho khách' : 'Ẩn khỏi trang'}</button>${!sevNewMode ? '<button class="btn ghost" data-act="sevNew">Tạo sự kiện mới</button>' : ''}</div>`) : ''}
+    ${aCard(fresh ? 'Tạo sự kiện mới' : 'Sửa sự kiện hiện tại', `<p class="hint" style="margin-bottom:10px">Cả cộng đồng cùng góp số phút tập trung vào một thanh tiến độ chung, hiện ở <b>Tổng quan</b> (dưới khối chào) và <b>Phòng tập trung</b> (dưới bộ đếm). Chỉ phút của <b>phiên tập trung chạy hết giờ</b> trong thời gian sự kiện được tính, và chỉ người đã đăng nhập mới góp được. Có mốc chúc mừng ở 25%, 50%, 75% và 100%. Ngày tính theo giờ Việt Nam, gồm cả ngày kết thúc. Mỗi lúc chỉ có một sự kiện.</p>
+      ${fresh && e ? '<p class="small" style="color:var(--danger)">Tạo sự kiện mới sẽ thay sự kiện hiện tại (phút đã góp của sự kiện cũ vẫn còn trong Firestore nhưng không hiện nữa).</p>' : ''}
+      <div class="f2">${fld('Tên sự kiện (Tiếng Việt)', 'sv-vi', f.vi, 'maxlength="60"', 'Viết ở ô nào cũng được, các ngôn ngữ khác tự dịch khi bấm Lưu')}${fld('Event name (English)', 'sv-en', f.en, 'maxlength="60"')}</div>
+      <div class="f3">${fld('Ngày bắt đầu', 'sv-sd', f.sd, 'type="date"')}${fld('Ngày kết thúc', 'sv-ed', f.ed, 'type="date"', 'Tối đa 92 ngày')}${fld('Mục tiêu tổng (phút)', 'sv-g', f.g, 'type="number" min="10" max="10000000" inputmode="numeric"', 'Gợi ý: 10.000 phút ≈ 167 giờ, hợp cho khoảng 50 người học đều trong 7 ngày')}</div>
+      <div class="row mt-s"><button class="btn primary" data-act="sevSave" data-new="${fresh ? 1 : 0}">${fresh ? 'Tạo sự kiện' : 'Lưu thay đổi'}</button>${sevNewMode ? '<button class="btn ghost" data-act="sevCancel">Huỷ</button>' : ''}</div>
+      <p class="hint">Lần đầu dùng tính năng này cần <b>dán lại firestore.rules</b> (SETUP.md, PHẦN 2.3). Chưa dán thì khách vẫn thấy thanh nhưng phút góp bị từ chối.</p>`)}`);
+  if (!e || ph === 'soon' || DEMO) { if (DEMO && e && ph !== 'soon') { const s = $('sev-stats'); if (s) s.textContent = 'Chế độ xem thử: không đọc Firestore.'; } return; }
+  try {
+    const d = await withTimeout(db.collection('season_event').doc(e.id).get()), c = (d.exists && d.data().c) || {};
+    const rows = Object.entries(c).map(([u, v]) => [u, Math.max(0, +(v && v.m) || 0)]).filter(r => r[1] > 0).sort((a, b) => b[1] - a[1]);
+    const tot = rows.reduce((a, r) => a + r[1], 0), top = rows.slice(0, 10), names = {};
+    await Promise.all(top.map(([u]) => db.collection('users').doc(u).get().then(x => { if (x.exists) names[u] = x.data().displayName || ''; }).catch(() => {})));
+    const s = $('sev-stats'); if (!s) return;
+    s.innerHTML = `<b style="color:var(--ink)">${sevNum(tot)} / ${sevNum(e.g)} phút (${Math.floor(tot / e.g * 100)}%)</b> · ${sevNum(rows.length)} người đã góp
+      ${top.length ? `<div class="label mt-s">Góp nhiều nhất</div><ol class="sev-top">${top.map(([u, m]) => `<li><span>${esc(names[u] || u.slice(0, 8) + '…')}</span><b>${sevNum(m)} phút</b><button class="btn ghost icon sm" data-act="sevDrop" data-u="${esc(u)}" data-n="${esc(names[u] || u.slice(0, 8))}" title="Xoá phần góp của người này (khi nghi gian lận)" aria-label="Xoá phần góp">${ic('trash', 'sm')}</button></li>`).join('')}</ol>` : ''}`;
+    store.set('sev_c', { id:e.id, tot, n:rows.length, at:Date.now(), mine:state.user && c[state.user.uid] ? { [state.user.uid]:+c[state.user.uid].m || 0 } : {}, u:state.user ? state.user.uid : '' });
+  } catch (x) { const s = $('sev-stats'); if (s) s.textContent = 'Không tải được số phút: ' + (x.code || x.message || x); }
+}
+const sevSaveCfg = async v => { if (!DEMO) await db.collection('settings').doc('season').set(v); season = v; store.set('sev_c', null); };
+Object.assign(ACTIONS, {
+  sevNew: () => { sevNewMode = true; tabSeason(); },
+  sevCancel: () => { sevNewMode = false; tabSeason(); },
+  sevSave: el => withTranslate(el, async () => {
+    const sd = val('sv-sd'), ed = val('sv-ed'), g = Math.round(+val('sv-g') || 0), vi = val('sv-vi').slice(0, 60), en = val('sv-en').slice(0, 60);
+    const S = DT.fromISO(sd, { zone:SEV_TZ }), E = DT.fromISO(ed, { zone:SEV_TZ });
+    if (!vi && !en) return alert('Bạn nhập tên sự kiện nhé.');
+    if (!S.isValid || !E.isValid || ed < sd) return alert('Ngày kết thúc phải bằng hoặc sau ngày bắt đầu.');
+    if (E.diff(S, 'days').days > 92) return alert('Sự kiện dài tối đa 92 ngày.');
+    if (!(g >= 10 && g <= 10000000)) return alert('Mục tiêu từ 10 đến 10.000.000 phút.');
+    const isNew = el.dataset.new === '1' || !season || !season.id, old = isNew ? {} : (season.n || {});
+    if (isNew && E.endOf('day').toMillis() < Date.now()) return alert('Ngày kết thúc đã qua. Chọn ngày từ hôm nay trở đi.');
+    const n = await TR.fill(old, { vi, en });
+    const id = isNew ? 's' + sd.replace(/-/g, '') + '-' + Math.random().toString(36).slice(2, 6) : season.id;
+    await sevSaveCfg({ id, on:isNew ? true : season.on !== false, n, s:S.startOf('day').toMillis(), e:E.endOf('day').toMillis(), sd, ed, g, t:Date.now() });
+    sevNewMode = false; ok(trMsg(isNew ? 'Đã tạo sự kiện.' : 'Đã lưu sự kiện.')); tabSeason();
+  }).catch(fail),
+  sevEndNow: async () => {
+    const e = season; if (!e || !confirm('Kết thúc sự kiện ngay bây giờ? Khách sẽ thấy kết quả cuối trong 7 ngày, phiên tập trung sau lúc này không được cộng nữa.')) return;
+    try { const now = Date.now(); await sevSaveCfg({ ...e, e:Math.max(e.s, now), ed:DT.fromMillis(Math.max(e.s, now)).setZone(SEV_TZ).toISODate(), t:now }); ok('Đã kết thúc sự kiện'); tabSeason(); } catch (x) { fail(x); }
+  },
+  sevToggle: async () => { const e = season; if (!e) return; try { await sevSaveCfg({ ...e, on:e.on === false, t:Date.now() }); ok(e.on === false ? 'Đã hiện lại sự kiện' : 'Đã ẩn sự kiện'); tabSeason(); } catch (x) { fail(x); } },
+  sevDrop: async el => {
+    const e = season, u = el.dataset.u; if (!e || !u || !confirm(`Xoá toàn bộ phút ${el.dataset.n || ''} đã góp vào sự kiện này? Không hoàn tác được.`)) return;
+    try { if (!DEMO) await db.collection('season_event').doc(e.id).update({ ['c.' + u]:DEL() }); ok('Đã xoá phần góp'); tabSeason(); } catch (x) { fail(x); }
+  }
+});
 
 /* ---------------- Thành viên ---------------- */
 /* ---- Mục cảm ơn: settings/supporters { items:[{ id, name, show, since, until }] } — công khai, chỉ hiện tên ---- */

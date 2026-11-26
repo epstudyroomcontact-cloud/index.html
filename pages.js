@@ -164,6 +164,129 @@ FORMS.exam = () => {
   };
   Object.keys(G).forEach(l => { I18N[l] = I18N[l] || {}; Object.keys(G[l]).forEach(k => { if (I18N[l][k] === undefined) I18N[l][k] = G[l][k]; }); });
 })();
+/* =========================================================
+   SỰ KIỆN HỌC CHUNG THEO MÙA (ví dụ "Thử thách 7 ngày")
+   Admin tạo sự kiện (admin.js → tab Sự kiện): settings/season = { id, on, n:{tên theo ngôn ngữ}, s, e (ms, giờ Việt Nam), g:mục tiêu phút, sd, ed }.
+   Phút góp: season_event/<id> = { c:{ uid:{ m:tổng phút đã góp, t:giờ máy chủ lần ghi cuối, f:giờ máy chủ lần góp đầu } } }.
+   - Chỉ cộng phút của phiên tập trung chạy hết giờ (addFocus) trong thời gian sự kiện, mỗi phiên xong = 1 lần ghi (cộng dồn bằng increment).
+   - firestore.rules chặn khai khống: mỗi người chỉ sửa mục của mình, không cộng nhanh hơn thời gian thật (giống bảng nhóm học).
+   - Tổng = cộng m của mọi người. Đọc 1 tài liệu, nhớ trong máy 5 phút (sự kiện đang chạy) hoặc 6 giờ (đã kết thúc), nên rất nhẹ cho gói Spark.
+   - Khách chưa đăng nhập vẫn thấy thanh tiến độ, đăng nhập mới góp được.
+   ========================================================= */
+const SEV_MS = [25, 50, 75, 100], SEV_TZ = 'Asia/Ho_Chi_Minh', SEV_SHOW = 7 * 864e5;   // mốc chúc mừng (%); hiện trước 7 ngày khi sắp diễn ra và 7 ngày sau khi kết thúc
+const SEV = { busy:false, loading:false, failT:0 };
+const sevCur = () => { const e = season; return e && e.on !== false && e.id && +e.s && +e.e && +e.g > 0 ? e : null; };
+const sevPhase = (e, now = Date.now()) => now < e.s ? 'soon' : now <= e.e ? 'live' : 'end';
+const sevVisible = e => !!e && Date.now() >= e.s - SEV_SHOW && Date.now() <= e.e + SEV_SHOW;
+const sevNum = n => { try { return new Intl.NumberFormat(state.lang).format(Math.round(n)); } catch (x) { return String(Math.round(n)); } };
+const sevCache = () => { const c = store.get('sev_c', null), e = sevCur(); return c && e && c.id === e.id ? c : null; };          // { id, tot, n, at, mine:{ uid:phút } }
+const sevPendKey = () => state.user && sevCur() ? 'sev_p_' + state.user.uid + '_' + sevCur().id : '';
+const sevPend = () => { const k = sevPendKey(); return k ? Math.max(0, Math.round(+store.get(k, 0) || 0)) : 0; };
+const sevMine = () => { const c = sevCache(); return state.user && c && c.mine ? Math.max(0, +c.mine[state.user.uid] || 0) : 0; };
+const sevHas = () => { const c = sevCache(); return !!(state.user && c && c.mine && state.user.uid in c.mine); };
+function sevLoad(force){
+  const e = sevCur(); if (!e || !sevVisible(e) || sevPhase(e) === 'soon' || SEV.loading) return;
+  if (DEMO) { if (!sevCache()) store.set('sev_c', { id:e.id, tot:sevPhase(e) === 'end' ? 10840 : 6230, n:sevPhase(e) === 'end' ? 151 : 87, at:Date.now(), mine:{} }); return; }
+  if (CONFIG_MISSING) return;
+  const c = sevCache(), ttl = sevPhase(e) === 'live' ? 5 * 60e3 : 6 * 3600e3;
+  if (!force && c && c.u === (state.user ? state.user.uid : '') && Date.now() - c.at < ttl) { if (sevPend()) sevFlush(); return; }
+  if (!force && SEV.failT && Date.now() - SEV.failT < 5 * 60e3) return;                 // vừa lỗi: nghỉ 5 phút
+  SEV.loading = true;
+  db.collection('season_event').doc(e.id).get().then(d => {
+    const m = (d.exists && d.data().c) || {}, mine = {}; let tot = 0, n = 0;
+    Object.keys(m).forEach(u => { const v = Math.max(0, +(m[u] && m[u].m) || 0); tot += v; if (v > 0) n++; });
+    if (state.user && state.user.uid in m) mine[state.user.uid] = Math.max(0, +m[state.user.uid].m || 0);
+    store.set('sev_c', { id:e.id, tot, n, at:Date.now(), mine, u:state.user ? state.user.uid : '' }); SEV.failT = 0;
+    sevPaint(); if (sevPend()) sevFlush();
+  }).catch(x => { console.warn('season', x.code || x); SEV.failT = Date.now(); }).finally(() => { SEV.loading = false; });
+}
+/* Phiên tập trung xong (addFocus): nếu đang trong thời gian sự kiện thì cộng vào phần "chờ gửi" rồi gửi. Phần chờ gửi giữ trong máy nếu mạng lỗi. */
+function sevCredit(min){
+  const e = sevCur(), now = Date.now(); min = Math.round(+min || 0);
+  if (!e || !state.user || min <= 0 || now < e.s || now > e.e) return;
+  const k = sevPendKey(); store.set(k, Math.min(180, sevPend() + min));             // tối đa 180 phút chờ gửi (luật cũng chỉ cho cộng tối đa 180 phút mỗi lần)
+  sevFlush();
+}
+async function sevFlush(){
+  const e = sevCur(), k = sevPendKey(), p = sevPend(); if (!e || !k || !p || SEV.busy) return;
+  if (Date.now() > e.e + 50 * 60e3) { store.set(k, 0); return; }   // quá giờ nhận phút (luật cho thêm 1 giờ sau khi kết thúc)
+  SEV.busy = true; const uid = state.user.uid;
+  const done = () => {                                                             // cập nhật số trong máy, không cần đọc lại
+    store.set(k, Math.max(0, sevPend() - p));
+    const c = sevCache() || { id:e.id, tot:0, n:0, at:0, mine:{} }; const was = +((c.mine || {})[uid]) || 0;
+    c.mine = { ...(c.mine || {}), [uid]:was + p }; c.tot = (+c.tot || 0) + p; if (!was) c.n = (+c.n || 0) + 1; store.set('sev_c', c);
+    toast(t('sev_added', { n:p }), 2600);
+    sevPaint();
+  };
+  if (DEMO) { done(); SEV.busy = false; return; }
+  let withF = !sevHas();
+  for (let i = 0; i < 2; i++) {
+    try {
+      const v = { m:firebase.firestore.FieldValue.increment(p), t:TS() }; if (withF) v.f = TS();
+      await db.collection('season_event').doc(e.id).set({ c:{ [uid]:v } }, { merge:true });
+      done(); break;
+    } catch (x) {
+      if (x && x.code === 'permission-denied' && i === 0) { withF = !withF; continue; }      // máy này đoán sai "đã góp lần nào chưa" → thử lại theo cách kia
+      console.warn('season credit', x && (x.code || x));                                   // vẫn lỗi: giữ phần chờ gửi, lần phiên xong sau / lần tải sau gửi lại
+      break;
+    }
+  }
+  SEV.busy = false;
+}
+function sevBar(pct){
+  return `<div class="sev-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.min(100, Math.round(pct))}"><i style="width:${Math.min(100, pct).toFixed(1)}%"></i>${SEV_MS.slice(0, -1).map(m => `<b class="${pct >= m ? 'on' : ''}" style="left:${m}%"></b>`).join('')}</div>`;
+}
+function sevBox(where){
+  const e = sevCur(); if (!e || !sevVisible(e)) return '';
+  const ph = sevPhase(e), c = sevCache(), tot = c ? +c.tot || 0 : 0, pct = tot / e.g * 100, name = L(e.n) || t('sev_title');
+  const day = d => DT.fromISO(d).setLocale(state.lang).toLocaleString({ month:'short', day:'numeric' });
+  const span = `${day(e.sd)} – ${day(e.ed)}`, z = DT.now().setZone(SEV_TZ).startOf('day');
+  const left = Math.max(0, Math.round(DT.fromISO(e.ed, { zone:SEV_TZ }).startOf('day').diff(z, 'days').days));
+  const badge = ph === 'soon' ? t('sev_soon', { n:Math.max(1, Math.round(DT.fromISO(e.sd, { zone:SEV_TZ }).diff(z, 'days').days)) }) : ph === 'live' ? (left > 0 ? t('sev_left', { n:left + 1 }) : t('sev_lastday')) : t('sev_ended');
+  const mine = sevMine() + sevPend(), small = where !== 'home';
+  let me = '';
+  if (ph === 'soon') me = t('sev_soon_note');
+  else if (!state.user) me = ph === 'live' ? `<a class="link" href="#/account">${esc(t('sev_signin'))}</a>` : '';
+  else if (ph === 'live') me = mine ? t('sev_mine', { n:sevNum(mine) }) : t('sev_how');
+  else me = mine ? t('sev_thanks', { n:sevNum(mine) }) : '';
+  const meHtml = me ? (me.startsWith('<a') ? me : esc(me)) : '';
+  const nums = ph === 'soon' ? esc(t('sev_goal', { g:sevNum(e.g) }))
+    : c ? `<b>${sevNum(tot)}</b> / ${sevNum(e.g)} ${esc(t('min'))} · ${Math.floor(pct)}%${c.n ? ` · ${esc(t('sev_people', { n:sevNum(c.n) }))}` : ''}` : esc(t('loading'));
+  const done = ph !== 'soon' && pct >= 100;
+  return `<section class="sev sev-${where} sev-${ph}${done ? ' sev-done' : ''}${small ? '' : ' card pad mt'}" data-sev="${where}" aria-label="${esc(t('sev_title'))}">
+    <div class="sev-h"><span class="sev-ic">${ic(done ? 'check' : 'star', 'sm')}</span><span class="sev-k">${esc(t('sev_title'))}</span><span class="badge ${ph === 'live' ? 'live' : ''}">${esc(badge)}</span></div>
+    <div class="sev-n">${esc(name)}</div>
+    ${ph === 'soon' ? '' : sevBar(pct)}
+    <div class="sev-s">${nums}${small ? '' : ` · <span class="faint">${esc(span)}</span>`}</div>
+    ${done && ph === 'live' ? `<div class="sev-win">${esc(t('sev_reached'))}</div>` : ph === 'end' && c ? `<div class="sev-win">${esc(t(done ? 'sev_end_ok' : 'sev_end_no', { p:Math.floor(pct) }))}</div>` : ''}
+    ${meHtml ? `<div class="sev-me small">${meHtml}</div>` : ''}
+    ${where === 'home' && ph === 'live' ? `<a class="btn primary sm sev-go" href="#/focus">${ic('timer', 'sm')} ${esc(t('btn_start_focus'))}</a>` : ''}</section>`;
+}
+/* Vẽ lại các khung sự kiện tại chỗ (không vẽ lại cả trang, giữ nguyên đồng hồ / vị trí cuộn) và chúc mừng khi cả cộng đồng vừa qua một mốc */
+function sevPaint(){
+  document.querySelectorAll('[data-sev]').forEach(el => { const h = sevBox(el.dataset.sev); if (h) el.outerHTML = h; else el.remove(); });
+  const e = sevCur(), c = sevCache(); if (!e || !c || sevPhase(e) === 'soon') return;
+  const pct = c.tot / e.g * 100, lv = SEV_MS.filter(m => pct >= m).length, key = 'sev_ms_' + e.id, seen = store.get(key, null);
+  if (seen === null) { store.set(key, lv); return; }                                   // lần đầu thấy sự kiện: không chúc mừng các mốc đã qua từ trước
+  if (lv > seen) {
+    store.set(key, lv); const m = SEV_MS[lv - 1];
+    toast(t(m >= 100 ? 'sev_ms_full' : 'sev_ms', { p:m }), 4200);
+    document.querySelectorAll('[data-sev]').forEach(el => { el.classList.add('sev-cheer'); setTimeout(() => el.classList.remove('sev-cheer'), 2400); });
+  }
+}
+(function(){
+  const G = {
+    en:{ sev_title:"Community challenge", sev_soon:"Starts in {n} days", sev_left:"{n} days left", sev_lastday:"Last day", sev_ended:"Ended", sev_goal:"Goal: {g} minutes together", sev_soon_note:"Every finished focus session during the event adds to the shared bar.", sev_signin:"Sign in to add your focus minutes", sev_mine:"You added {n} minutes. Thank you!", sev_how:"Finish a focus session to add your minutes to the bar.", sev_thanks:"You added {n} minutes. Thank you!", sev_people:"{n} people", sev_reached:"We reached the goal together! Keep going for extra.", sev_end_ok:"We did it: {p}% of the goal!", sev_end_no:"We reached {p}% together. See you at the next one!", sev_added:"+{n} minutes for the community challenge", sev_ms:"The community just passed {p}% of the goal!", sev_ms_full:"Goal reached! Everyone studied together and made it." },
+    vi:{ sev_title:"Sự kiện học chung", sev_soon:"Bắt đầu sau {n} ngày", sev_left:"còn {n} ngày", sev_lastday:"Ngày cuối", sev_ended:"Đã kết thúc", sev_goal:"Mục tiêu: cùng nhau học {g} phút", sev_soon_note:"Mỗi phiên tập trung xong trong thời gian sự kiện sẽ được cộng vào thanh chung.", sev_signin:"Đăng nhập để góp số phút của bạn", sev_mine:"Bạn đã góp {n} phút. Cảm ơn bạn!", sev_how:"Xong một phiên tập trung là số phút của bạn được cộng vào thanh.", sev_thanks:"Bạn đã góp {n} phút. Cảm ơn bạn!", sev_people:"{n} người", sev_reached:"Cả nhà đã cán đích! Học thêm để vượt mục tiêu nhé.", sev_end_ok:"Làm được rồi: đạt {p}% mục tiêu!", sev_end_no:"Cả nhà đã cùng đạt {p}%. Hẹn gặp ở sự kiện sau!", sev_added:"+{n} phút cho sự kiện học chung", sev_ms:"Cả cộng đồng vừa vượt {p}% mục tiêu!", sev_ms_full:"Đã đạt mục tiêu! Cả nhà cùng học và làm được rồi." },
+    ja:{ sev_title:"みんなで勉強イベント", sev_soon:"あと {n} 日で開始", sev_left:"残り {n} 日", sev_lastday:"最終日", sev_ended:"終了", sev_goal:"目標：みんなで {g} 分", sev_soon_note:"イベント期間中に終えた集中セッションが共有バーに加算されます。", sev_signin:"ログインして集中時間を加えよう", sev_mine:"あなたは {n} 分加えました。ありがとう！", sev_how:"集中セッションを終えると、その分数がバーに加算されます。", sev_thanks:"あなたは {n} 分加えました。ありがとう！", sev_people:"{n} 人", sev_reached:"みんなで目標達成！さらに上を目指そう。", sev_end_ok:"達成しました：目標の {p}%！", sev_end_no:"みんなで {p}% まで到達。次のイベントでまた会おう！", sev_added:"みんなで勉強イベントに +{n} 分", sev_ms:"コミュニティが目標の {p}% を突破しました！", sev_ms_full:"目標達成！みんなで一緒にやり遂げました。" },
+    ko:{ sev_title:"함께 공부 이벤트", sev_soon:"{n}일 후 시작", sev_left:"{n}일 남음", sev_lastday:"마지막 날", sev_ended:"종료", sev_goal:"목표: 함께 {g}분 공부하기", sev_soon_note:"이벤트 기간에 마친 집중 세션이 공동 진행 막대에 더해져요.", sev_signin:"로그인하고 집중 시간을 보태 주세요", sev_mine:"{n}분을 보탰어요. 고마워요!", sev_how:"집중 세션을 마치면 그 시간이 막대에 더해져요.", sev_thanks:"{n}분을 보탰어요. 고마워요!", sev_people:"{n}명", sev_reached:"모두 함께 목표를 달성했어요! 더 넘어 봐요.", sev_end_ok:"해냈어요: 목표의 {p}%!", sev_end_no:"함께 {p}%까지 왔어요. 다음 이벤트에서 만나요!", sev_added:"함께 공부 이벤트에 +{n}분", sev_ms:"커뮤니티가 목표의 {p}%를 넘었어요!", sev_ms_full:"목표 달성! 모두 함께 해냈어요." },
+    zh:{ sev_title:"一起学习活动", sev_soon:"{n} 天后开始", sev_left:"还剩 {n} 天", sev_lastday:"最后一天", sev_ended:"已结束", sev_goal:"目标：大家一起学习 {g} 分钟", sev_soon_note:"活动期间每完成一次专注，时间都会加入共同进度条。", sev_signin:"登录后即可贡献你的专注分钟", sev_mine:"你已贡献 {n} 分钟，谢谢你！", sev_how:"完成一次专注，你的分钟数就会加入进度条。", sev_thanks:"你已贡献 {n} 分钟，谢谢你！", sev_people:"{n} 人", sev_reached:"大家一起达成目标啦！继续超越吧。", sev_end_ok:"我们做到了：完成目标的 {p}%！", sev_end_no:"大家一起完成了 {p}%，下次活动见！", sev_added:"为一起学习活动 +{n} 分钟", sev_ms:"社区刚刚突破目标的 {p}%！", sev_ms_full:"目标达成！大家一起做到了。" },
+    fr:{ sev_title:"Défi d'étude collectif", sev_soon:"Commence dans {n} jours", sev_left:"encore {n} jours", sev_lastday:"Dernier jour", sev_ended:"Terminé", sev_goal:"Objectif : {g} minutes ensemble", sev_soon_note:"Chaque session de concentration terminée pendant l'événement s'ajoute à la barre commune.", sev_signin:"Connecte-toi pour ajouter tes minutes", sev_mine:"Tu as ajouté {n} minutes. Merci !", sev_how:"Termine une session de concentration pour ajouter tes minutes à la barre.", sev_thanks:"Tu as ajouté {n} minutes. Merci !", sev_people:"{n} personnes", sev_reached:"Objectif atteint ensemble ! On continue pour le dépasser.", sev_end_ok:"On l'a fait : {p} % de l'objectif !", sev_end_no:"Ensemble, on a atteint {p} %. Rendez-vous au prochain !", sev_added:"+{n} minutes pour le défi collectif", sev_ms:"La communauté vient de dépasser {p} % de l'objectif !", sev_ms_full:"Objectif atteint ! Tout le monde a réussi ensemble." },
+    es:{ sev_title:"Reto de estudio en comunidad", sev_soon:"Empieza en {n} días", sev_left:"quedan {n} días", sev_lastday:"Último día", sev_ended:"Terminado", sev_goal:"Meta: {g} minutos entre todos", sev_soon_note:"Cada sesión de enfoque terminada durante el evento se suma a la barra común.", sev_signin:"Inicia sesión para sumar tus minutos", sev_mine:"Sumaste {n} minutos. ¡Gracias!", sev_how:"Termina una sesión de enfoque para sumar tus minutos a la barra.", sev_thanks:"Sumaste {n} minutos. ¡Gracias!", sev_people:"{n} personas", sev_reached:"¡Llegamos a la meta entre todos! Sigamos para superarla.", sev_end_ok:"Lo logramos: ¡{p} % de la meta!", sev_end_no:"Entre todos llegamos al {p} %. ¡Nos vemos en el próximo!", sev_added:"+{n} minutos para el reto en comunidad", sev_ms:"¡La comunidad acaba de pasar el {p} % de la meta!", sev_ms_full:"¡Meta alcanzada! Lo logramos estudiando juntos." },
+    hi:{ sev_title:"साथ पढ़ाई इवेंट", sev_soon:"{n} दिन में शुरू", sev_left:"{n} दिन बाकी", sev_lastday:"आख़िरी दिन", sev_ended:"समाप्त", sev_goal:"लक्ष्य: मिलकर {g} मिनट पढ़ाई", sev_soon_note:"इवेंट के दौरान पूरा हुआ हर फ़ोकस सत्र साझा बार में जुड़ता है।", sev_signin:"अपने फ़ोकस मिनट जोड़ने के लिए साइन इन करें", sev_mine:"आपने {n} मिनट जोड़े। धन्यवाद!", sev_how:"एक फ़ोकस सत्र पूरा करें, आपके मिनट बार में जुड़ जाएँगे।", sev_thanks:"आपने {n} मिनट जोड़े। धन्यवाद!", sev_people:"{n} लोग", sev_reached:"हम सबने मिलकर लक्ष्य पा लिया! और आगे बढ़ें।", sev_end_ok:"हमने कर दिखाया: लक्ष्य का {p}%!", sev_end_no:"हम सब मिलकर {p}% तक पहुँचे। अगले इवेंट में मिलते हैं!", sev_added:"साथ पढ़ाई इवेंट में +{n} मिनट", sev_ms:"समुदाय ने अभी लक्ष्य का {p}% पार किया!", sev_ms_full:"लक्ष्य पूरा! सबने मिलकर कर दिखाया।" }
+  };
+  Object.keys(G).forEach(l => { I18N[l] = I18N[l] || {}; Object.keys(G[l]).forEach(k => { if (I18N[l][k] === undefined) I18N[l][k] = G[l][k]; }); });
+})();
 /* Số thành viên (số tài khoản đã đăng ký) hiện ở Tổng quan, kể cả khách chưa đăng nhập. Đọc 1 tài liệu công khai site_stats/members do admin cập nhật (admin.js → syncMemberCount). */
 let memCount = null, memCountP = null;
 const memCountPill = () => {
@@ -194,6 +317,7 @@ PAGES.home = function(){
       <div class="next-card" id="next-card"><span class="live-pill" style="padding:5px 8px"><i></i></span><div><small></small><b>—</b></div></div></section>`;
   if (branding.groupOn === true) html += `<section class="card pad grp grp-home mt" id="grp-home"><div class="card-h"><h2>${ic('users', 'sm')} ${esc(t('grp_title'))}</h2></div><p class="muted small">${esc(t('loading'))}</p></section>`;   // ai đang học: nằm ngay dưới khối chào
   if (html) html += trialNudge();
+  sevLoad(); html += sevBox('home');                    // sự kiện học chung theo mùa: ngay dưới khối chào
   S.hero = html; html = '';
   if (on('stats')) html += `<div class="grid g4 keep2 mt">
       <div class="card tile"><span class="t-ic">${ic('calendar')}</span><span class="t-l">${esc(t('stat_lives'))}</span><span class="t-v">${wk.length}</span></div>
@@ -470,6 +594,7 @@ function addFocus(min){
   else if (cur) store.set('todos', todos().map(x => x.id === cur.id ? { ...x, p:(x.p || 0) + 1 } : x));
   saveProfileSoon(); if (typeof renderTodos === 'function') renderTodos();
   grpCredit(min);
+  sevCredit(min);                                              // sự kiện học chung theo mùa (nếu đang diễn ra)
   if (typeof plStudyCheck === 'function') plStudyCheck().catch(() => {});   // vừa đạt mục tiêu giờ học tuần (Planner) thì chúc mừng
 }
 (function(){
@@ -902,6 +1027,7 @@ PAGES.focus = function(){
   const fxTabs = [['todo', t('fx_tab_todo'), 'check'], ['music', t('fx_tab_music'), 'volume']], fsTabs = [...(branding.groupOn === true ? [['group', t('fx_tab_group'), 'users']] : []), ['live', t('fx_tab_stream'), 'play']];   // Việc + Nhạc cạnh bộ đếm; Nhóm + Live ở khung riêng để xem song song
   const fxCur = [TABS.fx, store.get('fx_tab', 'todo')].find(k => fxTabs.some(x => x[0] === k)) || 'todo', fsCur = [TABS.fs, store.get('fs_tab', 'group')].find(k => fsTabs.some(x => x[0] === k)) || fsTabs[0][0], fxCfgOpen = store.get('fx_cfg', null) ?? false;   // cài đặt timer thu gọn sẵn: bộ đếm gọn, đỡ phải cuộn   // bộ đếm: cài đặt mở sẵn trên màn rộng, gập trên điện thoại để danh sách việc không bị đẩy xuống
   const c = pomo.cfg, num = (k, lab, min = 1) => `<div class="field"><label class="label" for="cf-${k}">${esc(lab)}</label><div class="stp"><button type="button" tabindex="-1" data-act="cfgStep" data-k="${k}" data-d="-1" aria-label="−">−</button><input class="input" id="cf-${k}" type="text" inputmode="numeric" autocomplete="off" value="${c[k] || (min ? 1 : 0)}" data-change="cfg" data-k="${k}"><button type="button" tabindex="-1" data-act="cfgStep" data-k="${k}" data-d="1" aria-label="+">+</button></div></div>`;
+  sevLoad();
   page(`${head('focus_title', 'focus_sub', '', 'umbrella', 4)}${fxLayBar()}${state.user ? (plLinked() ? hintNote('new_focus2') : hintNote('new_tease', '#/planner')) : ''}${trialNudge()}${moonNudge()}
     <div class="fx-mini" id="fx-mini" hidden><span class="fm-t" data-pomo-time></span><span class="fm-m" data-pomo-mode></span><button type="button" class="btn primary sm" data-act="pstart" data-pomo-btn></button></div>
     <div class="grid g-main fx3${branding.groupOn === true ? '' : ' nogrp'}" data-lay="${fxLayGet()}"><section class="card timer-card fx-timer">
@@ -914,6 +1040,7 @@ PAGES.focus = function(){
       ${pipCanUse() ? `<button type="button" class="btn ghost sm tm-pip" id="tm-pip" data-act="pip" title="${esc(t('pip_tip'))}" aria-pressed="false">${ic('pip', 'sm')} ${esc(t('pip_on'))}</button>` : ''}
       ${branding.groupOn === true ? '<div id="grp-strip" class="grp-strip-wrap"></div>' : ''}
       ${examBox('fx')}
+      ${sevBox('fx')}
       <details class="tm-cfg" ${fxCfgOpen ? 'open' : ''}><summary>${ic('sliders', 'sm')} ${esc(t('fx_cfg'))}<svg class="cfg-chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
       <div class="divider" style="width:100%;margin:2px 0"></div>
       <div class="row" style="width:100%"><span class="small muted">${esc(t('presets'))}:</span>${Object.entries(PRESETS).map(([k, p]) => `<button type="button" class="chip" data-act="ppreset" data-p="${k}">${p.focus}/${p.short}/${p.long}</button>`).join('')}</div>
