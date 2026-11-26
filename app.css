@@ -453,6 +453,17 @@ body.editing .edit-bar{display:flex}
 .a-sum-cs{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0 2px}
 .a-sum-c{font-size:.76rem;padding:2px 8px;border-radius:999px;background:var(--surface);border:1px solid var(--line);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .a-sum-cs.off .a-sum-c{opacity:.55;text-decoration:line-through}
+.a-all-top{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.a-all-top .input{max-width:520px;flex:1;min-width:200px}
+.a-all-g{margin-bottom:22px}
+.a-all-g h2{font-size:1.02rem;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+.a-all-r{display:grid;grid-template-columns:200px 1fr auto;gap:8px 16px;align-items:start;padding:12px 14px;margin-bottom:8px;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.a-all-r[hidden],.a-all-g[hidden]{display:none}
+.a-all-h{display:flex;flex-direction:column;gap:2px;min-width:0}
+.a-all-h b{font-size:.92rem}.a-all-h small{color:var(--ink3,var(--ink2));font-size:.74rem}
+.a-all-r .a-sum{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+.a-all-d{margin:0}
+@media (max-width:760px){.a-all-r{grid-template-columns:1fr}.a-all-r .btn{justify-self:start}}
 .a-sw{display:inline-block;width:14px;height:14px;border-radius:4px;border:1px solid var(--line2);vertical-align:-2px}
 .a-on{color:#2ee66b}
 .a-st{flex:none;font-size:.74rem;font-weight:800;white-space:nowrap;padding:3px 9px;border-radius:999px;margin-top:-1px}

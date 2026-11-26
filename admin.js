@@ -6,7 +6,7 @@
 const A_TABS = [
   ['overview', 'chart', 'Tổng quan'], ['site', 'sliders', 'Giao diện & Menu'], ['schedule', 'calendar', 'Lịch live'], ['blog', 'pen', 'Bài viết'], ['music', 'volume', 'Nhạc'],
   ['products', 'bag', 'Sản phẩm'], ['gear', 'tag', 'Đồ mình dùng'], ['orders', 'box', 'Đơn hàng'], ['coupons', 'tag', 'Mã giảm giá'], ['trials', 'timer', 'Mã dùng thử'], ['content', 'info', 'Nội dung & FAQ'],
-  ['reviews', 'star', 'Đánh giá'], ['payments', 'credit', 'Thanh toán'], ['plan', 'heart', 'Gói Người đồng hành'], ['season', 'star', 'Sự kiện học chung'], ['members', 'users', 'Thành viên']
+  ['reviews', 'star', 'Đánh giá'], ['payments', 'credit', 'Thanh toán'], ['plan', 'heart', 'Gói Người đồng hành'], ['season', 'star', 'Sự kiện học chung'], ['members', 'users', 'Thành viên'], ['all', 'sliders', 'Bảng tổng hợp']
 ];
 const A = html => { const b = $('admin-body'); if (b) b.innerHTML = html; };
 const fail = e => { if (typeof AS === 'object') AS.pending = null; alert('Lỗi: ' + (e && e.message || e)); };   // lưu lỗi: thẻ vẫn giữ "Chưa lưu"
@@ -49,6 +49,7 @@ const dateStr = ts => ts ? DT.fromMillis(tsMs(ts)).toFormat('dd/MM/yyyy HH:mm') 
    ========================================================= */
 const A_GROUPS = [
   ['home', 'chart', 'Tổng quan', ['overview']],
+  ['all', 'sliders', 'Bảng tổng hợp', ['all']],
   ['live', 'calendar', 'Live & Lịch', ['schedule']],
   ['page', 'sliders', 'Trang web & Nội dung', ['site', 'content', 'blog', 'music', 'gear']],
   ['people', 'users', 'Thành viên & Người đồng hành', ['members', 'plan', 'trials', 'season']],
@@ -56,6 +57,7 @@ const A_GROUPS = [
 ];
 /* tên ngắn trong nhóm (tên cũ vẫn tìm được) + một dòng chú thích */
 const A_SUB = {
+  all:['Bảng tổng hợp', 'Mọi cài đặt đang dùng trên một trang, gom theo nhóm. Gõ để lọc, bấm Sửa để nhảy tới đúng mục và mở form.'],
   overview:['Tổng quan', 'Số liệu nhanh, đơn mới, xuất bản dữ liệu cho người xem, sao lưu, gửi thông báo live.'],
   schedule:['Lịch live', 'Lịch live từng tuần (giờ Việt Nam) và nút bắt đầu buổi live thật cho web và OBS.'],
   site:['Giao diện & Menu', 'Tên trang, logo, màu, font, menu bên trái, bố cục trang chủ, khoá đăng nhập, chữ chạy, mạng xã hội, YouTube.'],
@@ -135,8 +137,10 @@ function aSummary(card){
 const aEditable = c => c.id !== 'onair' && !/^(tạo|sửa)/i.test(aCardTitle(c)) && !!c.querySelector('input:not([type=hidden]),select,textarea') && ([...c.querySelectorAll('button')].some(aIsSaveBtn) || aBodySave($('admin-body') || c));
 function aDrawSum(card){
   let el = card.querySelector(':scope > .a-sum'); if (!el) { el = document.createElement('div'); el.className = 'a-sum'; card.firstElementChild.after(el); }
-  const items = aSummary(card), max = 8;
-  el.innerHTML = items.length ? items.slice(0, max).map(([l, v, w]) => `<div class="a-sum-i ${w || ''}"><span class="a-sum-l">${esc(l)}</span><span class="a-sum-v">${v}</span></div>`).join('') + (items.length > max ? `<div class="a-sum-i"><span class="a-sum-l">&nbsp;</span><span class="a-sum-v faint">+ ${items.length - max} mục khác, bấm Sửa để xem</span></div>` : '') : '<p class="small faint" style="margin:0">Bấm Sửa để xem chi tiết.</p>';
+  el.innerHTML = aSumHTML(aSummary(card), 8);
+}
+function aSumHTML(items, max){
+  return items.length ? items.slice(0, max).map(([l, v, w]) => `<div class="a-sum-i ${w || ''}"><span class="a-sum-l">${esc(l)}</span><span class="a-sum-v">${v}</span></div>`).join('') + (items.length > max ? `<div class="a-sum-i"><span class="a-sum-l">&nbsp;</span><span class="a-sum-v faint">+ ${items.length - max} mục khác, bấm Sửa để xem</span></div>` : '') : '<p class="small faint" style="margin:0">Bấm Sửa để xem chi tiết.</p>';
 }
 function aSetFold(card, on, remember = true){
   if (on) aDrawSum(card);
@@ -187,7 +191,7 @@ function aFlash(el){ if (!el) return; el.scrollIntoView({ behavior:'smooth', blo
 function aSeek(title, tries = 0){
   const b = $('admin-body'); if (!b) return; const n = aNorm(title);
   const c = n && [...b.querySelectorAll('.a-card')].find(x => aNorm(aCardTitle(x)).startsWith(n) || aNorm(aCardTitle(x)).includes(n));
-  if (c) return aFlash(c);
+  if (c) { if (c.classList.contains('a-ed')) aSetFold(c, false); return aFlash(c); }
   if (tries < 25) setTimeout(() => aSeek(title, tries + 1), 200);
 }
 function aFindHits(q){
@@ -275,6 +279,42 @@ function aWatch(){
   let q = false; aObs = new MutationObserver(() => { if (q) return; q = true; Promise.resolve().then(() => { q = false; try { aEnhance(); } catch (e) { console.warn('admin enhance', e); } }); });
   aObs.observe(b, { childList:true });
 }
+
+/* ---------------- Bảng tổng hợp: mọi cài đặt đang dùng trên một trang ---------------- */
+const A_ALL_TABS = ['site', 'content', 'music', 'gear', 'plan', 'payments'];
+function aCapture(tab){        // vẽ tab vào một khung ẩn rồi đọc bản tóm tắt của từng thẻ (không đụng dữ liệu, không ghi gì)
+  const real = $('admin-body'), out = []; if (!real) return out;
+  real.id = 'admin-body-real';
+  const tmp = document.createElement('div'); tmp.id = 'admin-body'; tmp.style.cssText = 'position:fixed;left:-9999px;top:0;width:900px;visibility:hidden';
+  document.body.appendChild(tmp);
+  try {
+    ({ site:tabSite, content:tabContent, music:tabMusic, gear:tabGear, plan:tabPlan, payments:tabPayments })[tab]();
+    tmp.querySelectorAll('.a-card').forEach(c => { if (aEditable(c)) out.push({ title:aCardTitle(c), items:aSummary(c) }); });
+  } catch (e) { console.warn('admin all', tab, e); }
+  finally { tmp.remove(); real.id = 'admin-body'; }
+  return out;
+}
+function tabAll(){
+  const txt = h => { const d = document.createElement('div'); d.innerHTML = h; return d.textContent; };
+  const sec = A_GROUPS.filter(g => g[0] !== 'all' && g[0] !== 'home').map(g => {
+    const body = g[3].map(tab => {
+      const nm = A_SUB[tab][0];
+      if (!A_ALL_TABS.includes(tab)) return `<div class="a-all-r lk" data-q="${esc(aNorm(nm + ' ' + A_SUB[tab][1]))}"><div class="a-all-h"><b>${esc(nm)}</b><small>Danh sách / thao tác, mở tab để xem</small></div><p class="small muted a-all-d">${esc(A_SUB[tab][1])}</p><a class="btn secondary sm" href="#/admin/${tab}">Mở tab</a></div>`;
+      return aCapture(tab).map(c => `<div class="a-all-r" data-q="${esc(aNorm(c.title + ' ' + nm + ' ' + c.items.map(i => i[0] + ' ' + txt(i[1])).join(' ')))}"><div class="a-all-h"><b>${esc(c.title)}</b><small>${esc(nm)}</small></div><div class="a-sum">${aSumHTML(c.items, 6)}</div><button type="button" class="btn primary sm" data-act="aFindGo" data-tab="${tab}" data-t="${esc(c.title)}">${ic('pen', 'sm')} Sửa</button></div>`).join('');
+    }).join('');
+    return `<section class="a-all-g"><h2>${ic(g[1], 'sm')} ${esc(g[2])}</h2>${body}</section>`;
+  }).join('');
+  A(`<div class="a-all-top"><input class="input" id="all-q" type="search" autocomplete="off" placeholder="Lọc bảng này… (ví dụ: logo, momo, đang tắt, 120)"><span class="small faint" id="all-n"></span></div>${sec}<p class="small faint" id="all-none" hidden>Không có mục nào khớp.</p>`);
+  allFilter();
+}
+function allFilter(){
+  const q = aNorm(($('all-q') || {}).value || ''), words = q.split(' ').filter(Boolean); let n = 0, all = 0;
+  document.querySelectorAll('#admin-body .a-all-r').forEach(r => { all++; const ok = words.every(w => (r.dataset.q || '').includes(w)); r.hidden = !ok; if (ok) n++; });
+  document.querySelectorAll('#admin-body .a-all-g').forEach(g => { g.hidden = !g.querySelector('.a-all-r:not([hidden])'); });
+  const nn = $('all-n'); if (nn) nn.textContent = q ? `${n}/${all} mục` : `${all} mục`;
+  const no = $('all-none'); if (no) no.hidden = n > 0;
+}
+document.addEventListener('input', e => { if (e.target && e.target.id === 'all-q') allFilter(); });
 function aNav(tab){
   const g = aGroupOf(tab), last = store.get('a_last', {}) || {}, pend = state.compPending ? ` <span class="count">${state.compPending}</span>` : '';
   return `<div class="a-nav"><div class="a-find"><label class="sr-only" for="a-find">Tìm nhanh mục cài đặt</label><span class="a-find-ic" aria-hidden="true">⌕</span><input class="input" id="a-find" type="text" autocomplete="off" placeholder="Tìm nhanh mục cài đặt… (logo, giá, momo, FAQ)"><div class="a-find-res" id="a-find-res" hidden></div></div>
@@ -296,7 +336,7 @@ PAGES.admin = function(){
   aWatch(); if (AS.tab !== tab) { AS.dirty.clear(); AS.saved = {}; AS.pending = null; AS.open.clear(); AS.tab = tab; } aBar();
   { const g = aGroupOf(tab), last = store.get('a_last', {}) || {}; if (last[g[0]] !== tab) { last[g[0]] = tab; store.set('a_last', last); } }
   checkNewVersion();
-  ({ overview:tabOverview, site:tabSite, schedule:tabSchedule, blog:tabBlog, music:tabMusic, products:tabProducts, gear:tabGear, orders:tabOrders, coupons:tabCoupons, trials:tabTrials, content:tabContent, reviews:tabReviews, payments:tabPayments, plan:tabPlan, season:tabSeason, members:tabMembers })[tab]();
+  ({ overview:tabOverview, site:tabSite, schedule:tabSchedule, blog:tabBlog, music:tabMusic, products:tabProducts, gear:tabGear, orders:tabOrders, coupons:tabCoupons, trials:tabTrials, content:tabContent, reviews:tabReviews, payments:tabPayments, plan:tabPlan, season:tabSeason, members:tabMembers, all:tabAll })[tab]();
 };
 const reloadTab = () => { const f = ({ overview:tabOverview, site:tabSite, schedule:tabSchedule, blog:tabBlog, music:tabMusic, products:tabProducts, gear:tabGear, orders:tabOrders, coupons:tabCoupons, trials:tabTrials, content:tabContent, reviews:tabReviews, payments:tabPayments, plan:tabPlan, season:tabSeason, members:tabMembers })[route.args[0] || 'overview']; if (f) f(); };
 /* chỉ cần SỐ lượng thì đừng đọc cả tài liệu (hồ sơ người dùng khá nặng): dùng count() nếu bản Firebase có, không thì đọc tối đa 50 và ghi "50+" */
