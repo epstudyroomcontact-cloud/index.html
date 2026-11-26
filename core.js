@@ -21,6 +21,8 @@ const needLangs = l => l !== 'en' && l !== 'vi' && !window.EP_LANGS;
 let plannerP = null;
 const loadPlanner = () => typeof PAGES.planner === 'function' ? Promise.resolve() : (plannerP || (plannerP = Promise.all([loadScript('planner-i18n.js?v=' + ASSET_V).catch(() => {}), loadScript('planner.js?v=' + ASSET_V)]).catch(e => { plannerP = null; throw e; })));   // planner-i18n.js = bản dịch hi/ja/ko/zh/fr/es; thiếu thì dùng tiếng Anh
 let guideP = null;   // guide.js (hướng dẫn từng bước có mèo Moon): chỉ tải khi cần chạy hoặc hỏi khách
+let insightsP = null;
+const loadInsights = () => typeof PAGES.insights === 'function' ? Promise.resolve() : (insightsP || (insightsP = loadScript('insights.js?v=' + ASSET_V).catch(e => { insightsP = null; throw e; })));
 const loadGuide = () => typeof PAGES.guide === 'function' ? Promise.resolve() : (guideP || (guideP = loadScript('guide.js?v=' + ASSET_V).catch(e => { guideP = null; throw e; })));
 let groupP = null;   // group.js (Nhóm học trực tiếp): chỉ tải khi mở Phòng tập trung hoặc khi khách đã tham gia và đồng hồ đổi trạng thái
 const loadGroup = () => window.EPGroup ? Promise.resolve() : (groupP || (groupP = loadScript('group.js?v=' + ASSET_V).catch(e => { groupP = null; throw e; })));
@@ -478,6 +480,19 @@ const examSet = (n, d) => { store.set('exam', { n:String(n || '').trim().slice(0
    ngày nào vượt là số liệu hỏng (lỗi cộng lặp cũ) → đưa về 0 để không hiện số vô lý và không đồng bộ tiếp lên tài khoản. */
 const cleanFocus = fl => { const o = {}; Object.entries(fl && typeof fl === 'object' ? fl : {}).forEach(([k, v]) => { const m = Math.round(+(v && v.m) || 0), s = Math.round(+(v && v.s) || 0); o[k] = (m >= 0 && s >= 0 && m <= 1440 && s <= m) ? { m, s } : { m:0, s:0 }; }); return o; };
 const localFocus = () => cleanFocus(store.get('focus', {}));
+/* Sổ từng phiên tập trung (trang Phân tích giờ học, insights.js): [{ t:phút tính từ 1970 lúc bắt đầu, p:phút đặt cho phiên, d:phút đã tập trung, c:1 làm trọn / 0 dừng giữa chừng }].
+   Giữ 180 ngày và tối đa 600 phiên gần nhất (~20 KB). Ghi kèm hồ sơ users/<uid>.focusSess trong CÙNG lần ghi sổ ngày (không tốn thêm lượt ghi khi xong phiên). */
+const cleanSess = a => {
+  const now = Math.floor(Date.now() / 60000), lo = now - 180 * 1440, m = new Map();
+  (Array.isArray(a) ? a : []).forEach(x => {
+    if (!x || typeof x !== 'object') return;
+    const t = Math.round(+x.t || 0), p = Math.round(+x.p || 0), d = Math.round(+x.d || 0), c = x.c ? 1 : 0;
+    if (t < lo || t > now + 1440 || p < 1 || p > 600 || d < 1 || d > p) return;
+    const o = m.get(t); if (!o || c > o.c || (c === o.c && d > o.d)) m.set(t, { t, p, d, c });
+  });
+  return [...m.values()].sort((x, y) => x.t - y.t).slice(-600);
+};
+const localSess = () => cleanSess(store.get('fsess', []));
 /* Tải hồ sơ khách (users/<uid>): lỗi thì thử lại tối đa 3 lần (lần sau làm mới token trước), vẫn lỗi mới báo "không tải được" kèm mã lỗi để biết nguyên nhân.
    `first` là lời gọi đã chạy sẵn song song với việc làm mới token; nút Thử lại ở Hành trình trăng gọi lại hàm này mà không phải tải lại cả web. */
 async function loadProfile(u, first){
@@ -496,6 +511,7 @@ async function loadProfile(u, first){
     store.set('todos_gone', [...gone].slice(-300));
     const fl = cleanFocus(profile.focusLog); Object.entries(localFocus()).forEach(([k, v]) => { const o = fl[k] || { m:0, s:0 }; fl[k] = { m:Math.max(o.m, v.m), s:Math.max(o.s, v.s) }; });
     store.set('todos', todos); store.set('focus', fl); profile.todos = todos; profile.focusLog = fl;
+    { const fs = cleanSess([...(profile.focusSess || []), ...localSess()]); store.set('fsess', fs); profile.focusSess = fs; }   // sổ từng phiên: gộp bản trên tài khoản với bản trong máy
     { const pe = examClean(profile.exam), le = examRaw(), ex = pe && (!le || pe.t >= le.t) ? pe : le; store.set('exam', ex ? { ...ex, u:u.uid } : null); }   // mốc đếm ngược: bản sửa sau cùng thắng
     if (!d.exists || !profile.displayName) { profile.displayName = profile.displayName || u.displayName || (u.email || '').split('@')[0]; }
     state.profileReady = true; state.profileFailed = false; state.profileErr = '';   // hồ sơ đã tải xong → mới được hiện/ghi Moon Journey
@@ -531,6 +547,7 @@ auth.onAuthStateChanged(async u => {
 const saveProfileNow = () => {
   if (!state.user || DEMO) return;
   const data = { displayName: profile.displayName || state.user.displayName || '', email: state.user.email, todos: store.get('todos', []), todosGone: todosGone(), focusLog: localFocus() };
+  const fs = localSess(); if (fs.length) data.focusSess = fs;   // chỉ ghi khi đã có phiên (không làm mọi tài khoản phải ghi thêm một lần)
   const ex = state.profileReady && examRaw(); if (ex && ex.t) data.exam = { n:ex.n, d:ex.d, t:ex.t };   // chỉ ghi mốc khi hồ sơ đã tải xong (không đè mốc mới hơn trên máy khác)
   const sig = state.user.uid + JSON.stringify(data);
   if (store.get('profsig', '') === sig) return;          // không có gì thay đổi thì không ghi (tiết kiệm lượt ghi)
@@ -580,7 +597,7 @@ function readRoute(){
 const LOCKABLE = ['home', 'schedule', 'watch', 'focus', 'blog', 'club', 'planner', 'shop', 'gear', 'donate', 'about'];
 const loginRequired = () => !DEMO && !CONFIG_MISSING && branding.requireLogin !== false;
 const lockedPages = () => Array.isArray(branding.lockedPages) ? branding.lockedPages : ['schedule', 'watch', 'focus', 'blog', 'club', 'shop'];
-const isLocked = name => loginRequired() && !state.user && lockedPages().includes(name);
+const isLocked = name => loginRequired() && !state.user && lockedPages().includes(name === 'insights' ? 'focus' : name);   // Phân tích giờ học khoá cùng Phòng tập trung
 /* Hỏi lại Firestore xem người dùng đã là Companion chưa (bỏ qua bản nhớ 30 phút) — gọi khi mở Planner / trang Ủng hộ, để vừa được duyệt là mở khoá ngay */
 async function refreshCompanion(force){
   const u = state.user; if (!u || DEMO || (!force && Date.now() - state.compCheckedAt < 45000)) return false;
@@ -613,6 +630,11 @@ function doRender(){
   if (route.name === 'guide' && typeof PAGES.guide !== 'function') {            // #/guide (mục Hướng dẫn trên menu): tải guide.js rồi chạy lại hướng dẫn
     renderChrome(); $('page').innerHTML = '<div class="gate-load"><i></i></div>';
     loadGuide().then(() => render(true)).catch(pageCrash);
+    return;
+  }
+  if (route.name === 'insights' && typeof PAGES.insights !== 'function') {      // insights.js (Phân tích giờ học) chỉ tải khi mở #/insights
+    renderChrome(); $('page').innerHTML = '<div class="gate-load"><i></i></div>';
+    loadInsights().then(() => render(true)).catch(pageCrash);
     return;
   }
   if (route.name === 'planner' && typeof PAGES.planner !== 'function') {        // planner.js chỉ tải khi mở #/planner
@@ -679,7 +701,7 @@ function renderChrome(){
     <div class="sb-foot">${state.user
       ? `<a class="sb-user" href="#/account" data-act="closeNav"><span class="avatar">${esc((displayName() || '?').slice(0, 1).toUpperCase())}</span><div><span class="sb-name"><b>${esc(displayName())}</b>${nameBadge()}</span><small>${esc(state.isAdmin ? 'Admin' : t('nav_account'))}</small></div></a>`
       : `<a class="btn primary" style="width:100%" href="#/account" data-act="closeNav">${ic('user', 'sm')} ${esc(t('nav_signin'))}</a>`}</div>`;
-  const titles = { home:'nav_home', schedule:'nav_schedule', watch:'nav_watch', focus:'nav_focus', blog:'nav_blog', club:'nav_club', planner:'nav_planner', shop:'nav_shop', gear:'nav_gear', donate:'nav_donate', about:'nav_about', account:'nav_account', admin:'nav_admin' };
+  const titles = { home:'nav_home', schedule:'nav_schedule', watch:'nav_watch', focus:'nav_focus', blog:'nav_blog', club:'nav_club', planner:'nav_planner', insights:'nav_insights', shop:'nav_shop', gear:'nav_gear', donate:'nav_donate', about:'nav_about', account:'nav_account', admin:'nav_admin' };
   $('tb-title').textContent = t(titles[route.name] || 'nav_home');
   const dot = $('cart-dot'); dot.textContent = cartN; dot.classList.toggle('hidden', !cartN);
   $('btn-edit').classList.toggle('hidden', !state.isAdmin);

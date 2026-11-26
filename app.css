@@ -1399,3 +1399,43 @@ body:has(#tour-ask) .sofa{display:none}
 .grp-ch.pop{animation:chPop .7s ease-out 2}
 @keyframes chPop{0%,100%{transform:scale(1)}40%{transform:scale(1.5) rotate(-10deg)}70%{transform:scale(1.2) rotate(8deg)}}
 @media(prefers-reduced-motion:reduce){.clap-p,.grp-ch.pop{animation:none;display:none}}
+
+/* =========================================================
+   Phân tích giờ học (#/insights, insights.js) + thẻ lối vào ở Phòng tập trung
+   ========================================================= */
+.ins-card{grid-column:1/-1;display:flex;align-items:center;gap:14px;padding:16px 18px;color:inherit;text-decoration:none;transition:border-color .15s}
+.ins-card:hover{border-color:var(--accent)}
+.ins-card .ins-ic{width:42px;height:42px;border-radius:12px;background:var(--accent-soft);color:var(--accent-strong);display:grid;place-items:center;flex:none}
+.ins-card .ins-tx{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.ins-card .btn{flex:none}
+@media(max-width:640px){.ins-card{flex-wrap:wrap}.ins-card .btn{width:100%}}
+.ins-tiles{margin-bottom:18px}.ins-tiles .tile{margin:0}
+.ins-tiles .t-s .ins-up{color:var(--live)}.ins-tiles .t-s .ins-down{color:var(--ink3)}
+.ins-note{margin:-6px 0 4px}
+.ins-tips{margin-bottom:18px}
+.ins-tips ul{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}
+.ins-tips li{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;background:var(--accent-soft);line-height:1.5}
+.ins-tips li>span:first-child{flex:none}
+.ins-hl{display:flex;align-items:center;gap:6px;font-weight:700;color:var(--accent-strong);margin:4px 0 0}
+.ins-need{display:flex;align-items:center;gap:6px;padding:22px 4px}
+.ins-bars{gap:6px}
+.ins-bars small{white-space:nowrap;min-height:1.2em;line-height:1.2em}
+.ins-bars.ins-hr{gap:2px}.ins-bars.ins-hr i{border-radius:4px 4px 2px 2px;opacity:.55}.ins-bars.ins-hr .today i{opacity:1}
+.ins-deep,.ins-lock{margin-top:18px}
+.ins-grid{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+.ins-grid>div{display:grid;grid-template-columns:44px repeat(4,minmax(0,1fr));gap:4px;align-items:center}
+.ins-grid b{font-size:.72rem;color:var(--ink3);font-weight:700;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ins-grid b[role=rowheader]{text-align:left}
+.ins-grid i{display:grid;place-items:center;height:30px;border-radius:7px;font-style:normal;font-size:.68rem;font-weight:700;color:var(--ink);background:color-mix(in srgb,var(--accent) calc(var(--a) * 85%),var(--surface2))}
+.ins-len{display:flex;flex-direction:column;gap:12px;margin-top:8px}
+.ins-len>div{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,2fr) 44px;gap:10px;align-items:center}
+.ins-len>div>b{text-align:right}
+.ins-len>div.on .progress i{background:linear-gradient(90deg,var(--live),color-mix(in srgb,var(--live) 70%,#000))}
+@media(max-width:640px){.ins-len>div{grid-template-columns:minmax(0,1fr) 44px}.ins-len .progress{grid-column:1/-1;grid-row:2}}
+.ins-lock{position:relative;overflow:hidden;text-align:center}
+.ins-ghost{position:absolute;inset:auto 22px 18px;opacity:.18;filter:blur(3px);pointer-events:none}
+.ins-lock-tx{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;max-width:520px;margin:0 auto;padding:8px 0 70px}
+.ins-lock-tx h2{margin:0}.ins-lock-tx p{margin:0 0 6px}
+.ins-lock-ic{width:44px;height:44px;border-radius:50%;background:var(--accent-soft);color:var(--accent-strong);display:grid;place-items:center}
+.ins-lock .limit-box{text-align:left}
+.ins-foot{display:flex;align-items:center;gap:6px;margin-top:18px}
