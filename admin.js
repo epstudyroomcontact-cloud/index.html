@@ -9,7 +9,7 @@ const A_TABS = [
   ['reviews', 'star', 'Đánh giá'], ['payments', 'credit', 'Thanh toán'], ['plan', 'heart', 'Gói Người đồng hành'], ['season', 'star', 'Sự kiện học chung'], ['members', 'users', 'Thành viên']
 ];
 const A = html => { const b = $('admin-body'); if (b) b.innerHTML = html; };
-const fail = e => alert('Lỗi: ' + (e && e.message || e));
+const fail = e => { if (typeof AS === 'object') AS.pending = null; alert('Lỗi: ' + (e && e.message || e)); };   // lưu lỗi: thẻ vẫn giữ "Chưa lưu"
 /* Mọi lần đọc Firebase của trang quản trị nên có hạn chờ: mạng chập chờn hoặc bị tiện ích chặn thì báo lỗi thay vì kẹt "Đang tải…" mãi */
 const withTimeout = (pr, ms = 15000, what = 'Firebase') => new Promise((res, rej) => { const id = setTimeout(() => rej(Object.assign(new Error(what + ' không phản hồi sau ' + Math.round(ms / 1000) + ' giây'), { code:'timeout' })), ms); Promise.resolve(pr).then(v => { clearTimeout(id); res(v); }, e => { clearTimeout(id); rej(e); }); });
 const loadError = (e, retry) => `<div class="card pad stack"><b>Không tải được</b><p class="small muted">${esc((e && (e.code === 'timeout' ? e.message : (e.code || e.message))) || 'Lỗi không rõ')}. Thường do mạng chập chờn hoặc trình duyệt đang chạy bản web cũ.</p><div class="row"><button class="btn primary sm" data-act="${retry}">Thử lại</button><button class="btn secondary sm" data-act="hardReload">Tải lại trang (bản mới nhất)</button></div></div>`;
@@ -39,6 +39,210 @@ const selectF = (label, id, opts, v) => `<div class="field"><label class="label"
 const aCard = (title, inner, extra = '') => `<section class="card a-card"><div class="row between"><h3>${title}</h3>${extra}</div>${inner}</section>`;
 const dateStr = ts => ts ? DT.fromMillis(tsMs(ts)).toFormat('dd/MM/yyyy HH:mm') : '';
 
+/* =========================================================
+   KHUNG TRANG QUẢN TRỊ GỌN HƠN (chỉ là giao diện, không đổi dữ liệu hay cách lưu)
+   - 16 tab gộp thành 5 nhóm theo mục đích; mỗi nhóm có hàng tab con. Link #/admin/<tab> giữ nguyên như cũ.
+   - Ô "Tìm nhanh" tìm theo tên mục (gõ không dấu cũng được), bấm là mở đúng tab và cuộn tới đúng thẻ.
+   - Mỗi thẻ thu gọn / mở được (nhớ trên máy này); tab nhiều thẻ có hàng "Đi tới" ở đầu.
+   - Gõ vào thẻ mà chưa bấm Lưu: thẻ hiện "Chưa lưu", thanh nhắc ở cuối màn hình, và hỏi lại trước khi rời tab.
+     Lưu xong: thẻ hiện "Đã lưu lúc HH:mm". Ô tích lưu ngay (data-change) và thẻ không có nút Lưu thì không tính.
+   ========================================================= */
+const A_GROUPS = [
+  ['home', 'chart', 'Tổng quan', ['overview']],
+  ['live', 'calendar', 'Live & Lịch', ['schedule']],
+  ['page', 'sliders', 'Trang web & Nội dung', ['site', 'content', 'blog', 'music', 'gear']],
+  ['people', 'users', 'Thành viên & Người đồng hành', ['members', 'plan', 'trials', 'season']],
+  ['shop', 'bag', 'Cửa hàng & Thanh toán', ['products', 'orders', 'coupons', 'reviews', 'payments']]
+];
+/* tên ngắn trong nhóm (tên cũ vẫn tìm được) + một dòng chú thích */
+const A_SUB = {
+  overview:['Tổng quan', 'Số liệu nhanh, đơn mới, xuất bản dữ liệu cho người xem, sao lưu, gửi thông báo live.'],
+  schedule:['Lịch live', 'Lịch live từng tuần (giờ Việt Nam) và nút bắt đầu buổi live thật cho web và OBS.'],
+  site:['Giao diện & Menu', 'Tên trang, logo, màu, font, menu bên trái, bố cục trang chủ, khoá đăng nhập, chữ chạy, mạng xã hội, YouTube.'],
+  content:['Chữ, dịch & FAQ', 'Sửa chữ và ảnh trực tiếp trên trang, dịch tự động, câu hỏi thường gặp.'],
+  blog:['Bài viết', 'Viết, ghim, hẹn giờ đăng bài và quản lý các mục bài viết.'],
+  music:['Nhạc', 'Gợi ý nhạc cho Phòng tập trung và nhạc mình đang nghe.'],
+  gear:['Đồ mình dùng', 'Danh sách đồ mình dùng (link affiliate).'],
+  members:['Thành viên & duyệt', 'Duyệt yêu cầu Người đồng hành, gia hạn, danh sách thành viên, đăng ký email.'],
+  plan:['Gói & quyền lợi', 'Giá và link trang Ủng hộ, thanh mục tiêu, khuyến mãi, ưu đãi Hành trình trăng, giới hạn Phòng tập trung, nhóm học.'],
+  trials:['Mã dùng thử', 'Tạo mã dùng thử và theo dõi người đã kích hoạt.'],
+  season:['Sự kiện học chung', 'Tạo hoặc sửa sự kiện học chung theo mùa.'],
+  products:['Sản phẩm', 'Thêm, sửa, ẩn sản phẩm trong Cửa hàng.'],
+  orders:['Đơn hàng', 'Đơn hàng gần đây, đổi trạng thái khi tiền về.'],
+  coupons:['Mã giảm giá', 'Tạo và quản lý mã giảm giá.'],
+  reviews:['Đánh giá', 'Duyệt hoặc xoá đánh giá của khách.'],
+  payments:['Thanh toán', 'VietQR, PayPal / Stripe / Ko-fi và mẫu email xác nhận (EmailJS).']
+};
+const aGroupOf = tab => A_GROUPS.find(g => g[3].includes(tab)) || A_GROUPS[0];
+/* chỉ mục cho ô Tìm nhanh: [tab, tên thẻ đúng như trên trang, từ khoá thêm] */
+const A_FIND = [
+  ['overview', 'Đơn hàng mới nhất', 'thống kê doanh thu số liệu'], ['overview', 'Dữ liệu cho người xem & bản sao dự phòng', 'xuất bản sao lưu backup json dự phòng fallback'], ['overview', 'Thông báo đẩy khi live', 'push notification gửi thông báo'],
+  ['schedule', 'Bắt đầu buổi live', 'onair giờ thật obs lên sóng'], ['schedule', '', 'lịch tuần pomodoro buổi live huỷ live sao chép tuần trước'],
+  ['site', 'Thương hiệu & màu sắc', 'tên trang logo màu font theme ảnh bìa hero'], ['site', 'Menu điều hướng (thanh bên)', 'menu ẩn mục đổi tên liên kết sidebar'], ['site', 'Bố cục trang chủ', 'trang chủ khối thứ tự home'],
+  ['site', 'Quyền truy cập (bắt buộc đăng nhập)', 'khoá đăng nhập tài khoản lock'], ['site', 'Thông báo chạy chữ & Mạng xã hội', 'announcement facebook tiktok instagram'], ['site', 'YouTube', 'channel id video live kênh'],
+  ['content', 'Sửa chữ & ảnh trực tiếp trên trang', 'sửa chữ ảnh giới thiệu khôi phục chữ mặc định'], ['content', 'Dịch tự động', 'dịch ngôn ngữ translate'], ['content', 'Câu hỏi thường gặp (FAQ)', 'faq hỏi đáp'],
+  ['blog', 'Tất cả bài viết', 'blog viết bài đăng bài'], ['blog', 'Các mục của phần viết', 'chuyên mục danh mục category'],
+  ['music', 'Gợi ý nhạc cho Phòng tập trung', 'playlist spotify youtube music'], ['music', 'Nhạc mình đang nghe gần đây', 'playlist'], ['gear', 'Đồ mình dùng (link affiliate)', 'affiliate shopee đồ dùng'],
+  ['members', 'Yêu cầu Người đồng hành chờ duyệt', 'duyệt thanh toán companion'], ['members', 'Sắp hết hạn / đã hết hạn', 'gia hạn hết hạn companion'], ['members', 'Thành viên', 'tài khoản người dùng email user'], ['members', 'Đăng ký email nhắc lịch', 'challenge email'],
+  ['plan', 'Giá và link thanh toán (trang Ủng hộ)', 'ủng hộ giá momo gói tháng gia hạn support'], ['plan', 'Thanh mục tiêu duy trì web (trang Ủng hộ)', 'mục tiêu goal'], ['plan', 'Khuyến mãi: tặng thêm tháng', 'khuyến mãi promo'],
+  ['plan', 'Ưu đãi Hành trình trăng', 'moon 60 ngày điểm danh'], ['plan', 'Giới hạn Phòng tập trung', 'focus giới hạn miễn phí'], ['plan', 'Nhóm học trực tiếp', 'nhóm học group'],
+  ['trials', 'Tạo mã dùng thử', 'trial'], ['trials', 'Người đã kích hoạt', 'trial gia hạn dừng'], ['season', 'Sự kiện hiện tại', 'sự kiện mùa season mốc chúc mừng'],
+  ['products', 'Tất cả sản phẩm', 'cửa hàng shop giá'], ['orders', 'Đơn hàng gần đây', 'paid trạng thái'], ['coupons', 'Tạo mã giảm giá', 'coupon'], ['coupons', 'Các mã hiện có', 'coupon'], ['reviews', 'Đánh giá của khách', 'review sao duyệt'],
+  ['payments', 'Chuyển khoản VietQR (khách Việt Nam)', 'ngân hàng số tài khoản qr bank'], ['payments', 'Thanh toán quốc tế (mặc định cho mọi sản phẩm)', 'paypal stripe kofi'],
+  ['payments', 'Email xác nhận đơn (EmailJS)', 'emailjs email'], ['payments', 'Email báo cho bạn khi có người bấm', 'emailjs đã thanh toán']
+];
+/* thẻ ít dùng: thu gọn sẵn lần đầu (bấm tiêu đề để mở, máy nhớ lựa chọn) */
+const A_FOLD_DEFAULT = ['site|quyen truy cap', 'site|youtube', 'content|dich tu dong', 'payments|email xac nhan don', 'payments|email bao cho ban'];
+const aNorm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().replace(/\s+/g, ' ').trim();
+const aCardTitle = c => { const h = c.querySelector('h3'); return h ? (h.dataset.t || h.textContent).replace(/\s*\(\d+\+?\)\s*$/, '').trim() : ''; };
+const aTab = () => (route && route.name === 'admin' && A_TABS.some(x => x[0] === route.args[0])) ? route.args[0] : 'overview';
+const aKey = c => aTab() + '|' + aNorm(aCardTitle(c));
+const AS = { dirty:new Set(), tab:'', saved:{}, pending:null };
+const aIsSaveBtn = b => !!b && b.tagName === 'BUTTON' && (/^save|Save$/.test(b.dataset.act || '') || /^Lưu/.test((b.textContent || '').trim()));
+const aBodySave = b => [...b.querySelectorAll('button')].some(x => aIsSaveBtn(x) && !x.closest('.a-card'));
+function aFoldState(key){ const m = store.get('a_fold', {}) || {}; return key in m ? !!m[key] : A_FOLD_DEFAULT.some(p => key.startsWith(p)); }
+function aSetFold(card, on, remember = true){
+  card.classList.toggle('fold', on); const bt = card.querySelector('.a-fold'); if (bt) bt.setAttribute('aria-expanded', String(!on));
+  if (remember) { const m = store.get('a_fold', {}) || {}; m[aKey(card)] = on ? 1 : 0; store.set('a_fold', m); }
+}
+function aMark(card){
+  const key = aKey(card), head = card.firstElementChild; if (!head) return;
+  let st = head.querySelector('.a-st'); if (!st) { st = document.createElement('span'); st.className = 'a-st'; const fb = head.querySelector('.a-fold'); head.insertBefore(st, fb); }
+  const sv = AS.saved[key];
+  if (AS.dirty.has(key)) { st.className = 'a-st dirty'; st.textContent = '● Chưa lưu'; }
+  else if (sv) { st.className = 'a-st ok'; st.textContent = sv.demo ? 'Xem thử: chưa lưu thật' : '✔ Đã lưu lúc ' + sv.t; }
+  else { st.className = 'a-st'; st.textContent = ''; }
+}
+function aBar(){
+  let bar = $('a-dirty'); const b = $('admin-body');
+  if (!b || !AS.dirty.size) { if (bar) bar.remove(); return; }
+  const names = [...AS.dirty].map(k => { if (k.endsWith('|__tab')) return 'phần ' + ((A_SUB[aTab()] || [''])[0]); const c = [...b.querySelectorAll('.a-card')].find(x => aKey(x) === k); return c ? aCardTitle(c) : ''; }).filter(Boolean);
+  if (!bar) { bar = document.createElement('div'); bar.id = 'a-dirty'; bar.className = 'a-dirty'; bar.setAttribute('role', 'status'); document.body.appendChild(bar); }
+  bar.innerHTML = `<span>● Có thay đổi <b>chưa lưu</b>: ${esc(names.join(', '))}</span><button type="button" class="btn primary sm" data-act="aGoDirty">Tới chỗ cần Lưu</button>`;
+}
+function aEnhance(){
+  const b = $('admin-body'); if (!b) return;
+  const tab = aTab(), cards = [...b.querySelectorAll('.a-card')];
+  cards.forEach((c, i) => {
+    if (!c.id) c.id = 'ac-' + tab + '-' + i;
+    const head = c.firstElementChild; if (!head || c.dataset.enh) { aMark(c); return; }
+    c.dataset.enh = '1'; head.classList.add('a-head');
+    const h = head.querySelector('h3'); if (h) { h.dataset.act = 'aFold'; h.setAttribute('role', 'button'); h.tabIndex = 0; }
+    head.insertAdjacentHTML('beforeend', `<button type="button" class="a-fold" data-act="aFold" aria-expanded="true" aria-label="Thu gọn / mở thẻ này" title="Thu gọn / mở">${ic('down', 'sm')}</button>`);
+    c.insertAdjacentHTML('beforeend', '<p class="a-foldnote small faint">Đang thu gọn. Bấm tiêu đề để mở.</p>');
+    aSetFold(c, aFoldState(aKey(c)), false); aMark(c);
+  });
+  let toc = $('a-toc');
+  const sig = tab + ':' + cards.map(c => c.id + aCardTitle(c)).join('|');
+  if (cards.length >= 3) {
+    if (!toc || toc.dataset.sig !== sig) {
+      if (toc) toc.remove();
+      b.insertAdjacentHTML('afterbegin', `<div class="a-toc" id="a-toc" data-sig="${esc(sig)}"><span class="small faint">Đi tới:</span>${cards.map(c => `<button type="button" class="a-chip" data-act="aJump" data-id="${esc(c.id)}">${esc(aCardTitle(c))}</button>`).join('')}<span class="a-toc-r"><button type="button" class="btn ghost sm" data-act="aFoldAll" data-on="1">Thu gọn hết</button><button type="button" class="btn ghost sm" data-act="aFoldAll" data-on="0">Mở hết</button></span></div>`);
+    } else if (b.firstElementChild !== toc) b.insertBefore(toc, b.firstElementChild);
+  } else if (toc) toc.remove();
+  aBar();
+}
+function aFlash(el){ if (!el) return; if (el.classList.contains('fold')) aSetFold(el, false); el.scrollIntoView({ behavior:'smooth', block:'start' }); el.classList.remove('a-flash'); void el.offsetWidth; el.classList.add('a-flash'); }
+/* tìm thẻ theo tên sau khi tab tải xong (tab đọc Firebase có thể mất vài giây) */
+function aSeek(title, tries = 0){
+  const b = $('admin-body'); if (!b) return; const n = aNorm(title);
+  const c = n && [...b.querySelectorAll('.a-card')].find(x => aNorm(aCardTitle(x)).startsWith(n) || aNorm(aCardTitle(x)).includes(n));
+  if (c) return aFlash(c);
+  if (tries < 25) setTimeout(() => aSeek(title, tries + 1), 200);
+}
+function aFindHits(q){
+  const n = aNorm(q); if (!n) return [];
+  const words = n.split(' ');
+  const rows = [...A_TABS.map(([k]) => ({ tab:k, title:'', text:(A_SUB[k] || [''])[0] + ' ' + A_TABS.find(x => x[0] === k)[2] + ' ' + (A_SUB[k] || ['', ''])[1] + ' ' + aGroupOf(k)[2] })),
+    ...A_FIND.filter(r => r[1]).map(([k, t, kw]) => ({ tab:k, title:t, text:t + ' ' + kw }))];
+  return rows.map(r => { const tx = aNorm(r.text); let s = 0; words.forEach(w => { if (tx.includes(w)) s += aNorm(r.title || (A_SUB[r.tab] || [''])[0]).includes(w) ? 3 : 1; else s -= 9; }); return { ...r, s }; })
+    .filter(r => r.s > 0).sort((a, b) => b.s - a.s).slice(0, 8);
+}
+function aFindDraw(){
+  const inp = $('a-find'), box = $('a-find-res'); if (!inp || !box) return;
+  const hits = aFindHits(inp.value);
+  box.hidden = !inp.value.trim();
+  box.innerHTML = hits.length ? hits.map((h, i) => `<button type="button" class="a-hit ${i ? '' : 'first'}" data-act="aFindGo" data-tab="${esc(h.tab)}" data-t="${esc(h.title)}"><b>${esc(h.title || (A_SUB[h.tab] || [''])[0])}</b><span class="small faint">${esc(aGroupOf(h.tab)[2])} › ${esc((A_SUB[h.tab] || [''])[0])}</span></button>`).join('')
+    : '<p class="small faint" style="padding:10px 12px;margin:0">Không thấy mục nào. Thử từ khác, ví dụ: logo, giá, momo, faq, lịch, nhạc.</p>';
+}
+function aGo(tab, title){
+  const f = $('a-find'); if (f) { f.value = ''; aFindDraw(); f.blur(); }
+  if (aTab() === tab && route.name === 'admin') { if (title) aSeek(title); else window.scrollTo({ top:0, behavior:'smooth' }); return; }
+  if (!aLeaveOk()) return;
+  location.hash = '#/admin/' + tab; if (title) setTimeout(() => aSeek(title), 150);
+}
+function aLeaveOk(){ if (!AS.dirty.size) return true; if (!confirm('Bạn có thay đổi CHƯA LƯU. Rời đi thì mất các thay đổi đó. Vẫn rời đi?')) return false; AS.dirty.clear(); aBar(); return true; }
+Object.assign(ACTIONS, {
+  aFold:el => { const c = el.closest('.a-card'); if (c) aSetFold(c, !c.classList.contains('fold')); },
+  aFoldAll:el => { document.querySelectorAll('#admin-body .a-card').forEach(c => aSetFold(c, el.dataset.on === '1')); },
+  aJump:el => aFlash($(el.dataset.id)),
+  aFindGo:el => aGo(el.dataset.tab, el.dataset.t),
+  aGoDirty:() => { const b = $('admin-body'); if (!b) return; const c = [...b.querySelectorAll('.a-card')].find(x => AS.dirty.has(aKey(x))); if (c) return aFlash(c); const sb = [...b.querySelectorAll('button')].find(x => aIsSaveBtn(x) && !x.closest('.a-card')); if (sb) { sb.scrollIntoView({ behavior:'smooth', block:'center' }); sb.classList.remove('a-flash'); void sb.offsetWidth; sb.classList.add('a-flash'); } }
+});
+/* đánh dấu "Chưa lưu" khi gõ / đổi ô trong thẻ có nút Lưu (hoặc tab có nút Lưu chung) */
+function aOnEdit(e){
+  const t = e.target, b = $('admin-body'); if (!b || !t.closest || !t.closest('#admin-body')) return;
+  if (!/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.dataset.change || t.readOnly || t.type === 'search' || t.type === 'file' || t.id === 'push-text' || t.id === 'onairNote' || t.closest('#a-toc')) return;
+  const c = t.closest('.a-card'), bodySave = aBodySave(b);
+  let key = null;
+  if (c) { if ([...c.querySelectorAll('button')].some(aIsSaveBtn) || bodySave) key = aKey(c); }
+  else if (bodySave) key = aTab() + '|__tab';
+  if (!key || AS.dirty.has(key)) return;
+  AS.dirty.add(key); delete AS.saved[key]; if (c) aMark(c); aBar();
+}
+document.addEventListener('input', aOnEdit); document.addEventListener('change', aOnEdit);
+/* bấm nút Lưu: nhớ thẻ đó; khi web báo lưu xong (toast) thì đổi "Chưa lưu" thành "Đã lưu lúc …" */
+document.addEventListener('click', e => {
+  const bt = e.target.closest && e.target.closest('#admin-body button'); if (!aIsSaveBtn(bt)) return;
+  const c = bt.closest('.a-card'); AS.pending = { key:c ? aKey(c) : null, at:Date.now() };
+}, true);
+const _aToast = toast;
+toast = function (m, ms){
+  try {
+    const p = AS.pending, s = String(m || '');
+    if (p && Date.now() - p.at < 60000 && /Đã lưu|Đã tạo|Đã dịch|xem thử|✔|✓/.test(s) && !/cho người xem|Có yêu cầu|Chưa lưu được|^Lỗi/i.test(s)) {
+      const demo = p.demo || /xem thử/i.test(s), t = DT.now().toFormat('HH:mm'), b = $('admin-body');
+      const keys = p.key ? [p.key] : [...AS.dirty].filter(k => k.startsWith(aTab() + '|')).concat(b ? [...b.querySelectorAll('.a-card')].filter(c => !c.querySelector('button') || ![...c.querySelectorAll('button')].some(aIsSaveBtn)).map(aKey) : []);
+      keys.forEach(k => { AS.dirty.delete(k); AS.saved[k] = { t, demo }; });
+      if (!p.key) AS.dirty.delete(aTab() + '|__tab');
+      if (b) b.querySelectorAll('.a-card').forEach(aMark); aBar();
+      if (demo && !p.demo) p.demo = true; else AS.pending = null;   // xem thử: web báo 2 lần ("chưa lưu thật" rồi "Đã lưu"), giữ nhãn xem thử
+    }
+  } catch (e) { console.warn('admin save mark', e); }
+  return _aToast(m, ms);
+};
+/* rời tab / rời trang khi còn thay đổi chưa lưu: hỏi lại */
+document.addEventListener('click', e => {
+  if (!AS.dirty.size || route.name !== 'admin') return;
+  const a = e.target.closest && e.target.closest('a[href^="#"]'); if (!a || a.target === '_blank') return;
+  const h = a.getAttribute('href'); if (h === location.hash || h === '#') return;
+  if (!aLeaveOk()) { e.preventDefault(); e.stopPropagation(); }
+}, true);
+window.addEventListener('hashchange', () => setTimeout(aBar, 0));
+window.addEventListener('beforeunload', e => { if (AS.dirty.size && route.name === 'admin') { e.preventDefault(); e.returnValue = ''; } });
+document.addEventListener('input', e => { if (e.target && e.target.id === 'a-find') aFindDraw(); });
+document.addEventListener('keydown', e => {
+  const t = e.target;
+  if (t && t.id === 'a-find') { if (e.key === 'Enter') { e.preventDefault(); const f = document.querySelector('#a-find-res .a-hit'); if (f) f.click(); } else if (e.key === 'Escape') { t.value = ''; aFindDraw(); t.blur(); } return; }
+  if (t && t.matches && t.matches('#admin-body .a-head h3') && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); t.click(); return; }
+  if (e.key === '/' && route.name === 'admin' && !/^(INPUT|TEXTAREA|SELECT)$/.test((t && t.tagName) || '') && !(t && t.isContentEditable) && $('a-find')) { e.preventDefault(); $('a-find').focus(); }
+});
+document.addEventListener('click', e => { const box = $('a-find-res'); if (box && !box.hidden && !e.target.closest('.a-find')) box.hidden = true; });
+let aObs = null;
+function aWatch(){
+  const b = $('admin-body'); if (!b) return;
+  if (aObs) aObs.disconnect();
+  let q = false; aObs = new MutationObserver(() => { if (q) return; q = true; Promise.resolve().then(() => { q = false; try { aEnhance(); } catch (e) { console.warn('admin enhance', e); } }); });
+  aObs.observe(b, { childList:true });
+}
+function aNav(tab){
+  const g = aGroupOf(tab), last = store.get('a_last', {}) || {}, pend = state.compPending ? ` <span class="count">${state.compPending}</span>` : '';
+  return `<div class="a-nav"><div class="a-find"><label class="sr-only" for="a-find">Tìm nhanh mục cài đặt</label><span class="a-find-ic" aria-hidden="true">⌕</span><input class="input" id="a-find" type="text" autocomplete="off" placeholder="Tìm nhanh mục cài đặt… (logo, giá, momo, FAQ)"><div class="a-find-res" id="a-find-res" hidden></div></div>
+    <nav class="a-groups" aria-label="Nhóm quản trị">${A_GROUPS.map(([k, icn, l, tabs]) => { const to = tabs.includes(last[k]) ? last[k] : tabs[0]; return `<a href="#/admin/${to}" class="${g[0] === k ? 'on' : ''}">${ic(icn, 'sm')} ${esc(l)}${k === 'people' ? pend : ''}</a>`; }).join('')}</nav>
+    ${g[3].length > 1 ? `<nav class="a-tabs" aria-label="${esc(g[2])}">${g[3].map(k => `<a href="#/admin/${k}" class="${tab === k ? 'on' : ''}">${ic(A_TABS.find(x => x[0] === k)[1], 'sm')} ${esc(A_SUB[k][0])}${k === 'members' ? pend : ''}</a>`).join('')}</nav>` : ''}
+    <p class="a-desc small muted">${esc(A_SUB[tab][1])}</p></div>`;
+}
+
 PAGES.admin = function(){
   if (!state.user) return page(`<div class="auth-wrap"><div class="card pad" style="text-align:center">${emptyBox('shield', 'Cần đăng nhập', 'Đăng nhập bằng tài khoản chủ trang để vào trang quản trị.')}<a class="btn primary" href="#/account">Đăng nhập</a></div></div>`);
   if (!state.isAdmin) return page(`<div class="auth-wrap"><div class="card pad stack"><div class="empty" style="padding:10px"><div class="ico">${ic('shield', 'lg')}</div><h3>${isAdminEmail(state.user) ? 'Cần xác minh email admin' : 'Tài khoản này không phải admin'}</h3></div>
@@ -46,8 +250,11 @@ PAGES.admin = function(){
       ? `<p class="muted small">Email <b>${esc(ADMIN_EMAIL)}</b> là email của chủ trang, nhưng cần được <b>xác minh</b> trước (để không ai khác mạo danh được). Mở hộp thư, bấm vào đường link trong email xác minh, rồi bấm nút bên dưới.</p>
          <div class="row"><button class="btn primary" data-act="recheckAdmin">${ic('check', 'sm')} Tôi đã xác minh rồi</button><button class="btn secondary" data-act="resendVerify">${ic('mail', 'sm')} Gửi lại email xác minh</button></div>`
       : `<p class="muted small">Chỉ tài khoản <b>${esc(ADMIN_EMAIL)}</b> mới có quyền quản trị. Bạn đang đăng nhập bằng <b>${esc(state.user.email)}</b>.</p><button class="btn secondary" data-act="signout">${ic('logout', 'sm')} Đăng xuất</button>`}</div></div>`);  const tab = A_TABS.some(x => x[0] === route.args[0]) ? route.args[0] : 'overview';
-  page(`<div class="page-head"><div><h1>Trang quản trị</h1><p>Tuỳ chỉnh giao diện, nội dung, sản phẩm và đơn hàng của bạn.</p><p class="faint small">Phiên bản web: ${esc(BUILD)} · mã ${esc(ASSET_V)}</p><div id="ver-note"></div></div><button class="btn primary" data-act="startEdit">${ic('pen', 'sm')} Sửa chữ & ảnh trực tiếp trên trang</button></div>
-    <nav class="a-tabs">${A_TABS.map(([k, icn, l]) => `<a href="#/admin/${k}" class="${tab === k ? 'on' : ''}">${ic(icn, 'sm')} ${esc(l)}${k === 'members' && state.compPending ? ` <span class="count">${state.compPending}</span>` : ''}</a>`).join('')}</nav><div id="admin-body"></div>`);
+  page(`<div class="page-head a-top"><div><h1>Trang quản trị</h1><p class="faint small">Phiên bản web: ${esc(BUILD)} · mã ${esc(ASSET_V)}</p><div id="ver-note"></div></div><button class="btn primary" data-act="startEdit">${ic('pen', 'sm')} Sửa chữ & ảnh trên trang</button></div>
+    ${aNav(tab)}<div id="admin-body"></div>`);
+  document.querySelectorAll('.a-groups a.on, .a-nav .a-tabs a.on').forEach(a => { const p = a.parentNode; if (p.scrollWidth > p.clientWidth) p.scrollLeft = Math.max(0, a.offsetLeft - p.offsetLeft - 16); });
+  aWatch(); if (AS.tab !== tab) { AS.dirty.clear(); AS.saved = {}; AS.pending = null; AS.tab = tab; } aBar();
+  { const g = aGroupOf(tab), last = store.get('a_last', {}) || {}; if (last[g[0]] !== tab) { last[g[0]] = tab; store.set('a_last', last); } }
   checkNewVersion();
   ({ overview:tabOverview, site:tabSite, schedule:tabSchedule, blog:tabBlog, music:tabMusic, products:tabProducts, gear:tabGear, orders:tabOrders, coupons:tabCoupons, trials:tabTrials, content:tabContent, reviews:tabReviews, payments:tabPayments, plan:tabPlan, season:tabSeason, members:tabMembers })[tab]();
 };
