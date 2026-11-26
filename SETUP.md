@@ -665,6 +665,10 @@ Làm một lần, sau đó mỗi buổi chỉ cần bấm Start Streaming trong 
 - Gõ vào một thẻ mà chưa bấm Lưu: thẻ hiện **● Chưa lưu**, cuối màn hình có thanh nhắc (nút **Tới chỗ cần Lưu**), và web hỏi lại nếu bạn rời tab hay đóng trang. Lưu xong thẻ hiện **✔ Đã lưu lúc HH:mm** (bản xem thử `?demo=1` hiện "Xem thử: chưa lưu thật").
 - Chỉ là giao diện: không đổi dữ liệu, cách lưu hay `firestore.rules` (**không cần dán luật mới**). Tên vài tab rút gọn trong nhóm: "Nội dung & FAQ" → **Chữ, dịch & FAQ**, "Gói Người đồng hành" → **Gói & quyền lợi**, "Thành viên" → **Thành viên & duyệt**. Tăng phiên bản file lên v=245.
 
+### 22.au. Nhóm học: bể bơi minh họa trên bảng xếp hạng tuần
+- Phía trên danh sách xếp hạng tuần có một **bể bơi nhiều làn**: mỗi người một làn (tối đa 5: bốn người đứng đầu, và bạn nếu bạn ở ngoài top), người nhiều phút nhất bơi sát vạch đích, những người sau bơi xa hay gần theo tỉ lệ số phút so với người dẫn đầu. Huy hiệu số hạng ở đầu làn (vàng, bạc, đồng cho hạng 1, 2, 3), mũ bơi cùng màu với ảnh đại diện trong danh sách bên dưới, quanh bạn có vòng nét đứt.
+- Hình vẽ bằng SVG ngay trong `group.js` (không dùng ảnh ngoài, không thêm chữ cần dịch) và dựng từ dữ liệu bảng tuần đã có, nên **không thêm lượt đọc hay ghi Firebase**, không đổi `firestore.rules`. Hiệu ứng bơi vào chỉ chạy một lần mỗi lần mở trang và tự tắt khi bật giảm chuyển động.
+
 ### 22.at. Admin chỉ hiện ô, bấm vào ô mới xem chi tiết
 - Trong mỗi tab, các mục cài đặt là một **lưới ô chỉ có tên** (không còn đoạn tóm tắt). Bấm vào ô nào thì ô đó mở rộng ra thành form đầy đủ ngay tại chỗ; bấm **Thu gọn** để quay lại thành ô. Mục chỉ để xem (đơn hàng, thành viên…) và mục tạo mới vẫn hiện sẵn như cũ.
 - **Bảng tổng hợp** là lưới ô của mọi mục, chia theo nhóm bằng hàng nút (Tất cả · Live & Lịch · Trang web & Nội dung · …), mỗi lần một nhóm. Bấm một ô là nhảy tới đúng tab và mở sẵn form của mục đó. Ô viền nét đứt là tab dạng danh sách, bấm để mở tab. Ô lọc tìm cả theo giá trị đang cài (ví dụ `momo`, `120`).

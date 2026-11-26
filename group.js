@@ -337,6 +337,41 @@ Object.assign(I18N.vi, {
   function dupCount(){ const c = {}, seen = new Set(); [board, live, roster].forEach(m => Object.entries(m).forEach(([k, e]) => { if (e && e.n && !seen.has(k)) { seen.add(k); c[nk(e.n)] = (c[nk(e.n)] || 0) + 1; } })); dup = c; }
   const dn = (k, n) => (dup[nk(n)] || 0) > 1 ? `${n} #${String(k).slice(-3).toUpperCase()}` : n;
   const avatar = n => `<i class="grp-av" style="--h:${hue(n)}">${esc(String(n).slice(0, 1).toUpperCase())}</i>`;
+  /* ---------- Bể bơi minh họa trên bảng tuần ----------
+     Mỗi người một làn (tối đa 5: top 4 + chính mình nếu ở ngoài top), bơi càng xa khi càng nhiều phút; người dẫn đầu sát vạch đích.
+     Mũ bơi cùng màu với ảnh đại diện trong danh sách bên dưới. Vẽ SVG thuần (không dùng ảnh ngoài), dựng từ dữ liệu bảng tuần sẵn có:
+     không thêm lượt đọc / ghi Firestore. Hoạt hình bơi vào chỉ chạy lần đầu mỗi lần mở trang và tắt khi bật giảm chuyển động. */
+  let poolPlayed = false;
+  const POOL_SUIT = ['#1d3557', '#2a9d8f', '#e76f51', '#6a4c93', '#264653', '#c1121f'], POOL_SKIN = '#e8a77d';
+  function poolSvg(rows, meId, play){
+    if (!rows.length) return '';
+    const W = 420, T0 = 34, LH = 44, H = T0 + rows.length * LH + 10, X0 = 64, XR = 338, lead = Math.max(1, rows[0].mins), WR = 408;
+    const med = ['#ffd166', '#dfe6ee', '#e0a070'], flags = ['#1d4ed8', '#ef476f', '#9fd0ff'];
+    const sag = x => 5 + 5 * Math.sin(Math.PI * x / W);
+    let o = `<defs><pattern id="grpFin" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#fff"/><rect width="4" height="4" fill="#12284c"/><rect x="4" y="4" width="4" height="4" fill="#12284c"/></pattern></defs>`;
+    o += `<rect width="${W}" height="${H}" fill="#fbf7ef"/>`;
+    o += `<path d="M0 ${sag(0)} Q${W / 2} ${sag(W / 2) + 7} ${W} ${sag(W)}" fill="none" stroke="#12284c" stroke-width="1.3" opacity=".7"/>`;
+    for (let x = 14, i = 0; x < W; x += 30, i++) { const y = sag(x) + 3.4; o += `<polygon points="${x - 10},${y} ${x + 10},${y} ${x},${y + 19}" fill="${flags[i % 3]}"/>`; }
+    o += `<rect x="6" y="${T0}" width="${WR - 6}" height="${rows.length * LH}" rx="3" fill="#2f9bf0"/>`;
+    rows.forEach((x, i) => { if (i % 2) o += `<rect x="6" y="${T0 + i * LH}" width="${WR - 6}" height="${LH}" fill="#4aaef7" opacity=".55"/>`; });
+    o += `<rect x="392" y="${T0}" width="8" height="${rows.length * LH}" fill="url(#grpFin)"/>`;
+    for (let i = 0; i <= rows.length; i++) { const y = T0 + i * LH, c = i % 2 ? '#1d4ed8' : '#e63946'; o += `<line x1="6" y1="${y}" x2="${WR}" y2="${y}" stroke="#fff" stroke-width="4.4"/><line x1="6" y1="${y}" x2="${WR}" y2="${y}" stroke="${c}" stroke-width="4.4" stroke-dasharray="6 6"/>`; }
+    rows.forEach((x, i) => {
+      const cy = T0 + i * LH + LH / 2, px = X0 + (x.mins / lead) * (XR - X0), mine = x.k === meId, cap = `hsl(${hue(x.n)},78%,58%)`, bg = med[x.r - 1] || '#fff';
+      o += `<circle cx="26" cy="${cy}" r="11" fill="${bg}" stroke="#12284c" stroke-width="1.4"/><text x="26" y="${cy + 4.3}" text-anchor="middle" font-size="12.5" font-weight="800" fill="#12284c" font-family="inherit">${x.r}</text>`;
+      if (i === 0) o += `<path d="M${px + 34} ${cy - 15}q9 7 0 15t0 15M${px + 42} ${cy - 11}q7 5 0 11t0 11" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity=".6"/>`;
+      o += `<g transform="translate(${px.toFixed(1)} ${cy}) scale(1.25)"><title>${esc(x.n)} · ${esc(fmt(x.mins * 60000))}</title><g class="grp-sw-i" style="--dx:${((X0 - px) / 1.25).toFixed(0)}px">`
+        + `<ellipse cx="9" cy="4" rx="14" ry="6.5" fill="#12408c" opacity=".28"/>`
+        + `<path d="M-14 -11q-7 11 0 22M-24 -9q-6 9 0 18M-34 -6q-4 6 0 12" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" opacity=".75"/>`
+        + `<path d="M32 -8q8 8 0 16" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" opacity=".7"/>`
+        + `<path d="M-6 -2.5L-22 -5.5M-6 2.5L-22 5.5" stroke="${POOL_SKIN}" stroke-width="3" stroke-linecap="round"/>`
+        + `<ellipse cx="6" cy="0" rx="12" ry="6.5" fill="${POOL_SUIT[i % POOL_SUIT.length]}"/>`
+        + `<path d="M13 -4.5q9 -6 17 -3M13 4.5q9 6 17 3" fill="none" stroke="${POOL_SKIN}" stroke-width="3" stroke-linecap="round"/>`
+        + `<circle cx="15" cy="0" r="5.6" fill="${cap}" stroke="#fff" stroke-width=".9"/>`
+        + (mine ? `<ellipse cx="2" cy="0" rx="33" ry="14.5" fill="none" stroke="#fff" stroke-width="1.7" stroke-dasharray="3.5 3.5"/>` : '') + `</g></g>`;
+    });
+    return `<div class="grp-pool ${play ? 'play' : ''}"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t('grp_board'))}" xmlns="http://www.w3.org/2000/svg">${o}</svg></div>`;
+  }
   const kick = id => state.isAdmin && id !== state.user.uid ? `<button type="button" class="grp-x" data-act="grpKick" data-id="${esc(id)}" title="${esc(t('grp_remove'))}" aria-label="${esc(t('grp_remove'))}">${ic('x', 'sm')}</button>` : '';
   const plus = (id, n) => state.isAdmin ? `<button type="button" class="grp-x" data-act="grpAdd" data-id="${esc(id)}" data-n="${esc(n)}" title="Cộng bù phút" aria-label="Cộng bù phút">${ic('plus', 'sm')}</button>` : '';   // chỉ admin: cộng bù phút bị mất do lỗi cũ
   /* Cổ vũ: cheers = { <người gửi>: [<người nhận>, ...] } nằm trong cùng tài liệu tuần (không tốn thêm lượt đọc). Mỗi người chỉ ghi danh sách của chính mình,
@@ -455,7 +490,9 @@ Object.assign(I18N.vi, {
     const arow = x => `<li class="grp-row away ${x.k === id ? 'me' : ''}"><span class="grp-rank r0">–</span>${avatar(x.n)}<b class="grp-n">${esc(dn(x.k, x.n))}${x.k === id ? ` <span class="badge">${esc(t('grp_you'))}</span>` : ''}</b><span class="grp-st">${esc(x.w === wkPrev() && rk0[x.k] ? t('grp_ab_drop', { r:rk0[x.k] }) : x.w === wkPrev() ? t('grp_ab_prev') : x.w ? t('grp_ab_w', { w:wnum(x.w) }) : t('grp_ab_new'))}</span>${kick(x.k)}</li>`;
     const awayShown = showAll ? away : away.slice(0, Math.max(0, TOP - top.length - zero.length)), more = all.length > TOP || away.length > Math.max(0, TOP - Math.min(all.length, TOP) - zero.length) ? `<button type="button" class="grp-toggle ${showAll ? 'open' : ''}" data-act="grpMore" aria-expanded="${showAll}"><i class="grp-tri" aria-hidden="true"></i> ${esc(showAll ? t('grp_less', { n:TOP }) : t('grp_more', { n:all.length + zero.length + away.length }))}</button>` : '';
     const cl = climb(), sum = cl ? `<p class="grp-climb small"><b>${esc(t('grp_rank', { r:cl.r }))}</b>${trendHTML(cl)}<span class="muted">${esc(gapText(cl))}</span></p>` : '';
-    return `<h3 class="grp-h">${esc(t('grp_board'))}</h3>${sum}` + (all.length || zero.length || away.length
+    const pr = (mine >= 5 ? all.slice(0, 4).concat([all[mine]]) : all.slice(0, 5)).map(x => ({ ...x, r:all.indexOf(x) + 1 })), play = !poolPlayed && pr.length > 1 && !(typeof motionOff === 'function' && motionOff());
+    if (pr.length) poolPlayed = true;
+    return `<h3 class="grp-h">${esc(t('grp_board'))}</h3>${sum}${poolSvg(pr, id, play)}` + (all.length || zero.length || away.length
       ? `<ol class="grp-list">${top.map(row).join('')}${!showAll && mine >= TOP ? `<li class="grp-gap" aria-hidden="true">…</li>${row(all[mine], mine)}` : ''}${zero.map(zrow).join('')}${awayShown.length ? `<li class="grp-gap grp-cap" role="presentation">${esc(t('grp_ab_h', { n:away.length }))}</li>${awayShown.map(arow).join('')}` : ''}</ol>${more}` : `<p class="muted small">${esc(t(known() ? 'grp_board_none' : 'loading'))}</p>`) + `<p class="small faint mt-s">${esc(t('grp_reset'))}</p>` + prevHTML();
   }
   function moonBeg(){      // Moon (con mèo động của web, dáng ngồi) hiện ra nũng nịu; dùng lại hình mèo đi dạo trong pages.js, không vẽ riêng
@@ -608,5 +645,5 @@ Object.assign(I18N.vi, {
     grpKick: async el => { const id = el.dataset.id; if (!state.isAdmin || !id) return; delete live[id]; delete board[id]; rosDrop(id); renderBox(); try { await ref().update({ ['live.' + id]: DEL(), ['board.' + id]: DEL() }); } catch (e) { toast(t('grp_err')); } }
   });
   startTimers();
-  window.EPGroup = { mount, sync, credit };
+  window.EPGroup = { mount, sync, credit, pool:poolSvg };
 })();
