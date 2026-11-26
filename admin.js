@@ -139,8 +139,13 @@ function aDrawSum(card){
   let el = card.querySelector(':scope > .a-sum'); if (!el) { el = document.createElement('div'); el.className = 'a-sum'; card.firstElementChild.after(el); }
   el.innerHTML = aSumHTML(aSummary(card), 8);
 }
+const aEmptyV = v => /^<span class="faint">\((trống|chưa có|không mục nào)\)<\/span>$/.test(v);
 function aSumHTML(items, max){
-  return items.length ? items.slice(0, max).map(([l, v, w]) => `<div class="a-sum-i ${w || ''}"><span class="a-sum-l">${esc(l)}</span><span class="a-sum-v">${v}</span></div>`).join('') + (items.length > max ? `<div class="a-sum-i"><span class="a-sum-l">&nbsp;</span><span class="a-sum-v faint">+ ${items.length - max} mục khác, bấm Sửa để xem</span></div>` : '') : '<p class="small faint" style="margin:0">Bấm Sửa để xem chi tiết.</p>';
+  const full = items.filter(i => !aEmptyV(i[1])), empty = items.filter(i => aEmptyV(i[1]));
+  if (!full.length && !empty.length) return '<p class="small faint" style="margin:0">Bấm Sửa để xem chi tiết.</p>';
+  const rows = full.slice(0, max).map(([l, v, w]) => `<div class="a-kv ${w || ''}"><span class="a-k">${esc(l)}</span><span class="a-v">${v}</span></div>`).join('')
+    + (full.length > max ? `<div class="a-kv wide"><span class="a-k faint">+ ${full.length - max} mục khác, bấm Sửa để xem</span></div>` : '');
+  return (rows ? `<div class="a-kvs">${rows}</div>` : '') + (empty.length ? `<div class="a-kv-empty">Chưa điền (${empty.length}): ${esc(empty.map(i => aCut(i[0], 34)).join(' · '))}</div>` : '');
 }
 function aSetFold(card, on, remember = true){
   if (on) aDrawSum(card);
@@ -299,12 +304,12 @@ function tabAll(){
   const sec = A_GROUPS.filter(g => g[0] !== 'all' && g[0] !== 'home').map(g => {
     const body = g[3].map(tab => {
       const nm = A_SUB[tab][0];
-      if (!A_ALL_TABS.includes(tab)) return `<div class="a-all-r lk" data-q="${esc(aNorm(nm + ' ' + A_SUB[tab][1]))}"><div class="a-all-h"><b>${esc(nm)}</b><small>Danh sách / thao tác, mở tab để xem</small></div><p class="small muted a-all-d">${esc(A_SUB[tab][1])}</p><a class="btn secondary sm" href="#/admin/${tab}">Mở tab</a></div>`;
-      return aCapture(tab).map(c => `<div class="a-all-r" data-q="${esc(aNorm(c.title + ' ' + nm + ' ' + c.items.map(i => i[0] + ' ' + txt(i[1])).join(' ')))}"><div class="a-all-h"><b>${esc(c.title)}</b><small>${esc(nm)}</small></div><div class="a-sum">${aSumHTML(c.items, 6)}</div><button type="button" class="btn primary sm" data-act="aFindGo" data-tab="${tab}" data-t="${esc(c.title)}">${ic('pen', 'sm')} Sửa</button></div>`).join('');
+      if (!A_ALL_TABS.includes(tab)) return `<div class="a-all-r lk" data-q="${esc(aNorm(nm + ' ' + A_SUB[tab][1]))}"><div class="a-all-hd"><div><b>${esc(nm)}</b><small>Danh sách / thao tác</small></div><a class="btn secondary sm" href="#/admin/${tab}">Mở tab</a></div><p class="muted a-all-d">${esc(A_SUB[tab][1])}</p></div>`;
+      return aCapture(tab).map(c => `<div class="a-all-r" data-q="${esc(aNorm(c.title + ' ' + nm + ' ' + c.items.map(i => i[0] + ' ' + txt(i[1])).join(' ')))}"><div class="a-all-hd"><div><b>${esc(c.title)}</b><small>${esc(nm)}</small></div><button type="button" class="btn primary sm" data-act="aFindGo" data-tab="${tab}" data-t="${esc(c.title)}">${ic('pen', 'sm')} Sửa</button></div>${aSumHTML(c.items, 6)}</div>`).join('');
     }).join('');
-    return `<section class="a-all-g"><h2>${ic(g[1], 'sm')} ${esc(g[2])}</h2>${body}</section>`;
+    return `<section class="a-all-g" id="ag-${g[0]}"><h2>${ic(g[1], 'sm')} ${esc(g[2])}</h2><div class="a-all-list">${body}</div></section>`;
   }).join('');
-  A(`<div class="a-all-top"><input class="input" id="all-q" type="search" autocomplete="off" placeholder="Lọc bảng này… (ví dụ: logo, momo, đang tắt, 120)"><span class="small faint" id="all-n"></span></div>${sec}<p class="small faint" id="all-none" hidden>Không có mục nào khớp.</p>`);
+  A(`<div class="a-all-top"><input class="input" id="all-q" type="search" autocomplete="off" placeholder="Lọc bảng này… (ví dụ: logo, momo, đang tắt, 120)"><span class="small faint" id="all-n"></span></div><div class="a-all-jump">${A_GROUPS.filter(g => g[0] !== 'all' && g[0] !== 'home').map(g => `<button type="button" class="a-chip" data-act="aJump" data-id="ag-${g[0]}">${esc(g[2])}</button>`).join('')}</div>${sec}<p class="small faint" id="all-none" hidden>Không có mục nào khớp.</p>`);
   allFilter();
 }
 function allFilter(){
