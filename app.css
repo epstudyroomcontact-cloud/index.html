@@ -1522,3 +1522,13 @@ body:has(#tour-ask) .sofa{display:none}
 .sev-top li b{margin:0 6px;font-variant-numeric:tabular-nums}
 .sev-rw{display:flex;align-items:flex-start;gap:6px;font-weight:700;color:var(--accent-strong)}.sev-rw .ic{flex:none;margin-top:2px}
 .a-card{scroll-margin-top:80px}
+
+/* Nhóm học: bể bơi minh họa trên bảng tuần (group.js poolSvg) */
+.grp-pool{margin:4px 0 12px;border-radius:14px;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.12)}
+.grp-pool svg{display:block;width:100%;height:auto}
+.grp-pool.play .grp-sw-i{animation:grpSwim 1.5s cubic-bezier(.2,.7,.2,1) both}
+@keyframes grpSwim{from{transform:translate(var(--dx),var(--dy)) scale(var(--k))}to{transform:none}}
+@media (prefers-reduced-motion:reduce){html:not([data-motion="on"]) .grp-pool.play .grp-sw-i{animation:none}}
+html[data-calm] .grp-pool.play .grp-sw-i{animation:none}
+.grp-pool{background:#0d1633}
+.grp-pool.wait{min-height:120px}

@@ -337,6 +337,72 @@ Object.assign(I18N.vi, {
   function dupCount(){ const c = {}, seen = new Set(); [board, live, roster].forEach(m => Object.entries(m).forEach(([k, e]) => { if (e && e.n && !seen.has(k)) { seen.add(k); c[nk(e.n)] = (c[nk(e.n)] || 0) + 1; } })); dup = c; }
   const dn = (k, n) => (dup[nk(n)] || 0) > 1 ? `${n} #${String(k).slice(-3).toUpperCase()}` : n;
   const avatar = n => `<i class="grp-av" style="--h:${hue(n)}">${esc(String(n).slice(0, 1).toUpperCase())}</i>`;
+  /* ---------- Bể bơi đêm trăng trên bảng tuần (cùng phong cách Hành trình trăng) ----------
+     Mỗi người một làn dọc (tối đa 5: top 4 + chính mình nếu ở ngoài top), bơi từ vạch xuất phát lên phía mặt trăng (đích) càng cao khi càng nhiều phút; Moon ngồi trên bờ ngắm trăng.
+     Vẽ bằng chính bộ vẽ của Hành trình trăng (moon-art.js: trời sao, trăng, nước có vệt trăng, đom đóm, mèo Moon, lớp chất liệu sáp):
+     file đó chỉ nạp khi cần, xong thì vẽ lại bảng. Mũ bơi cùng màu với ảnh đại diện trong danh sách bên dưới.
+     Dựng từ dữ liệu bảng tuần sẵn có: không thêm lượt đọc / ghi Firestore. Hoạt hình bơi vào chỉ chạy lần đầu mỗi lần mở trang và tắt khi bật giảm chuyển động. */
+  let poolPlayed = false, poolLoad = false, poolN = 0;
+  const POOL_SUIT = ['#8fb4ff', '#ffb78a', '#9be3c5', '#d4b4ff', '#ffe08f', '#ff9db5'], POOL_RANK = [['#fff2c4', '#4a3a12'], ['#d7dff5', '#222c4d'], ['#f0c39a', '#4a2c14']];
+  function poolSvg(rows, meId, play){
+    if (!rows.length) return '';
+    const W = 400, HY = 96, YN = 308, H = YN + 46, N = rows.length, HWN = N * 38, MX = W / 2, YF = HY + Math.round((YN - HY) * .42), K = 1 / (YN - HY);
+    if (typeof mjCtx !== 'function' || typeof mjTexDefs !== 'function') {
+      if (!poolLoad && typeof loadMoonArt === 'function') { poolLoad = true; loadMoonArt().then(() => { poolLoad = false; renderBox(); }).catch(() => { poolLoad = false; }); }
+      return `<div class="grp-pool wait" style="aspect-ratio:${W}/${H}"></div>`;
+    }
+    poolPlayed = true;
+    // phối cảnh: các làn thu dần về chân trời (nơi có mặt trăng); hw(y) = nửa bề ngang bể ở độ cao y, sc(y) = tỉ lệ vật thể theo độ xa
+    const k = 'grp' + (++poolN), c = mjCtx(21 + poolN % 7, k), hw = y => HWN * (y - HY) * K, sc = y => (y - HY) * K, ex = (i, y) => MX + (i / N * 2 - 1) * hw(y), lc = (i, y) => MX + ((i + .5) / N * 2 - 1) * hw(y);
+    const inPool = (x, y) => y >= YF && Math.abs(x - MX) < hw(y), inL = (x, y) => y >= YF - 4 && x < MX - hw(y) - 6, inR = (x, y) => y >= YF - 4 && x > MX + hw(y) + 6;
+    let s = mjSkyN(c, '#0a1431', '#223c78', HY, { streaks:20, stars:52, sparks:4, starH:.95 });
+    s += mjMoonN(c, MX, 52, 22, { halo:3.2 });
+    s += `<path d="M0 ${HY}V${HY - 11}Q60 ${HY - 25} 126 ${HY - 9}T262 ${HY - 13}T400 ${HY - 8}V${HY}Z" fill="#0b1630"/>` + mjDots(c, 26, [0, HY - 7, W, HY - 1], ['#ffd27a', '#ffe9b0'], [.9, 1.6], .8);
+    s += mjWater(c, HY, YN, { top:'#254a8c', bot:'#091329', path:MX, spread:150, n:240, glints:200 });
+    // bể: mặt nước sáng hơn, nằm trong hình thang
+    const L0 = MX - hw(YF), R0 = MX + hw(YF), pool = `M${L0} ${YF}H${R0}L${MX + HWN} ${YN}H${MX - HWN}Z`;
+    s += `<path d="${pool}" fill="${mjLin(c, [[0, '#4a86d8', .32], [1, '#1d4690', .5]])}"/>` + mjS(c, 150, [0, YF, W, YN], ['#5d96e6', '#3a74c4', '#9fc4ff'], { ang:0, len:[8, 36], w:[1.2, 2.2], op:.5, jit:2, in:inPool });
+    rows.forEach((x, i) => { if (x.k === meId) s += `<path d="M${ex(i, YF)} ${YF}L${ex(i + 1, YF)} ${YF}L${ex(i + 1, YN)} ${YN}L${ex(i, YN)} ${YN}Z" fill="#cfe0ff" opacity=".14"/>`; });
+    // hai bờ và bờ gần (đá, cỏ, thông), có lề đá dọc bể
+    const gnd = mjLin(c, [[0, '#14224a'], [1, '#0a1329']]);
+    s += `<path d="M0 ${YF - 4}H${L0 - 6}L${MX - HWN - 6} ${YN}H0Z" fill="${gnd}"/><path d="M${W} ${YF - 4}H${R0 + 6}L${MX + HWN + 6} ${YN}H${W}Z" fill="${gnd}"/>`
+      + mjS(c, 70, [0, YF - 4, MX - 40, YN], ['#1a2c58', '#223a6c', '#0b1531'], { ang:70, len:[8, 22], w:[2, 3.4], op:.7, jit:12, in:inL }) + mjS(c, 70, [MX + 40, YF - 4, W, YN], ['#1a2c58', '#223a6c', '#0b1531'], { ang:110, len:[8, 22], w:[2, 3.4], op:.7, jit:12, in:inR });
+    s += `<path d="M${L0 - 3} ${YF}L${MX - HWN - 3} ${YN}M${R0 + 3} ${YF}L${MX + HWN + 3} ${YN}" stroke="#aebbe0" stroke-width="2.4" stroke-linecap="round" opacity=".55"/>`;
+    s += `<rect y="${YN}" width="${W}" height="${H - YN}" fill="${mjLin(c, [[0, '#16254f'], [1, '#0a1329']])}"/>` + mjS(c, 36, [0, YN, W, H], ['#1a2c58', '#223a6c', '#0b1531'], { ang:2, len:[10, 26], w:[2, 3], op:.7, jit:4 }) + `<path d="M${MX - HWN - 6} ${YN}H${MX + HWN + 6}" stroke="#aebbe0" stroke-width="2.6" opacity=".5"/>`;
+    for (let x = 6; x < L0 - 22; x += 12 + c.r() * 10) s += mjPine(x, YF + 6 + c.r() * 8, 30 + c.r() * 14, c.r() < .5 ? '#0e1f3a' : '#12284a');
+    // phao hạt đèn: hạt xa nhỏ và sát nhau, hạt gần to và thưa (chia đều theo độ xa thật)
+    const zn = 1 / (YN - HY - 2), zf = 1 / (YF - HY), nb = 20;
+    for (let i = 0; i <= N; i++) {
+      const col = i % 2 ? '#a9c8ff' : '#ffd98a'; let d = '', g = '';
+      for (let j = 0; j <= nb; j++) { const y = HY + 1 / (zn + (zf - zn) * j / nb), x = ex(i, y), r = .8 + 2.2 * sc(y); d += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(2)}"/>`; if (j % 2 === 0) g += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(r * 2.2).toFixed(1)}"/>`; }
+      s += `<path d="M${ex(i, YN - 2)} ${YN - 2}L${ex(i, YF)} ${YF}" stroke="#8da2d6" stroke-width=".8" opacity=".45" fill="none"/><g fill="${col}" opacity=".17">${g}</g>` + mjA(c, 'mja-shim', `<g fill="${col}" opacity=".95">${d}</g>`, 3.4);
+    }
+    // đích: vạch vàng ngay dưới chân trời, hai cột đèn
+    s += mjGlow(c, MX, YF, hw(YF) * 1.2, 'w', .22) + `<path d="M${L0 - 3} ${YF}H${R0 + 3}" stroke="#ffe9a0" stroke-width="1.8" stroke-dasharray="4 4" opacity=".95"/>`;
+    [L0 - 8, R0 + 8].forEach(x => { s += `<path d="M${x} ${YF + 2}V${YF - 24}" stroke="#3b2d4f" stroke-width="2.6" stroke-linecap="round"/>` + mjGlow(c, x, YF - 27, 26, 'w', .85) + `<rect x="${x - 2.4}" y="${YF - 31}" width="4.8" height="8" rx="1.2" fill="#ffd27a"/>`; });
+    s += mjCat(c, 46, YF + 36, .85, 'sitB', { shadow:false });
+    s += mjGlow(c, 356, YF + 56, 34, 'w', .7) + `<path d="M356 ${YF + 70}V${YF + 50}" stroke="#3b2d4f" stroke-width="3" stroke-linecap="round"/><rect x="353.5" y="${YF + 44}" width="5" height="9" rx="1.3" fill="#ffd27a"/>`;
+    s += mjFlies(c, 12, [30, HY + 6, W - 30, YN - 10], { sz:.85, in:(x, y) => y < YF + 40 || inPool(x, y) });
+    // người bơi: nhìn từ phía sau, bơi về phía trăng; vẽ từ xa tới gần để người gần che người xa
+    const zs = 1 / (YN - 40 - HY), ze = 1 / (YF + 16 - HY), lead = Math.max(1, rows[0].mins), S0 = 1.45, ys = YN - 40;
+    rows.map((x, i) => ({ x, i, y:HY + 1 / (zs + (ze - zs) * (x.mins / lead)) })).sort((a, b) => a.y - b.y).forEach(({ x, i, y:py }) => {
+      const cx = lc(i, py), q = S0 * sc(py), mine = x.k === meId, cap = `hsl(${hue(x.n)},78%,62%)`, [rb, rt] = POOL_RANK[x.r - 1] || ['#2c3d73', '#dfe8ff'], bx = lc(i, YN) , by = YN + 25;
+      s += `<g transform="translate(${cx.toFixed(1)} ${py.toFixed(1)}) scale(${q.toFixed(3)})"><title>${esc(x.n)} · ${esc(fmt(x.mins * 60000))}</title><g class="grp-sw-i" style="--dx:${((lc(i, ys) - cx) / q).toFixed(0)}px;--dy:${((ys - py) / q).toFixed(0)}px;--k:${(sc(ys) / sc(py)).toFixed(2)}">`
+        + mjGlow(c, 0, -8, 34, 'c', .55)
+        + `<ellipse cx="0" cy="5" rx="23" ry="7" fill="none" stroke="#cfe0ff" stroke-width="1.5" opacity=".5"/><ellipse cx="0" cy="5" rx="34" ry="10.5" fill="none" stroke="#cfe0ff" stroke-width="1.1" opacity=".25"/>`
+        + `<path d="M-7 7L-27 22M7 7L27 22" stroke="#cfe0ff" stroke-width="1.7" stroke-linecap="round" opacity=".45" fill="none"/>`
+        + `<path d="M-3 7q-2 6 -4 10M3 7q2 6 4 10" fill="none" stroke="${MJN.skin}" stroke-width="3.2" stroke-linecap="round"/><path d="M-11 15q3 -4 7 0M4 15q3 -4 7 0" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity=".8"/>`
+        + `<path d="M-8 -2Q-18 -13 -10 -26" fill="none" stroke="${MJN.skin}" stroke-width="3.6" stroke-linecap="round"/>`
+        + `<ellipse cx="0" cy="0" rx="11.5" ry="6.6" fill="${POOL_SUIT[i % POOL_SUIT.length]}"/>`
+        + `<path d="M9 -1Q17 -6 14 -14" fill="none" stroke="${MJN.skin}" stroke-width="3.6" stroke-linecap="round"/>`
+        + `<circle cx="0" cy="-9" r="5.8" fill="${cap}" stroke="#fff2c4" stroke-width=".9"/>`
+        + (mine ? `<ellipse cx="0" cy="-5" rx="27" ry="25" fill="none" stroke="#ffe9a0" stroke-width="1.6" stroke-dasharray="3.5 3.5"/>` : '') + `</g></g>`;
+      if (mine) s += `<text x="${cx.toFixed(1)}" y="${(py + 20 * q + 11).toFixed(1)}" text-anchor="middle" font-size="9.5" font-weight="700" fill="#ffe9a0" stroke="#0d1633" stroke-width="3" paint-order="stroke" font-family="inherit">${esc(t('grp_you'))}</text>`;
+      if (x.r === 1) s += mjA(c, 'mja-tw', mjSpark(cx + 16 * q, py - 30 * q, 5 + 2 * q, '#fffbea'), 3);
+      s += `<circle cx="${bx.toFixed(1)}" cy="${by}" r="12" fill="${rb}" stroke="#fff2c4" stroke-opacity="${x.r < 4 ? .9 : .35}" stroke-width="1.3"/>` + (x.r === 1 ? mjGlow(c, bx, by, 26, 'm', .55) : '') + `<text x="${bx.toFixed(1)}" y="${by + 4.6}" text-anchor="middle" font-size="13" font-weight="800" fill="${rt}" font-family="inherit">${x.r}</text>`;
+    });
+    return `<div class="grp-pool ${play ? 'play' : ''}"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t('grp_board'))}" xmlns="http://www.w3.org/2000/svg"><defs>${mjTexDefs(k, (9 + poolN) % 50)}${c.d}</defs><rect width="${W}" height="${H}" fill="${MJN.navy}"/>${s}<rect width="${W}" height="${H}" fill="url(#${k}v)"/><g pointer-events="none"><rect width="${W}" height="${H}" filter="url(#${k}B)" style="mix-blend-mode:soft-light" opacity=".55"/><rect width="${W}" height="${H}" filter="url(#${k}T)" style="mix-blend-mode:soft-light"/></g></svg></div>`;
+  }
   const kick = id => state.isAdmin && id !== state.user.uid ? `<button type="button" class="grp-x" data-act="grpKick" data-id="${esc(id)}" title="${esc(t('grp_remove'))}" aria-label="${esc(t('grp_remove'))}">${ic('x', 'sm')}</button>` : '';
   const plus = (id, n) => state.isAdmin ? `<button type="button" class="grp-x" data-act="grpAdd" data-id="${esc(id)}" data-n="${esc(n)}" title="Cộng bù phút" aria-label="Cộng bù phút">${ic('plus', 'sm')}</button>` : '';   // chỉ admin: cộng bù phút bị mất do lỗi cũ
   /* Cổ vũ: cheers = { <người gửi>: [<người nhận>, ...] } nằm trong cùng tài liệu tuần (không tốn thêm lượt đọc). Mỗi người chỉ ghi danh sách của chính mình,
@@ -455,7 +521,8 @@ Object.assign(I18N.vi, {
     const arow = x => `<li class="grp-row away ${x.k === id ? 'me' : ''}"><span class="grp-rank r0">–</span>${avatar(x.n)}<b class="grp-n">${esc(dn(x.k, x.n))}${x.k === id ? ` <span class="badge">${esc(t('grp_you'))}</span>` : ''}</b><span class="grp-st">${esc(x.w === wkPrev() && rk0[x.k] ? t('grp_ab_drop', { r:rk0[x.k] }) : x.w === wkPrev() ? t('grp_ab_prev') : x.w ? t('grp_ab_w', { w:wnum(x.w) }) : t('grp_ab_new'))}</span>${kick(x.k)}</li>`;
     const awayShown = showAll ? away : away.slice(0, Math.max(0, TOP - top.length - zero.length)), more = all.length > TOP || away.length > Math.max(0, TOP - Math.min(all.length, TOP) - zero.length) ? `<button type="button" class="grp-toggle ${showAll ? 'open' : ''}" data-act="grpMore" aria-expanded="${showAll}"><i class="grp-tri" aria-hidden="true"></i> ${esc(showAll ? t('grp_less', { n:TOP }) : t('grp_more', { n:all.length + zero.length + away.length }))}</button>` : '';
     const cl = climb(), sum = cl ? `<p class="grp-climb small"><b>${esc(t('grp_rank', { r:cl.r }))}</b>${trendHTML(cl)}<span class="muted">${esc(gapText(cl))}</span></p>` : '';
-    return `<h3 class="grp-h">${esc(t('grp_board'))}</h3>${sum}` + (all.length || zero.length || away.length
+    const pr = (mine >= 5 ? all.slice(0, 4).concat([all[mine]]) : all.slice(0, 5)).map(x => ({ ...x, r:all.indexOf(x) + 1 })), play = !poolPlayed && pr.length > 1 && !(typeof motionOff === 'function' && motionOff());
+    return `<h3 class="grp-h">${esc(t('grp_board'))}</h3>${sum}${poolSvg(pr, id, play)}` + (all.length || zero.length || away.length
       ? `<ol class="grp-list">${top.map(row).join('')}${!showAll && mine >= TOP ? `<li class="grp-gap" aria-hidden="true">…</li>${row(all[mine], mine)}` : ''}${zero.map(zrow).join('')}${awayShown.length ? `<li class="grp-gap grp-cap" role="presentation">${esc(t('grp_ab_h', { n:away.length }))}</li>${awayShown.map(arow).join('')}` : ''}</ol>${more}` : `<p class="muted small">${esc(t(known() ? 'grp_board_none' : 'loading'))}</p>`) + `<p class="small faint mt-s">${esc(t('grp_reset'))}</p>` + prevHTML();
   }
   function moonBeg(){      // Moon (con mèo động của web, dáng ngồi) hiện ra nũng nịu; dùng lại hình mèo đi dạo trong pages.js, không vẽ riêng
@@ -608,5 +675,5 @@ Object.assign(I18N.vi, {
     grpKick: async el => { const id = el.dataset.id; if (!state.isAdmin || !id) return; delete live[id]; delete board[id]; rosDrop(id); renderBox(); try { await ref().update({ ['live.' + id]: DEL(), ['board.' + id]: DEL() }); } catch (e) { toast(t('grp_err')); } }
   });
   startTimers();
-  window.EPGroup = { mount, sync, credit };
+  window.EPGroup = { mount, sync, credit, pool:poolSvg };
 })();
