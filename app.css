@@ -1399,3 +1399,10 @@ body:has(#tour-ask) .sofa{display:none}
 .grp-ch.pop{animation:chPop .7s ease-out 2}
 @keyframes chPop{0%,100%{transform:scale(1)}40%{transform:scale(1.5) rotate(-10deg)}70%{transform:scale(1.2) rotate(8deg)}}
 @media(prefers-reduced-motion:reduce){.clap-p,.grp-ch.pop{animation:none;display:none}}
+/* Sao lưu & xuất dữ liệu học (js/backup.js) */
+.bk-card .row .btn{white-space:normal;text-align:left}
+.bk-pick{gap:8px}
+.bk-opt{display:flex;align-items:flex-start;gap:8px;font-size:.9rem;line-height:1.35;cursor:pointer}
+.bk-opt input{margin-top:3px;flex:none}
+.bk-opt input:disabled+span{opacity:.55}
+@media (max-width:520px){.bk-card .row .btn{flex:1 1 140px;justify-content:center}}

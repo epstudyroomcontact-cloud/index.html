@@ -1193,7 +1193,7 @@ PAGES.account = function(){
   const tabs = [['profile', 'user', t('profile')], ['orders', 'box', t('my_orders')], ['library', 'download', t('my_library')]];
   let body = '';
   if (tab === 'profile') body = `<section class="card pad"><h1 class="h3" style="margin-bottom:12px">${esc(t('profile'))}</h1><form class="stack" data-form="profile" style="max-width:420px"><div class="field"><label class="label">${esc(t('display_name'))}</label><input class="input" id="pf-name" value="${esc(displayName())}" maxlength="60"></div><div class="field"><label class="label">${esc(t('email'))}</label><input class="input" value="${esc(u.email)}" disabled></div><button class="btn primary" style="align-self:flex-start" type="submit">${esc(t('save'))}</button></form></section>`;
-  if (tab === 'profile') body += clubPromo();
+  if (tab === 'profile') body += bkSlot() + clubPromo();
   if (tab === 'orders') {
     if (myOrders === null) loadMyOrders();
     body = `<section class="card pad"><h1 class="h3" style="margin-bottom:6px">${esc(t('my_orders'))}</h1>${myOrders === null ? `<p class="muted">${esc(t('loading'))}</p>` : myOrders.length ? myOrders.map(o => `<div class="ord-row"><div><b class="mono">${esc(o.code)}</b><div class="small muted">${esc((o.items || []).map(i => i.name + ' ×' + i.qty).join(', '))}</div></div><div style="text-align:right"><b>${money(o.total, o.currency)}</b><br><span class="badge ${o.status === 'paid' || o.status === 'shipped' ? 'live' : o.status === 'cancelled' ? 'danger' : 'warn'}">${esc(o.status)}</span></div></div>`).join('') : `<p class="muted">${esc(t('no_orders'))}</p>`}</section>`;
@@ -1203,6 +1203,8 @@ PAGES.account = function(){
     <div class="acct-grid"><aside class="card pad stack" style="align-items:center;text-align:center"><span class="avatar" style="width:64px;height:64px;font-size:1.5rem">${esc((displayName() || '?').slice(0, 1).toUpperCase())}</span><div><h2 style="font-size:1.15rem">${esc(displayName())}${nameBadge()}</h2><div class="small muted">${esc(u.email)}</div>${state.isAdmin ? `<span class="badge mt-s">Admin</span>` : ''}${state.companion ? `<div class="mt-s">${compBadge()}</div>` : ''}</div>
       <div class="stack" style="width:100%">${tabs.map(([k, icn, l]) => `<a class="btn ${tab === k ? 'primary' : 'secondary'}" href="#/account/${k}">${ic(icn, 'sm')} ${esc(l)}</a>`).join('')}${state.isAdmin ? `<a class="btn secondary" href="#/admin">${ic('shield', 'sm')} ${esc(t('nav_admin'))}</a>` : ''}<button class="btn ghost" data-act="signout">${ic('logout', 'sm')} ${esc(t('signout'))}</button></div></aside><div>${body}</div></div>`);
 };
+/* thẻ Sao lưu & xuất dữ liệu học (js/backup.js, tải khi cần) */
+const bkSlot = () => typeof bkCard === 'function' ? bkCard() : (loadBackup().then(() => { if (route.name === 'account') render(true); }).catch(e => console.warn('backup.js', e)), `<section class="card pad" style="margin-top:18px"><p class="muted small">${esc(t('loading'))}</p></section>`);
 async function loadMyOrders(){
   if (DEMO) { myOrders = [{ code:'EP-DEMO1', items:[{ name:'30-Day Study Planner (PDF)', qty:1 }], total:79000, currency:'VND', status:'paid' }]; return render(true); }
   try { const s = await db.collection('orders').where('uid', '==', state.user.uid).get(); myOrders = s.docs.map(d => d.data()).sort((a, b) => tsMs(b.createdAt) - tsMs(a.createdAt)); } catch (e) { myOrders = []; }
