@@ -439,13 +439,22 @@ body.editing .edit-bar{display:flex}
 .a-head{flex-wrap:nowrap;align-items:flex-start;gap:8px}
 .a-head h3{flex:1;min-width:0;cursor:pointer;user-select:none}
 .a-head h3:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
-.a-fold{flex:none;background:none;border:1px solid var(--line);border-radius:8px;width:30px;height:30px;display:grid;place-items:center;color:var(--ink2);cursor:pointer;margin-top:-4px;transition:transform .2s}
-.a-fold:hover{color:var(--ink);background:var(--surface2)}
-.a-card:not(.fold) > .a-head .a-fold svg{transform:rotate(180deg)}
-.a-card.fold{padding-top:14px;padding-bottom:14px}
-.a-card.fold > :not(.a-head):not(.a-foldnote){display:none!important}
-.a-card.fold > .a-head h3{margin-bottom:0}
-.a-foldnote{display:none;margin:4px 0 0}.a-card.fold > .a-foldnote{display:block}
+.a-fold{flex:none;margin-top:-4px;white-space:nowrap}
+.a-fold:not(.primary){background:none;border:1px solid var(--line);color:var(--ink2)}
+.a-card.a-ed.fold{padding-top:16px;padding-bottom:16px}
+.a-card.fold > :not(.a-head):not(.a-sum){display:none!important}
+.a-card.fold > .a-head h3{margin-bottom:10px}
+.a-card:not(.fold) > .a-sum{display:none}
+.a-sum{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px 18px}
+.a-sum-i{display:flex;flex-direction:column;gap:1px;min-width:0;padding:7px 10px;border-radius:9px;background:var(--surface2);border:1px solid var(--line)}
+.a-sum-l{font-size:.72rem;font-weight:700;color:var(--ink3,var(--ink2));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.a-sum-v{font-size:.86rem;color:var(--ink);overflow-wrap:anywhere}
+.a-sum-i.wide{grid-column:1/-1}
+.a-sum-cs{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0 2px}
+.a-sum-c{font-size:.76rem;padding:2px 8px;border-radius:999px;background:var(--surface);border:1px solid var(--line);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.a-sum-cs.off .a-sum-c{opacity:.55;text-decoration:line-through}
+.a-sw{display:inline-block;width:14px;height:14px;border-radius:4px;border:1px solid var(--line2);vertical-align:-2px}
+.a-on{color:#2ee66b}
 .a-st{flex:none;font-size:.74rem;font-weight:800;white-space:nowrap;padding:3px 9px;border-radius:999px;margin-top:-1px}
 .a-st:empty{display:none}
 .a-st.dirty{background:rgba(245,158,11,.16);color:#f59e0b}
@@ -465,7 +474,9 @@ body.editing .edit-bar{display:flex}
   .a-chip,.a-toc .btn{flex:none}
   .a-toc-r{margin-left:0;order:-1}
   .a-card{padding:16px}
-  .a-head{flex-wrap:wrap}.a-head h3{flex-basis:calc(100% - 40px)}
+  .a-sum{grid-template-columns:1fr 1fr;gap:6px}
+  .a-sum-i{padding:6px 8px}
+  .a-sum-l{white-space:normal;overflow:visible}
   .a-dirty{bottom:10px;font-size:.8rem}
 }
 .a-card h3{font-size:1rem;margin-bottom:12px}

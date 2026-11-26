@@ -91,19 +91,58 @@ const A_FIND = [
   ['payments', 'Chuyển khoản VietQR (khách Việt Nam)', 'ngân hàng số tài khoản qr bank'], ['payments', 'Thanh toán quốc tế (mặc định cho mọi sản phẩm)', 'paypal stripe kofi'],
   ['payments', 'Email xác nhận đơn (EmailJS)', 'emailjs email'], ['payments', 'Email báo cho bạn khi có người bấm', 'emailjs đã thanh toán']
 ];
-/* thẻ ít dùng: thu gọn sẵn lần đầu (bấm tiêu đề để mở, máy nhớ lựa chọn) */
-const A_FOLD_DEFAULT = ['site|quyen truy cap', 'site|youtube', 'content|dich tu dong', 'payments|email xac nhan don', 'payments|email bao cho ban'];
 const aNorm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().replace(/\s+/g, ' ').trim();
 const aCardTitle = c => { const h = c.querySelector('h3'); return h ? (h.dataset.t || h.textContent).replace(/\s*\(\d+\+?\)\s*$/, '').trim() : ''; };
 const aTab = () => (route && route.name === 'admin' && A_TABS.some(x => x[0] === route.args[0])) ? route.args[0] : 'overview';
 const aKey = c => aTab() + '|' + aNorm(aCardTitle(c));
-const AS = { dirty:new Set(), tab:'', saved:{}, pending:null };
+const AS = { dirty:new Set(), tab:'', saved:{}, pending:null, open:new Set() };
 const aIsSaveBtn = b => !!b && b.tagName === 'BUTTON' && (/^save|Save$/.test(b.dataset.act || '') || /^Lưu/.test((b.textContent || '').trim()));
 const aBodySave = b => [...b.querySelectorAll('button')].some(x => aIsSaveBtn(x) && !x.closest('.a-card'));
-function aFoldState(key){ const m = store.get('a_fold', {}) || {}; return key in m ? !!m[key] : A_FOLD_DEFAULT.some(p => key.startsWith(p)); }
+/* XEM TỔNG QUÁT TRƯỚC, BẤM SỬA MỚI MỞ: thẻ cài đặt (có ô nhập + nút Lưu) mặc định chỉ hiện bản tóm tắt các giá trị đang có,
+   đọc thẳng từ các ô của form (nên luôn khớp với dữ liệu thật). Bấm "Sửa" (hoặc tiêu đề) để mở form. Thẻ chỉ để xem (bảng đơn hàng,
+   danh sách thành viên…), thẻ tạo mới và thẻ Bắt đầu buổi live luôn mở. Thẻ đang mở / chưa lưu giữ nguyên khi tab vẽ lại. */
+const aCut = (t, n) => { t = String(t || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
+const aLabelText = el => { if (!el) return ''; const c = el.cloneNode(true); c.querySelectorAll('input,select,textarea,.hint,button').forEach(x => x.remove()); return aCut(c.textContent, 60); };
+function aSummary(card){
+  const lists = [...new Set([...card.querySelectorAll('[id$="-list"],#mu-picks,#mu-recent'), ...[...card.querySelectorAll('[data-i]')].filter(r => r.querySelector('input,textarea,select') && r.parentElement !== card).map(r => r.parentElement)])].filter((l, _, all) => !all.some(o => o !== l && o.contains(l)));
+  const items = [], inList = el => lists.some(l => l.contains(el));
+  card.querySelectorAll('.field').forEach(f => {
+    if (inList(f) || f.closest('.a-sum')) return;
+    const ctl = f.querySelector('input:not([type=checkbox]):not([type=hidden]):not([type=file]),select,textarea'); if (!ctl) return;
+    const lab = aLabelText(f.querySelector('.label')) || aCut(ctl.placeholder, 40) || 'Ô';
+    let v;
+    if (ctl.tagName === 'SELECT') v = esc(aCut(ctl.selectedOptions[0] ? ctl.selectedOptions[0].text : '', 80));
+    else if (ctl.type === 'color') v = `<i class="a-sw" style="background:${esc(ctl.value)}"></i> ${esc(ctl.value)}`;
+    else v = ctl.value.trim() ? esc(aCut(ctl.value, 90)) : '<span class="faint">(trống)</span>';
+    items.push([lab, v]);
+  });
+  const boxes = [...card.querySelectorAll('input[type=checkbox]')].filter(x => !inList(x) && !x.closest('.a-sum') && !x.dataset.change);
+  if (boxes.length === 1) { const x = boxes[0]; items.push([aCut(aLabelText(x.closest('label')), 60) || 'Bật / tắt', x.checked ? '<b class="a-on">Bật</b>' : '<span class="faint">Tắt</span>']); }
+  else if (boxes.length > 1) { const on = boxes.filter(x => x.checked).map(x => aLabelText(x.closest('label'))).filter(Boolean); items.push([`Đang bật (${on.length}/${boxes.length})`, on.length ? esc(aCut(on.join(', '), 160)) : '<span class="faint">(không mục nào)</span>']); }
+  lists.forEach(l => {
+    const rows = [...l.children].filter(r => r.querySelector('input,textarea,select'));
+    const nameOf = r => { const t = [...r.querySelectorAll('input[type=text],input:not([type]),textarea')].map(x => x.value.trim()).find(Boolean); if (t) return aCut(t, 48); const lb = r.querySelector('label'); return lb ? aCut(aLabelText(lb), 48) : ''; };
+    const chk = r => r.querySelector('input[type=checkbox]'), hasChk = rows.some(chk);
+    const chips = list => list.map(nameOf).filter(Boolean).map(n => `<span class="a-sum-c">${esc(n)}</span>`).join('');
+    let lab = 'Các mục'; for (let e = l.previousElementSibling; e; e = e.previousElementSibling) { if (e.classList.contains('label')) { lab = aLabelText(e); break; } if (e.querySelector && e.querySelector('input,textarea,select')) break; }
+    const on = rows.filter(r => !chk(r) || chk(r).checked), off = rows.filter(r => chk(r) && !chk(r).checked);
+    items.push([lab, !rows.length ? '<span class="faint">(chưa có)</span>'
+      : hasChk ? `<b>${on.length}/${rows.length} đang hiện</b><span class="a-sum-cs">${chips(on)}</span>${off.length ? `<span class="small faint">Đang ẩn:</span><span class="a-sum-cs off">${chips(off)}</span>` : ''}`
+      : `<b>${rows.length} mục</b><span class="a-sum-cs">${chips(rows)}</span>`, 'wide']);
+  });
+  return items;
+}
+const aEditable = c => c.id !== 'onair' && !/^(tạo|sửa)/i.test(aCardTitle(c)) && !!c.querySelector('input:not([type=hidden]),select,textarea') && ([...c.querySelectorAll('button')].some(aIsSaveBtn) || aBodySave($('admin-body') || c));
+function aDrawSum(card){
+  let el = card.querySelector(':scope > .a-sum'); if (!el) { el = document.createElement('div'); el.className = 'a-sum'; card.firstElementChild.after(el); }
+  const items = aSummary(card), max = 8;
+  el.innerHTML = items.length ? items.slice(0, max).map(([l, v, w]) => `<div class="a-sum-i ${w || ''}"><span class="a-sum-l">${esc(l)}</span><span class="a-sum-v">${v}</span></div>`).join('') + (items.length > max ? `<div class="a-sum-i"><span class="a-sum-l">&nbsp;</span><span class="a-sum-v faint">+ ${items.length - max} mục khác, bấm Sửa để xem</span></div>` : '') : '<p class="small faint" style="margin:0">Bấm Sửa để xem chi tiết.</p>';
+}
 function aSetFold(card, on, remember = true){
-  card.classList.toggle('fold', on); const bt = card.querySelector('.a-fold'); if (bt) bt.setAttribute('aria-expanded', String(!on));
-  if (remember) { const m = store.get('a_fold', {}) || {}; m[aKey(card)] = on ? 1 : 0; store.set('a_fold', m); }
+  if (on) aDrawSum(card);
+  card.classList.toggle('fold', on);
+  const bt = card.querySelector('.a-fold'); if (bt) { bt.setAttribute('aria-expanded', String(!on)); bt.innerHTML = on ? `${ic('pen', 'sm')} Sửa` : 'Thu gọn'; bt.classList.toggle('primary', on); }
+  if (remember) { const k = aKey(card); if (on) AS.open.delete(k); else AS.open.add(k); }
 }
 function aMark(card){
   const key = aKey(card), head = card.firstElementChild; if (!head) return;
@@ -128,21 +167,22 @@ function aEnhance(){
     const head = c.firstElementChild; if (!head || c.dataset.enh) { aMark(c); return; }
     c.dataset.enh = '1'; head.classList.add('a-head');
     const h = head.querySelector('h3'); if (h) { h.dataset.act = 'aFold'; h.setAttribute('role', 'button'); h.tabIndex = 0; }
-    head.insertAdjacentHTML('beforeend', `<button type="button" class="a-fold" data-act="aFold" aria-expanded="true" aria-label="Thu gọn / mở thẻ này" title="Thu gọn / mở">${ic('down', 'sm')}</button>`);
-    c.insertAdjacentHTML('beforeend', '<p class="a-foldnote small faint">Đang thu gọn. Bấm tiêu đề để mở.</p>');
-    aSetFold(c, aFoldState(aKey(c)), false); aMark(c);
+    const k = aKey(c), ed = aEditable(c);
+    if (ed) { c.classList.add('a-ed'); head.insertAdjacentHTML('beforeend', `<button type="button" class="btn sm a-fold" data-act="aFold" aria-expanded="true">Thu gọn</button>`); }
+    else if (h) { delete h.dataset.act; h.removeAttribute('role'); h.removeAttribute('tabindex'); }
+    if (ed) aSetFold(c, !(AS.open.has(k) || AS.dirty.has(k)), false); aMark(c);
   });
   let toc = $('a-toc');
   const sig = tab + ':' + cards.map(c => c.id + aCardTitle(c)).join('|');
   if (cards.length >= 3) {
     if (!toc || toc.dataset.sig !== sig) {
       if (toc) toc.remove();
-      b.insertAdjacentHTML('afterbegin', `<div class="a-toc" id="a-toc" data-sig="${esc(sig)}"><span class="small faint">Đi tới:</span>${cards.map(c => `<button type="button" class="a-chip" data-act="aJump" data-id="${esc(c.id)}">${esc(aCardTitle(c))}</button>`).join('')}<span class="a-toc-r"><button type="button" class="btn ghost sm" data-act="aFoldAll" data-on="1">Thu gọn hết</button><button type="button" class="btn ghost sm" data-act="aFoldAll" data-on="0">Mở hết</button></span></div>`);
+      b.insertAdjacentHTML('afterbegin', `<div class="a-toc" id="a-toc" data-sig="${esc(sig)}"><span class="small faint">Đi tới:</span>${cards.map(c => `<button type="button" class="a-chip" data-act="aJump" data-id="${esc(c.id)}">${esc(aCardTitle(c))}</button>`).join('')}${cards.some(c => c.classList.contains('a-ed')) ? `<span class="a-toc-r"><button type="button" class="btn ghost sm" data-act="aFoldAll" data-on="1">Xem tổng quát</button><button type="button" class="btn ghost sm" data-act="aFoldAll" data-on="0">Mở hết để sửa</button></span>` : ''}</div>`);
     } else if (b.firstElementChild !== toc) b.insertBefore(toc, b.firstElementChild);
   } else if (toc) toc.remove();
   aBar();
 }
-function aFlash(el){ if (!el) return; if (el.classList.contains('fold')) aSetFold(el, false); el.scrollIntoView({ behavior:'smooth', block:'start' }); el.classList.remove('a-flash'); void el.offsetWidth; el.classList.add('a-flash'); }
+function aFlash(el){ if (!el) return; el.scrollIntoView({ behavior:'smooth', block:'start' }); el.classList.remove('a-flash'); void el.offsetWidth; el.classList.add('a-flash'); }
 /* tìm thẻ theo tên sau khi tab tải xong (tab đọc Firebase có thể mất vài giây) */
 function aSeek(title, tries = 0){
   const b = $('admin-body'); if (!b) return; const n = aNorm(title);
@@ -173,8 +213,8 @@ function aGo(tab, title){
 }
 function aLeaveOk(){ if (!AS.dirty.size) return true; if (!confirm('Bạn có thay đổi CHƯA LƯU. Rời đi thì mất các thay đổi đó. Vẫn rời đi?')) return false; AS.dirty.clear(); aBar(); return true; }
 Object.assign(ACTIONS, {
-  aFold:el => { const c = el.closest('.a-card'); if (c) aSetFold(c, !c.classList.contains('fold')); },
-  aFoldAll:el => { document.querySelectorAll('#admin-body .a-card').forEach(c => aSetFold(c, el.dataset.on === '1')); },
+  aFold:el => { const c = el.closest('.a-card.a-ed'); if (!c) return; const open = c.classList.contains('fold'); aSetFold(c, !open); if (open) { const f = c.querySelector(':scope > :not(.a-head):not(.a-sum) input:not([type=hidden]):not([type=checkbox]):not([readonly]), :scope > :not(.a-head):not(.a-sum) textarea'); c.scrollIntoView({ behavior:'smooth', block:'nearest' }); if (f && el.classList.contains('a-fold')) f.focus({ preventScroll:true }); } },
+  aFoldAll:el => { document.querySelectorAll('#admin-body .a-card.a-ed').forEach(c => aSetFold(c, el.dataset.on === '1')); },
   aJump:el => aFlash($(el.dataset.id)),
   aFindGo:el => aGo(el.dataset.tab, el.dataset.t),
   aGoDirty:() => { const b = $('admin-body'); if (!b) return; const c = [...b.querySelectorAll('.a-card')].find(x => AS.dirty.has(aKey(x))); if (c) return aFlash(c); const sb = [...b.querySelectorAll('button')].find(x => aIsSaveBtn(x) && !x.closest('.a-card')); if (sb) { sb.scrollIntoView({ behavior:'smooth', block:'center' }); sb.classList.remove('a-flash'); void sb.offsetWidth; sb.classList.add('a-flash'); } }
@@ -205,7 +245,7 @@ toast = function (m, ms){
       const keys = p.key ? [p.key] : [...AS.dirty].filter(k => k.startsWith(aTab() + '|')).concat(b ? [...b.querySelectorAll('.a-card')].filter(c => !c.querySelector('button') || ![...c.querySelectorAll('button')].some(aIsSaveBtn)).map(aKey) : []);
       keys.forEach(k => { AS.dirty.delete(k); AS.saved[k] = { t, demo }; });
       if (!p.key) AS.dirty.delete(aTab() + '|__tab');
-      if (b) b.querySelectorAll('.a-card').forEach(aMark); aBar();
+      if (b) b.querySelectorAll('.a-card').forEach(c => { aMark(c); if (c.classList.contains('fold')) aDrawSum(c); }); aBar();
       if (demo && !p.demo) p.demo = true; else AS.pending = null;   // xem thử: web báo 2 lần ("chưa lưu thật" rồi "Đã lưu"), giữ nhãn xem thử
     }
   } catch (e) { console.warn('admin save mark', e); }
@@ -253,7 +293,7 @@ PAGES.admin = function(){
   page(`<div class="page-head a-top"><div><h1>Trang quản trị</h1><p class="faint small">Phiên bản web: ${esc(BUILD)} · mã ${esc(ASSET_V)}</p><div id="ver-note"></div></div><button class="btn primary" data-act="startEdit">${ic('pen', 'sm')} Sửa chữ & ảnh trên trang</button></div>
     ${aNav(tab)}<div id="admin-body"></div>`);
   document.querySelectorAll('.a-groups a.on, .a-nav .a-tabs a.on').forEach(a => { const p = a.parentNode; if (p.scrollWidth > p.clientWidth) p.scrollLeft = Math.max(0, a.offsetLeft - p.offsetLeft - 16); });
-  aWatch(); if (AS.tab !== tab) { AS.dirty.clear(); AS.saved = {}; AS.pending = null; AS.tab = tab; } aBar();
+  aWatch(); if (AS.tab !== tab) { AS.dirty.clear(); AS.saved = {}; AS.pending = null; AS.open.clear(); AS.tab = tab; } aBar();
   { const g = aGroupOf(tab), last = store.get('a_last', {}) || {}; if (last[g[0]] !== tab) { last[g[0]] = tab; store.set('a_last', last); } }
   checkNewVersion();
   ({ overview:tabOverview, site:tabSite, schedule:tabSchedule, blog:tabBlog, music:tabMusic, products:tabProducts, gear:tabGear, orders:tabOrders, coupons:tabCoupons, trials:tabTrials, content:tabContent, reviews:tabReviews, payments:tabPayments, plan:tabPlan, season:tabSeason, members:tabMembers })[tab]();
