@@ -314,6 +314,13 @@ input[type=checkbox],input[type=radio]{accent-color:var(--accent-strong)}
 @keyframes pcFloat{50%{transform:translate(1px,-2.5px)}}
 @media(prefers-reduced-motion:reduce){html:not([data-motion="on"]) .pip-cta .pc-fl{animation:none}}
 .tm-pip{opacity:.8;margin-top:-6px}.tm-pip.on{opacity:1;color:var(--accent);border-color:var(--accent)}
+/* Gợi ý giờ nghỉ (pages.js tipPaint): thẻ nhỏ dưới vòng đếm, màu theo Nghỉ ngắn / Nghỉ dài */
+.brk-tip{--c:var(--sage);display:flex;align-items:center;gap:10px;width:100%;max-width:340px;padding:9px 12px;border-radius:14px;border:1px solid color-mix(in srgb,var(--c) 45%,transparent);background:color-mix(in srgb,var(--c) 11%,transparent);font-size:.88rem;line-height:1.35;color:var(--ink);text-align:left;animation:brkIn .45s ease-out}
+.brk-tip[hidden]{display:none}.brk-tip.m-long{--c:var(--peach)}
+.brk-tip .bt-e{font-size:1.5rem;line-height:1;flex:none}
+.brk-tip .bt-t b{display:block;font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);margin-bottom:2px}
+@keyframes brkIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.fx3.fit[data-lay=watch] .brk-tip{padding:6px 10px;font-size:.8rem}.fx3.fit[data-lay=watch] .brk-tip .bt-e{font-size:1.2rem}
 .cycle{display:flex;gap:6px}.cycle i{width:9px;height:9px;border-radius:50%;background:var(--line2)}.cycle i.on{background:var(--accent)}
 .cfg-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px;width:100%}   /* 2 cột, nhãn nằm trên ô số: gọn, nhãn dài ở ngôn ngữ nào cũng chỉ xuống dòng chứ không làm lệch ô */
 .cfg-grid .field{display:flex;flex-direction:column;justify-content:flex-end;gap:6px;min-width:0}
