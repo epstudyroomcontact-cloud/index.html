@@ -667,10 +667,10 @@ Làm một lần, sau đó mỗi buổi chỉ cần bấm Start Streaming trong 
 - Gõ vào một thẻ mà chưa bấm Lưu: thẻ hiện **● Chưa lưu**, cuối màn hình có thanh nhắc (nút **Tới chỗ cần Lưu**), và web hỏi lại nếu bạn rời tab hay đóng trang. Lưu xong thẻ hiện **✔ Đã lưu lúc HH:mm** (bản xem thử `?demo=1` hiện "Xem thử: chưa lưu thật").
 - Chỉ là giao diện: không đổi dữ liệu, cách lưu hay `firestore.rules` (**không cần dán luật mới**). Tên vài tab rút gọn trong nhóm: "Nội dung & FAQ" → **Chữ, dịch & FAQ**, "Gói Người đồng hành" → **Gói & quyền lợi**, "Thành viên" → **Thành viên & duyệt**. Tăng phiên bản file lên v=245.
 
-### 22.at. Admin dễ nhìn hơn: bản tóm tắt dạng danh sách "tên – giá trị"
-- Bản tóm tắt ở thẻ và ở Bảng tổng hợp đổi từ các ô nhỏ sang danh sách hai cột: bên trái là tên cài đặt, bên phải là giá trị, chữ to hơn. Ô chưa điền không còn chiếm chỗ mà gộp thành một dòng "Chưa điền (n): …" ở cuối thẻ.
-- Danh sách (menu, bố cục, FAQ, nhạc…) ghi số mục rồi hiện từng mục dạng nhãn tròn; mục đang ẩn bị gạch ngang.
-- Bảng tổng hợp có hàng nút nhảy nhanh tới từng nhóm, tiêu đề nhóm to hơn, và trên màn hình rộng chia hai cột. Chỉ là giao diện, không đổi dữ liệu hay `firestore.rules`.
+### 22.at. Admin gọn, không phải cuộn dài: mỗi mục một dòng tóm tắt
+- Bản tóm tắt ở mỗi thẻ (và ở Bảng tổng hợp) là **một đoạn ngắn** dạng "tên: giá trị  tên: giá trị", tối đa 3 dòng. Danh sách (menu, bố cục, FAQ, nhạc…) ghi số mục kèm vài tên đầu, ví dụ "12/12 đang hiện (Tổng quan, Hướng dẫn, Lịch phát trực tiếp, +9)". Ô chưa điền chỉ ghi số lượng ở dòng nhỏ bên dưới.
+- **Bảng tổng hợp** chia theo nhóm bằng hàng nút (Tất cả · Live & Lịch · Trang web & Nội dung · …), mỗi lần chỉ hiện một nhóm, mỗi mục một hàng gọn có nút **Sửa** ở bên phải. Gõ vào ô lọc thì tìm trên tất cả nhóm.
+- Mỗi tab nay chỉ dài khoảng một đến hai màn hình khi các thẻ đang thu gọn. Chỉ là giao diện, không đổi dữ liệu hay `firestore.rules`.
 
 ### 22.ar. Nhóm học: lời nhắn cổ vũ giữa người học (CẦN DÁN LUẬT MỚI)
 - **Cách dùng:** trong khung **Nhóm học** của Phòng tập trung, cạnh người **đang học** có nút 👏. Bấm vào là mở 6 lời có sẵn: 💪 Cố lên nào!, ✨ Bạn đang làm rất tốt, 🌙 Moon đang cổ vũ bạn đó, 🔥 Bạn đang cháy hết mình!, 🍵 Nhớ uống chút nước nha, 👏 Mình cùng học nè. Chọn một lời là gửi. Đủ 8 ngôn ngữ (người nhận thấy lời theo ngôn ngữ của họ).

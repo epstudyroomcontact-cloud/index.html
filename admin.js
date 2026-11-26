@@ -137,15 +137,22 @@ function aSummary(card){
 const aEditable = c => c.id !== 'onair' && !/^(tạo|sửa)/i.test(aCardTitle(c)) && !!c.querySelector('input:not([type=hidden]),select,textarea') && ([...c.querySelectorAll('button')].some(aIsSaveBtn) || aBodySave($('admin-body') || c));
 function aDrawSum(card){
   let el = card.querySelector(':scope > .a-sum'); if (!el) { el = document.createElement('div'); el.className = 'a-sum'; card.firstElementChild.after(el); }
-  el.innerHTML = aSumHTML(aSummary(card), 8);
+  el.innerHTML = aSumHTML(aSummary(card), 5);
 }
 const aEmptyV = v => /^<span class="faint">\((trống|chưa có|không mục nào)\)<\/span>$/.test(v);
+function aCompactV(v){        // danh sách -> "12/12 đang hiện (Tổng quan, Hướng dẫn, +10)"; giá trị thường giữ nguyên
+  const d = document.createElement('div'); d.innerHTML = v; const cs = d.querySelector('.a-sum-cs');
+  if (!cs) return v;
+  const head = d.querySelector('b'), names = [...d.querySelectorAll('.a-sum-cs:not(.off) .a-sum-c')].map(x => x.textContent), n = names.length;
+  return esc((head ? head.textContent : '') + (n ? ' (' + names.slice(0, 3).join(', ') + (n > 3 ? ', +' + (n - 3) : '') + ')' : ''));
+}
+/* Tóm tắt gọn: mỗi mục một đoạn "tên: giá trị · tên: giá trị", tối đa 3 dòng, để cả tab xem được gần như trong một màn hình */
 function aSumHTML(items, max){
   const full = items.filter(i => !aEmptyV(i[1])), empty = items.filter(i => aEmptyV(i[1]));
   if (!full.length && !empty.length) return '<p class="small faint" style="margin:0">Bấm Sửa để xem chi tiết.</p>';
-  const rows = full.slice(0, max).map(([l, v, w]) => `<div class="a-kv ${w || ''}"><span class="a-k">${esc(l)}</span><span class="a-v">${v}</span></div>`).join('')
-    + (full.length > max ? `<div class="a-kv wide"><span class="a-k faint">+ ${full.length - max} mục khác, bấm Sửa để xem</span></div>` : '');
-  return (rows ? `<div class="a-kvs">${rows}</div>` : '') + (empty.length ? `<div class="a-kv-empty">Chưa điền (${empty.length}): ${esc(empty.map(i => aCut(i[0], 34)).join(' · '))}</div>` : '');
+  const rows = full.slice(0, max).map(([l, v]) => `<span class="a-ci">${l === 'Các mục' ? '' : `<span class="a-ck">${esc(aCut(l, 36))}</span> `}<span class="a-cv">${aCompactV(v)}</span></span>`).join('')
+    + (full.length > max ? `<span class="a-ci faint">+${full.length - max} mục khác</span>` : '');
+  return `<div class="a-cs">${rows || '<span class="a-ci faint">Chưa điền gì</span>'}</div>` + (full.length && empty.length ? `<div class="a-kv-empty">Chưa điền: ${empty.length} ô</div>` : '');
 }
 function aSetFold(card, on, remember = true){
   if (on) aDrawSum(card);
@@ -305,27 +312,30 @@ function tabAll(){
     const body = g[3].map(tab => {
       const nm = A_SUB[tab][0];
       if (!A_ALL_TABS.includes(tab)) return `<div class="a-all-r lk" data-q="${esc(aNorm(nm + ' ' + A_SUB[tab][1]))}"><div class="a-all-hd"><div><b>${esc(nm)}</b><small>Danh sách / thao tác</small></div><a class="btn secondary sm" href="#/admin/${tab}">Mở tab</a></div><p class="muted a-all-d">${esc(A_SUB[tab][1])}</p></div>`;
-      return aCapture(tab).map(c => `<div class="a-all-r" data-q="${esc(aNorm(c.title + ' ' + nm + ' ' + c.items.map(i => i[0] + ' ' + txt(i[1])).join(' ')))}"><div class="a-all-hd"><div><b>${esc(c.title)}</b><small>${esc(nm)}</small></div><button type="button" class="btn primary sm" data-act="aFindGo" data-tab="${tab}" data-t="${esc(c.title)}">${ic('pen', 'sm')} Sửa</button></div>${aSumHTML(c.items, 6)}</div>`).join('');
+      return aCapture(tab).map(c => `<div class="a-all-r" data-q="${esc(aNorm(c.title + ' ' + nm + ' ' + c.items.map(i => i[0] + ' ' + txt(i[1])).join(' ')))}"><div class="a-all-hd"><div><b>${esc(c.title)}</b><small>${esc(nm)}</small></div><button type="button" class="btn primary sm" data-act="aFindGo" data-tab="${tab}" data-t="${esc(c.title)}">${ic('pen', 'sm')} Sửa</button></div>${aSumHTML(c.items, 4)}</div>`).join('');
     }).join('');
     return `<section class="a-all-g" id="ag-${g[0]}"><h2>${ic(g[1], 'sm')} ${esc(g[2])}</h2><div class="a-all-list">${body}</div></section>`;
   }).join('');
-  A(`<div class="a-all-top"><input class="input" id="all-q" type="search" autocomplete="off" placeholder="Lọc bảng này… (ví dụ: logo, momo, đang tắt, 120)"><span class="small faint" id="all-n"></span></div><div class="a-all-jump">${A_GROUPS.filter(g => g[0] !== 'all' && g[0] !== 'home').map(g => `<button type="button" class="a-chip" data-act="aJump" data-id="ag-${g[0]}">${esc(g[2])}</button>`).join('')}</div>${sec}<p class="small faint" id="all-none" hidden>Không có mục nào khớp.</p>`);
+  A(`<div class="a-all-top"><input class="input" id="all-q" type="search" autocomplete="off" placeholder="Lọc bảng này… (ví dụ: logo, momo, đang tắt, 120)"><span class="small faint" id="all-n"></span></div><div class="a-all-jump">${[['all', 'Tất cả']].concat(A_GROUPS.filter(g => g[0] !== 'all' && g[0] !== 'home').map(g => [g[0], g[2]])).map(([k, l]) => `<button type="button" class="a-chip a-pill ${(AS.allG || 'page') === k ? 'on' : ''}" data-act="allGroup" data-g="${k}">${esc(l)}</button>`).join('')}</div>${sec}<p class="small faint" id="all-none" hidden>Không có mục nào khớp.</p>`);
   allFilter();
 }
 function allFilter(){
   const q = aNorm(($('all-q') || {}).value || ''), words = q.split(' ').filter(Boolean); let n = 0, all = 0;
   document.querySelectorAll('#admin-body .a-all-r').forEach(r => { all++; const ok = words.every(w => (r.dataset.q || '').includes(w)); r.hidden = !ok; if (ok) n++; });
-  document.querySelectorAll('#admin-body .a-all-g').forEach(g => { g.hidden = !g.querySelector('.a-all-r:not([hidden])'); });
+  const G = AS.allG || 'page';
+  document.querySelectorAll('#admin-body .a-all-g').forEach(g => { g.hidden = (!q && G !== 'all' && g.id !== 'ag-' + G) || !g.querySelector('.a-all-r:not([hidden])'); });
+  document.querySelectorAll('#admin-body .a-pill').forEach(b => b.classList.toggle('on', b.dataset.g === G));
   const nn = $('all-n'); if (nn) nn.textContent = q ? `${n}/${all} mục` : `${all} mục`;
   const no = $('all-none'); if (no) no.hidden = n > 0;
 }
 document.addEventListener('input', e => { if (e.target && e.target.id === 'all-q') allFilter(); });
+Object.assign(ACTIONS, { allGroup:el => { AS.allG = el.dataset.g; const q = $('all-q'); if (q) q.value = ''; allFilter(); } });
 function aNav(tab){
   const g = aGroupOf(tab), last = store.get('a_last', {}) || {}, pend = state.compPending ? ` <span class="count">${state.compPending}</span>` : '';
   return `<div class="a-nav"><div class="a-find"><label class="sr-only" for="a-find">Tìm nhanh mục cài đặt</label><span class="a-find-ic" aria-hidden="true">⌕</span><input class="input" id="a-find" type="text" autocomplete="off" placeholder="Tìm nhanh mục cài đặt… (logo, giá, momo, FAQ)"><div class="a-find-res" id="a-find-res" hidden></div></div>
     <nav class="a-groups" aria-label="Nhóm quản trị">${A_GROUPS.map(([k, icn, l, tabs]) => { const to = tabs.includes(last[k]) ? last[k] : tabs[0]; return `<a href="#/admin/${to}" class="${g[0] === k ? 'on' : ''}">${ic(icn, 'sm')} ${esc(l)}${k === 'people' ? pend : ''}</a>`; }).join('')}</nav>
     ${g[3].length > 1 ? `<nav class="a-tabs" aria-label="${esc(g[2])}">${g[3].map(k => `<a href="#/admin/${k}" class="${tab === k ? 'on' : ''}">${ic(A_TABS.find(x => x[0] === k)[1], 'sm')} ${esc(A_SUB[k][0])}${k === 'members' ? pend : ''}</a>`).join('')}</nav>` : ''}
-    <p class="a-desc small muted">${esc(A_SUB[tab][1])}</p></div>`;
+    ${tab === 'all' ? '' : `<p class="a-desc small muted">${esc(A_SUB[tab][1])}</p>`}</div>`;
 }
 
 PAGES.admin = function(){
