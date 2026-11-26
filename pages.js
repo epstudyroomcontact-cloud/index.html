@@ -21,7 +21,7 @@ const stars = n => `<span class="stars" aria-label="${n}/5">${[1,2,3,4,5].map(i 
 const emptyBox = (icon, title, sub) => `<div class="empty"><div class="ico">${ic(icon, 'lg')}</div><h3>${esc(title)}</h3><p>${esc(sub || '')}</p></div>`;
 /* tranh: ảnh do admin đặt (cimg) hoặc tranh vẽ sẵn bằng paint(cảnh, {crop, seed}) */
 const artOr = (key, scene, opt) => { const u = cimg(key); return u ? `<img class="art" alt="" src="${esc(u)}">` : paint(scene, opt); };
-const helpBtn = () => ['home', 'watch'].includes(route.name) ? '' : `<button type="button" class="moon-help" data-act="pageHelp" data-p="${route.name}" title="${esc(t('nav_guide'))}" aria-label="${esc(t('nav_guide'))}">${ic('info', 'sm')}<span>${esc(t('nav_guide'))}</span></button>`;   // nút hướng dẫn riêng của trang, Moon chỉ nhanh bằng hình (guide.js)
+const helpBtn = () => ['home', 'watch', 'insights'].includes(route.name) ? '' : `<button type="button" class="moon-help" data-act="pageHelp" data-p="${route.name}" title="${esc(t('nav_guide'))}" aria-label="${esc(t('nav_guide'))}">${ic('info', 'sm')}<span>${esc(t('nav_guide'))}</span></button>`;   // nút hướng dẫn riêng của trang, Moon chỉ nhanh bằng hình (guide.js)
 const head = (titleKey, subKey, right = '', scene = 'moonwalk', seed = 1) => `<section class="art-head" data-cms-img="banner_${titleKey}">${artOr('banner_' + titleKey, scene, { crop:'banner', seed })}${helpBtn()}<div class="glass"><h1 ${cms(titleKey)}>${esc(ctext(titleKey))}</h1>${subKey ? `<p ${cms(subKey)}>${esc(ctext(subKey))}</p>` : ''}</div></section>${right ? `<div class="row between" style="margin-bottom:18px">${right}</div>` : ''}`;
 const labelOf = s => s.name || (s.type === 'focus' ? `${t('focus')} ${s.n}` : s.type === 'short' ? t('short_break') : s.type === 'prep' ? t('prep_break') : t('long_break'));
 const segBar = (segs, total) => `<div class="pomo-bar">${segs.map(s => `<i class="${s.type[0]}" style="width:${(s.min / total * 100).toFixed(2)}%" title="${esc(labelOf(s))} · ${s.min}′"></i>`).join('')}</div>`;
@@ -462,6 +462,21 @@ ACTIONS.grpSeen = () => { store.set('grp_seen', 1); document.body.classList.remo
 ACTIONS.grpOpen = () => { store.set('grp_seen', 1); document.body.classList.remove('nav-open'); document.querySelectorAll('.sb-new').forEach(e => e.remove()); if (route.name === 'focus') grpScroll(); else store.set('grp_goto', 1); };
 const grpPing = () =>  { if (grpJoined()) loadGroup().then(() => window.EPGroup.sync()).catch(() => {}); };
 const grpCredit = m => { if (grpJoined()) loadGroup().then(() => window.EPGroup.credit(m)).catch(() => {}); };
+/* Lối vào trang Phân tích giờ học (#/insights, insights.js) ở cuối phần thống kê của Phòng tập trung */
+const insCard = () => `<a class="card ins-card" href="#/insights"><span class="ins-ic">${ic('chart')}</span><span class="ins-tx"><b>${esc(t('ins_card_h'))}</b><span class="small muted">${esc(t('ins_card_p'))}</span></span><span class="btn secondary sm">${esc(t('ins_open'))}</span></a>`;
+(function(){
+  const G = {
+    en:{ nav_insights:'Study insights', ins_card_h:'Your best study hours', ins_card_p:'See when you focus best, the session length that suits you, and tips made for you.', ins_open:'See insights' },
+    vi:{ nav_insights:'Phân tích giờ học', ins_card_h:'Giờ học hiệu quả của bạn', ins_card_p:'Xem bạn tập trung tốt nhất lúc nào, độ dài phiên hợp với bạn và lời khuyên dành riêng cho bạn.', ins_open:'Xem phân tích' },
+    ja:{ nav_insights:'学習の分析', ins_card_h:'あなたの集中しやすい時間', ins_card_p:'いつ一番集中できるか、合ったセッションの長さ、あなた向けのアドバイスを確認できます。', ins_open:'分析を見る' },
+    ko:{ nav_insights:'공부 분석', ins_card_h:'나에게 맞는 공부 시간', ins_card_p:'언제 가장 집중이 잘 되는지, 나에게 맞는 세션 길이와 맞춤 조언을 확인해 보세요.', ins_open:'분석 보기' },
+    zh:{ nav_insights:'学习分析', ins_card_h:'你的高效学习时段', ins_card_p:'看看你什么时候最专注、多长的专注最适合你，以及为你量身定制的建议。', ins_open:'查看分析' },
+    fr:{ nav_insights:'Analyse d\'étude', ins_card_h:'Vos meilleures heures d\'étude', ins_card_p:'Découvrez quand vous vous concentrez le mieux, la durée de session qui vous convient et des conseils pour vous.', ins_open:'Voir l\'analyse' },
+    es:{ nav_insights:'Análisis de estudio', ins_card_h:'Tus mejores horas de estudio', ins_card_p:'Descubre cuándo te concentras mejor, la duración de sesión que te va y consejos hechos para ti.', ins_open:'Ver análisis' },
+    hi:{ nav_insights:'पढ़ाई का विश्लेषण', ins_card_h:'आपके पढ़ाई के सबसे अच्छे घंटे', ins_card_p:'देखें कि आप कब सबसे अच्छा ध्यान लगाते हैं, कौन-सी सत्र लंबाई आपको जमती है, और आपके लिए सुझाव।', ins_open:'विश्लेषण देखें' }
+  };
+  Object.keys(G).forEach(l => { I18N[l] = I18N[l] || {}; Object.keys(G[l]).forEach(k => { if (I18N[l][k] === undefined) I18N[l][k] = G[l][k]; }); });
+})();
 function addFocus(min){
   const k = DT.now().setZone(userTZ).toISODate(), fl = localFocus(), o = fl[k] || { m:0, s:0 };
   fl[k] = { m:o.m + min, s:o.s + 1 }; store.set('focus', fl);
@@ -539,13 +554,24 @@ function pomoStart(){
     if (allow <= 0) { limitModal(); return; }
     if (pomo.remaining / 60000 > allow) { pomo.remaining = allow * 60e3; pomo.blockMin = allow; toast(t('focus_last_block', { m:allow })); }
   }
+  if (pomo.mode === 'focus' && !pomo.st) pomo.st = Date.now();   // lúc bắt đầu phiên (giữ nguyên khi tạm dừng rồi tiếp tục), cho sổ từng phiên
   audio(); pomo.endAt = Date.now() + pomo.remaining; pomo.running = true; pomoSave(); updateTimerUI(); grpPing();
 }
 function pomoPause(){ if (!pomo.running) return; pomo.remaining = Math.max(0, pomo.endAt - Date.now()); pomo.running = false; pomoSave(); updateTimerUI(); grpPing(); }
-function pomoReset(){ pomo.running = false; pomo.blockMin = 0; pomo.remaining = pomoDur(pomo.mode); pomoSave(); updateTimerUI(); grpPing(); }
-function pomoMode(m){ if (m !== pomo.mode) { pomo.mode = m; pomoTipNext(); } pomo.running = false; pomo.blockMin = 0; pomo.remaining = pomoDur(m); pomoSave(); updateTimerUI(); grpPing(); }
+/* Sổ từng phiên (Phân tích giờ học): phiên làm trọn ghi lúc hết giờ; phiên dừng giữa chừng (Đặt lại, Bỏ qua, đổi chế độ / bộ cài sẵn) ghi khi đã tập trung ít nhất 2 phút.
+   Chỉ ghi vào máy; lần ghi hồ sơ kế tiếp (xong phiên sau, hoặc khi rời tab) mang theo lên tài khoản. */
+function sessLog(e){ const a = localSess(); a.push(e); store.set('fsess', cleanSess(a)); }
+function sessAbandon(){
+  if (pomo.mode !== 'focus') return;
+  const tot = (pomo.blockMin || pomo.cfg.focus) * 60000, left = pomo.running ? pomo.endAt - Date.now() : pomo.remaining, d = Math.floor(Math.min(tot, Math.max(0, tot - left)) / 60000);
+  if (d >= 2 && d < tot / 60000) sessLog({ t:Math.round((pomo.st || Date.now() - d * 60000) / 60000), p:Math.round(tot / 60000), d, c:0 });
+}
+function pomoReset(){ sessAbandon(); pomo.st = 0; pomo.running = false; pomo.blockMin = 0; pomo.remaining = pomoDur(pomo.mode); pomoSave(); updateTimerUI(); grpPing(); }
+function pomoMode(m){ sessAbandon(); pomo.st = 0; if (m !== pomo.mode) { pomo.mode = m; pomoTipNext(); } pomo.running = false; pomo.blockMin = 0; pomo.remaining = pomoDur(m); pomoSave(); updateTimerUI(); grpPing(); }
 function pomoComplete(natural, silent){
   const wasFocus = pomo.mode === 'focus', doneMin = pomo.blockMin || pomo.cfg.focus;
+  if (wasFocus && !natural) sessAbandon();
+  const sessAt = wasFocus && natural ? (pomo.st || (pomo.endAt || Date.now()) - doneMin * 60000) : 0; pomo.st = 0;
   if (wasFocus && natural) pomo.cycle++;
   const goal = pomo.cfg.goal | 0, goalHit = wasFocus && natural && goal > 0 && ++pomo.done >= goal;      // đủ số phiên đã đặt: dừng hẳn và báo hoàn thành
   pomo.blockMin = 0; pomo.running = false;
@@ -553,8 +579,8 @@ function pomoComplete(natural, silent){
   if (goalHit) { pomo.mode = 'focus'; pomo.cycle = 0; pomo.done = 0; }
   pomo.remaining = pomoDur(pomo.mode); pomoTipNext();
   pomoSave();                                                          // chốt trạng thái TRƯỚC khi cộng phút: lỗi phía sau không làm phiên bị cộng lặp mỗi 250ms
-  if (wasFocus && natural) { try { addFocus(doneMin); } catch (e) { console.warn('addFocus', e); } }
-  pomo.running = !goalHit && !!(pomo.cfg.auto && natural) && !(pomo.mode === 'focus' && focusLimit() && focusUsed() >= focusLimit()); if (pomo.running) { pomo.endAt = Date.now() + pomo.remaining; pomoSave(); }
+  if (wasFocus && natural) { try { sessLog({ t:Math.round(sessAt / 60000), p:doneMin, d:doneMin, c:1 }); addFocus(doneMin); } catch (e) { console.warn('addFocus', e); } }
+  pomo.running = !goalHit && !!(pomo.cfg.auto && natural) && !(pomo.mode === 'focus' && focusLimit() && focusUsed() >= focusLimit()); if (pomo.running) { pomo.endAt = Date.now() + pomo.remaining; if (pomo.mode === 'focus') pomo.st = Date.now(); pomoSave(); }
   if (natural && !silent) {
     const msg = goalHit ? t('notify_goal', { n:goal }) : t(wasFocus ? 'notify_done_focus' : 'notify_done_break');
     soundPlay(wasFocus ? 'focus' : 'break'); toast(msg); if (wasFocus) fxCelebrate(goalHit);
@@ -932,7 +958,7 @@ PAGES.focus = function(){
       <div class="tab-pane" role="tabpanel" data-k="live"${fsCur === 'live' ? '' : ' hidden'}>${streamCard()}</div></div></aside>
     </div>
     ${focusNudge()}
-    <div class="fx-stats"><div class="grid g2 keep2"><div class="card tile"><span class="t-l">${esc(t('sessions_today'))}</span><span class="t-v">${td.s}</span></div><div class="card tile"><span class="t-l">${esc(t('minutes_today'))}</span><span class="t-v">${td.m}</span></div><div class="card tile"><span class="t-l">${esc(t('fx_streak'))}</span><span class="t-v">${fxStreak()}</span></div><div class="card tile"><span class="t-l">${esc(t('fx_week_min'))}</span><span class="t-v">${vals.reduce((a, b) => a + b, 0)}</span></div></div><section class="card pad"><div class="card-h"><h2>${esc(t('week_chart'))}</h2></div><div class="bars">${days.map((d, i) => `<div${i === 6 ? ' class="today"' : ''}><i style="height:${Math.max(3, vals[i] / mx * 100)}%" title="${vals[i]} ${esc(t('min'))}"></i><small>${esc(d.setLocale(state.lang).toFormat('ccc'))}</small></div>`).join('')}</div></section></div>
+    <div class="fx-stats"><div class="grid g2 keep2"><div class="card tile"><span class="t-l">${esc(t('sessions_today'))}</span><span class="t-v">${td.s}</span></div><div class="card tile"><span class="t-l">${esc(t('minutes_today'))}</span><span class="t-v">${td.m}</span></div><div class="card tile"><span class="t-l">${esc(t('fx_streak'))}</span><span class="t-v">${fxStreak()}</span></div><div class="card tile"><span class="t-l">${esc(t('fx_week_min'))}</span><span class="t-v">${vals.reduce((a, b) => a + b, 0)}</span></div></div><section class="card pad"><div class="card-h"><h2>${esc(t('week_chart'))}</h2></div><div class="bars">${days.map((d, i) => `<div${i === 6 ? ' class="today"' : ''}><i style="height:${Math.max(3, vals[i] / mx * 100)}%" title="${vals[i]} ${esc(t('min'))}"></i><small>${esc(d.setLocale(state.lang).toFormat('ccc'))}</small></div>`).join('')}</div></section>${insCard()}</div>
     <h2 class="mt" style="font-size:1.3rem;margin:40px 0 14px">${ic('heart', 'sm')} ${esc(t('nav_donate'))}</h2>${donateHTML()}`);   // phần Support nằm ngay trong Focus room
   renderTodos(); pipPrep(); fxMiniWatch(); fxFit();
   if (branding.groupOn === true) loadGroup().then(() => window.EPGroup.mount()).catch(() => { for (const id of ['grp-box', 'grp-strip']) { const b = $(id); if (b) b.remove(); } });
