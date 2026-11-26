@@ -740,15 +740,17 @@ let sevNewMode = false;
 async function tabSeason(){
   const e = season && season.id ? season : null, fresh = sevNewMode || !e, ph = e ? sevPhase(e) : '';
   const z = DT.now().setZone(SEV_TZ), today = z.toISODate();
-  const f = fresh ? { vi:'Thử thách 7 ngày', en:'7-day challenge', sd:today, ed:z.plus({ days:6 }).toISODate(), g:10000 } : { vi:(e.n || {}).vi || '', en:(e.n || {}).en || '', sd:e.sd, ed:e.ed, g:e.g };
+  const f = fresh ? { vi:'Thử thách 7 ngày', en:'7-day challenge', sd:today, ed:z.plus({ days:6 }).toISODate(), g:10000, ms:'25, 50, 75, 100', pre:7, post:7, rvi:'', ren:'' } : { vi:(e.n || {}).vi || '', en:(e.n || {}).en || '', sd:e.sd, ed:e.ed, g:e.g, ms:sevMsOf(e).join(', '), pre:sevDays(e, 'pre'), post:sevDays(e, 'post'), rvi:(e.r || {}).vi || '', ren:(e.r || {}).en || '' };
   const stTxt = !e ? 'Chưa có sự kiện nào.' : e.on === false ? 'Đang ẩn (khách không thấy).' : ph === 'soon' ? 'Sắp diễn ra (khách thấy trước 7 ngày).' : ph === 'live' ? 'Đang diễn ra.' : 'Đã kết thúc (khách còn thấy kết quả 7 ngày).';
   A(`${e ? aCard('Sự kiện hiện tại', `<p><b>${esc(L(e.n) || '(không tên)')}</b> · ${esc(DT.fromISO(e.sd).toFormat('dd/MM/yyyy'))} đến ${esc(DT.fromISO(e.ed).toFormat('dd/MM/yyyy'))} · mục tiêu ${sevNum(e.g)} phút</p>
       <p class="small muted">${esc(stTxt)} Mã sự kiện: <code>${esc(e.id)}</code></p><div id="sev-stats" class="mt-s small muted">${ph === 'soon' ? 'Chưa bắt đầu nên chưa có phút góp.' : 'Đang tải số phút…'}</div>
       <div class="row mt-s">${ph !== 'end' && e.on !== false ? '<button class="btn secondary" data-act="sevEndNow">Kết thúc ngay</button>' : ''}<button class="btn secondary" data-act="sevToggle">${e.on === false ? 'Hiện lại cho khách' : 'Ẩn khỏi trang'}</button>${!sevNewMode ? '<button class="btn ghost" data-act="sevNew">Tạo sự kiện mới</button>' : ''}</div>`) : ''}
-    ${aCard(fresh ? 'Tạo sự kiện mới' : 'Sửa sự kiện hiện tại', `<p class="hint" style="margin-bottom:10px">Cả cộng đồng cùng góp số phút tập trung vào một thanh tiến độ chung, hiện ở <b>Tổng quan</b> (dưới khối chào) và <b>Phòng tập trung</b> (dưới bộ đếm). Chỉ phút của <b>phiên tập trung chạy hết giờ</b> trong thời gian sự kiện được tính, và chỉ người đã đăng nhập mới góp được. Có mốc chúc mừng ở 25%, 50%, 75% và 100%. Ngày tính theo giờ Việt Nam, gồm cả ngày kết thúc. Mỗi lúc chỉ có một sự kiện.</p>
+    ${aCard(fresh ? 'Tạo sự kiện mới' : 'Sửa sự kiện hiện tại', `<p class="hint" style="margin-bottom:10px">Cả cộng đồng cùng góp số phút tập trung vào một thanh tiến độ chung, hiện ở <b>Tổng quan</b> (dưới khối chào) và <b>Phòng tập trung</b> (dưới bộ đếm). Chỉ phút của <b>phiên tập trung chạy hết giờ</b> trong thời gian sự kiện được tính, và chỉ người đã đăng nhập mới góp được. Các mốc chúc mừng, số ngày hiện trước / sau và dòng phần thưởng do bạn tự đặt ở dưới. Ngày tính theo giờ Việt Nam, gồm cả ngày kết thúc. Mỗi lúc chỉ có một sự kiện.</p>
       ${fresh && e ? '<p class="small" style="color:var(--danger)">Tạo sự kiện mới sẽ thay sự kiện hiện tại (phút đã góp của sự kiện cũ vẫn còn trong Firestore nhưng không hiện nữa).</p>' : ''}
       <div class="f2">${fld('Tên sự kiện (Tiếng Việt)', 'sv-vi', f.vi, 'maxlength="60"', 'Viết ở ô nào cũng được, các ngôn ngữ khác tự dịch khi bấm Lưu')}${fld('Event name (English)', 'sv-en', f.en, 'maxlength="60"')}</div>
       <div class="f3">${fld('Ngày bắt đầu', 'sv-sd', f.sd, 'type="date"')}${fld('Ngày kết thúc', 'sv-ed', f.ed, 'type="date"', 'Tối đa 92 ngày')}${fld('Mục tiêu tổng (phút)', 'sv-g', f.g, 'type="number" min="10" max="10000000" inputmode="numeric"', 'Gợi ý: 10.000 phút ≈ 167 giờ, hợp cho khoảng 50 người học đều trong 7 ngày')}</div>
+      <div class="f3 mt-s">${fld('Các mốc chúc mừng (%)', 'sv-ms', f.ms, 'inputmode="numeric"', 'Cách nhau dấu phẩy, tối đa 8 mốc, từ 1 đến 100. Mặc định 25, 50, 75, 100. Để trống = mặc định')}${fld('Hiện cho khách trước khi bắt đầu (ngày)', 'sv-pre', f.pre, 'type="number" min="0" max="60"', '0 = chỉ hiện từ ngày bắt đầu. Mặc định 7')}${fld('Còn hiện kết quả sau khi kết thúc (ngày)', 'sv-post', f.post, 'type="number" min="0" max="60"', '0 = ẩn ngay khi kết thúc. Mặc định 7')}</div>
+      <div class="f2 mt-s">${fld('Phần thưởng / lời hứa (Tiếng Việt, tuỳ chọn)', 'sv-rvi', f.rvi, 'maxlength="120"', 'VD: Đạt mục tiêu, live đặc biệt tối Chủ nhật. Hiện dưới thanh tiến độ. Để trống = ẩn')}${fld('Reward (English, optional)', 'sv-ren', f.ren, 'maxlength="120"')}</div>
       <div class="row mt-s"><button class="btn primary" data-act="sevSave" data-new="${fresh ? 1 : 0}">${fresh ? 'Tạo sự kiện' : 'Lưu thay đổi'}</button>${sevNewMode ? '<button class="btn ghost" data-act="sevCancel">Huỷ</button>' : ''}</div>
       <p class="hint">Lần đầu dùng tính năng này cần <b>dán lại firestore.rules</b> (SETUP.md, PHẦN 2.3). Chưa dán thì khách vẫn thấy thanh nhưng phút góp bị từ chối.</p>`)}`);
   if (!e || ph === 'soon' || DEMO) { if (DEMO && e && ph !== 'soon') { const s = $('sev-stats'); if (s) s.textContent = 'Chế độ xem thử: không đọc Firestore.'; } return; }
@@ -776,9 +778,14 @@ Object.assign(ACTIONS, {
     if (!(g >= 10 && g <= 10000000)) return alert('Mục tiêu từ 10 đến 10.000.000 phút.');
     const isNew = el.dataset.new === '1' || !season || !season.id, old = isNew ? {} : (season.n || {});
     if (isNew && E.endOf('day').toMillis() < Date.now()) return alert('Ngày kết thúc đã qua. Chọn ngày từ hôm nay trở đi.');
-    const n = await TR.fill(old, { vi, en });
+    const msRaw = val('sv-ms'), msList = msRaw ? msRaw.split(/[,\s]+/).filter(Boolean).map(Number) : [25, 50, 75, 100];
+    if (msList.length > 8 || msList.some(x => !Number.isInteger(x) || x < 1 || x > 100)) return alert('Các mốc là số nguyên từ 1 đến 100, cách nhau dấu phẩy, tối đa 8 mốc.');
+    const ms = [...new Set(msList)].sort((a, b) => a - b), dayOf = id => { const v = val(id); return v === '' ? 7 : Math.round(+v); }, pre = dayOf('sv-pre'), post = dayOf('sv-post');
+    if (![pre, post].every(x => x >= 0 && x <= 60)) return alert('Số ngày hiện trước / sau từ 0 đến 60.');
+    const n = await TR.fill(old, { vi, en }), rvi = val('sv-rvi').slice(0, 120), ren = val('sv-ren').slice(0, 120);
+    const r = rvi || ren ? await TR.fill(isNew ? {} : (season.r || {}), { vi:rvi, en:ren }) : {};
     const id = isNew ? 's' + sd.replace(/-/g, '') + '-' + Math.random().toString(36).slice(2, 6) : season.id;
-    await sevSaveCfg({ id, on:isNew ? true : season.on !== false, n, s:S.startOf('day').toMillis(), e:E.endOf('day').toMillis(), sd, ed, g, t:Date.now() });
+    await sevSaveCfg({ id, on:isNew ? true : season.on !== false, n, s:S.startOf('day').toMillis(), e:E.endOf('day').toMillis(), sd, ed, g, ms, pre, post, r, t:Date.now() });
     sevNewMode = false; ok(trMsg(isNew ? 'Đã tạo sự kiện.' : 'Đã lưu sự kiện.')); tabSeason();
   }).catch(fail),
   sevEndNow: async () => {

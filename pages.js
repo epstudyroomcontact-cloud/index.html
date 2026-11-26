@@ -173,11 +173,14 @@ FORMS.exam = () => {
    - Tổng = cộng m của mọi người. Đọc 1 tài liệu, nhớ trong máy 5 phút (sự kiện đang chạy) hoặc 6 giờ (đã kết thúc), nên rất nhẹ cho gói Spark.
    - Khách chưa đăng nhập vẫn thấy thanh tiến độ, đăng nhập mới góp được.
    ========================================================= */
-const SEV_MS = [25, 50, 75, 100], SEV_TZ = 'Asia/Ho_Chi_Minh', SEV_SHOW = 7 * 864e5;   // mốc chúc mừng (%); hiện trước 7 ngày khi sắp diễn ra và 7 ngày sau khi kết thúc
+const SEV_TZ = 'Asia/Ho_Chi_Minh';
+/* Admin tự đặt (mặc định: mốc 25/50/75/100%, hiện trước 7 ngày và sau 7 ngày, không có dòng phần thưởng): e.ms = [mốc %], e.pre / e.post = số ngày hiện trước / sau, e.r = { ngôn ngữ: dòng phần thưởng } */
+const sevMsOf = e => { const a = e && Array.isArray(e.ms) ? [...new Set(e.ms.map(x => Math.round(+x)).filter(x => x >= 1 && x <= 100))].sort((x, y) => x - y).slice(0, 8) : null; return a && a.length ? a : [25, 50, 75, 100]; };
+const sevDays = (e, k) => { const v = e && e[k]; return v === undefined || v === null || v === '' || isNaN(+v) ? 7 : Math.min(60, Math.max(0, Math.round(+v))); };
 const SEV = { busy:false, loading:false, failT:0 };
 const sevCur = () => { const e = season; return e && e.on !== false && e.id && +e.s && +e.e && +e.g > 0 ? e : null; };
 const sevPhase = (e, now = Date.now()) => now < e.s ? 'soon' : now <= e.e ? 'live' : 'end';
-const sevVisible = e => !!e && Date.now() >= e.s - SEV_SHOW && Date.now() <= e.e + SEV_SHOW;
+const sevVisible = e => !!e && Date.now() >= e.s - sevDays(e, 'pre') * 864e5 && Date.now() <= e.e + sevDays(e, 'post') * 864e5;
 const sevNum = n => { try { return new Intl.NumberFormat(state.lang).format(Math.round(n)); } catch (x) { return String(Math.round(n)); } };
 const sevCache = () => { const c = store.get('sev_c', null), e = sevCur(); return c && e && c.id === e.id ? c : null; };          // { id, tot, n, at, mine:{ uid:phút } }
 const sevPendKey = () => state.user && sevCur() ? 'sev_p_' + state.user.uid + '_' + sevCur().id : '';
@@ -234,7 +237,7 @@ async function sevFlush(){
   SEV.busy = false;
 }
 function sevBar(pct){
-  return `<div class="sev-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.min(100, Math.round(pct))}"><i style="width:${Math.min(100, pct).toFixed(1)}%"></i>${SEV_MS.slice(0, -1).map(m => `<b class="${pct >= m ? 'on' : ''}" style="left:${m}%"></b>`).join('')}</div>`;
+  return `<div class="sev-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.min(100, Math.round(pct))}"><i style="width:${Math.min(100, pct).toFixed(1)}%"></i>${sevMsOf(season).filter(m => m < 100).map(m => `<b class="${pct >= m ? 'on' : ''}" style="left:${m}%"></b>`).join('')}</div>`;
 }
 function sevBox(where){
   const e = sevCur(); if (!e || !sevVisible(e)) return '';
@@ -259,6 +262,7 @@ function sevBox(where){
     ${ph === 'soon' ? '' : sevBar(pct)}
     <div class="sev-s">${nums}${small ? '' : ` · <span class="faint">${esc(span)}</span>`}</div>
     ${done && ph === 'live' ? `<div class="sev-win">${esc(t('sev_reached'))}</div>` : ph === 'end' && c ? `<div class="sev-win">${esc(t(done ? 'sev_end_ok' : 'sev_end_no', { p:Math.floor(pct) }))}</div>` : ''}
+    ${L(e.r) ? `<div class="sev-rw small">${ic('heart', 'sm')} <span>${esc(L(e.r))}</span></div>` : ''}
     ${meHtml ? `<div class="sev-me small">${meHtml}</div>` : ''}
     ${where === 'home' && ph === 'live' ? `<a class="btn primary sm sev-go" href="#/focus">${ic('timer', 'sm')} ${esc(t('btn_start_focus'))}</a>` : ''}</section>`;
 }
@@ -266,10 +270,10 @@ function sevBox(where){
 function sevPaint(){
   document.querySelectorAll('[data-sev]').forEach(el => { const h = sevBox(el.dataset.sev); if (h) el.outerHTML = h; else el.remove(); });
   const e = sevCur(), c = sevCache(); if (!e || !c || sevPhase(e) === 'soon') return;
-  const pct = c.tot / e.g * 100, lv = SEV_MS.filter(m => pct >= m).length, key = 'sev_ms_' + e.id, seen = store.get(key, null);
+  const pct = c.tot / e.g * 100, MS = sevMsOf(e), lv = MS.filter(m => pct >= m).length, key = 'sev_ms_' + e.id, seen = store.get(key, null);
   if (seen === null) { store.set(key, lv); return; }                                   // lần đầu thấy sự kiện: không chúc mừng các mốc đã qua từ trước
   if (lv > seen) {
-    store.set(key, lv); const m = SEV_MS[lv - 1];
+    store.set(key, lv); const m = MS[lv - 1];
     toast(t(m >= 100 ? 'sev_ms_full' : 'sev_ms', { p:m }), 4200);
     document.querySelectorAll('[data-sev]').forEach(el => { el.classList.add('sev-cheer'); setTimeout(() => el.classList.remove('sev-cheer'), 2400); });
   }

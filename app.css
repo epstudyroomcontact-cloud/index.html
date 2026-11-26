@@ -1425,3 +1425,4 @@ body:has(#tour-ask) .sofa{display:none}
 .sev-top{list-style:decimal;margin:4px 0 0;padding-left:22px;display:grid;gap:2px}
 .sev-top li span{display:inline-block;min-width:120px;color:var(--ink)}
 .sev-top li b{margin:0 6px;font-variant-numeric:tabular-nums}
+.sev-rw{display:flex;align-items:flex-start;gap:6px;font-weight:700;color:var(--accent-strong)}.sev-rw .ic{flex:none;margin-top:2px}
