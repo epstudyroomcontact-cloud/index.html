@@ -72,6 +72,8 @@ if (!['galaxy', 'clouds', 'petals', 'fireflies', 'off'].includes(state.sky)) sta
 if (!['rain', 'pop', 'violet', 'teal'].includes(state.theme)) state.theme = null;   // bỏ giá trị theme cũ của các bản trước
 let userTZ = state.tz === 'auto' ? DT.local().zoneName : state.tz;
 const tabName = () => branding.name + ' · Study Hub';   // tên tab: cho biết web không chỉ là lịch live
+/* Sự kiện học chung theo mùa (pages.js → SEV): settings/season = { id, on, n:{ vi, en, … tên }, s:ms bắt đầu, e:ms kết thúc, g:mục tiêu phút, sd, ed:'YYYY-MM-DD' (giờ Việt Nam) }. Đi theo bản gộp settings/site. */
+let season = null;
 let branding = { name:'Ép Study Room', groupOn:false, themeColor:'#ff3d9a', defaultTheme:'rain', font:'baloo', logoUrl:'', mascotUrl:'', ytChannelId:'', ytLiveId:'', videos:[], contacts:{}, socialLinks:{}, announcement:{}, nav:null, homeSections:{}, focusLimit:120,  
   blogCats:[
     { id:'journal', label:{ en:'Journal', vi:'Nhật ký' }, desc:{ en:'Personal notes and updates.', vi:'Ghi chép và cập nhật cá nhân.' } },
@@ -335,6 +337,7 @@ function applySite(s){
   products = (s.products || []).map(p => ({ ...p })).sort((a, b) => tsMs(a.createdAt) - tsMs(b.createdAt));
   reviews = (s.reviews || []).map(r => ({ ...r })).sort((a, b) => tsMs(b.createdAt) - tsMs(a.createdAt));
   SITE.weeks = s.weeks || {};
+  season = s.season && s.season.id ? s.season : null;
   applyLook(); render(); loadVideos();
 }
 /* Tín hiệu "vừa xuất bản": admin ghi settings/live = { t: giờ xuất bản }. Người xem nghe tài liệu nhỏ này (chỉ tốn 1 lượt đọc khi có thay đổi)
@@ -382,6 +385,7 @@ function listenLegacy(){
   snap(db.collection('settings').doc('music'), d => { const x = d.exists ? d.data() : {}; music = { picks:x.picks || [], recent:x.recent || [] }; if (['focus'].includes(route.name)) render(); });
   snap(db.collection('settings').doc('supporters'), d => { const x = d.exists ? d.data() : {}; supporters = { items:x.items || [] }; if (['home', 'donate'].includes(route.name)) render(); });
   snap(db.collection('settings').doc('gear'), d => { const x = d.exists ? d.data() : {}; gear = { items:x.items || [] }; if (route.name === 'gear') render(); });
+  snap(db.collection('settings').doc('season'), d => { const x = d.exists ? d.data() : null; season = x && x.id ? x : null; if (['home', 'focus'].includes(route.name)) render(true); }, () => {});
   snap(db.collection('posts').where('published', '==', true), s => { posts = s.docs.map(d => ({ id:d.id, ...d.data() })).sort((a, b) => tsMs(b.createdAt) - tsMs(a.createdAt)); render(); }, () => { posts = []; render(); });
   snap(db.collection('products').where('active', '==', true), s => { products = s.docs.map(d => ({ id:d.id, ...d.data() })).sort((a, b) => tsMs(a.createdAt) - tsMs(b.createdAt)); render(); }, () => { products = []; render(); });
   snap(db.collection('reviews').where('approved', '==', true), s => { reviews = s.docs.map(d => ({ id:d.id, ...d.data() })).sort((a, b) => tsMs(b.createdAt) - tsMs(a.createdAt)); render(); }, () => { reviews = []; });
@@ -391,6 +395,8 @@ function loadDemo(){
   branding = { ...branding, announcement:{ vi:'Chào mừng đến Ép Study Room (chế độ xem thử)', en:'Welcome to Ép Study Room (demo preview)' }, contacts:{ live:'https://youtube.com' }, socialLinks:{ YouTube:'https://youtube.com', Instagram:'https://instagram.com' }, ytLiveId:'jfKfPfyJRdk',
     videos:[{ url:'https://youtu.be/jfKfPfyJRdk', title:'lofi hip hop radio — beats to relax/study to' },{ url:'https://youtu.be/5qap5aO4i9A', title:'Study with me — 2 hours Pomodoro 50/10' },{ url:'https://youtu.be/lTRiuFIWV54', title:'Rainy night study session' }] };
   payments = { bankBin:'970436', accountNo:'0123456789', accountName:'NGUYEN VAN A', stripe:'https://stripe.com' };
+  { const k = QP.get('sev'), d0 = DT.now().setZone('Asia/Ho_Chi_Minh').startOf('day'), sd = k === 'soon' ? d0.plus({ days:2 }) : k === 'end' ? d0.minus({ days:8 }) : d0.minus({ days:2 });   // ?demo=1&sev=soon|end|off: xem thử các trạng thái của sự kiện học chung
+    if (k !== 'off') season = { id:'demo-' + (k || 'live'), on:true, n:{ vi:'Thử thách 7 ngày mùa đông', en:'7-day winter challenge' }, s:sd.toMillis(), e:sd.plus({ days:6 }).endOf('day').toMillis(), sd:sd.toISODate(), ed:sd.plus({ days:6 }).toISODate(), g:10000, ms:[10, 40, 70, 100], r:{ vi:'Đạt mục tiêu: live đặc biệt tối Chủ nhật', en:'Goal reached: a special live on Sunday night' } }; }
   music = { picks:[{ title:{ en:'Rain & piano', vi:'Mưa và piano' }, note:{ en:'Soft, no lyrics', vi:'Nhẹ nhàng, không lời' }, url:'https://www.youtube.com/watch?v=jfKfPfyJRdk' }, { title:{ en:'Focus playlist', vi:'Danh sách tập trung' }, note:{}, url:'https://open.spotify.com/playlist/37i9dQZF1DWZeKCadgRdKQ' }], recent:[{ title:{ en:'Late-night study mix', vi:'Mix học khuya' }, note:{ en:'What I have on repeat this week', vi:'Tuần này mình nghe đi nghe lại' }, url:'https://open.spotify.com/playlist/37i9dQZF1DX8Uebhn9wzrS' }] };
   supporters = { items:[{ id:'u1', name:'Linh', show:true, since:'2025-09-01' }, { id:'u2', name:'Daniel', show:true, since:'2026-03-20' }, { id:'u3', name:'Mai', show:true, since:'2026-07-05' }, { id:'u4', name:'An', show:true, since:'2026-10-05' }] };
   gear = { items:[{ id:'lamp', name:{ en:'Warm desk lamp', vi:'Đèn bàn ánh vàng' }, note:{ en:'Soft light for late sessions.', vi:'Ánh sáng dịu cho những buổi học khuya.' }, cat:{ en:'Desk', vi:'Bàn học' }, price:'', store:'Amazon', url:'https://example.com/lamp', img:'' }, { id:'headphones', name:{ en:'Noise-cancelling headphones', vi:'Tai nghe chống ồn' }, note:{ en:'Keeps the room quiet.', vi:'Giữ cho căn phòng yên tĩnh.' }, cat:{ en:'Audio', vi:'Âm thanh' }, price:'', store:'Shopee', url:'https://example.com/headphones', img:'' }, { id:'notebook', name:{ en:'Dotted notebook', vi:'Sổ chấm bi' }, note:{ en:'For plans and to-do lists.', vi:'Để ghi kế hoạch và việc cần làm.' }, cat:{ en:'Stationery', vi:'Văn phòng phẩm' }, price:'', store:'', url:'https://example.com/notebook', img:'' }] };

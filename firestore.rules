@@ -130,6 +130,34 @@ service cloud.firestore {
         && grpLiveOk(uid, live, ol) && grpBoardOk(uid, board, ob)
         && grpCheerOk(uid, nw, resource == null ? null : resource.data, ol, ob);
     }
+    // Sự kiện học chung theo mùa: settings/season = { id, on, s, e (ms), g, ... } do admin đặt.
+    // season_event/<id>.c[uid] = { m:tổng phút người đó đã góp, t:giờ máy chủ lần ghi cuối, f:giờ máy chủ lần góp đầu }.
+    // Chỉ ghi được khi id đúng sự kiện đang bật và đang trong thời gian sự kiện (cho thêm 1 giờ sau khi kết thúc để gửi nốt phần chờ).
+    // Chống khai khống (giống bảng nhóm học): mỗi người chỉ sửa mục của mình, chỉ tăng; mỗi lần tối đa 180 phút và không nhanh hơn thời gian thật từ lần ghi trước (+2 phút du di);
+    // cả sự kiện: tổng phút không vượt thời gian thật đã trôi qua từ lần góp đầu f + 180 phút. Mốc f chỉ ghi một lần.
+    function seasonWriteOk(id) {
+      let cfg = get(/databases/$(database)/documents/settings/season).data;
+      let uid = request.auth.uid;
+      let now = request.time.toMillis();
+      let nw = request.resource.data.get('c', {});
+      let old = resource == null ? {} : resource.data.get('c', {});
+      return cfg.get('id', '') == id && cfg.get('on', true) != false
+        && cfg.s is number && cfg.e is number
+        && now >= cfg.s && now <= cfg.e + 3600000
+        && request.resource.data.keys().hasOnly(['c'])
+        && nw.diff(old).affectedKeys().hasOnly([uid])
+        && nw.size() <= 5000
+        && uid in nw
+        && nw[uid].keys().hasOnly(['m', 't', 'f'])
+        && nw[uid].m is int && nw[uid].t == request.time
+        && ((uid in old)
+          ? (nw[uid].f == old[uid].f
+             && nw[uid].m > old[uid].m
+             && nw[uid].m - old[uid].m <= 180
+             && (nw[uid].m - old[uid].m) * 60000 <= now - old[uid].t.toMillis() + 120000
+             && nw[uid].m * 60000 <= now - nw[uid].f.toMillis() + 10800000)
+          : (nw[uid].f == request.time && nw[uid].m >= 1 && nw[uid].m <= 180));
+    }
     // Giao diện, nội dung chữ/ảnh, thông tin thanh toán hiển thị cho khách, lịch live: ai cũng xem, chỉ admin sửa
     match /settings/{id}         { allow read: if true; allow write: if isAdmin(); }
     match /weekly_schedules/{id} { allow read: if true; allow write: if isAdmin(); }
@@ -169,6 +197,13 @@ service cloud.firestore {
         && request.resource.data.live is int && request.resource.data.live >= 0 && request.resource.data.live <= request.resource.data.members
         && request.resource.data.t == request.time
         && (resource == null || resource.data.wk != request.resource.data.wk || request.time.toMillis() - resource.data.t.toMillis() >= 240000)));
+      allow delete: if isAdmin();
+    }
+
+    // Sự kiện học chung theo mùa: ai cũng xem được tổng (chỉ có uid và số phút, không có tên hay email). Người đã đăng nhập góp phút của chính mình; admin sửa / xoá được.
+    match /season_event/{id} {
+      allow read: if true;
+      allow create, update: if isAdmin() || (signedIn() && seasonWriteOk(id));
       allow delete: if isAdmin();
     }
 
