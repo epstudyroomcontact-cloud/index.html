@@ -1557,3 +1557,11 @@ a.grp-strip-r,a.grp-strip-join{text-decoration:none}
 .grp-pg .grp-n{min-width:4.5em}
 .grp-pg .grp-st{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .grp-pg-pool .grp-climb{margin:0 0 10px}
+/* Kế hoạch ôn thi tự động (planner.js: pxCard / pxForm) */
+button.link{background:none;border:0;padding:0;cursor:pointer;font:inherit;font-weight:700;font-size:.85rem}
+.px-tot{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}.px-tot b{font-size:1.6rem;line-height:1}.px-tot em{font-style:normal;font-size:.9rem;margin-left:1px}
+.px-subs{margin-top:6px}.px-row{grid-template-columns:minmax(0,96px) 1fr auto}.px-row span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.px-sr{display:flex;gap:6px;align-items:center}.px-sr .px-sn{flex:1;min-width:0}
+.px-sh{display:flex;align-items:center;gap:4px;flex:none}.px-sh input{width:76px}.px-sh small{color:var(--ink3);font-size:.75rem}
+.px-prev{padding:8px 10px;border-radius:12px;background:rgba(var(--accent-rgb),.1);margin-bottom:0}
+.px-prev:empty{display:none}
