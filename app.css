@@ -1542,8 +1542,8 @@ html[data-calm] .grp-pool.play .grp-sw-i{animation:none}
 .grp-pg-set{margin-top:18px}
 @media (min-width:900px){
   .grp-pg{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);grid-template-areas:"pool board" "live live";align-items:start}
-  .grp-pg-pool{position:sticky;top:80px}
 }
+/* bể bơi KHÔNG dính (sticky): ô "ai đang học" trải cả 2 cột ngay bên dưới, nếu dính thì bể bơi trôi theo khi cuộn và đè lên ô đó */
 /* dải tóm tắt dưới đồng hồ (Phòng tập trung): ai đang học, top 3 tuần, hạng của mình, link mở trang Nhóm học */
 .grp-mini{list-style:none;margin:0;padding:6px 0 0;flex:1 1 100%;display:grid;gap:3px;border-top:1px solid rgba(var(--accent-rgb),.25)}
 .grp-mini li{display:flex;align-items:center;gap:4px;min-width:0;font-size:.8rem}
