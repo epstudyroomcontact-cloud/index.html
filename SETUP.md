@@ -666,6 +666,13 @@ Làm một lần, sau đó mỗi buổi chỉ cần bấm Start Streaming trong 
 - **Tiết kiệm Firebase:** không ghi gì trong lúc kéo. Thả trong tuần đang mở thì gộp vào lần lưu sẵn có (nhiều lần thả trong nửa giây = 1 lần ghi). Thả sang tuần khác ở lịch tháng: 1 lần ghi gộp (batch) cho cả hai tuần. Lịch tháng đọc mỗi tuần 1 lần và dùng chung với thống kê tháng. Vẫn là `users/<uid>/planner/<tuần>` nên **không cần dán lại `firestore.rules`**.
 - Xem thử: `?demo=1&as=admin#/planner`. Chữ đủ 8 ngôn ngữ: en/vi cuối `planner.js` (tìm `pl_dnd_hint`), 6 ngôn ngữ còn lại trong `planner-i18n.js` (`X7`). Phiên bản file v=248.
 
+### 22.az. Buổi ôn gợi ý hiện mờ ngay trên lịch tuần (KHÔNG cần dán luật mới)
+- Các buổi ôn gợi ý của tuần này giờ **hiện mờ (viền nét đứt) ngay trong lưới Kế hoạch tuần**, vào **giờ trống** của người dùng, né các việc đã có. Trên điện thoại chúng nằm trong danh sách của từng ngày.
+- **Bấm vào một buổi mờ** để thêm đúng buổi đó (đúng giờ đang hiện) vào Planner. Thêm rồi thì nó là việc thường: kéo thả, đổi thời lượng, sửa, xoá như mọi việc. **Bấm ×** để bỏ buổi gợi ý đó. Không có gì tự được thêm.
+- Form có thêm ô **"Thường ôn từ"** (mặc định 19:00). Buổi gợi ý được đặt vào giờ trống từ giờ đó tới 23:00. Tối kín thì lùi về giờ trống ngay trước đó trong ngày, không còn chỗ thì nằm ở dải "Không giờ". Mỗi buổi cách việc khác 10 phút.
+- Ô **Kế hoạch ôn thi** gọn lại: tiến độ từng môn, số buổi gợi ý đang hiện trên lịch, nút **"Thêm cả N buổi"**, **"Ẩn gợi ý"** (nhớ trên máy) và **"Gợi ý lại theo lịch tuần hiện tại"**. Nút dồn buổi lỡ vẫn giữ.
+- Firebase: danh sách gợi ý của tuần tính 1 lần và lưu trong `planner/_prefs.exam.g` (cùng lần ghi khi sang tuần mới). Giờ của từng buổi không lưu mà tìm lúc vẽ. Nhận 1 buổi = 1 lần ghi tuần (việc có thêm `g` = id buổi gợi ý), bỏ 1 buổi = 1 lần ghi `_prefs`. Đủ 8 ngôn ngữ. Tăng phiên bản file lên v=251.
+
 ### 22.ay. Kế hoạch ôn thi chỉ GỢI Ý, không tự sắp cho người dùng (KHÔNG cần dán luật mới)
 - Web **không còn tự thêm hay tự dời** việc trong Kế hoạch tuần. Ô **Kế hoạch ôn thi** chỉ hiện **"Gợi ý cho tuần này"** (từng ngày: buổi nào, tổng bao lâu). Người dùng thấy hợp thì bấm **"Thêm N buổi vào Planner"**, thêm xong vẫn sửa hay xoá từng buổi như việc thường.
 - Có buổi ôn của ngày trước chưa xong thì ô này báo **"Còn N buổi ôn của những ngày trước chưa xong"** kèm nút **"Dồn sang những ngày còn lại"**. Chỉ khi bấm nút thì buổi đó mới được dời (vẫn ghi "đã dời" như dời tay).
