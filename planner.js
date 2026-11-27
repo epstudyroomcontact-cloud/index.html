@@ -260,12 +260,12 @@ function plGoneClean(g){
   return { id:String(g.id || ''), t:String(g.t || '').slice(0, 80), day, dur:Math.max(0, Math.min(1440, Math.round(+g.dur || 0))), c:Math.max(0, Math.min(5, g.c | 0)), s:g.s === 'm' ? 'm' : 'x', ...(to !== null ? { to } : {}) };
 }
 /* Chỉ đổi kế hoạch của một ngày đã bắt đầu (hôm nay hoặc trước đó, hay tuần đã qua) mới được ghi nhận. Sửa trước khi tới ngày đó là xếp lại kế hoạch, không tính. */
-const plStarted = day => PL.off < 0 || (PL.off === 0 && day !== null && day <= DT.now().setZone(userTZ).weekday - 1);
-function plMark(x, s, to){                                         // ghi "đã dời" / "đã bỏ" cho ngày gốc của việc x (việc đã xong thì không cần)
-  if (x.done || !plStarted(x.day)) return;
-  PL.gone = [...(PL.gone || []).filter(g => !(g.id === x.id && g.day === x.day)), plGoneClean({ id:x.id, t:x.title, day:x.day, dur:x.dur, c:x.c, s, to })].slice(-PL_MAX);
+const plStarted = (day, off = PL.off) => off < 0 || (off === 0 && day !== null && day <= DT.now().setZone(userTZ).weekday - 1);
+function plMark(x, s, to, W = PL, off = PL.off){                  // ghi "đã dời" / "đã bỏ" cho ngày gốc của việc x (việc đã xong thì không cần); W = tuần chứa việc ({ gone }), mặc định là tuần đang mở
+  if (x.done || !plStarted(x.day, off)) return;
+  W.gone = [...(W.gone || []).filter(g => !(g.id === x.id && g.day === x.day)), plGoneClean({ id:x.id, t:x.title, day:x.day, dur:x.dur, c:x.c, s, to })].slice(-PL_MAX);
 }
-const plLand = x => { PL.gone = (PL.gone || []).filter(g => !(g.id === x.id && g.day === x.day && g.s === 'm')); };   // dời về lại đúng ngày cũ: ngày đó không còn tính là "đã dời"
+const plLand = (x, W = PL) => { W.gone = (W.gone || []).filter(g => !(g.id === x.id && g.day === x.day && g.s === 'm')); };   // dời về lại đúng ngày cũ: ngày đó không còn tính là "đã dời"
 function plClean(x){                                              // chuẩn hoá một việc trước khi lưu / hiện
   const start = /^\d{1,2}:\d{2}$/.test(x.start || '') ? hmStr(Math.min(1439, hm(x.start))) : '';
   let dur = Math.max(0, Math.min(1440, Math.round(+x.dur || 0))); if (start && !dur) dur = 30; if (start) dur = Math.min(dur, 1440 - hm(start));
@@ -654,9 +654,9 @@ function plUpsell(){
 }
 function plAgenda(){                                              // điện thoại: danh sách từng ngày thay cho lưới 7 cột (CSS chỉ hiện một trong hai)
   const ws = plWeekStart(PL.off), today = DT.now().setZone(userTZ), ti = PL.off === 0 ? today.weekday - 1 : 0, di = PL.mday === null || PL.mday === undefined ? ti : PL.mday;
-  const tabs = Array.from({ length:7 }, (_, i) => { const n = PL.tasks.filter(x => x.day === i).length; return `<button type="button" class="pl-dt ${i === di ? 'on' : ''} ${PL.off === 0 && i === ti ? 'today' : ''}" data-act="plMday" data-d="${i}"><b>${esc(t('pl_d' + i))}</b><small>${ws.plus({ days:i }).toFormat('dd')}</small><i class="${n ? 'has' : ''}"></i></button>`; }).join('');
+  const tabs = Array.from({ length:7 }, (_, i) => { const n = PL.tasks.filter(x => x.day === i).length; return `<button type="button" class="pl-dt ${i === di ? 'on' : ''} ${PL.off === 0 && i === ti ? 'today' : ''}" data-act="plMday" data-drop="tab" data-d="${i}"><b>${esc(t('pl_d' + i))}</b><small>${ws.plus({ days:i }).toFormat('dd')}</small><i class="${n ? 'has' : ''}"></i></button>`; }).join('');
   const list = PL.tasks.filter(x => x.day === di).sort((a, b) => (a.start || '99:99').localeCompare(b.start || '99:99') || a.title.localeCompare(b.title));
-  const row = x => `<div class="pl-ag ${x.done ? 'done' : ''}" data-act="plEdit" data-id="${esc(x.id)}" title="${esc(x.title || '—')}"><button type="button" class="pl-ck sm" style="border-color:${PL_COLORS[x.c]}" data-act="plToggle" data-id="${esc(x.id)}" aria-label="${esc(t('pl_f_done'))}">${x.done ? ic('check', 'sm') : ''}</button><span class="pl-agc" style="background:${PL_COLORS[x.c]}"></span><div><b>${esc(x.title || '—')}</b><small>${x.start ? esc(x.start) + '–' + esc(hmStr(hm(x.start) + (x.dur || 0))) : esc(t('pl_allday'))}${x.dur && !x.start ? ' · ' + esc(fmtMin(x.dur)) : ''}${x.q ? ' · ' + esc(t('pl_q_tag', { n:x.q })) : ''}${x.start && plClash(list, x.day, x.start, x.dur, x.id) ? ' · <em class="pl-warn">' + esc(t('pl_clash_tag')) + '</em>' : ''}</small></div></div>`;
+  const row = x => `<div class="pl-ag ${x.done ? 'done' : ''}" data-act="plEdit" data-id="${esc(x.id)}" title="${esc(x.title || '—')}"${plDragAttr(x)}><button type="button" class="pl-ck sm" style="border-color:${PL_COLORS[x.c]}" data-act="plToggle" data-id="${esc(x.id)}" aria-label="${esc(t('pl_f_done'))}">${x.done ? ic('check', 'sm') : ''}</button><span class="pl-agc" style="background:${PL_COLORS[x.c]}"></span><div><b>${esc(x.title || '—')}</b><small>${x.start ? esc(x.start) + '–' + esc(hmStr(hm(x.start) + (x.dur || 0))) : esc(t('pl_allday'))}${x.dur && !x.start ? ' · ' + esc(fmtMin(x.dur)) : ''}${x.q ? ' · ' + esc(t('pl_q_tag', { n:x.q })) : ''}${x.start && plClash(list, x.day, x.start, x.dur, x.id) ? ' · <em class="pl-warn">' + esc(t('pl_clash_tag')) + '</em>' : ''}</small></div></div>`;
   return `<div class="pl-agenda"><div class="pl-dtabs">${tabs}</div><div class="pl-aglist">${list.length ? list.map(row).join('') : `<p class="muted small">${esc(t('pl_day_empty'))}</p>`}</div><button type="button" class="btn secondary" data-act="plNew" data-day="${di}">${ic('plus', 'sm')} ${esc(t('pl_add'))}</button></div>`;
 }
 function plGrid(){
@@ -678,14 +678,14 @@ function plGrid(){
     const top = (hm(x.start) - g0 * 60) / 60 * PL_HOUR, h = Math.max(24, x.dur / 60 * PL_HOUR - 2), ln = lane[x.id] || { l:0, n:1 };
     const when = x.start + '–' + hmStr(hm(x.start) + x.dur), tiny = h < 34;   // tên dài: chỉ hiện số dòng vừa ô (cắt bằng …), giờ luôn ở dòng cuối nếu đủ chỗ; rê chuột / giữ để xem đủ
     const meta = h >= 46, lines = Math.max(1, Math.floor((h - 10 - (meta ? 14 : 0)) / 15)), tip = (x.title || '—') + ' · ' + when;
-    return `<div class="pl-b ${x.done ? 'done' : ''}${ln.n > 1 ? ' clash' : ''}${tiny ? ' tiny' : ''}" title="${esc(tip)}" style="top:${top}px;height:${h}px;--pl-ln:${lines};background:${PL_COLORS[x.c]}${ln.n > 1 ? `;left:calc(${ln.l} * 100% / ${ln.n} + 2px);right:auto;width:calc(100% / ${ln.n} - 4px)` : ''}" data-act="plEdit" data-id="${esc(x.id)}"><button type="button" class="pl-ck" data-act="plToggle" data-id="${esc(x.id)}" aria-label="${esc(t('pl_f_done'))}">${x.done ? ic('check', 'sm') : ''}</button><div class="pl-bt">${esc(x.title || '—')}${x.q ? ` <small>${x.q}/5</small>` : ''}</div>${meta ? `<div class="pl-bm">${esc(when)}</div>` : ''}</div>`;
+    return `<div class="pl-b ${x.done ? 'done' : ''}${ln.n > 1 ? ' clash' : ''}${tiny ? ' tiny' : ''}" title="${esc(tip)}" style="top:${top}px;height:${h}px;--pl-ln:${lines};background:${PL_COLORS[x.c]}${ln.n > 1 ? `;left:calc(${ln.l} * 100% / ${ln.n} + 2px);right:auto;width:calc(100% / ${ln.n} - 4px)` : ''}" data-act="plEdit" data-id="${esc(x.id)}"${plDragAttr(x)}><button type="button" class="pl-ck" data-act="plToggle" data-id="${esc(x.id)}" aria-label="${esc(t('pl_f_done'))}">${x.done ? ic('check', 'sm') : ''}</button><div class="pl-bt">${esc(x.title || '—')}${x.q ? ` <small>${x.q}/5</small>` : ''}</div>${meta ? `<div class="pl-bm">${esc(when)}</div>` : ''}${x.carried ? '' : `<i class="pl-rs" data-rs="1" title="${esc(t('pl_dnd_rs'))}"></i>`}</div>`;
   };
-  const chip = x => `<div class="pl-chip ${x.done ? 'done' : ''}" style="background:${PL_COLORS[x.c]}" title="${esc(x.title || '—')}" data-act="plEdit" data-id="${esc(x.id)}"><button type="button" class="pl-ck sm" data-act="plToggle" data-id="${esc(x.id)}">${x.done ? ic('check', 'sm') : ''}</button><span>${esc(x.title || '—')}</span></div>`;
+  const chip = x => `<div class="pl-chip ${x.done ? 'done' : ''}" style="background:${PL_COLORS[x.c]}" title="${esc(x.title || '—')}" data-act="plEdit" data-id="${esc(x.id)}"${plDragAttr(x)}><button type="button" class="pl-ck sm" data-act="plToggle" data-id="${esc(x.id)}">${x.done ? ic('check', 'sm') : ''}</button><span>${esc(x.title || '—')}</span></div>`;
   const cols = Array.from({ length:7 }, (_, di) => {
     const d = ws.plus({ days:di }), isToday = d.toISODate() === today;
     return { head:`<div class="pl-dh ${isToday ? 'today' : ''}"><b>${esc(t('pl_d' + di))}</b><small>${d.toFormat('dd/MM')}</small></div>`,
-      strip:`<div class="pl-strip">${tasks.filter(x => x.day === di && !x.start).map(chip).join('')}</div>`,
-      col:`<div class="pl-col ${isToday ? 'today' : ''}" data-act="plNew" data-day="${di}" data-g0="${g0}" style="height:${hours.length * PL_HOUR}px">${timed.filter(x => x.day === di).map(block).join('')}${isToday && nowM >= g0 * 60 && nowM < g1 * 60 ? `<i class="pl-now" style="top:${(nowM - g0 * 60) / 60 * PL_HOUR}px"></i>` : ''}</div>` };
+      strip:`<div class="pl-strip" data-drop="strip" data-day="${di}">${tasks.filter(x => x.day === di && !x.start).map(chip).join('')}</div>`,
+      col:`<div class="pl-col ${isToday ? 'today' : ''}" data-act="plNew" data-drop="col" data-day="${di}" data-g0="${g0}" data-g1="${g1}" style="height:${hours.length * PL_HOUR}px">${timed.filter(x => x.day === di).map(block).join('')}${isToday && nowM >= g0 * 60 && nowM < g1 * 60 ? `<i class="pl-now" style="top:${(nowM - g0 * 60) / 60 * PL_HOUR}px"></i>` : ''}</div>` };
   });
   return `${plAgenda()}<div class="pl-scroll"><div class="pl-grid"><div class="pl-corner"></div>${cols.map(c => c.head).join('')}
     <div class="pl-corner"></div>${cols.map(c => c.strip).join('')}
@@ -761,10 +761,10 @@ function plQuickBar(){
 }
 function plSide(){
   const left = PL.tasks.filter(x => !x.done), open = left.filter(x => !x.carried), noDay = PL.tasks.filter(x => x.day === null), di = DT.now().setZone(userTZ).weekday - 1, tmN = PL.off === 0 ? open.filter(x => x.day === di).length : 0;
-  const row = x => `<div class="pl-li ${x.carried ? 'done' : ''}"><button type="button" class="pl-ck sm" style="border-color:${PL_COLORS[x.c]}" data-act="plToggle" data-id="${esc(x.id)}">${x.done ? ic('check', 'sm') : ''}</button><span class="pl-lx" data-act="plEdit" data-id="${esc(x.id)}" title="${esc(x.title || '—')}"><span class="pl-lt">${esc(x.title || '—')}</span>${x.day !== null ? `<small class="faint">${esc(t('pl_d' + x.day))}${x.start ? ' ' + esc(x.start) : ''}</small>` : ''}</span>${x.carried ? `<div class="pl-li-x"><small class="faint">${esc(t('pl_carried'))}</small><button type="button" class="btn ghost sm" data-act="plUncarry" data-id="${esc(x.id)}">${esc(t('pl_uncarry'))}</button></div>` : ''}</div>`;
+  const row = x => `<div class="pl-li ${x.carried ? 'done' : ''}"${plDragAttr(x)}><button type="button" class="pl-ck sm" style="border-color:${PL_COLORS[x.c]}" data-act="plToggle" data-id="${esc(x.id)}">${x.done ? ic('check', 'sm') : ''}</button><span class="pl-lx" data-act="plEdit" data-id="${esc(x.id)}" title="${esc(x.title || '—')}"><span class="pl-lt">${esc(x.title || '—')}</span>${x.day !== null ? `<small class="faint">${esc(t('pl_d' + x.day))}${x.start ? ' ' + esc(x.start) : ''}</small>` : ''}</span>${x.carried ? `<div class="pl-li-x"><small class="faint">${esc(t('pl_carried'))}</small><button type="button" class="btn ghost sm" data-act="plUncarry" data-id="${esc(x.id)}">${esc(t('pl_uncarry'))}</button></div>` : ''}</div>`;
   return `<div class="pl-side">${pxCard()}${plToday()}
     <section class="card pad"><h3>${esc(t('pl_still'))}</h3><div class="pl-list">${left.length ? left.map(row).join('') : `<p class="muted small">${esc(t('pl_left_none'))}</p>`}</div>${tmN ? `<button class="btn secondary sm mt-s" data-act="plMoveTomorrow">${esc(t('pl_carry_tm'))}</button>` : ''}${left.length - open.length > 1 ? `<button class="btn ghost sm mt-s" data-act="plUncarry">${esc(t('pl_uncarry_all'))}</button>` : ''}</section>
-    ${noDay.length ? `<section class="card pad"><h3>${esc(t('pl_week_list'))}</h3><div class="pl-list">${noDay.map(row).join('')}</div></section>` : ''}</div>`;
+    ${noDay.length ? `<section class="card pad" data-drop="noday"><h3>${esc(t('pl_week_list'))}</h3><div class="pl-list">${noDay.map(row).join('')}</div></section>` : ''}</div>`;
 }
 function plAnalysis(S){
   const mx = Math.max(60, ...S.day.map(x => x.plan));
@@ -788,7 +788,7 @@ PAGES.planner = function(){
   let body;
   if (PL.state === 'error') body = `<p class="muted">${esc(t('pl_load_err'))}</p><button class="btn primary" data-act="plRetry">${esc(t('club_retry'))}</button>${PL.err ? `<p class="small faint">${esc(PL.err)}</p>` : ''}`;
   else if (!PL.tasks) body = `<p class="muted">${esc(t(PL.slow ? 'pl_slow' : 'pl_loading'))}</p>${PL.slow ? `<button class="btn primary" data-act="plRetry">${esc(t('club_retry'))}</button>` : ''}`;
-  else { const S = plStats(PL.tasks, PL.off, PL.gone); body = `${plKpis(S)}${plQuickBar()}<p class="small faint pl-hint" style="margin:4px 0 10px">${esc(t('pl_hint'))}</p><div class="pl-main"><div class="card pad pl-gridcard">${plGrid()}</div>${plSide()}</div>${plAnalysis(S)}`; }
+  else { const S = plStats(PL.tasks, PL.off, PL.gone); body = `${plKpis(S)}${plQuickBar()}<p class="small faint pl-hint" style="margin:4px 0 10px">${esc(t('pl_hint'))} ${esc(t('pl_dnd_hint'))}</p><div class="pl-main">${plCal()}${plSide()}</div>${plAnalysis(S)}`; }
   page(`${head('pl_title', 'pl_sub', '', 'moonwalk', 4)}${hintNote('new_pl')}${trialActive() && !state.companion && !state.isAdmin ? `<p class="small muted" style="margin:-6px 0 12px">${esc(t('trial_active', { d:trialEnd() }))} <a href="#/donate">${esc(t('pl_up_cta'))}</a></p>` : ''}${state.companion && state.companionUntil && !state.isAdmin ? (compRenewOpen() ? `<div class="card pad stack" style="margin-bottom:14px"><p class="small">${esc(t('pl_soon', { d:compUntilDay() }))}</p>${(() => { const r = plRecent(); return r && r.n ? `<p class="small"><b>${esc(t('pl_soon_stats', { n:r.n, t:fmtMin(r.t) }))}</b></p>` : ''; })()}${compClaimHTML()}</div>` : `<p class="small muted" style="margin:-6px 0 12px">${esc(compUntilText())}</p>`) : ''}${nav}${body}`);
 };
 /* ---------- hộp thoại thêm / sửa ---------- */
@@ -1265,4 +1265,233 @@ Object.assign(I18N.vi, {
   px_sess_done:'Xong {n}/{m} buổi', px_need:'Còn {n} buổi trong {d} ngày học: khoảng {m} mỗi ngày.', px_all_done:'Đã xong hết các buổi ôn. Những ngày còn lại bạn ôn nhẹ và nghỉ ngơi nhé.', px_over:'Đã qua ngày thi. Bạn đã cố gắng rất nhiều!',
   px_auto:'Lỡ một ngày? Buổi chưa xong tự dồn sang những ngày còn lại.',
   px_del:'Xoá kế hoạch', px_del_q:'Xoá kế hoạch ôn thi này?', px_del_sub:'Các buổi ôn chưa làm từ hôm nay trở đi sẽ được bỏ khỏi tuần này. Buổi đã xong vẫn giữ trong lịch sử.', px_deleted:'Đã xoá kế hoạch ôn thi'
+});
+
+/* =========================================================
+   LỊCH LƯỚI KÉO THẢ (xem theo tuần có giờ + xem theo tháng)
+   - Tuần: kéo một việc (chuột: bấm giữ rồi kéo; cảm ứng: chạm giữ khoảng 0,35 giây rồi kéo) sang cột ngày + giờ khác, lên dải "Không giờ" của một ngày,
+     lên ô "Việc trong tuần (chưa gắn ngày)", hoặc lên nút ngày ở chế độ danh sách trên điện thoại. Kéo mép dưới của việc để đổi thời lượng.
+     Điện thoại có thêm chế độ "Lưới giờ" (vuốt ngang để xem đủ 7 ngày), chọn một lần là nhớ trên máy đó.
+   - Tháng: lịch cả tháng dùng lại các tuần đã đọc (PL.raw, plMonthLoad: mỗi tuần đọc 1 lần); bấm một ngày để xem việc của ngày đó, kéo việc sang ngày khác, kể cả sang tuần khác.
+   - Dời ngày dùng đúng logic "đã dời" (plMark / plLand) như khi sửa trong form; buổi ôn thi (ex/xs) giữ nguyên, chỉ được dời trong tuần của nó
+     (kế hoạch ôn thi đếm buổi theo từng tuần, xem pxFix). Trùng giờ thì không thả (lưới tuần) hoặc dời sang mà bỏ giờ (lịch tháng / nút ngày).
+   - Ghi Firestore: không ghi gì trong lúc kéo. Thả trong tuần đang mở dùng plSave (các lần thả trong 0,5 giây gộp thành 1 lần ghi);
+     thả sang tuần khác thì 1 batch ghi cả hai tuần. Không cần đổi firestore.rules (vẫn là users/<uid>/planner/<tuần>).
+   ========================================================= */
+const PL_SNAP = 15;                                               // bước làm tròn giờ khi thả / đổi thời lượng (phút)
+const PLD = { s:null, eat:false };                                // s = lần kéo đang diễn ra; eat = nuốt cú click ngay sau khi thả
+const plDragAttr = x => x.carried ? '' : ` data-drag="${esc(x.id)}"`;   // việc đã chuyển sang tuần sau chỉ còn là dấu vết: không kéo
+const plView = () => PL.view || (PL.view = store.get('pl_view', 'w') === 'm' ? 'm' : 'w');
+const plPhoneGrid = () => PL.pmv || (PL.pmv = store.get('pl_pmv', 'l') === 'g' ? 'g' : 'l');
+const plWk = k => k === PL.key && PL.tasks ? PL : PL.raw[k];      // tuần đang mở dùng thẳng PL (để plMark / plLand sửa đúng PL.gone)
+const plOffK = k => k === PL.key ? PL.off : plOffOf(pxWkStart(k));
+function plGoWeek(o, day){
+  if (o !== PL.off) { plFlush(); PL.off = o; PL.seq++; PL.tasks = null; PL.key = ''; PL.state = 'idle'; }
+  PL.mday = day === undefined ? null : day;
+}
+function plCal(){
+  const m = plView() === 'm', g = plPhoneGrid() === 'g';
+  const seg = (act, cur, opts) => `<div class="seg">${opts.map(([v, k]) => `<button type="button" class="${cur === v ? 'on' : ''}" data-act="${act}" data-v="${v}" aria-pressed="${cur === v}">${esc(t(k))}</button>`).join('')}</div>`;
+  const bar = `<div class="pl-calbar">${seg('plView', m ? 'm' : 'w', [['w', 'pl_v_w'], ['m', 'pl_v_m']])}${m ? '' : `<span class="pl-pmv">${seg('plPmv', g ? 'g' : 'l', [['l', 'pl_v_list'], ['g', 'pl_v_grid']])}</span>`}</div>
+    <p class="small faint pl-dndph">${esc(t(m ? 'pl_m_hint' : 'pl_dnd_hint'))}</p>`;
+  if (!m && PL.gsx) setTimeout(() => { const sc = document.querySelector('.pl-gridcard .pl-scroll'); if (sc) sc.scrollLeft = PL.gsx; }, 0);   // vẽ lại sau khi thả: giữ nguyên chỗ đang vuốt ngang
+  else if (!m && g && isPhone() && PL.gsk !== PL.key) {          // mở lưới trên điện thoại: cuộn tới hôm nay
+    PL.gsk = PL.key;
+    setTimeout(() => { const sc = document.querySelector('.pl-gridcard .pl-scroll'), c = sc && sc.querySelector('.pl-col.today'); if (c) sc.scrollLeft = Math.max(0, c.offsetLeft - 50); }, 0);
+  }
+  return `<div class="card pad pl-gridcard${g ? ' pl-gview' : ''}${m ? ' pl-mview' : ''}">${bar}${m ? plMonth() : plGrid()}</div>`;
+}
+document.addEventListener('scroll', e => { if (e.target && e.target.classList && e.target.classList.contains('pl-scroll')) PL.gsx = e.target.scrollLeft; }, true);
+function plMonth(){
+  const now = DT.now().setZone(userTZ), today = now.toISODate(), ms = now.startOf('month').plus({ months:PL.cmo || 0 }), weeks = plMonthWeeks(ms), loc = d => d.setLocale(state.lang);
+  if (DEMO) weeks.forEach(ws => { const k = plKey(plOffOf(ws)); if (k !== PL.key && !PL.raw[k]) PL.raw[k] = { tasks:[], gone:[] }; });   // bản xem thử: các tuần khác trống
+  plMonthLoad(ms);
+  const P = pxPlan(), exam = P ? P.d : '', byStart = (a, b) => (a.start || '99:99').localeCompare(b.start || '99:99') || a.title.localeCompare(b.title);
+  let sel = PL.csel; if (!sel || !DT.fromISO(sel, { zone:userTZ }).hasSame(ms, 'month')) sel = now.hasSame(ms, 'month') ? today : ms.toISODate();
+  let S = null;
+  const cells = weeks.map(ws => {
+    const o = plOffOf(ws), k = plKey(o), r = plWeekData(k);
+    return Array.from({ length:7 }, (_, di) => {
+      const d = ws.plus({ days:di }), iso = d.toISODate(), list = r ? r.tasks.filter(x => x.day === di).sort(byStart) : [];
+      if (iso === sel) S = { d, k, o, di, list, r };
+      const pill = x => `<div class="pl-mp${x.done || x.carried ? ' done' : ''}" style="background:${PL_COLORS[x.c]}" title="${esc((x.start ? x.start + ' ' : '') + (x.title || '—'))}"${plDragAttr(x)} data-wk="${k}">${x.start ? `<small>${esc(x.start)}</small> ` : ''}${esc(x.title || '—')}</div>`;
+      return `<div class="pl-mc${d.hasSame(ms, 'month') ? '' : ' out'}${iso === today ? ' today' : ''}${iso === sel ? ' on' : ''}${iso === exam ? ' exam' : ''}" data-act="plCsel" data-iso="${iso}" data-drop="cell" data-wk="${k}" data-day="${di}" role="button" aria-label="${esc(loc(d).toFormat('cccc dd/MM') + ' · ' + list.length)}">
+        <div class="pl-mch"><b>${d.day}</b>${iso === exam ? `<span class="pl-mx" title="${esc(P.n || t('pl_m_exam'))}">${esc(t('pl_m_exam'))}</span>` : ''}</div>
+        <div class="pl-mps">${list.slice(0, 3).map(pill).join('')}${list.length > 3 ? `<small class="pl-mmore">${esc(t('pl_m_more', { n:list.length - 3 }))}</small>` : ''}</div>
+        <div class="pl-mdots">${list.slice(0, 4).map(x => `<i style="background:${PL_COLORS[x.c]}"></i>`).join('')}${list.length > 4 ? '<em>+</em>' : ''}</div></div>`;
+    }).join('');
+  }).join('');
+  const wait = !DEMO && S && S.r === undefined;
+  const row = x => `<div class="pl-ag${x.done || x.carried ? ' done' : ''}" data-act="${S.k === PL.key ? 'plEdit' : 'plCweek'}" data-id="${esc(x.id)}" data-o="${S.o}" data-day="${S.di}" title="${esc(x.title || '—')}"${plDragAttr(x)} data-wk="${S.k}"><span class="pl-agc" style="background:${PL_COLORS[x.c]}"></span><div><b>${esc(x.title || '—')}</b><small>${x.start ? esc(x.start) + '–' + esc(hmStr(hm(x.start) + (x.dur || 0))) : esc(t('pl_allday'))}${x.dur && !x.start ? ' · ' + esc(fmtMin(x.dur)) : ''}${x.carried ? ' · ' + esc(t('pl_carried')) : ''}</small></div></div>`;
+  const title = loc(ms).toLocaleString({ month:'long', year:'numeric' }).replace(/^\p{Ll}/u, c => c.toUpperCase());
+  return `<div class="row between pl-mnav"><div class="week-nav"><button type="button" class="btn secondary icon sm" data-act="plCmo" data-d="-1" aria-label="‹">${ic('chev-l', 'sm')}</button><span class="lbl">${esc(title)}</span><button type="button" class="btn secondary icon sm" data-act="plCmo" data-d="1" aria-label="›" ${(PL.cmo || 0) >= 12 ? 'disabled' : ''}>${ic('chev-r', 'sm')}</button>${PL.cmo ? `<button type="button" class="btn ghost sm" data-act="plCmo" data-d="0">${esc(t('pl_m_this'))}</button>` : ''}</div>${PL.mload ? `<small class="faint">${esc(t('pl_ps_loading'))}</small>` : ''}</div>
+    <div class="pl-mgrid">${Array.from({ length:7 }, (_, i) => `<div class="pl-mwd">${esc(t('pl_d' + i))}</div>`).join('')}${cells}</div>
+    ${S ? `<div class="pl-mday" data-drop="cell" data-wk="${S.k}" data-day="${S.di}"><div class="row between" style="gap:8px"><h4>${esc(loc(S.d).toFormat('cccc dd/MM'))}</h4><button type="button" class="btn ghost sm" data-act="plCweek" data-o="${S.o}" data-day="${S.di}">${ic('calendar', 'sm')} ${esc(t('pl_m_open'))}</button></div>
+      ${S.list.length ? S.list.map(row).join('') : `<p class="muted small">${esc(t(wait ? 'pl_ps_loading' : 'pl_day_empty'))}</p>`}</div>` : ''}`;
+}
+/* ---------- dời việc (dùng chung cho mọi kiểu thả) ---------- */
+async function plMoveTask(id, kA, tg){
+  const A = plWk(kA), B = plWk(tg.k); if (!A || !B) return;
+  const x = A.tasks.find(v => v.id === id); if (!x || x.carried) return;
+  let { day, start, dur } = tg, note = '';
+  if (A === B && day === x.day && start === x.start && dur === x.dur) return;
+  if (A !== B && x.ex) return toast(t('pl_dnd_ex'), 6000);
+  if (A !== B && B.tasks.length >= PL_MAX) return toast(t('pl_max', { n:PL_MAX }));
+  if (start && day !== null) {
+    const cl = plClashMsg(B.tasks, day, start, dur, x.id);
+    if (cl) { if (!tg.keep) return toast(cl.text, 6500); start = ''; note = t('pl_dnd_notime'); }   // lưới giờ: không thả vào chỗ trùng; lịch tháng / nút ngày: vẫn dời ngày nhưng bỏ giờ
+  }
+  const oA = plOffK(kA), oB = plOffK(tg.k);
+  if (A !== B || day !== x.day) plMark(x, 'm', A === B ? (day === null ? undefined : day) : oB === oA + 1 ? 'w' : undefined, A, oA);
+  const nx = plClean({ ...x, day, start, dur });
+  if (A === B) Object.assign(x, nx); else { A.tasks.splice(A.tasks.indexOf(x), 1); B.tasks.push(nx); }
+  plLand(nx, B);
+  if (A === B && kA === PL.key) plSave();                         // trong tuần đang mở: gộp vào lần ghi chờ sẵn
+  else await plWrite([...new Set([kA, tg.k])]);
+  render(true);
+  if (note) toast(note, 5200);
+  else if (A !== B) toast(t('pl_dnd_moved', { d:pxWkStart(tg.k).plus({ days:day }).setLocale(state.lang).toFormat('cccc dd/MM') }), 3600);
+}
+async function plWrite(keys){                                     // ghi một lần (batch) mọi tuần vừa đổi
+  const b = DEMO ? null : db.batch();
+  keys.forEach(k => {
+    const W = plWk(k); if (!W) return;
+    const tasks = W.tasks.map(plClean), gone = (W.gone || []).map(plGoneClean);
+    if (k === PL.key) { clearTimeout(PL.timer); PL.save = 'saved'; } else PL.raw[k] = { tasks, gone };
+    plCache(k, tasks, gone); PL.hist[k] = plStats(tasks, plOffK(k), gone);
+    if (k === plKey(0) && state.user) { PL.remTasks = { uid:state.user.uid, tasks }; plPinShow(); }
+    if (b) b.set(plRef(k), { tasks, gone, updatedAt:TS() });
+  });
+  try { if (b) await b.commit(); } catch (e) { console.warn('planner move', e.code); if (keys.includes(PL.key)) PL.save = 'error'; toast(t('pl_err')); }
+}
+/* ---------- kéo thả bằng Pointer Events (chuột, bút, cảm ứng) ---------- */
+function plDropAt(cx, cy){
+  const s = PLD.s, x = s.x;
+  if (s.rs) {                                                     // đổi thời lượng: chỉ trong cột của chính việc đó
+    const col = document.querySelector(`.pl-scroll .pl-col[data-day="${x.day}"]`); if (!col) return null;
+    const r = col.getBoundingClientRect(), a = hm(x.start), end = +col.dataset.g0 * 60 + (cy - r.top) / PL_HOUR * 60;
+    return { el:col, col:true, k:PL.key, day:x.day, start:x.start, dur:Math.max(PL_SNAP, Math.min(1440 - a, Math.round((end - a) / PL_SNAP) * PL_SNAP)) };
+  }
+  const hit = document.elementFromPoint(cx, cy), el = hit && hit.closest('[data-drop]'); if (!el || el.closest('.pl-locked')) return null;
+  const kind = el.dataset.drop, k = el.dataset.wk || PL.key;
+  if (kind === 'col') {
+    const r = el.getBoundingClientRect(), g0 = +el.dataset.g0 * 60, g1 = Math.min(1440, +el.dataset.g1 * 60), dur = x.start ? x.dur : plW(x);
+    let st = g0 + Math.round((cy - r.top - s.dy) / PL_HOUR * 60 / PL_SNAP) * PL_SNAP;
+    st = Math.max(g0, Math.min(Math.max(g0, Math.min(g1, 1440 - PL_SNAP)), st));
+    return { el, col:true, k:PL.key, day:+el.dataset.day, start:hmStr(st), dur:Math.min(dur, 1440 - st) };
+  }
+  if (kind === 'strip') return { el, k:PL.key, day:+el.dataset.day, start:'', dur:x.dur };
+  if (kind === 'tab') return { el, k:PL.key, day:+el.dataset.d, start:x.start, dur:x.dur, keep:true };
+  if (kind === 'cell') return { el, k, day:+el.dataset.day, start:x.start, dur:x.dur, keep:true };
+  if (kind === 'noday') return { el, k:PL.key, day:null, start:'', dur:x.dur };
+  return null;
+}
+function plDropShow(tg){
+  const s = PLD.s;
+  document.querySelectorAll('.pl-over').forEach(n => { if (!tg || n !== tg.el) n.classList.remove('pl-over'); });
+  let pv = document.querySelector('.pl-drop');
+  if (!tg || !tg.col) { if (pv) pv.remove(); if (tg) tg.el.classList.add('pl-over'); return; }
+  if (!pv || pv.parentNode !== tg.el) { if (pv) pv.remove(); pv = document.createElement('div'); pv.className = 'pl-drop'; tg.el.appendChild(pv); }
+  const W = plWk(tg.k), bad = !!(W && plClash(W.tasks, tg.day, tg.start, tg.dur, s.id)), g0 = +tg.el.dataset.g0 * 60;
+  pv.classList.toggle('bad', bad);
+  pv.style.top = (hm(tg.start) - g0) / 60 * PL_HOUR + 'px'; pv.style.height = Math.max(20, tg.dur / 60 * PL_HOUR - 2) + 'px';
+  pv.textContent = tg.start + '–' + hmStr(hm(tg.start) + tg.dur) + (bad ? ' · ' + t('pl_clash_tag') : '');
+}
+function plDragMove(){
+  const s = PLD.s; if (!s || !s.on) return;
+  if (s.ghost) s.ghost.style.transform = s.touch ? `translate(${s.cx - s.gw / 2}px,${s.cy - s.gh - 28}px)` : `translate(${s.cx + 14}px,${s.cy - Math.min(s.dy, 20)}px)`;   // cảm ứng: bóng nằm trên ngón tay để còn nhìn thấy
+  s.tg = plDropAt(s.cx, s.cy); plDropShow(s.tg);
+}
+function plAutoScroll(){                                          // kéo tới mép màn hình / mép lưới: tự cuộn
+  const s = PLD.s; if (!s || !s.on) return;
+  const vh = window.innerHeight, m = 56; let dy = 0, dx = 0;
+  if (s.cy < m) dy = -Math.ceil((m - s.cy) / 3); else if (s.cy > vh - m) dy = Math.ceil((s.cy - vh + m) / 3);
+  if (dy) window.scrollBy(0, dy);
+  const sc = !s.rs && document.querySelector('.pl-gridcard .pl-scroll');
+  if (sc && sc.offsetParent) { const r = sc.getBoundingClientRect(); if (s.cy > r.top && s.cy < r.bottom) { if (s.cx < r.left + 36 && sc.scrollLeft > 0) dx = -9; else if (s.cx > r.right - 36) dx = 9; } if (dx) sc.scrollLeft += dx; }
+  if (dy || dx) plDragMove();
+  s.raf = requestAnimationFrame(plAutoScroll);
+}
+function plDragStart(){
+  const s = PLD.s; if (!s || s.on) return; clearTimeout(s.t);
+  const W = plWk(s.wk), x = W && W.tasks.find(v => v.id === s.id);
+  if (!x || x.carried || !s.el.isConnected || (s.rs && !x.start)) return plDragEnd();
+  s.on = true; s.x = x;
+  if (!s.rs) {
+    const g = document.createElement('div'); g.className = 'pl-ghost'; g.style.background = PL_COLORS[x.c]; g.style.width = Math.min(220, Math.max(120, s.w)) + 'px';
+    g.innerHTML = `${esc(x.title || '—')}${x.start ? `<small>${esc(x.start)}–${esc(hmStr(hm(x.start) + x.dur))}</small>` : ''}`;
+    document.body.appendChild(g); s.ghost = g; s.gw = g.offsetWidth; s.gh = g.offsetHeight;
+  }
+  s.el.classList.add('pl-src'); document.body.classList.add('pl-dragging');
+  if (s.touch && navigator.vibrate) { try { navigator.vibrate(12); } catch (e) { /* không rung được thì thôi */ } }
+  plDragMove(); s.raf = requestAnimationFrame(plAutoScroll);
+}
+function plDragEnd(){
+  const s = PLD.s; if (!s) return; PLD.s = null; clearTimeout(s.t); cancelAnimationFrame(s.raf);
+  if (s.ghost) s.ghost.remove();
+  document.querySelectorAll('.pl-drop').forEach(n => n.remove());
+  document.querySelectorAll('.pl-over,.pl-src').forEach(n => n.classList.remove('pl-over', 'pl-src'));
+  document.body.classList.remove('pl-dragging');
+}
+document.addEventListener('pointerdown', e => {
+  if (PLD.s || route.name !== 'planner' || !PL.tasks || (e.pointerType === 'mouse' && e.button !== 0)) return;
+  const el = e.target.closest('[data-drag]'); if (!el || el.closest('.pl-locked') || e.target.closest('.pl-ck, button, a, input, select')) return;
+  const r = el.getBoundingClientRect(), touch = e.pointerType !== 'mouse';
+  PLD.s = { id:el.dataset.drag, wk:el.dataset.wk || PL.key, el, rs:!!e.target.closest('[data-rs]'), pid:e.pointerId, touch, on:false, x0:e.clientX, y0:e.clientY, cx:e.clientX, cy:e.clientY,
+    dy:el.classList.contains('pl-b') ? Math.max(0, Math.min(r.height, e.clientY - r.top)) : 0, w:r.width, t:0, raf:0 };
+  if (touch) PLD.s.t = setTimeout(plDragStart, 350);            // cảm ứng: chạm giữ mới kéo, vuốt bình thường vẫn cuộn trang
+});
+document.addEventListener('pointermove', e => {
+  const s = PLD.s; if (!s || e.pointerId !== s.pid) return;
+  s.cx = e.clientX; s.cy = e.clientY;
+  if (!s.on) {
+    const d = Math.hypot(e.clientX - s.x0, e.clientY - s.y0);
+    if (s.touch) { if (d > 10) plDragEnd(); return; }            // ngón tay đã di trước khi giữ đủ lâu: đó là vuốt cuộn
+    if (d < 5) return;
+    plDragStart(); if (!PLD.s) return;
+  }
+  e.preventDefault(); plDragMove();
+}, { passive:false });
+document.addEventListener('touchmove', e => { if (PLD.s && PLD.s.on) e.preventDefault(); }, { passive:false });   // đang kéo: không cho trang cuộn theo ngón tay
+document.addEventListener('contextmenu', e => { if (PLD.s) e.preventDefault(); });                                // chạm giữ không bật menu của trình duyệt
+document.addEventListener('pointerup', e => {
+  const s = PLD.s; if (!s || e.pointerId !== s.pid) return;
+  const on = s.on, tg = s.tg, id = s.id, wk = s.wk; plDragEnd();
+  if (!on) return;
+  PLD.eat = true; setTimeout(() => { PLD.eat = false; }, 450);
+  if (tg) plMoveTask(id, wk, tg);
+});
+document.addEventListener('pointercancel', e => { if (PLD.s && e.pointerId === PLD.s.pid) { if (PLD.s.on) { PLD.eat = true; setTimeout(() => { PLD.eat = false; }, 450); } plDragEnd(); } });
+window.addEventListener('click', e => { if (PLD.eat) { PLD.eat = false; e.stopPropagation(); e.preventDefault(); } }, true);   // vừa thả xong: không mở form sửa
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && PLD.s) { if (PLD.s.on) { PLD.eat = true; setTimeout(() => { PLD.eat = false; }, 450); } plDragEnd(); } });
+Object.assign(ACTIONS, {
+  plView: el => {
+    PL.view = el.dataset.v === 'm' ? 'm' : 'w'; store.set('pl_view', PL.view);
+    if (PL.view === 'm') { const ws = plWeekStart(PL.off); PL.cmo = Math.round(ws.plus({ days:3 }).startOf('month').diff(DT.now().setZone(userTZ).startOf('month'), 'months').months); PL.csel = PL.off ? ws.toISODate() : null; }
+    render(true);
+  },
+  plPmv: el => { PL.pmv = el.dataset.v === 'g' ? 'g' : 'l'; store.set('pl_pmv', PL.pmv); PL.gsk = ''; PL.gsx = 0; render(true); },
+  plCmo: el => { const d = +el.dataset.d; PL.cmo = d ? Math.max(-36, Math.min(12, (PL.cmo || 0) + d)) : 0; PL.csel = null; render(true); },
+  plCsel: el => { PL.csel = el.dataset.iso; render(true); },
+  plCweek: el => { PL.view = 'w'; store.set('pl_view', 'w'); plGoWeek(+el.dataset.o, +el.dataset.day); PL.gsk = ''; PL.gsx = 0; render(true); },
+});
+Object.assign(I18N.en, {
+  pl_v_w:'Week', pl_v_m:'Month', pl_v_list:'List', pl_v_grid:'Time grid',
+  pl_dnd_hint:'Drag a task to move it to another day or time, or drag its bottom edge to change its length. On a phone, press and hold a task, then drag.',
+  pl_dnd_rs:'Drag to change the length',
+  pl_dnd_ex:'Exam sessions stay in their own week, because the exam plan counts them week by week. You can still move them to another day of the same week.',
+  pl_dnd_notime:'That time is already taken on the new day, so the task was moved without a time.',
+  pl_dnd_moved:'Moved to {d}.',
+  pl_m_exam:'Exam', pl_m_more:'+{n} more', pl_m_this:'This month', pl_m_open:'Open this week',
+  pl_m_hint:'Tap a day to see its tasks. Drag a task onto another day to move it, even into another week.'
+});
+Object.assign(I18N.vi, {
+  pl_v_w:'Tuần', pl_v_m:'Tháng', pl_v_list:'Danh sách', pl_v_grid:'Lưới giờ',
+  pl_dnd_hint:'Kéo một việc để dời sang ngày hoặc giờ khác, kéo mép dưới để đổi thời lượng. Trên điện thoại, chạm giữ việc rồi kéo.',
+  pl_dnd_rs:'Kéo để đổi thời lượng',
+  pl_dnd_ex:'Buổi ôn thi chỉ dời được trong tuần của nó, vì kế hoạch ôn thi đếm buổi theo từng tuần. Bạn vẫn kéo sang ngày khác trong cùng tuần được.',
+  pl_dnd_notime:'Giờ đó ở ngày mới đã có việc khác, nên việc được dời sang mà không đặt giờ.',
+  pl_dnd_moved:'Đã dời sang {d}.',
+  pl_m_exam:'Thi', pl_m_more:'+{n} việc', pl_m_this:'Tháng này', pl_m_open:'Mở tuần này',
+  pl_m_hint:'Bấm một ngày để xem việc của ngày đó. Kéo việc sang ngày khác để dời, kể cả sang tuần khác.'
 });
