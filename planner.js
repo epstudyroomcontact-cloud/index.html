@@ -270,7 +270,7 @@ function plClean(x){                                              // chuẩn ho�
   const start = /^\d{1,2}:\d{2}$/.test(x.start || '') ? hmStr(Math.min(1439, hm(x.start))) : '';
   let dur = Math.max(0, Math.min(1440, Math.round(+x.dur || 0))); if (start && !dur) dur = 30; if (start) dur = Math.min(dur, 1440 - hm(start));
   const day = Number.isInteger(x.day) && x.day >= 0 && x.day <= 6 ? x.day : null;
-  return { id:String(x.id || plId()), title:String(x.title || '').trim().slice(0, 80), day, start:day === null ? '' : start, dur, c:Math.max(0, Math.min(5, x.c | 0)), done:!!x.done, ...(x.done && x.q >= 1 && x.q <= 5 ? { q:x.q | 0 } : {}), ...(x.carried ? { carried:typeof x.carried === 'string' ? x.carried : true } : {}), ...(x.ex && typeof x.ex === 'string' ? { ex:x.ex.slice(0, 12), xs:Math.max(0, Math.min(7, x.xs | 0)) } : {}) };   // ex/xs: buổi của kế hoạch ôn thi
+  return { id:String(x.id || plId()), title:String(x.title || '').trim().slice(0, 80), day, start:day === null ? '' : start, dur, c:Math.max(0, Math.min(5, x.c | 0)), done:!!x.done, ...(x.done && x.q >= 1 && x.q <= 5 ? { q:x.q | 0 } : {}), ...(x.carried ? { carried:typeof x.carried === 'string' ? x.carried : true } : {}), ...(x.ex && typeof x.ex === 'string' ? { ex:x.ex.slice(0, 12), xs:Math.max(0, Math.min(7, x.xs | 0)), ...(x.r ? { r:1 } : {}) } : {}) };   // ex/xs: buổi của kế hoạch ôn thi
 }
 /* đưa việc đã dời sang tuần sau về lại tuần này (và gỡ bản sao bên tuần sau nếu chưa làm) */
 async function plUncarry(list){
@@ -1039,22 +1039,64 @@ Object.assign(I18N.vi, {
    - Số buổi còn lại của một môn = tổng số buổi − đã xong ở các tuần trước − đã có trong tuần này. Chia đều (dồn nhẹ về đầu) cho các ngày học còn lại
      tới hôm trước ngày thi; tuần này nhận phần của các ngày thuộc tuần này. Môn xen kẽ nhau, môn còn nhiều (theo tỉ lệ) được xếp trước.
    - Lỡ một ngày: buổi chưa xong của ngày đã qua tự dời sang ngày học còn lại ít việc ôn nhất trong tuần (ghi "đã dời" như khi dời tay).
+     (r:1 = buổi ôn tổng / làm đề thử của những ngày cuối: không tính vào số buổi của môn, không dồn khi lỡ.)
+   - Ôn cho hiệu quả: mỗi môn có mức khó (k: 1 dễ, 2 vừa, 3 khó). Môn khó được xếp sớm hơn (trọng số 1,3; dễ 0,8) nên còn thời gian lùi;
+     cứ buổi thứ 4, 8, 12… của một môn là buổi "ôn lại & tự kiểm tra" (nhớ lại không nhìn sách, làm bài tập) thay vì học mới.
+     rv = số ngày học cuối cùng trước ngày thi dành riêng để ôn tổng và làm đề thử (0-3); phần học chính chia vào các ngày trước đó.
      Được vượt giờ tối đa mỗi ngày tới 1,5 lần (ít nhất thêm 1 buổi); quá mức đó thì để lại, sang tuần sau buổi chưa xong tự được chia lại vào các ngày còn lại. Tuần cuối trước ngày thi thì vẫn dồn hết.
    ========================================================= */
 const PX_LENS = [25, 30, 45, 60, 90, 120], PX_CAPS = [30, 60, 90, 120, 150, 180, 240, 300, 360, 480], PX_MAXS = 8;
 const PX = { busy:false, strip:false, remap:null, delId:'' };
 function pxClean(p){
   if (!p || typeof p !== 'object' || !/^\d{4}-\d{2}-\d{2}$/.test(p.d || '')) return null;
-  const s = (Array.isArray(p.s) ? p.s : []).map(x => ({ n:String(x && x.n || '').trim().slice(0, 40), h:Math.max(0, Math.min(500, Math.round((+(x && x.h) || 0) * 2) / 2)) })).filter(x => x.n && x.h > 0).slice(0, PX_MAXS);
+  const s = (Array.isArray(p.s) ? p.s : []).map(x => ({ n:String(x && x.n || '').trim().slice(0, 40), h:Math.max(0, Math.min(500, Math.round((+(x && x.h) || 0) * 2) / 2)), k:[1, 2, 3].includes(+(x && x.k)) ? +x.k : 2, d:/^\d{4}-\d{2}-\d{2}$/.test(x && x.d || '') ? x.d : '' })).filter(x => x.n && x.h > 0).slice(0, PX_MAXS);
   if (!s.length) return null;
   const w = [...new Set((Array.isArray(p.w) ? p.w : []).map(Number).filter(d => Number.isInteger(d) && d >= 0 && d <= 6))].sort();
   return { id:String(p.id || plId()).slice(0, 12), n:String(p.n || '').trim().slice(0, 60), d:p.d, s, len:PX_LENS.includes(+p.len) ? +p.len : 45, cap:Math.max(30, Math.min(720, Math.round(+p.cap || 120))),
-    w:w.length ? w : [0, 1, 2, 3, 4, 5, 6], wk:/^\d{4}-W\d{1,2}$/.test(p.wk || '') ? p.wk : '', dn:s.map((_, i) => Math.max(0, Math.round(+(Array.isArray(p.dn) && p.dn[i]) || 0))), redo:!!p.redo, t:Math.max(0, Math.round(+p.t || 0)) };
+    w:w.length ? w : [0, 1, 2, 3, 4, 5, 6], wk:/^\d{4}-W\d{1,2}$/.test(p.wk || '') ? p.wk : '', dn:s.map((_, i) => Math.max(0, Math.round(+(Array.isArray(p.dn) && p.dn[i]) || 0))), redo:!!p.redo, rv:[0, 1, 2, 3].includes(+p.rv) ? +p.rv : 0, t:Math.max(0, Math.round(+p.t || 0)) };
 }
 const pxPlan = () => pxClean(PL.prefs && PL.prefs.exam);
+const PX_KW = [.8, 1, 1.3];                                         // trọng số xếp sớm theo mức khó
+/* Lịch của các ngày học còn lại `all` (từ hôm nay): out[j] = [{ xs, r }] cho ngày all[j]. rem[i] = số buổi học chính còn phải xếp của môn i.
+   Mỗi môn chỉ xếp vào các ngày TRƯỚC ngày thi của chính môn đó: rv ngày cuối trước ngày thi môn đó để ôn tổng / làm đề thử môn đó,
+   phần học chính rải vào các ngày trước nữa: các môn đan xen, mỗi buổi vào ngày đang ít việc nhất trong hạn của môn đó (bằng nhau thì ngày sớm hơn, ngày chưa có môn này được ưu tiên),
+   nên các ngày được san đều và môn thi muộn tự né những ngày đã kín vì môn thi sớm. Môn khó gói gọn trong 85% số ngày đầu để còn chỗ lùi.
+   Thi xong môn nào thì thôi xếp môn đó. Trong một ngày các môn xen kẽ, môn khó lên trước. */
+function pxSched(P, all, rem){
+  const out = all.map(() => []), per = Math.max(1, Math.min(2, Math.floor(P.cap / P.len))), win = [];
+  P.s.forEach((sb, i) => {                                         // ngày ôn tổng của từng môn được giữ chỗ trước
+    const end = pxSEnd(P, i), idx = all.map((d, j) => d < end ? j : -1).filter(j => j >= 0), R = rem[i];
+    const rv = P.rv && idx.length > P.rv ? P.rv : (!R ? Math.min(P.rv, idx.length) : 0), main = idx.slice(0, idx.length - rv), fin = idx.slice(idx.length - rv);
+    fin.forEach((j, f) => { for (let k = 0; k < per; k++) out[j].push({ xs:i, r:(k + f + (fin.length - 1)) % 2 ? 1 : 2 }); });   // r 2 = ôn tổng, 1 = làm đề thử (hôm trước ngày thi luôn có đề thử nếu đủ chỗ)
+    win[i] = main.length ? (sb.k === 3 && main.length > 3 ? main.slice(0, Math.ceil(main.length * .85)) : main) : fin;
+  });
+  const left = rem.map((r, i) => win[i].length ? r : 0), tot = left.slice(), ord = P.s.map((_, i) => i).sort((a, b) => pxSd(P, a).localeCompare(pxSd(P, b)) || P.s[b].k - P.s[a].k);
+  const cost = (j, i) => out[j].length + .6 * out[j].filter(x => x.xs === i).length;   // ngày ít việc hơn, và chưa có môn này, được chọn trước
+  for (let guard = 0; guard < 2000; guard++) {                    // lần lượt từng buổi: môn thi sớm hơn / còn nhiều phần hơn đi trước, các môn đan xen nhau
+    const cand = ord.filter(i => left[i] > 0); if (!cand.length) break;
+    const i = cand.reduce((b, v) => left[v] / tot[v] > left[b] / tot[b] + .001 ? v : b, cand[0]);
+    const j = win[i].reduce((b, v) => cost(v, i) < cost(b, i) ? v : b, win[i][0]); out[j].push({ xs:i, r:0 }); left[i]--;
+  }
+  return out.map(list => {                                         // xen kẽ: môn khó trước, không để hai buổi cùng môn liền nhau nếu tránh được
+    const left = list.slice(), res = []; let last = -1;
+    while (left.length) {
+      const pool = left.filter(x => x.xs !== last), pick = (pool.length ? pool : left).reduce((b, x) => (x.r ? 0 : 10) + P.s[x.xs].k + left.filter(y => y.xs === x.xs).length > (b.r ? 0 : 10) + P.s[b.xs].k + left.filter(y => y.xs === b.xs).length ? x : b);
+      res.push(pick); left.splice(left.indexOf(pick), 1); last = pick.xs;
+    }
+    return res;
+  });
+}
+/* số phút trung bình / ngày nặng nhất của phần lịch còn lại (cho form và ô kế hoạch) */
+function pxLoad(P, all, rem){
+  const sc = pxSched(P, all, rem), mins = sc.map(l => l.length * P.len), busy = mins.filter(m => m > 0), j = mins.indexOf(Math.max(0, ...mins));
+  return { days:busy.length, avg:busy.length ? Math.round(busy.reduce((a, b) => a + b, 0) / busy.length / 5) * 5 : 0, peak:j >= 0 ? mins[j] : 0, peakDay:j >= 0 ? all[j] : null, sc };
+}
 const pxTot = (P, i) => Math.max(1, Math.ceil(P.s[i].h * 60 / P.len));          // số buổi của một môn
 const pxDay0 = () => DT.now().setZone(userTZ).startOf('day');
-const pxEnd = P => DT.fromISO(P.d, { zone:userTZ }).startOf('day');
+const pxSd = (P, i) => P.s[i].d || P.d;                             // ngày thi của môn i (trống = ngày thi chung)
+const pxSEnd = (P, i) => DT.fromISO(pxSd(P, i), { zone:userTZ }).startOf('day');
+const pxEnd = P => DT.fromISO([P.d, ...P.s.map(x => x.d)].filter(Boolean).sort().pop(), { zone:userTZ }).startOf('day');   // ngày thi cuối cùng
+const pxMulti = P => P.s.some(x => x.d && x.d !== P.d);
 function pxDays(P, from){                                          // các ngày học còn lại, từ `from` tới hôm trước ngày thi
   const out = [], end = pxEnd(P);
   for (let d = from.startOf('day'); d < end && out.length < 1000; d = d.plus({ days:1 })) if (P.w.includes(d.weekday - 1)) out.push(d);
@@ -1072,7 +1114,7 @@ function pxWeekTasks(k){                                           // việc c�
 }
 function pxDone(P){                                                // số buổi đã xong của từng môn (tính cả tuần đang xếp)
   const dn = [...P.dn], wt = P.wk ? pxWeekTasks(P.wk) : [];
-  wt.forEach(x => { if (x && x.ex === P.id && x.done && x.xs >= 0 && x.xs < dn.length) dn[x.xs]++; });
+  wt.forEach(x => { if (x && x.ex === P.id && x.done && !x.r && x.xs >= 0 && x.xs < dn.length) dn[x.xs]++; });
   return dn;
 }
 /* Xếp việc ôn cho tuần này + dồn buổi đã lỡ. Sửa thẳng mảng tasks (tuần hiện tại, đang mở ở PL); trả về số buổi thêm / dời */
@@ -1081,31 +1123,29 @@ function pxFix(tasks, P){
   const all = pxDays(P, today), wkDays = all.filter(d => d < we).map(d => d.weekday - 1);
   let added = 0, moved = 0;
   if (!P.wk || P.redo || pxBefore(P.wk, key)) {
-    const has = P.s.map((_, i) => tasks.filter(x => x.ex === P.id && x.xs === i && pxCount(x)).length);
-    const rem = P.s.map((_, i) => Math.max(0, pxTot(P, i) - P.dn[i] - has[i])), R = rem.reduce((a, b) => a + b, 0), D = all.length;
-    if (R && D) {
-      const cnt = P.s.map((_, i) => pxTot(P, i) - rem[i]);
-      all.forEach((d, j) => {
-        if (d >= we) return;
-        const q = Math.ceil((j + 1) * R / D) - Math.ceil(j * R / D), day = d.weekday - 1; let last = -1;
-        for (let k = 0; k < q && tasks.length < PL_MAX; k++) {
-          const cand = rem.map((_, i) => i).filter(i => rem[i] > 0); if (!cand.length) break;
-          const pool = cand.length > 1 ? cand.filter(i => i !== last) : cand;
-          const bi = pool.reduce((b, i) => rem[i] / pxTot(P, i) > rem[b] / pxTot(P, b) ? i : b, pool[0]);
-          rem[bi]--; cnt[bi]++; last = bi;
-          tasks.push({ ...plClean({ title:t('px_task', { s:P.s[bi].n, n:cnt[bi], m:pxTot(P, bi) }), day, start:'', dur:P.len, c:0 }), ex:P.id, xs:bi }); added++;
-        }
+    const has = P.s.map((_, i) => tasks.filter(x => x.ex === P.id && !x.r && x.xs === i && pxCount(x)).length);
+    const rem = P.s.map((_, i) => Math.max(0, pxTot(P, i) - P.dn[i] - has[i])), cnt = P.s.map((_, i) => pxTot(P, i) - rem[i]), sc = pxSched(P, all, rem);
+    all.forEach((d, j) => {
+      if (d >= we) return;
+      const day = d.weekday - 1, hadR = new Set(tasks.filter(x => x.ex === P.id && x.r && x.day === day).map(x => x.xs));   // ngày ôn tổng đã xếp (sửa kế hoạch giữa tuần): không thêm lần nữa
+      sc[j].forEach(it => {
+        if (tasks.length >= PL_MAX || (it.r && hadR.has(it.xs))) return;
+        const sb = P.s[it.xs];
+        if (it.r) { tasks.push({ ...plClean({ title:t(it.r === 1 ? 'px_mock' : 'px_recap', { s:sb.n }), day, start:'', dur:P.len, c:0 }), ex:P.id, xs:it.xs, r:1 }); added++; return; }
+        const n = ++cnt[it.xs], m = pxTot(P, it.xs);
+        tasks.push({ ...plClean({ title:t(n % 4 === 0 && n < m ? 'px_task_rv' : 'px_task', { s:sb.n, n, m }), day, start:'', dur:P.len, c:0 }), ex:P.id, xs:it.xs }); added++;
       });
-    }
+    });
     P.wk = key; P.redo = false;
   }
-  const miss = tasks.filter(x => x.ex === P.id && !x.done && !x.carried && x.day !== null && x.day < di);
+  const miss = tasks.filter(x => x.ex === P.id && !x.r && !x.done && !x.carried && x.day !== null && x.day < di);
   if (miss.length && wkDays.length) {
     const lastWeek = all.length === wkDays.length, ld = {};         // ngày thi rơi vào tuần này / đầu tuần sau: không còn tuần nào để chia lại, nên vẫn dồn dù vượt giờ tối đa
     wkDays.forEach(d => { ld[d] = tasks.filter(x => x.ex === P.id && x.day === d && pxCount(x)).reduce((a, x) => a + (x.dur || P.len), 0); });
     miss.sort((a, b) => a.day - b.day).forEach(x => {
-      const d = wkDays.reduce((b, v) => ld[v] < ld[b] ? v : b, wkDays[0]), w = x.dur || P.len;
-      if (ld[d] + w > Math.max(P.cap * 1.5, P.cap + P.len) && !lastWeek) return;   // dồn vượt giờ tối đa một chút thì được; quá nhiều thì để tuần sau chia lại cho đều
+      const ok = x.xs >= 0 && x.xs < P.s.length ? wkDays.filter(v => ws.plus({ days:v }) < pxSEnd(P, x.xs)) : wkDays; if (!ok.length) return;   // chỉ dồn vào ngày trước ngày thi của chính môn đó
+      const d = ok.reduce((b, v) => ld[v] < ld[b] ? v : b, ok[0]), w = x.dur || P.len;
+      if (ld[d] + w > Math.max(P.cap * 1.5, P.cap + P.len) && !lastWeek && !(x.xs >= 0 && x.xs < P.s.length && pxSEnd(P, x.xs) <= we)) return;   // môn thi trong tuần này thì vẫn dồn hết   // dồn vượt giờ tối đa một chút thì được; quá nhiều thì để tuần sau chia lại cho đều
       plMark(x, 'm', d); x.day = d; x.start = ''; plLand(x); ld[d] += w; moved++;
     });
   }
@@ -1158,36 +1198,41 @@ function pxWarm(tasks){
 }
 function pxCard(){
   const P = pxPlan(); if (!P) return '';
-  const today = pxDay0(), n = Math.round(pxEnd(P).diff(today, 'days').days), done = pxDone(P), tot = P.s.map((_, i) => pxTot(P, i));
+  const today = pxDay0(), n = Math.round(pxEnd(P).diff(today, 'days').days), done = pxDone(P), tot = P.s.map((_, i) => pxTot(P, i)), multi = pxMulti(P);
   const dd = done.map((v, i) => Math.min(v, tot[i])), T = tot.reduce((a, b) => a + b, 0), Dn = dd.reduce((a, b) => a + b, 0), left = T - Dn;
-  const days = pxDays(P, today).length, per = days ? Math.round(left * P.len / days / 5) * 5 : 0;
-  const when = DT.fromISO(P.d).setLocale(state.lang).toLocaleString(DT.DATE_MED), sub = n > 1 ? t('ex_left', { n }) : n === 1 ? t('ex_left1') : n === 0 ? t('ex_today') : t('ex_past');
-  const msg = n <= 0 ? t('px_over') : !left ? t('px_all_done') : days ? t('px_need', { n:left, d:days, m:fmtMin(per) }) : t('px_nodays');
+  const all = pxDays(P, today), L = pxLoad(P, all, P.s.map((_, i) => tot[i] - dd[i]));
+  const next = P.s.map((x, i) => i).filter(i => pxSEnd(P, i) >= today).sort((a, b) => pxSd(P, a).localeCompare(pxSd(P, b)))[0];
+  const nd = next === undefined ? pxEnd(P) : pxSEnd(P, next), nn = Math.round(nd.diff(today, 'days').days), dl = d => DT.fromISO(d).setLocale(state.lang).toLocaleString({ day:'numeric', month:'short' });
+  const sub = nn > 1 ? t('ex_left', { n:nn }) : nn === 1 ? t('ex_left1') : nn === 0 ? t('ex_today') : t('ex_past');
+  const head = multi && next !== undefined ? t('px_next', { s:P.s[next].n, d:dl(pxSd(P, next)) }) : DT.fromISO(P.d).setLocale(state.lang).toLocaleString(DT.DATE_MED);
+  const msg = n <= 0 ? t('px_over') : !left ? t('px_all_done') : L.days ? t('px_need', { n:left, d:L.days, m:fmtMin(L.avg) }) : t('px_nodays');
+  const row = (sb, i) => { const past = pxSEnd(P, i) <= today; return `<div class="pl-row px-row${past ? ' px-past' : ''}"><span title="${esc(sb.n + ' · ' + t('px_k' + sb.k) + ' · ' + dl(pxSd(P, i)))}">${esc(sb.n)}${sb.k === 3 ? ` <em class="px-hard">${esc(t('px_k3'))}</em>` : ''}${multi ? `<small class="faint">${esc(past ? t('px_done_exam') : dl(pxSd(P, i)))}</small>` : ''}</span>${plBar(dd[i], tot[i], PL_COLORS[(i + 1) % PL_COLORS.length])}<small class="faint">${dd[i]}/${tot[i]}</small></div>`; };
   return `<section class="card pad px-card"><div class="row between" style="flex-wrap:nowrap;gap:8px"><h3>${ic('calendar', 'sm')} ${esc(t('px_h'))}</h3><button type="button" class="btn ghost icon sm" data-act="pxEdit" title="${esc(t('px_edit'))}" aria-label="${esc(t('px_edit'))}">${ic('pen', 'sm')}</button></div>
-    <p class="small" style="margin:4px 0 8px"><b>${esc(P.n || t('px_def_name'))}</b> · ${esc(when)} · ${esc(sub)}</p>
+    <p class="small" style="margin:4px 0 8px"><b>${esc(P.n || t('px_def_name'))}</b> · ${esc(head)} · ${esc(sub)}</p>
     <div class="px-tot"><b>${T ? Math.round(Dn / T * 100) : 0}<em>%</em></b><small class="faint">${esc(t('px_sess_done', { n:Dn, m:T }))}</small></div>${plBar(Dn, T)}
-    <div class="px-subs">${P.s.map((s, i) => `<div class="pl-row px-row"><span title="${esc(s.n)}">${esc(s.n)}</span>${plBar(dd[i], tot[i], PL_COLORS[(i + 1) % PL_COLORS.length])}<small class="faint">${dd[i]}/${tot[i]}</small></div>`).join('')}</div>
-    <p class="small" style="margin:10px 0 0">${esc(msg)}</p>${n > 0 && left && per > P.cap ? `<p class="small pl-warn" style="margin:6px 0 0">${esc(t('px_tight', { c:fmtMin(P.cap) }))}</p>` : ''}
+    <div class="px-subs${multi ? ' multi' : ''}">${P.s.map(row).join('')}</div>
+    <p class="small" style="margin:10px 0 0">${esc(msg)}</p>${n > 0 && P.rv ? `<p class="small muted" style="margin:6px 0 0">${esc(t(multi ? 'px_fin_m' : 'px_fin_1', { n:P.rv }))}</p>` : ''}${n > 0 && left && L.peak > P.cap && L.peakDay ? `<p class="small pl-warn" style="margin:6px 0 0">${esc(t('px_peak', { m:fmtMin(L.peak), d:t('pl_d' + (L.peakDay.weekday - 1)) + ' ' + L.peakDay.toFormat('dd/MM'), c:fmtMin(P.cap) }))}</p>` : ''}
     ${n > 0 ? `<p class="small faint" style="margin:6px 0 0">${esc(t('px_auto'))}</p>` : `<button type="button" class="btn secondary sm mt-s" data-act="pxDel">${ic('trash', 'sm')} ${esc(t('px_del'))}</button>`}</section>`;
 }
-const pxRow = s => `<div class="px-sr"><input class="input px-sn" maxlength="40" placeholder="${esc(t('px_subj_ph'))}" value="${esc(s.n)}" aria-label="${esc(t('px_subj'))}" data-change="pxPrev"><label class="px-sh"><input class="input" type="number" min="0.5" max="500" step="0.5" inputmode="decimal" value="${esc(String(s.h))}" placeholder="10" aria-label="${esc(t('px_hours'))}" data-change="pxPrev"><small>${esc(t('px_h_unit'))}</small></label><button type="button" class="btn ghost icon sm" data-act="pxDelRow" title="${esc(t('pl_delete'))}" aria-label="${esc(t('pl_delete'))}">${ic('x', 'sm')}</button></div>`;
+const pxRow = s => `<div class="px-sr"><input class="input px-sn" maxlength="40" placeholder="${esc(t('px_subj_ph'))}" value="${esc(s.n)}" aria-label="${esc(t('px_subj'))}" data-change="pxPrev"><label class="px-sh"><input class="input" type="number" min="0.5" max="500" step="0.5" inputmode="decimal" value="${esc(String(s.h))}" placeholder="10" aria-label="${esc(t('px_hours'))}" data-change="pxPrev"><small>${esc(t('px_h_unit'))}</small></label><select class="select px-sk" aria-label="${esc(t('px_k'))}" title="${esc(t('px_k'))}">${[1, 2, 3].map(k => `<option value="${k}" ${(s.k || 2) === k ? 'selected' : ''}>${esc(t('px_k' + k))}</option>`).join('')}</select><button type="button" class="btn ghost icon sm" data-act="pxDelRow" title="${esc(t('pl_delete'))}" aria-label="${esc(t('pl_delete'))}">${ic('x', 'sm')}</button><label class="px-sd"><small>${esc(t('px_sd'))}</small><input class="input" type="date" min="${pxDay0().plus({ days:1 }).toISODate()}" value="${esc(s.d || '')}" aria-label="${esc(t('px_sd'))}" data-change="pxPrev"><small class="faint">${esc(t('px_sd_hint'))}</small></label></div>`;
 function pxRead(){                                                 // đọc form thành kế hoạch thô
   return { n:($('px-name') || {}).value || '', d:($('px-date') || {}).value || '', len:+($('px-len') || {}).value || 45, cap:+($('px-cap') || {}).value || 120,
-    s:[...document.querySelectorAll('#px-subj .px-sr')].map(r => ({ n:r.querySelector('.px-sn').value, h:+r.querySelector('.px-sh input').value || 0 })),
+    s:[...document.querySelectorAll('#px-subj .px-sr')].map(r => ({ n:r.querySelector('.px-sn').value, h:+r.querySelector('.px-sh input').value || 0, k:+r.querySelector('.px-sk').value || 2, d:r.querySelector('.px-sd input').value || '' })), rv:+(($('px-rv') || {}).value || 0),
     w:[...document.querySelectorAll('.px-wd:checked')].map(b => +b.value) };
 }
 function pxPrev(){                                                 // xem trước trong form: tổng số buổi, số ngày học, mỗi ngày cần bao lâu
   const el = $('px-prev'); if (!el) return;
   const raw = pxRead(), P = pxClean({ ...raw, w:raw.w.length ? raw.w : [-1] }), old = pxPlan();
-  if (!P || !raw.w.length || P.d <= pxDay0().toISODate()) { el.textContent = t(!raw.w.length ? 'px_need_wd' : P && P.d ? 'px_bad_date' : 'px_prev_0'); el.classList.remove('pl-warn'); return; }
+  if (!P || !raw.w.length || P.d <= pxDay0().toISODate() || P.s.some(x => x.d && x.d <= pxDay0().toISODate())) { el.textContent = t(!raw.w.length ? 'px_need_wd' : P && P.d ? 'px_bad_date' : 'px_prev_0'); el.classList.remove('pl-warn'); return; }
   const od = old ? pxDone(old) : [], dn = P.s.map(s => { const j = old ? old.s.findIndex(o => o.n.toLowerCase() === s.n.toLowerCase()) : -1; return j >= 0 ? od[j] || 0 : 0; });
-  const left = P.s.reduce((a, _, i) => a + Math.max(0, pxTot(P, i) - dn[i]), 0), days = pxDays(P, pxDay0()).length, per = days ? Math.round(left * P.len / days / 5) * 5 : 0;
-  el.textContent = !days ? t('px_nodays') : t('px_prev', { n:left, l:fmtMin(P.len), d:days, m:fmtMin(per) }) + (per > P.cap ? ' ' + t('px_tight', { c:fmtMin(P.cap) }) : '');
-  el.classList.toggle('pl-warn', !!days && per > P.cap);
+  const rem = P.s.map((_, i) => Math.max(0, pxTot(P, i) - dn[i])), left = rem.reduce((a, b) => a + b, 0), L = pxLoad(P, pxDays(P, pxDay0()), rem), over = L.peak > P.cap && L.peakDay;
+  el.textContent = !L.days ? t('px_nodays') : t('px_prev', { n:left, l:fmtMin(P.len), d:L.days, m:fmtMin(L.avg) }) + (P.rv ? ' ' + t(pxMulti(P) ? 'px_fin_m' : 'px_fin_1', { n:P.rv }) : '')
+    + (over ? ' ' + t('px_peak', { m:fmtMin(L.peak), d:t('pl_d' + (L.peakDay.weekday - 1)) + ' ' + L.peakDay.toFormat('dd/MM'), c:fmtMin(P.cap) }) : '');
+  el.classList.toggle('pl-warn', !!(L.days && over));
 }
 function pxForm(){
   const P = pxPlan(), ex = typeof examGet === 'function' ? examGet() : null, min = pxDay0().plus({ days:1 }).toISODate();
-  const name = P ? P.n : ex ? ex.n : '', date = P ? P.d : ex && ex.d >= min ? ex.d : '', subj = P ? P.s : [{ n:'', h:'' }, { n:'', h:'' }], len = P ? P.len : 45, cap = P ? P.cap : 120, w = P ? P.w : [0, 1, 2, 3, 4, 5, 6];
+  const name = P ? P.n : ex ? ex.n : '', date = P ? P.d : ex && ex.d >= min ? ex.d : '', subj = P ? P.s : [{ n:'', h:'' }, { n:'', h:'' }], len = P ? P.len : 45, cap = P ? P.cap : 120, w = P ? P.w : [0, 1, 2, 3, 4, 5, 6], rv = P ? P.rv : 2;
   const caps = PX_CAPS.includes(cap) ? PX_CAPS : [...PX_CAPS, cap].sort((a, b) => a - b);
   openModal(`<h3 style="margin-bottom:6px;padding-right:32px">${ic('calendar', 'sm')} ${esc(t(P ? 'px_edit' : 'px_new'))}</h3><p class="small muted">${esc(t('px_desc'))}</p>
     <div class="f2 mt-s"><div class="field"><label class="label" for="px-name">${esc(t('px_name'))}</label><input class="input" id="px-name" maxlength="60" autocomplete="off" placeholder="${esc(t('ex_name_ph'))}" value="${esc(name)}"></div>
@@ -1196,6 +1241,7 @@ function pxForm(){
     <button type="button" class="btn ghost sm mt-s" data-act="pxAddRow" id="px-add"${subj.length >= PX_MAXS ? ' hidden' : ''}>${ic('plus', 'sm')} ${esc(t('px_add_subj'))}</button></div>
     <div class="f2 mt-s"><div class="field"><label class="label" for="px-len">${esc(t('px_len'))}</label><select class="select" id="px-len" data-change="pxPrev">${PX_LENS.map(m => `<option value="${m}" ${m === len ? 'selected' : ''}>${esc(fmtMin(m))}</option>`).join('')}</select></div>
     <div class="field"><label class="label" for="px-cap">${esc(t('px_cap'))}</label><select class="select" id="px-cap" data-change="pxPrev">${caps.map(m => `<option value="${m}" ${m === cap ? 'selected' : ''}>${esc(fmtMin(m))}</option>`).join('')}</select></div></div>
+    <div class="field mt-s"><label class="label" for="px-rv">${esc(t('px_rv'))}</label><select class="select" id="px-rv" data-change="pxPrev">${[0, 1, 2, 3].map(n => `<option value="${n}" ${n === rv ? 'selected' : ''}>${esc(n ? t('px_rv_n', { n }) : t('px_rv_0'))}</option>`).join('')}</select><p class="small faint" style="margin:4px 0 0">${esc(t('px_rv_sub'))}</p></div>
     <div class="field mt-s"><label class="label">${esc(t('px_wd'))}</label><div class="row" style="gap:6px">${Array.from({ length:7 }, (_, i) => `<label class="chip pl-dchip"><input type="checkbox" class="px-wd" value="${i}" data-change="pxPrev" ${w.includes(i) ? 'checked' : ''}> ${esc(t('pl_d' + i))}</label>`).join('')}</div></div>
     <p class="small px-prev mt-s" id="px-prev" role="status"></p>
     <div class="row mt" style="justify-content:space-between">${P ? `<button type="button" class="btn danger" data-act="pxDel">${ic('trash', 'sm')} ${esc(t('px_del'))}</button>` : '<span></span>'}<span class="row"><button type="button" class="btn ghost" data-act="closeModal">${esc(t('cancel'))}</button><button type="button" class="btn primary" data-act="pxSave">${esc(t(P ? 'pl_save' : 'px_make'))}</button></span></div>`, true);
@@ -1214,7 +1260,7 @@ Object.assign(ACTIONS, {
   pxDelRow: el => { const r = el.closest('.px-sr'), b = $('px-subj'); if (!r || !b) return; if (b.children.length > 1) r.remove(); else r.querySelectorAll('input').forEach(i => { i.value = ''; }); const a = $('px-add'); if (a) a.hidden = b.children.length >= PX_MAXS; pxPrev(); },
   pxSave: () => {
     const raw = pxRead(), old = pxPlan(), min = pxDay0().plus({ days:1 }).toISODate();
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(raw.d) || raw.d < min || !DT.fromISO(raw.d).isValid) { toast(t('px_bad_date')); const i = $('px-date'); if (i) i.focus(); return; }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(raw.d) || raw.d < min || !DT.fromISO(raw.d).isValid || raw.s.some(x => x.n.trim() && x.d && x.d < min)) { toast(t('px_bad_date')); const i = $('px-date'); if (i) i.focus(); return; }
     if (!raw.s.some(s => s.n.trim() && s.h > 0)) { toast(t('px_need_subj')); const i = document.querySelector('#px-subj .px-sn'); if (i) i.focus(); return; }
     if (raw.s.some(s => s.n.trim() && !(s.h > 0))) { toast(t('px_need_h')); return; }
     if (!raw.w.length) { toast(t('px_need_wd')); return; }
@@ -1243,11 +1289,12 @@ Object.assign(ACTIONS, {
 });
 CHANGES.pxPrev = () => pxPrev();
 Object.assign(I18N.en, {
-  px_h:'Exam study plan', px_new:'Plan my exam revision', px_edit:'Edit exam plan', px_make:'Make my plan', px_btn:'Exam plan',
+  px_next:"next: {s} on {d}", px_done_exam:"exam done", px_fin_1:"The last {n} study days before the exam are kept for full review and practice exams.", px_fin_m:"The last {n} study days before each subject’s exam are kept for full review and a practice exam of that subject.", px_peak:"Busiest day: {d} with {m}, above your daily max ({c}). Add study days, raise the max, trim some hours or move an exam date.", px_sd:"Exam date for this subject", px_sd_hint:"Leave empty to use the main exam date", px_rv:"Review days before each exam", px_rv_sub:"On these days there is no new material for that subject, only full review and a practice exam. Subjects with an earlier exam are revised first and stop once their exam is over. Hard subjects come earlier, and every 4th session is a recall and self-test session.",
+  px_task_rv:"Recall & self-test {s} ({n}/{m})", px_recap:"Full review: {s}", px_mock:"Practice exam: {s}", px_k:"How hard", px_k1:"Easy", px_k2:"Medium", px_k3:"Hard", px_rv_0:"None", px_rv_n:"{n} days",   px_h:'Exam study plan', px_new:'Plan my exam revision', px_edit:'Edit exam plan', px_make:'Make my plan', px_btn:'Exam plan',
   px_desc:'Enter your exam date and the subjects you need to revise. The Planner splits the work into study sessions, day by day until the day before the exam, and puts them in your weeks. If you miss a day, the unfinished sessions move to the days that are left.',
   px_name:'Exam', px_date:'Exam date', px_def_name:'My exam', px_subjs:'Subjects', px_subjs_sub:'For each subject, roughly how many hours of revision you need in total.', px_subj:'Subject', px_subj_ph:'e.g. Maths', px_hours:'Hours needed', px_h_unit:'hours', px_add_subj:'Add a subject',
   px_len:'Each session', px_cap:'Max revision per day', px_wd:'Study days',
-  px_prev_0:'Add a subject and its hours to see your plan.', px_prev:'{n} sessions of {l} over {d} study days: about {m} a day.', px_tight:'That is more than your daily max ({c}). Add study days, raise the max, or trim some hours.', px_nodays:'No study days are left before the exam. Pick more study days or a later date.',
+  px_prev_0:'Add a subject and its hours to see your plan.', px_prev:'{n} sessions of {l} over {d} study days: about {m} a day.', px_nodays:'No study days are left before the exam. Pick more study days or a later date.',
   px_bad_date:'Pick an exam date from tomorrow on.', px_need_subj:'Add at least one subject with its hours.', px_need_h:'Enter the hours for each subject.', px_need_wd:'Pick at least one study day.',
   px_task:'Revise {s} ({n}/{m})', px_added:'Added {n} revision sessions to this week.', px_moved:'Moved {n} missed revision sessions to the days you have left.',
   px_sess_done:'{n}/{m} sessions done', px_need:'{n} sessions left over {d} study days: about {m} a day.', px_all_done:'Every session is done. Use the days left for a light review and rest.', px_over:'The exam date has passed. Well done for getting through it!',
@@ -1255,11 +1302,12 @@ Object.assign(I18N.en, {
   px_del:'Delete plan', px_del_q:'Delete this exam plan?', px_del_sub:'Unfinished revision sessions from today on are removed from this week. Sessions you already finished stay in your history.', px_deleted:'Exam plan deleted'
 });
 Object.assign(I18N.vi, {
-  px_h:'Kế hoạch ôn thi', px_new:'Lập kế hoạch ôn thi', px_edit:'Sửa kế hoạch ôn thi', px_make:'Lập kế hoạch', px_btn:'Kế hoạch ôn thi',
+  px_next:"môn tiếp theo: {s} ngày {d}", px_done_exam:"đã thi", px_fin_1:"{n} ngày học cuối trước ngày thi dành để ôn tổng và làm đề thử.", px_fin_m:"{n} ngày học cuối trước ngày thi của mỗi môn dành để ôn tổng và làm đề thử môn đó.", px_peak:"Ngày nặng nhất: {d} cần {m}, vượt mức tối đa mỗi ngày ({c}). Bạn thêm ngày học, tăng mức tối đa, bớt số giờ hoặc đổi ngày thi nhé.", px_sd:"Ngày thi môn này", px_sd_hint:"Để trống nếu thi đúng ngày thi chung", px_rv:"Số ngày ôn tổng trước mỗi môn thi", px_rv_sub:"Những ngày này không học bài mới của môn đó, chỉ ôn tổng và làm đề thử. Môn thi sớm được ôn trước, thi xong môn nào thì thôi xếp môn đó. Môn khó được xếp sớm hơn, và cứ 4 buổi thì có 1 buổi ôn lại, tự kiểm tra.",
+  px_task_rv:"Ôn lại & tự kiểm tra {s} ({n}/{m})", px_recap:"Ôn tổng: {s}", px_mock:"Làm đề thử: {s}", px_k:"Độ khó", px_k1:"Dễ", px_k2:"Vừa", px_k3:"Khó", px_rv_0:"Không", px_rv_n:"{n} ngày",   px_h:'Kế hoạch ôn thi', px_new:'Lập kế hoạch ôn thi', px_edit:'Sửa kế hoạch ôn thi', px_make:'Lập kế hoạch', px_btn:'Kế hoạch ôn thi',
   px_desc:'Nhập ngày thi và các môn cần ôn. Planner sẽ chia thành các buổi ôn theo từng ngày cho tới hôm trước ngày thi và xếp vào các tuần của bạn. Lỡ một ngày thì các buổi chưa xong tự dồn sang những ngày còn lại.',
   px_name:'Kỳ thi', px_date:'Ngày thi', px_def_name:'Kỳ thi của tôi', px_subjs:'Các môn', px_subjs_sub:'Mỗi môn, bạn ước chừng cần ôn tổng cộng bao nhiêu giờ.', px_subj:'Môn', px_subj_ph:'Ví dụ: Toán', px_hours:'Số giờ cần ôn', px_h_unit:'giờ', px_add_subj:'Thêm môn',
   px_len:'Mỗi buổi', px_cap:'Ôn tối đa mỗi ngày', px_wd:'Ngày học',
-  px_prev_0:'Thêm môn và số giờ để xem kế hoạch.', px_prev:'{n} buổi, mỗi buổi {l}, trong {d} ngày học: khoảng {m} mỗi ngày.', px_tight:'Vượt mức tối đa mỗi ngày ({c}). Bạn thêm ngày học, tăng mức tối đa hoặc bớt số giờ nhé.', px_nodays:'Không còn ngày học nào trước ngày thi. Bạn chọn thêm ngày học hoặc ngày thi muộn hơn nhé.',
+  px_prev_0:'Thêm môn và số giờ để xem kế hoạch.', px_prev:'{n} buổi, mỗi buổi {l}, trong {d} ngày học: khoảng {m} mỗi ngày.', px_nodays:'Không còn ngày học nào trước ngày thi. Bạn chọn thêm ngày học hoặc ngày thi muộn hơn nhé.',
   px_bad_date:'Bạn chọn ngày thi từ ngày mai trở đi nhé.', px_need_subj:'Thêm ít nhất một môn kèm số giờ.', px_need_h:'Bạn nhập số giờ cho từng môn nhé.', px_need_wd:'Chọn ít nhất một ngày học.',
   px_task:'Ôn {s} ({n}/{m})', px_added:'Đã xếp {n} buổi ôn vào tuần này.', px_moved:'Đã dồn {n} buổi ôn bị lỡ sang những ngày còn lại.',
   px_sess_done:'Xong {n}/{m} buổi', px_need:'Còn {n} buổi trong {d} ngày học: khoảng {m} mỗi ngày.', px_all_done:'Đã xong hết các buổi ôn. Những ngày còn lại bạn ôn nhẹ và nghỉ ngơi nhé.', px_over:'Đã qua ngày thi. Bạn đã cố gắng rất nhiều!',
