@@ -658,6 +658,14 @@ Làm một lần, sau đó mỗi buổi chỉ cần bấm Start Streaming trong 
 - Muốn sửa chữ từng bước: `TOUR_PS` trong `guide.js` (đủ 8 ngôn ngữ, mỗi bước là [tiêu đề, một câu]); muốn đổi chỗ Moon chỉ hoặc thứ tự: `PGS` (bộ chọn, dáng Moon, khoá chữ).
 - Phòng tập trung, Hành trình trăng và Kế hoạch tuần dùng lại ba hình của hướng dẫn chung. Muốn đổi chữ dưới hình: sửa trong `guide.js` ở `TOUR_PG` (các trang mới) hoặc `fi` / `ci` / `pi` trong `TOUR_T`.
 
+### 22.ax. Kế hoạch tuần: lịch lưới kéo thả, xem theo tuần và theo tháng (KHÔNG cần dán luật mới)
+- Ô lịch có thêm nút **Tuần / Tháng**. Ở **Tuần**, kéo một việc (cả buổi ôn thi) sang cột ngày + giờ khác, lên dải "Không giờ" của một ngày, hoặc lên ô "Việc cả tuần (chưa gắn ngày)". Kéo **mép dưới** của việc để đổi thời lượng. Giờ được làm tròn 15 phút; trong lúc kéo có khung nét đứt báo giờ mới, chuyển đỏ nếu trùng việc khác (thả vào đó thì không dời và báo khung trống gần nhất).
+- **Điện thoại:** chạm giữ khoảng nửa giây rồi kéo (vuốt bình thường vẫn cuộn trang). Có thêm nút **Danh sách / Lưới giờ**: Lưới giờ vuốt ngang để xem đủ 7 ngày, cột giờ đứng yên bên trái. Ở Danh sách, kéo việc lên nút ngày phía trên để dời sang ngày đó.
+- **Tháng:** lịch cả tháng có tên việc (máy tính) hoặc chấm màu (điện thoại), ngày thi của kế hoạch ôn thi có nhãn "Thi". Bấm một ngày để xem việc của ngày đó, kéo việc sang ngày khác, kể cả sang tuần khác. Nút "Mở tuần này" đưa về lưới tuần của ngày đó.
+- Dời ngày được ghi là "đã dời" y như khi sửa trong form, nên hiệu suất của ngày cũ vẫn trung thực. Buổi ôn thi chỉ dời được trong tuần của nó (kế hoạch ôn thi đếm buổi theo tuần).
+- **Tiết kiệm Firebase:** không ghi gì trong lúc kéo. Thả trong tuần đang mở thì gộp vào lần lưu sẵn có (nhiều lần thả trong nửa giây = 1 lần ghi). Thả sang tuần khác ở lịch tháng: 1 lần ghi gộp (batch) cho cả hai tuần. Lịch tháng đọc mỗi tuần 1 lần và dùng chung với thống kê tháng. Vẫn là `users/<uid>/planner/<tuần>` nên **không cần dán lại `firestore.rules`**.
+- Xem thử: `?demo=1&as=admin#/planner`. Chữ đủ 8 ngôn ngữ: en/vi cuối `planner.js` (tìm `pl_dnd_hint`), 6 ngôn ngữ còn lại trong `planner-i18n.js` (`X7`). Phiên bản file v=248.
+
 ### 22.aw. Kế hoạch ôn thi tự động trong Kế hoạch tuần (KHÔNG cần dán luật mới)
 - Ở **Kế hoạch tuần**, cạnh "Tuần mẫu" có nút **Lập kế hoạch ôn thi**. Khách nhập tên kỳ thi, ngày thi (từ ngày mai), các môn (tối đa 8) kèm **số giờ cần ôn** của từng môn, độ dài mỗi buổi (25 phút đến 2 giờ), mức ôn tối đa mỗi ngày và các ngày trong tuần được học. Form tính ngay "33 buổi, mỗi buổi 45 phút, trong 12 ngày học: khoảng 2 giờ mỗi ngày" và báo đỏ nếu vượt mức tối đa.
 - Web chia mỗi môn thành các buổi ôn (việc nhóm **Học tập**, không đặt giờ, tên dạng "Ôn Toán (3/14)"), xếp đều cho các ngày học tới **hôm trước ngày thi**, dồn nhẹ về đầu, các môn xen kẽ nhau. Ô **Kế hoạch ôn thi** ở cột bên phải cho thấy phần trăm đã xong, số buổi từng môn, còn bao nhiêu buổi và mỗi ngày cần bao lâu.
