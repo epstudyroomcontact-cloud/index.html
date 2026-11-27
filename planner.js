@@ -270,7 +270,7 @@ function plClean(x){                                              // chuẩn ho�
   const start = /^\d{1,2}:\d{2}$/.test(x.start || '') ? hmStr(Math.min(1439, hm(x.start))) : '';
   let dur = Math.max(0, Math.min(1440, Math.round(+x.dur || 0))); if (start && !dur) dur = 30; if (start) dur = Math.min(dur, 1440 - hm(start));
   const day = Number.isInteger(x.day) && x.day >= 0 && x.day <= 6 ? x.day : null;
-  return { id:String(x.id || plId()), title:String(x.title || '').trim().slice(0, 80), day, start:day === null ? '' : start, dur, c:Math.max(0, Math.min(5, x.c | 0)), done:!!x.done, ...(x.done && x.q >= 1 && x.q <= 5 ? { q:x.q | 0 } : {}), ...(x.carried ? { carried:typeof x.carried === 'string' ? x.carried : true } : {}) };
+  return { id:String(x.id || plId()), title:String(x.title || '').trim().slice(0, 80), day, start:day === null ? '' : start, dur, c:Math.max(0, Math.min(5, x.c | 0)), done:!!x.done, ...(x.done && x.q >= 1 && x.q <= 5 ? { q:x.q | 0 } : {}), ...(x.carried ? { carried:typeof x.carried === 'string' ? x.carried : true } : {}), ...(x.ex && typeof x.ex === 'string' ? { ex:x.ex.slice(0, 12), xs:Math.max(0, Math.min(7, x.xs | 0)) } : {}) };   // ex/xs: buổi của kế hoạch ôn thi
 }
 /* đưa việc đã dời sang tuần sau về lại tuần này (và gỡ bản sao bên tuần sau nếu chưa làm) */
 async function plUncarry(list){
@@ -327,7 +327,8 @@ const plCache = (key, tasks, gone) => { if (DEMO || !state.user) return; const o
 function plPrefetch(){                                            // gọi sớm lúc đăng nhập: lấy sẵn tuần này để mở Planner là có ngay
   if (DEMO || !state.user || !plAccess() || (PL.pre && PL.pre.uid === state.user.uid && Date.now() - PL.pre.at < 60000)) return;
   const key = plKey(0), pre = PL.pre = { uid:state.user.uid, key, at:Date.now(), p:plFetch(key) };
-  pre.p.then(r => { plCache(key, r.tasks, r.gone); PL.remTasks = { uid:pre.uid, tasks:r.tasks }; plPinShow(); if (store.get('pl_rem', null) === null && PUSH.on) store.set('pl_rem', true); plRemStart(); })   // đã bật thông báo đẩy ở 🔔 từ trước: tự bật nhắc việc.catch(() => { if (PL.pre === pre) PL.pre = null; });
+  pre.p.then(r => { plCache(key, r.tasks, r.gone); PL.remTasks = { uid:pre.uid, tasks:r.tasks }; plPinShow(); if (store.get('pl_rem', null) === null && PUSH.on) store.set('pl_rem', true); plRemStart(); pxWarm(r.tasks); })   // đã bật thông báo đẩy ở 🔔 từ trước: tự bật nhắc việc; có kế hoạch ôn thi thì xếp luôn tuần này
+    .catch(() => { if (PL.pre === pre) PL.pre = null; });
 }
 async function plLoad(){
   const key = plKey(PL.off); if ((PL.key === key && PL.tasks) || PL.state === 'loading' || PL.state === 'error') return;
@@ -345,7 +346,8 @@ async function plLoad(){
     if (!PL.save) { PL.tasks = tasks.map(plClean); PL.gone = gone; plCache(key, tasks, gone); PL.hist[key] = plStats(PL.tasks, PL.off, PL.gone); if (key === plKey(0)) { PL.remTasks = { uid:state.user.uid, tasks:PL.tasks }; plPinShow(); } }      // bạn đã sửa trong lúc chờ thì giữ bản của bạn
     else { const mine = new Set(PL.gone.map(g => g.id + '|' + g.day)); PL.gone = [...gone.filter(g => !mine.has(g.id + '|' + g.day)), ...PL.gone].slice(-PL_MAX); }   // …nhưng không làm mất dấu dời/bỏ đã có trên máy chủ
     PL.state = 'ready'; PL.slow = false;
-    if (!DEMO) { plHist(); plPrefs(); } else if (!PL.prefs) PL.prefs = {};
+    if (!DEMO) { if (!PL.noHist) plHist(); plPrefs(); } else if (!PL.prefs) PL.prefs = {};
+    pxSync();                                                     // kế hoạch ôn thi: xếp tuần này / dồn buổi lỡ (cần cả _prefs, nếu chưa có thì plPrefs gọi lại)
   } catch (e) {
     if (PL.seq !== seq) return; console.warn('planner load', e.code, Date.now() - t0, 'ms');
     if (!PL.tasks) { PL.state = 'error'; PL.key = ''; PL.err = e.code || ''; }     // có bản nhớ thì cứ để người dùng xem tiếp
@@ -443,7 +445,7 @@ async function plHist(){                                          // đọc 7 tu
 async function plPrefs(){                                         // goalMin + template nằm ở users/<uid>/planner/_prefs
   if (PL.prefs || PL.prefsLoading) return; PL.prefsLoading = true;
   try { const d = await plRef('_prefs').get(); PL.prefs = d.exists ? d.data() : {}; } catch (e) { PL.prefs = {}; }
-  PL.prefsLoading = false; render(true);
+  PL.prefsLoading = false; render(true); pxSync();
 }
 const plSavePrefs = patch => { PL.prefs = { ...(PL.prefs || {}), ...patch }; if (!DEMO) plRef('_prefs').set(patch, { merge:true }).catch(e => { console.warn('planner prefs', e.code); toast(t('pl_err')); }); };
 function plScore(S){                                              // 0-100 trên kế hoạch đã đến hạn (kể cả việc đã bỏ / dời sang tuần sau): 50% số phút xong, 35% số việc xong, 15% số ngày có tiến triển. Chưa đủ 3 việc đến hạn thì chưa chấm.
@@ -754,12 +756,13 @@ function plKpis(S){
 function plQuickBar(){
   const tpl = PL.prefs && PL.prefs.template || [];
   return `<div class="pl-tools"><form class="pl-quick" data-form="plQuick" autocomplete="off"><input class="input" id="pl-quick" maxlength="80" placeholder="${esc(t('pl_quick_ph'))}" aria-label="${esc(t('pl_quick_btn'))}"><button class="btn secondary" type="submit">${ic('plus', 'sm')} ${esc(t('pl_quick_btn'))}</button></form>
-    <details class="pl-menu"><summary class="btn ghost">${esc(t('pl_tpl_menu'))}</summary><div class="pl-pop card"><p class="small faint">${esc(t('pl_tpl_hint'))}</p><button type="button" class="btn secondary sm" data-act="plTplSave">${esc(t('pl_tpl_save'))}</button>${tpl.length ? `<button type="button" class="btn secondary sm" data-act="plTplUse">${esc(t('pl_tpl_use'))} (${tpl.length})</button>` : ''}</div></details></div>`;
+    <details class="pl-menu"><summary class="btn ghost">${esc(t('pl_tpl_menu'))}</summary><div class="pl-pop card"><p class="small faint">${esc(t('pl_tpl_hint'))}</p><button type="button" class="btn secondary sm" data-act="plTplSave">${esc(t('pl_tpl_save'))}</button>${tpl.length ? `<button type="button" class="btn secondary sm" data-act="plTplUse">${esc(t('pl_tpl_use'))} (${tpl.length})</button>` : ''}</div></details>
+    <button type="button" class="btn ghost px-btn" data-act="pxEdit"${PL.prefs ? '' : ' disabled'}>${ic('calendar', 'sm')} ${esc(t(pxPlan() ? 'px_btn' : 'px_new'))}</button></div>`;
 }
 function plSide(){
   const left = PL.tasks.filter(x => !x.done), open = left.filter(x => !x.carried), noDay = PL.tasks.filter(x => x.day === null), di = DT.now().setZone(userTZ).weekday - 1, tmN = PL.off === 0 ? open.filter(x => x.day === di).length : 0;
   const row = x => `<div class="pl-li ${x.carried ? 'done' : ''}"><button type="button" class="pl-ck sm" style="border-color:${PL_COLORS[x.c]}" data-act="plToggle" data-id="${esc(x.id)}">${x.done ? ic('check', 'sm') : ''}</button><span class="pl-lx" data-act="plEdit" data-id="${esc(x.id)}" title="${esc(x.title || '—')}"><span class="pl-lt">${esc(x.title || '—')}</span>${x.day !== null ? `<small class="faint">${esc(t('pl_d' + x.day))}${x.start ? ' ' + esc(x.start) : ''}</small>` : ''}</span>${x.carried ? `<div class="pl-li-x"><small class="faint">${esc(t('pl_carried'))}</small><button type="button" class="btn ghost sm" data-act="plUncarry" data-id="${esc(x.id)}">${esc(t('pl_uncarry'))}</button></div>` : ''}</div>`;
-  return `<div class="pl-side">${plToday()}
+  return `<div class="pl-side">${pxCard()}${plToday()}
     <section class="card pad"><h3>${esc(t('pl_still'))}</h3><div class="pl-list">${left.length ? left.map(row).join('') : `<p class="muted small">${esc(t('pl_left_none'))}</p>`}</div>${tmN ? `<button class="btn secondary sm mt-s" data-act="plMoveTomorrow">${esc(t('pl_carry_tm'))}</button>` : ''}${left.length - open.length > 1 ? `<button class="btn ghost sm mt-s" data-act="plUncarry">${esc(t('pl_uncarry_all'))}</button>` : ''}</section>
     ${noDay.length ? `<section class="card pad"><h3>${esc(t('pl_week_list'))}</h3><div class="pl-list">${noDay.map(row).join('')}</div></section>` : ''}</div>`;
 }
@@ -779,6 +782,7 @@ PAGES.planner = function(){
   if (PL.uid !== state.user.uid) { clearTimeout(PL.timer); PL.seq++; Object.assign(PL, { uid:state.user.uid, off:0, key:'', tasks:null, gone:[], state:'idle', save:'', prev:null, sel:null, slow:false, hist:{}, raw:{}, moff:0, prefs:null }); }   // đổi tài khoản trên cùng trình duyệt: không để lộ planner của người trước
   if (!state.companionUntil && !state.isAdmin && !DEMO && !trialActive()) refreshCompanion().then(ch => ch && render(true));       // lấy ngày hết hạn để hiện nhắc gia hạn
   plLoad(); plRemStart();
+  if (PL.noHist && PL.tasks) { PL.noHist = false; plHist(); }   // tuần này đã được nạp sẵn lúc đăng nhập (kế hoạch ôn thi), giờ mới đọc lịch sử
   const ws = plWeekStart(PL.off), nav = `<div class="row between pl-nav" style="margin-bottom:16px;flex-wrap:wrap;gap:10px"><div class="week-nav"><button class="btn secondary icon" data-act="plWeek" data-d="-1" aria-label="${esc(t('pl_prev_week'))}" title="${esc(t('pl_prev_week'))}">${ic('chev-l')}</button><span class="lbl">${ws.toFormat('dd/MM')} – ${ws.plus({ days:6 }).toFormat('dd/MM/yyyy')}</span><button class="btn secondary icon" data-act="plWeek" data-d="1" aria-label="${esc(t('pl_next_week'))}" title="${esc(t('pl_next_week'))}">${ic('chev-r')}</button>${PL.off ? `<button class="btn ghost sm" data-act="plWeek" data-d="0">${esc(t('pl_this'))}</button>` : ''}</div>
     <div class="row"><span class="small faint" id="pl-status">${PL.save === 'saved' ? '✓ ' + esc(t('pl_saved')) : PL.save === 'saving' ? esc(t('pl_saving')) : ''}</span><button class="btn primary" data-act="plNew">${ic('plus', 'sm')} ${esc(t('pl_add'))}</button></div></div>`;
   let body;
@@ -852,7 +856,7 @@ Object.assign(ACTIONS, {
   plWeek: el => { plFlush(); PL.mday = null; const d = +el.dataset.d; PL.off = d ? PL.off + d : 0; PL.seq++; PL.tasks = null; PL.key = ''; PL.state = 'idle'; render(true); },
   plRetry: () => { PL.seq++; PL.state = 'idle'; PL.key = ''; PL.tasks = null; PL.slow = false; render(true); },
   plTplSave: () => {
-    const tpl = PL.tasks.filter(x => x.title).slice(0, 100).map(x => ({ ...plClean(x), done:false, carried:false }));
+    const tpl = PL.tasks.filter(x => x.title).slice(0, 100).map(x => { const c = { ...plClean(x), done:false, carried:false }; delete c.ex; delete c.xs; return c; });   // buổi ôn thi không vào tuần mẫu
     plSavePrefs({ template:tpl }); toast(t('pl_tpl_saved', { n:tpl.length })); render(true);
   },
   plTplUse: () => {
@@ -1022,4 +1026,243 @@ Object.assign(I18N.vi, {
   "pl_i_q_mid": "Mức hoàn thành trung bình {a}/5 trên {n} việc, trong đó {k} việc ở mức 3 trở xuống. Muốn lên hạng, hãy làm trọn từng việc rồi mới sang việc kế.",
   "pl_i_q_hi": "Mức hoàn thành trung bình {a}/5 trên {n} việc: rất chắc tay. Hãy nâng độ khó để mức 5 vẫn xứng đáng.",
   "pl_i_q_all5": "Cả {n} việc đều chấm 5/5. Nếu đúng vậy thì tuần sau hãy đặt kế hoạch khó hơn; nếu chưa thật chuẩn, hãy mạnh dạn chấm thấp hơn để số liệu phản ánh đúng."
+});
+
+/* =========================================================
+   KẾ HOẠCH ÔN THI TỰ ĐỘNG
+   Lưu ở users/<uid>/planner/_prefs.exam = { id, n:tên kỳ thi, d:'YYYY-MM-DD' ngày thi, s:[{ n:tên môn, h:số giờ cần ôn }], len:phút mỗi buổi, cap:phút ôn tối đa mỗi ngày,
+     w:[thứ được học, 0 = thứ Hai], wk:tuần gần nhất đã xếp việc, dn:[số buổi đã xong ở các tuần trước wk, theo môn], redo:true = xếp lại tuần này (vừa sửa kế hoạch), t }
+   Không cần đổi firestore.rules: _prefs nằm trong users/<uid>/planner như mục tiêu tuần và tuần mẫu.
+   Mỗi buổi ôn là một việc Planner bình thường (nhóm Học tập, không đặt giờ) kèm ex = id kế hoạch, xs = số thứ tự môn.
+   - Chỉ xếp việc cho TUẦN HIỆN TẠI khi tuần đó tới (mở Planner, hoặc tải sẵn lúc đăng nhập), không ghi trước hàng chục tuần:
+     mỗi tuần 1 lần ghi tuần + 1 lần ghi _prefs; sang tuần mới đọc lại tuần trước 1 lần để cộng số buổi đã xong.
+   - Số buổi còn lại của một môn = tổng số buổi − đã xong ở các tuần trước − đã có trong tuần này. Chia đều (dồn nhẹ về đầu) cho các ngày học còn lại
+     tới hôm trước ngày thi; tuần này nhận phần của các ngày thuộc tuần này. Môn xen kẽ nhau, môn còn nhiều (theo tỉ lệ) được xếp trước.
+   - Lỡ một ngày: buổi chưa xong của ngày đã qua tự dời sang ngày học còn lại ít việc ôn nhất trong tuần (ghi "đã dời" như khi dời tay).
+     Được vượt giờ tối đa mỗi ngày tới 1,5 lần (ít nhất thêm 1 buổi); quá mức đó thì để lại, sang tuần sau buổi chưa xong tự được chia lại vào các ngày còn lại. Tuần cuối trước ngày thi thì vẫn dồn hết.
+   ========================================================= */
+const PX_LENS = [25, 30, 45, 60, 90, 120], PX_CAPS = [30, 60, 90, 120, 150, 180, 240, 300, 360, 480], PX_MAXS = 8;
+const PX = { busy:false, strip:false, remap:null, delId:'' };
+function pxClean(p){
+  if (!p || typeof p !== 'object' || !/^\d{4}-\d{2}-\d{2}$/.test(p.d || '')) return null;
+  const s = (Array.isArray(p.s) ? p.s : []).map(x => ({ n:String(x && x.n || '').trim().slice(0, 40), h:Math.max(0, Math.min(500, Math.round((+(x && x.h) || 0) * 2) / 2)) })).filter(x => x.n && x.h > 0).slice(0, PX_MAXS);
+  if (!s.length) return null;
+  const w = [...new Set((Array.isArray(p.w) ? p.w : []).map(Number).filter(d => Number.isInteger(d) && d >= 0 && d <= 6))].sort();
+  return { id:String(p.id || plId()).slice(0, 12), n:String(p.n || '').trim().slice(0, 60), d:p.d, s, len:PX_LENS.includes(+p.len) ? +p.len : 45, cap:Math.max(30, Math.min(720, Math.round(+p.cap || 120))),
+    w:w.length ? w : [0, 1, 2, 3, 4, 5, 6], wk:/^\d{4}-W\d{1,2}$/.test(p.wk || '') ? p.wk : '', dn:s.map((_, i) => Math.max(0, Math.round(+(Array.isArray(p.dn) && p.dn[i]) || 0))), redo:!!p.redo, t:Math.max(0, Math.round(+p.t || 0)) };
+}
+const pxPlan = () => pxClean(PL.prefs && PL.prefs.exam);
+const pxTot = (P, i) => Math.max(1, Math.ceil(P.s[i].h * 60 / P.len));          // số buổi của một môn
+const pxDay0 = () => DT.now().setZone(userTZ).startOf('day');
+const pxEnd = P => DT.fromISO(P.d, { zone:userTZ }).startOf('day');
+function pxDays(P, from){                                          // các ngày học còn lại, từ `from` tới hôm trước ngày thi
+  const out = [], end = pxEnd(P);
+  for (let d = from.startOf('day'); d < end && out.length < 1000; d = d.plus({ days:1 })) if (P.w.includes(d.weekday - 1)) out.push(d);
+  return out;
+}
+const pxWkStart = k => { const m = /^(\d{4})-W(\d{1,2})$/.exec(k || ''); return m ? DT.fromObject({ weekYear:+m[1], weekNumber:+m[2], weekday:1 }, { zone:userTZ }) : null; };
+const pxBefore = (a, b) => { const x = pxWkStart(a), y = pxWkStart(b); return !!(x && y && x < y); };
+const pxCount = x => x.done || !x.carried;                          // việc đã dời sang tuần sau (chưa xong) thì bản sao bên tuần sau mới được tính
+const pxRemember = P => { if (state.user) store.set('plx_' + state.user.uid, P ? { id:P.id, d:P.d, wk:P.wk } : null); };
+function pxSave(P){ PL.prefs = { ...(PL.prefs || {}), exam:P }; pxRemember(P); plSavePrefs({ exam:P }); }
+function pxWeekTasks(k){                                           // việc của tuần k đang có trong máy (Planner đang mở, bộ nhớ, hoặc bản lưu trong máy)
+  if (PL.key === k && PL.tasks) return PL.tasks;
+  if (PL.raw && PL.raw[k]) return PL.raw[k].tasks || [];
+  const c = !DEMO && state.user ? store.get(plCK(k), null) : null; return c && Array.isArray(c.tasks) ? c.tasks : [];
+}
+function pxDone(P){                                                // số buổi đã xong của từng môn (tính cả tuần đang xếp)
+  const dn = [...P.dn], wt = P.wk ? pxWeekTasks(P.wk) : [];
+  wt.forEach(x => { if (x && x.ex === P.id && x.done && x.xs >= 0 && x.xs < dn.length) dn[x.xs]++; });
+  return dn;
+}
+/* Xếp việc ôn cho tuần này + dồn buổi đã lỡ. Sửa thẳng mảng tasks (tuần hiện tại, đang mở ở PL); trả về số buổi thêm / dời */
+function pxFix(tasks, P){
+  const key = plKey(0), ws = plWeekStart(0), we = ws.plus({ days:7 }), today = pxDay0(), di = today.weekday - 1;
+  const all = pxDays(P, today), wkDays = all.filter(d => d < we).map(d => d.weekday - 1);
+  let added = 0, moved = 0;
+  if (!P.wk || P.redo || pxBefore(P.wk, key)) {
+    const has = P.s.map((_, i) => tasks.filter(x => x.ex === P.id && x.xs === i && pxCount(x)).length);
+    const rem = P.s.map((_, i) => Math.max(0, pxTot(P, i) - P.dn[i] - has[i])), R = rem.reduce((a, b) => a + b, 0), D = all.length;
+    if (R && D) {
+      const cnt = P.s.map((_, i) => pxTot(P, i) - rem[i]);
+      all.forEach((d, j) => {
+        if (d >= we) return;
+        const q = Math.ceil((j + 1) * R / D) - Math.ceil(j * R / D), day = d.weekday - 1; let last = -1;
+        for (let k = 0; k < q && tasks.length < PL_MAX; k++) {
+          const cand = rem.map((_, i) => i).filter(i => rem[i] > 0); if (!cand.length) break;
+          const pool = cand.length > 1 ? cand.filter(i => i !== last) : cand;
+          const bi = pool.reduce((b, i) => rem[i] / pxTot(P, i) > rem[b] / pxTot(P, b) ? i : b, pool[0]);
+          rem[bi]--; cnt[bi]++; last = bi;
+          tasks.push({ ...plClean({ title:t('px_task', { s:P.s[bi].n, n:cnt[bi], m:pxTot(P, bi) }), day, start:'', dur:P.len, c:0 }), ex:P.id, xs:bi }); added++;
+        }
+      });
+    }
+    P.wk = key; P.redo = false;
+  }
+  const miss = tasks.filter(x => x.ex === P.id && !x.done && !x.carried && x.day !== null && x.day < di);
+  if (miss.length && wkDays.length) {
+    const lastWeek = all.length === wkDays.length, ld = {};         // ngày thi rơi vào tuần này / đầu tuần sau: không còn tuần nào để chia lại, nên vẫn dồn dù vượt giờ tối đa
+    wkDays.forEach(d => { ld[d] = tasks.filter(x => x.ex === P.id && x.day === d && pxCount(x)).reduce((a, x) => a + (x.dur || P.len), 0); });
+    miss.sort((a, b) => a.day - b.day).forEach(x => {
+      const d = wkDays.reduce((b, v) => ld[v] < ld[b] ? v : b, wkDays[0]), w = x.dur || P.len;
+      if (ld[d] + w > Math.max(P.cap * 1.5, P.cap + P.len) && !lastWeek) return;   // dồn vượt giờ tối đa một chút thì được; quá nhiều thì để tuần sau chia lại cho đều
+      plMark(x, 'm', d); x.day = d; x.start = ''; plLand(x); ld[d] += w; moved++;
+    });
+  }
+  return { added, moved };
+}
+/* Gọi khi Planner đang giữ tuần hiện tại và đã có _prefs (cuối plLoad, cuối plPrefs, sau khi lưu / sửa kế hoạch) */
+async function pxSync(){
+  if (PX.busy || PL.off !== 0 || !PL.tasks || PL.key !== plKey(0) || PL.state !== 'ready' || !PL.prefs) return;
+  if (window.pxAsk && route.name === 'planner') { window.pxAsk = false; pxForm(); }   // bấm "Lập kế hoạch ôn thi" từ hộp đếm ngược
+  const P = pxPlan(); if (!P) { PX.strip = false; return; }
+  const before = JSON.stringify(P), key = plKey(0), redo = P.redo; pxRemember(P);
+  PX.busy = true;
+  try {
+    if (P.wk && pxBefore(P.wk, key)) {                             // sang tuần mới: cộng số buổi đã xong của tuần đã xếp gần nhất (đọc lại 1 lần cho đúng cả khi tick ở máy khác)
+      let old = null;
+      if (!DEMO) { try { old = await plFetch(P.wk); } catch (e) { old = { tasks:pxWeekTasks(P.wk) }; } }
+      (old ? old.tasks : pxWeekTasks(P.wk)).forEach(x => { if (x && x.ex === P.id && x.done && x.xs >= 0 && x.xs < P.dn.length) P.dn[x.xs]++; });
+      P.wk = '';
+      if (PL.off !== 0 || PL.key !== key || !PL.tasks) { pxSave(P); return; }
+    }
+    let changed = false;
+    if (PX.strip) {                                               // vừa sửa / tạo kế hoạch: bỏ các buổi chưa làm từ hôm nay trở đi để xếp lại theo kế hoạch mới
+      const di = plToday0(), map = PX.remap;
+      const n0 = PL.tasks.length;
+      PL.tasks = PL.tasks.filter(x => !(x.ex === P.id && !x.done && !x.carried && (x.day === null || x.day >= di)));
+      if (map) PL.tasks.forEach(x => { if (x.ex !== P.id) return; const ni = map[x.xs]; if (ni >= 0) x.xs = ni; else { delete x.ex; delete x.xs; } changed = true; });
+      if (PL.tasks.length !== n0) changed = true;
+      PX.strip = false; PX.remap = null;
+    }
+    if (pxEnd(P) > pxDay0()) {
+      const r = pxFix(PL.tasks, P);
+      if (r.added || r.moved) changed = true;
+      if (r.moved) toast(t('px_moved', { n:r.moved }), 5200);
+      else if (redo && r.added) toast(t('px_added', { n:r.added }), 4200);
+    }
+    if (changed) plSave();
+    if (JSON.stringify(P) !== before) pxSave(P);
+    if (changed) render(true);
+  } finally { PX.busy = false; }
+}
+/* Lúc đăng nhập (plPrefetch): có kế hoạch ôn thi mà tuần này chưa xếp hoặc có buổi bị lỡ thì nạp tuần này như khi mở Planner để xếp luôn,
+   nhờ vậy Phòng tập trung cũng thấy buổi ôn hôm nay. Bỏ qua đọc 7 tuần cũ cho tới khi thật sự mở Planner. */
+function pxWarm(tasks){
+  if (!state.user || PL.tasks || PL.state === 'loading') return;
+  const c = store.get('plx_' + state.user.uid, null), key = plKey(0); if (!c || !c.id || !/^\d{4}-\d{2}-\d{2}$/.test(c.d || '') || c.d <= pxDay0().toISODate()) return;
+  const di = plToday0(), miss = (tasks || []).some(x => x && x.ex === c.id && !x.done && !x.carried && Number.isInteger(x.day) && x.day < di);
+  if (c.wk === key && !miss) return;
+  Object.assign(PL, { uid:state.user.uid, off:0, key:'', tasks:null, gone:[], state:'idle', save:'', prev:null, sel:null, slow:false, hist:{}, raw:{}, moff:0, prefs:null, noHist:true });
+  plLoad();
+}
+function pxCard(){
+  const P = pxPlan(); if (!P) return '';
+  const today = pxDay0(), n = Math.round(pxEnd(P).diff(today, 'days').days), done = pxDone(P), tot = P.s.map((_, i) => pxTot(P, i));
+  const dd = done.map((v, i) => Math.min(v, tot[i])), T = tot.reduce((a, b) => a + b, 0), Dn = dd.reduce((a, b) => a + b, 0), left = T - Dn;
+  const days = pxDays(P, today).length, per = days ? Math.round(left * P.len / days / 5) * 5 : 0;
+  const when = DT.fromISO(P.d).setLocale(state.lang).toLocaleString(DT.DATE_MED), sub = n > 1 ? t('ex_left', { n }) : n === 1 ? t('ex_left1') : n === 0 ? t('ex_today') : t('ex_past');
+  const msg = n <= 0 ? t('px_over') : !left ? t('px_all_done') : days ? t('px_need', { n:left, d:days, m:fmtMin(per) }) : t('px_nodays');
+  return `<section class="card pad px-card"><div class="row between" style="flex-wrap:nowrap;gap:8px"><h3>${ic('calendar', 'sm')} ${esc(t('px_h'))}</h3><button type="button" class="btn ghost icon sm" data-act="pxEdit" title="${esc(t('px_edit'))}" aria-label="${esc(t('px_edit'))}">${ic('pen', 'sm')}</button></div>
+    <p class="small" style="margin:4px 0 8px"><b>${esc(P.n || t('px_def_name'))}</b> · ${esc(when)} · ${esc(sub)}</p>
+    <div class="px-tot"><b>${T ? Math.round(Dn / T * 100) : 0}<em>%</em></b><small class="faint">${esc(t('px_sess_done', { n:Dn, m:T }))}</small></div>${plBar(Dn, T)}
+    <div class="px-subs">${P.s.map((s, i) => `<div class="pl-row px-row"><span title="${esc(s.n)}">${esc(s.n)}</span>${plBar(dd[i], tot[i], PL_COLORS[(i + 1) % PL_COLORS.length])}<small class="faint">${dd[i]}/${tot[i]}</small></div>`).join('')}</div>
+    <p class="small" style="margin:10px 0 0">${esc(msg)}</p>${n > 0 && left && per > P.cap ? `<p class="small pl-warn" style="margin:6px 0 0">${esc(t('px_tight', { c:fmtMin(P.cap) }))}</p>` : ''}
+    ${n > 0 ? `<p class="small faint" style="margin:6px 0 0">${esc(t('px_auto'))}</p>` : `<button type="button" class="btn secondary sm mt-s" data-act="pxDel">${ic('trash', 'sm')} ${esc(t('px_del'))}</button>`}</section>`;
+}
+const pxRow = s => `<div class="px-sr"><input class="input px-sn" maxlength="40" placeholder="${esc(t('px_subj_ph'))}" value="${esc(s.n)}" aria-label="${esc(t('px_subj'))}" data-change="pxPrev"><label class="px-sh"><input class="input" type="number" min="0.5" max="500" step="0.5" inputmode="decimal" value="${esc(String(s.h))}" placeholder="10" aria-label="${esc(t('px_hours'))}" data-change="pxPrev"><small>${esc(t('px_h_unit'))}</small></label><button type="button" class="btn ghost icon sm" data-act="pxDelRow" title="${esc(t('pl_delete'))}" aria-label="${esc(t('pl_delete'))}">${ic('x', 'sm')}</button></div>`;
+function pxRead(){                                                 // đọc form thành kế hoạch thô
+  return { n:($('px-name') || {}).value || '', d:($('px-date') || {}).value || '', len:+($('px-len') || {}).value || 45, cap:+($('px-cap') || {}).value || 120,
+    s:[...document.querySelectorAll('#px-subj .px-sr')].map(r => ({ n:r.querySelector('.px-sn').value, h:+r.querySelector('.px-sh input').value || 0 })),
+    w:[...document.querySelectorAll('.px-wd:checked')].map(b => +b.value) };
+}
+function pxPrev(){                                                 // xem trước trong form: tổng số buổi, số ngày học, mỗi ngày cần bao lâu
+  const el = $('px-prev'); if (!el) return;
+  const raw = pxRead(), P = pxClean({ ...raw, w:raw.w.length ? raw.w : [-1] }), old = pxPlan();
+  if (!P || !raw.w.length || P.d <= pxDay0().toISODate()) { el.textContent = t(!raw.w.length ? 'px_need_wd' : P && P.d ? 'px_bad_date' : 'px_prev_0'); el.classList.remove('pl-warn'); return; }
+  const od = old ? pxDone(old) : [], dn = P.s.map(s => { const j = old ? old.s.findIndex(o => o.n.toLowerCase() === s.n.toLowerCase()) : -1; return j >= 0 ? od[j] || 0 : 0; });
+  const left = P.s.reduce((a, _, i) => a + Math.max(0, pxTot(P, i) - dn[i]), 0), days = pxDays(P, pxDay0()).length, per = days ? Math.round(left * P.len / days / 5) * 5 : 0;
+  el.textContent = !days ? t('px_nodays') : t('px_prev', { n:left, l:fmtMin(P.len), d:days, m:fmtMin(per) }) + (per > P.cap ? ' ' + t('px_tight', { c:fmtMin(P.cap) }) : '');
+  el.classList.toggle('pl-warn', !!days && per > P.cap);
+}
+function pxForm(){
+  const P = pxPlan(), ex = typeof examGet === 'function' ? examGet() : null, min = pxDay0().plus({ days:1 }).toISODate();
+  const name = P ? P.n : ex ? ex.n : '', date = P ? P.d : ex && ex.d >= min ? ex.d : '', subj = P ? P.s : [{ n:'', h:'' }, { n:'', h:'' }], len = P ? P.len : 45, cap = P ? P.cap : 120, w = P ? P.w : [0, 1, 2, 3, 4, 5, 6];
+  const caps = PX_CAPS.includes(cap) ? PX_CAPS : [...PX_CAPS, cap].sort((a, b) => a - b);
+  openModal(`<h3 style="margin-bottom:6px;padding-right:32px">${ic('calendar', 'sm')} ${esc(t(P ? 'px_edit' : 'px_new'))}</h3><p class="small muted">${esc(t('px_desc'))}</p>
+    <div class="f2 mt-s"><div class="field"><label class="label" for="px-name">${esc(t('px_name'))}</label><input class="input" id="px-name" maxlength="60" autocomplete="off" placeholder="${esc(t('ex_name_ph'))}" value="${esc(name)}"></div>
+    <div class="field"><label class="label" for="px-date">${esc(t('px_date'))}</label><input class="input" id="px-date" type="date" min="${min}" max="${pxDay0().plus({ years:2 }).toISODate()}" value="${esc(date)}" data-change="pxPrev"></div></div>
+    <div class="field mt-s"><label class="label">${esc(t('px_subjs'))}</label><p class="small faint" style="margin:0 0 6px">${esc(t('px_subjs_sub'))}</p><div id="px-subj" class="stack" style="gap:6px">${subj.map(pxRow).join('')}</div>
+    <button type="button" class="btn ghost sm mt-s" data-act="pxAddRow" id="px-add"${subj.length >= PX_MAXS ? ' hidden' : ''}>${ic('plus', 'sm')} ${esc(t('px_add_subj'))}</button></div>
+    <div class="f2 mt-s"><div class="field"><label class="label" for="px-len">${esc(t('px_len'))}</label><select class="select" id="px-len" data-change="pxPrev">${PX_LENS.map(m => `<option value="${m}" ${m === len ? 'selected' : ''}>${esc(fmtMin(m))}</option>`).join('')}</select></div>
+    <div class="field"><label class="label" for="px-cap">${esc(t('px_cap'))}</label><select class="select" id="px-cap" data-change="pxPrev">${caps.map(m => `<option value="${m}" ${m === cap ? 'selected' : ''}>${esc(fmtMin(m))}</option>`).join('')}</select></div></div>
+    <div class="field mt-s"><label class="label">${esc(t('px_wd'))}</label><div class="row" style="gap:6px">${Array.from({ length:7 }, (_, i) => `<label class="chip pl-dchip"><input type="checkbox" class="px-wd" value="${i}" data-change="pxPrev" ${w.includes(i) ? 'checked' : ''}> ${esc(t('pl_d' + i))}</label>`).join('')}</div></div>
+    <p class="small px-prev mt-s" id="px-prev" role="status"></p>
+    <div class="row mt" style="justify-content:space-between">${P ? `<button type="button" class="btn danger" data-act="pxDel">${ic('trash', 'sm')} ${esc(t('px_del'))}</button>` : '<span></span>'}<span class="row"><button type="button" class="btn ghost" data-act="closeModal">${esc(t('cancel'))}</button><button type="button" class="btn primary" data-act="pxSave">${esc(t(P ? 'pl_save' : 'px_make'))}</button></span></div>`, true);
+  pxPrev();
+  setTimeout(() => { const i = $(name ? 'px-date' : 'px-name'); if (i && !isPhone() && !date) i.focus(); }, 30);
+}
+function pxStripNow(id){                                           // xoá kế hoạch: bỏ các buổi chưa làm từ hôm nay trở đi của tuần này (buổi đã xong vẫn giữ trong lịch sử)
+  if (PL.off !== 0 || PL.key !== plKey(0) || !PL.tasks) return 0;
+  const di = plToday0(), n0 = PL.tasks.length;
+  PL.tasks = PL.tasks.filter(x => !(x.ex === id && !x.done && !x.carried && (x.day === null || x.day >= di)));
+  return n0 - PL.tasks.length;
+}
+Object.assign(ACTIONS, {
+  pxEdit: () => { if (PL.prefs) pxForm(); },
+  pxAddRow: () => { const b = $('px-subj'); if (!b || b.children.length >= PX_MAXS) return; b.insertAdjacentHTML('beforeend', pxRow({ n:'', h:'' })); const a = $('px-add'); if (a) a.hidden = b.children.length >= PX_MAXS; const i = b.lastElementChild.querySelector('input'); if (i) i.focus(); },
+  pxDelRow: el => { const r = el.closest('.px-sr'), b = $('px-subj'); if (!r || !b) return; if (b.children.length > 1) r.remove(); else r.querySelectorAll('input').forEach(i => { i.value = ''; }); const a = $('px-add'); if (a) a.hidden = b.children.length >= PX_MAXS; pxPrev(); },
+  pxSave: () => {
+    const raw = pxRead(), old = pxPlan(), min = pxDay0().plus({ days:1 }).toISODate();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(raw.d) || raw.d < min || !DT.fromISO(raw.d).isValid) { toast(t('px_bad_date')); const i = $('px-date'); if (i) i.focus(); return; }
+    if (!raw.s.some(s => s.n.trim() && s.h > 0)) { toast(t('px_need_subj')); const i = document.querySelector('#px-subj .px-sn'); if (i) i.focus(); return; }
+    if (raw.s.some(s => s.n.trim() && !(s.h > 0))) { toast(t('px_need_h')); return; }
+    if (!raw.w.length) { toast(t('px_need_wd')); return; }
+    const od = old ? [...old.dn] : [];
+    const P = pxClean({ ...raw, n:raw.n.trim() || t('px_def_name'), id:old ? old.id : plId(), wk:old ? old.wk : '', redo:true, t:Date.now() });
+    if (old) {                                                     // giữ số buổi đã xong theo tên môn; buổi của tuần này đổi số thứ tự môn theo
+      const idx = P.s.map(s => old.s.findIndex(o => o.n.toLowerCase() === s.n.toLowerCase()));
+      P.dn = idx.map(j => j >= 0 ? od[j] || 0 : 0);
+      PX.remap = old.s.map((_, j) => idx.indexOf(j));
+    } else PX.remap = null;
+    PX.strip = true;
+    closeModal();
+    if (typeof examGet === 'function' && !examGet()) examSet(P.n, P.d);   // chưa có đếm ngược: dùng luôn ngày thi này cho đếm ngược ở Tổng quan / Phòng tập trung
+    pxSave(P);
+    if (PL.off !== 0) ACTIONS.plWeek({ dataset:{ d:0 } }); else pxSync();
+    render(true);
+  },
+  pxDel: () => openModal(`<h3 style="margin-bottom:6px;padding-right:32px">${esc(t('px_del_q'))}</h3><p class="small muted">${esc(t('px_del_sub'))}</p>
+    <div class="row mt" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="closeModal">${esc(t('cancel'))}</button><button type="button" class="btn danger" data-act="pxDelGo">${ic('trash', 'sm')} ${esc(t('px_del'))}</button></div>`, true),
+  pxDelGo: () => {
+    const P = pxPlan(); closeModal(); if (!P) return;
+    const n = pxStripNow(P.id); if (n) plSave();
+    PL.prefs = { ...(PL.prefs || {}), exam:null }; pxRemember(null); plSavePrefs({ exam:null });
+    toast(t('px_deleted')); render(true);
+  },
+});
+CHANGES.pxPrev = () => pxPrev();
+Object.assign(I18N.en, {
+  px_h:'Exam study plan', px_new:'Plan my exam revision', px_edit:'Edit exam plan', px_make:'Make my plan', px_btn:'Exam plan',
+  px_desc:'Enter your exam date and the subjects you need to revise. The Planner splits the work into study sessions, day by day until the day before the exam, and puts them in your weeks. If you miss a day, the unfinished sessions move to the days that are left.',
+  px_name:'Exam', px_date:'Exam date', px_def_name:'My exam', px_subjs:'Subjects', px_subjs_sub:'For each subject, roughly how many hours of revision you need in total.', px_subj:'Subject', px_subj_ph:'e.g. Maths', px_hours:'Hours needed', px_h_unit:'hours', px_add_subj:'Add a subject',
+  px_len:'Each session', px_cap:'Max revision per day', px_wd:'Study days',
+  px_prev_0:'Add a subject and its hours to see your plan.', px_prev:'{n} sessions of {l} over {d} study days: about {m} a day.', px_tight:'That is more than your daily max ({c}). Add study days, raise the max, or trim some hours.', px_nodays:'No study days are left before the exam. Pick more study days or a later date.',
+  px_bad_date:'Pick an exam date from tomorrow on.', px_need_subj:'Add at least one subject with its hours.', px_need_h:'Enter the hours for each subject.', px_need_wd:'Pick at least one study day.',
+  px_task:'Revise {s} ({n}/{m})', px_added:'Added {n} revision sessions to this week.', px_moved:'Moved {n} missed revision sessions to the days you have left.',
+  px_sess_done:'{n}/{m} sessions done', px_need:'{n} sessions left over {d} study days: about {m} a day.', px_all_done:'Every session is done. Use the days left for a light review and rest.', px_over:'The exam date has passed. Well done for getting through it!',
+  px_auto:'Missed a day? Unfinished sessions move to the days you have left by themselves.',
+  px_del:'Delete plan', px_del_q:'Delete this exam plan?', px_del_sub:'Unfinished revision sessions from today on are removed from this week. Sessions you already finished stay in your history.', px_deleted:'Exam plan deleted'
+});
+Object.assign(I18N.vi, {
+  px_h:'Kế hoạch ôn thi', px_new:'Lập kế hoạch ôn thi', px_edit:'Sửa kế hoạch ôn thi', px_make:'Lập kế hoạch', px_btn:'Kế hoạch ôn thi',
+  px_desc:'Nhập ngày thi và các môn cần ôn. Planner sẽ chia thành các buổi ôn theo từng ngày cho tới hôm trước ngày thi và xếp vào các tuần của bạn. Lỡ một ngày thì các buổi chưa xong tự dồn sang những ngày còn lại.',
+  px_name:'Kỳ thi', px_date:'Ngày thi', px_def_name:'Kỳ thi của tôi', px_subjs:'Các môn', px_subjs_sub:'Mỗi môn, bạn ước chừng cần ôn tổng cộng bao nhiêu giờ.', px_subj:'Môn', px_subj_ph:'Ví dụ: Toán', px_hours:'Số giờ cần ôn', px_h_unit:'giờ', px_add_subj:'Thêm môn',
+  px_len:'Mỗi buổi', px_cap:'Ôn tối đa mỗi ngày', px_wd:'Ngày học',
+  px_prev_0:'Thêm môn và số giờ để xem kế hoạch.', px_prev:'{n} buổi, mỗi buổi {l}, trong {d} ngày học: khoảng {m} mỗi ngày.', px_tight:'Vượt mức tối đa mỗi ngày ({c}). Bạn thêm ngày học, tăng mức tối đa hoặc bớt số giờ nhé.', px_nodays:'Không còn ngày học nào trước ngày thi. Bạn chọn thêm ngày học hoặc ngày thi muộn hơn nhé.',
+  px_bad_date:'Bạn chọn ngày thi từ ngày mai trở đi nhé.', px_need_subj:'Thêm ít nhất một môn kèm số giờ.', px_need_h:'Bạn nhập số giờ cho từng môn nhé.', px_need_wd:'Chọn ít nhất một ngày học.',
+  px_task:'Ôn {s} ({n}/{m})', px_added:'Đã xếp {n} buổi ôn vào tuần này.', px_moved:'Đã dồn {n} buổi ôn bị lỡ sang những ngày còn lại.',
+  px_sess_done:'Xong {n}/{m} buổi', px_need:'Còn {n} buổi trong {d} ngày học: khoảng {m} mỗi ngày.', px_all_done:'Đã xong hết các buổi ôn. Những ngày còn lại bạn ôn nhẹ và nghỉ ngơi nhé.', px_over:'Đã qua ngày thi. Bạn đã cố gắng rất nhiều!',
+  px_auto:'Lỡ một ngày? Buổi chưa xong tự dồn sang những ngày còn lại.',
+  px_del:'Xoá kế hoạch', px_del_q:'Xoá kế hoạch ôn thi này?', px_del_sub:'Các buổi ôn chưa làm từ hôm nay trở đi sẽ được bỏ khỏi tuần này. Buổi đã xong vẫn giữ trong lịch sử.', px_deleted:'Đã xoá kế hoạch ôn thi'
 });
