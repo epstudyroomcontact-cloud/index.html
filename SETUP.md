@@ -666,6 +666,12 @@ Làm một lần, sau đó mỗi buổi chỉ cần bấm Start Streaming trong 
 - **Tiết kiệm Firebase:** không ghi gì trong lúc kéo. Thả trong tuần đang mở thì gộp vào lần lưu sẵn có (nhiều lần thả trong nửa giây = 1 lần ghi). Thả sang tuần khác ở lịch tháng: 1 lần ghi gộp (batch) cho cả hai tuần. Lịch tháng đọc mỗi tuần 1 lần và dùng chung với thống kê tháng. Vẫn là `users/<uid>/planner/<tuần>` nên **không cần dán lại `firestore.rules`**.
 - Xem thử: `?demo=1&as=admin#/planner`. Chữ đủ 8 ngôn ngữ: en/vi cuối `planner.js` (tìm `pl_dnd_hint`), 6 ngôn ngữ còn lại trong `planner-i18n.js` (`X7`). Phiên bản file v=248.
 
+### 22.ay. Kế hoạch ôn thi chỉ GỢI Ý, không tự sắp cho người dùng (KHÔNG cần dán luật mới)
+- Web **không còn tự thêm hay tự dời** việc trong Kế hoạch tuần. Ô **Kế hoạch ôn thi** chỉ hiện **"Gợi ý cho tuần này"** (từng ngày: buổi nào, tổng bao lâu). Người dùng thấy hợp thì bấm **"Thêm N buổi vào Planner"**, thêm xong vẫn sửa hay xoá từng buổi như việc thường.
+- Có buổi ôn của ngày trước chưa xong thì ô này báo **"Còn N buổi ôn của những ngày trước chưa xong"** kèm nút **"Dồn sang những ngày còn lại"**. Chỉ khi bấm nút thì buổi đó mới được dời (vẫn ghi "đã dời" như dời tay).
+- Lưu, sửa hay xoá kế hoạch **không đụng vào việc nào** trong Planner. Xoá kế hoạch thì các buổi đã thêm vẫn ở lại như việc bình thường. Lưu kế hoạch cũng không tự đặt đếm ngược nữa. Bỏ luôn việc tự xếp lúc đăng nhập.
+- Phần tự làm duy nhất còn lại là ghi số buổi đã xong khi sang tuần mới (chỉ ghi vào `_prefs`, không đổi việc nào). Đủ 8 ngôn ngữ, tăng phiên bản file lên v=250.
+
 ### 22.ax. Kế hoạch ôn thi: mỗi môn một ngày thi, môn khó, ôn lại và ngày ôn tổng (KHÔNG cần dán luật mới)
 - **Mỗi môn một ngày thi:** trong form, dưới mỗi môn có ô **Ngày thi môn này** (để trống = ngày thi chung). Môn chỉ được xếp vào các ngày **trước ngày thi của chính môn đó**, nên môn thi sớm tự được ôn dồn trước, thi xong môn nào thì thôi xếp môn đó. Buổi lỡ cũng chỉ được dồn vào ngày trước hạn của môn đó. Ô Kế hoạch ôn thi hiện "môn tiếp theo" kèm số ngày còn lại, ngày thi của từng môn, môn đã thi thì mờ đi.
 - **San đều các ngày:** các môn đan xen, mỗi buổi vào ngày đang ít việc nhất trong hạn của môn đó, nên môn thi muộn tự né những ngày đã kín vì môn thi sớm. Form và ô kế hoạch báo **ngày nặng nhất** (ví dụ "T6 27/11 cần 3 giờ") khi vượt mức tối đa mỗi ngày.

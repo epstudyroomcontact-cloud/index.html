@@ -327,7 +327,7 @@ const plCache = (key, tasks, gone) => { if (DEMO || !state.user) return; const o
 function plPrefetch(){                                            // gọi sớm lúc đăng nhập: lấy sẵn tuần này để mở Planner là có ngay
   if (DEMO || !state.user || !plAccess() || (PL.pre && PL.pre.uid === state.user.uid && Date.now() - PL.pre.at < 60000)) return;
   const key = plKey(0), pre = PL.pre = { uid:state.user.uid, key, at:Date.now(), p:plFetch(key) };
-  pre.p.then(r => { plCache(key, r.tasks, r.gone); PL.remTasks = { uid:pre.uid, tasks:r.tasks }; plPinShow(); if (store.get('pl_rem', null) === null && PUSH.on) store.set('pl_rem', true); plRemStart(); pxWarm(r.tasks); })   // đã bật thông báo đẩy ở 🔔 từ trước: tự bật nhắc việc; có kế hoạch ôn thi thì xếp luôn tuần này
+  pre.p.then(r => { plCache(key, r.tasks, r.gone); PL.remTasks = { uid:pre.uid, tasks:r.tasks }; plPinShow(); if (store.get('pl_rem', null) === null && PUSH.on) store.set('pl_rem', true); plRemStart(); })   // đã bật thông báo đẩy ở 🔔 từ trước: tự bật nhắc việc
     .catch(() => { if (PL.pre === pre) PL.pre = null; });
 }
 async function plLoad(){
@@ -347,7 +347,7 @@ async function plLoad(){
     else { const mine = new Set(PL.gone.map(g => g.id + '|' + g.day)); PL.gone = [...gone.filter(g => !mine.has(g.id + '|' + g.day)), ...PL.gone].slice(-PL_MAX); }   // …nhưng không làm mất dấu dời/bỏ đã có trên máy chủ
     PL.state = 'ready'; PL.slow = false;
     if (!DEMO) { if (!PL.noHist) plHist(); plPrefs(); } else if (!PL.prefs) PL.prefs = {};
-    pxSync();                                                     // kế hoạch ôn thi: xếp tuần này / dồn buổi lỡ (cần cả _prefs, nếu chưa có thì plPrefs gọi lại)
+    pxSync();                                                     // kế hoạch ôn thi: cộng số buổi đã xong khi sang tuần mới (không tự thêm / dời việc; cần cả _prefs, nếu chưa có thì plPrefs gọi lại)
   } catch (e) {
     if (PL.seq !== seq) return; console.warn('planner load', e.code, Date.now() - t0, 'ms');
     if (!PL.tasks) { PL.state = 'error'; PL.key = ''; PL.err = e.code || ''; }     // có bản nhớ thì cứ để người dùng xem tiếp
@@ -1029,24 +1029,25 @@ Object.assign(I18N.vi, {
 });
 
 /* =========================================================
-   KẾ HOẠCH ÔN THI TỰ ĐỘNG
+   KẾ HOẠCH ÔN THI (GỢI Ý)
    Lưu ở users/<uid>/planner/_prefs.exam = { id, n:tên kỳ thi, d:'YYYY-MM-DD' ngày thi, s:[{ n:tên môn, h:số giờ cần ôn }], len:phút mỗi buổi, cap:phút ôn tối đa mỗi ngày,
      w:[thứ được học, 0 = thứ Hai], wk:tuần gần nhất đã xếp việc, dn:[số buổi đã xong ở các tuần trước wk, theo môn], redo:true = xếp lại tuần này (vừa sửa kế hoạch), t }
    Không cần đổi firestore.rules: _prefs nằm trong users/<uid>/planner như mục tiêu tuần và tuần mẫu.
+   KHÔNG TỰ SẮP: web chỉ tính và GỢI Ý. Buổi ôn chỉ vào Planner khi người dùng bấm "Thêm vào Planner" ở ô Kế hoạch ôn thi (pxAddWeek),
+   buổi lỡ chỉ được dồn khi người dùng bấm "Dồn sang ngày còn lại" (pxCatch). Lưu / sửa / xoá kế hoạch không thêm, xoá hay dời việc nào trong Planner.
    Mỗi buổi ôn là một việc Planner bình thường (nhóm Học tập, không đặt giờ) kèm ex = id kế hoạch, xs = số thứ tự môn.
-   - Chỉ xếp việc cho TUẦN HIỆN TẠI khi tuần đó tới (mở Planner, hoặc tải sẵn lúc đăng nhập), không ghi trước hàng chục tuần:
-     mỗi tuần 1 lần ghi tuần + 1 lần ghi _prefs; sang tuần mới đọc lại tuần trước 1 lần để cộng số buổi đã xong.
-   - Số buổi còn lại của một môn = tổng số buổi − đã xong ở các tuần trước − đã có trong tuần này. Chia đều (dồn nhẹ về đầu) cho các ngày học còn lại
-     tới hôm trước ngày thi; tuần này nhận phần của các ngày thuộc tuần này. Môn xen kẽ nhau, môn còn nhiều (theo tỉ lệ) được xếp trước.
-   - Lỡ một ngày: buổi chưa xong của ngày đã qua tự dời sang ngày học còn lại ít việc ôn nhất trong tuần (ghi "đã dời" như khi dời tay).
+   - Gợi ý chỉ tính cho TUẦN HIỆN TẠI (chạy thử trên bản sao, không ghi gì). Bấm thêm thì 1 lần ghi tuần + 1 lần ghi _prefs (wk = tuần đã thêm);
+     sang tuần mới đọc lại tuần đã thêm gần nhất 1 lần để cộng số buổi đã xong (chỉ ghi _prefs, không đụng việc nào).
+   - Số buổi còn lại của một môn = tổng số buổi − đã xong ở các tuần trước − đã có trong tuần này. Buổi bị xoá hoặc chưa làm sẽ tự có lại trong gợi ý của tuần sau.
+   - Bấm "Dồn sang ngày còn lại": buổi chưa xong của ngày đã qua dời sang ngày học còn ít việc ôn nhất trong tuần, trước ngày thi môn đó (ghi "đã dời" như khi dời tay).
      (r:1 = buổi ôn tổng / làm đề thử của những ngày cuối: không tính vào số buổi của môn, không dồn khi lỡ.)
    - Ôn cho hiệu quả: mỗi môn có mức khó (k: 1 dễ, 2 vừa, 3 khó). Môn khó được xếp sớm hơn (trọng số 1,3; dễ 0,8) nên còn thời gian lùi;
      cứ buổi thứ 4, 8, 12… của một môn là buổi "ôn lại & tự kiểm tra" (nhớ lại không nhìn sách, làm bài tập) thay vì học mới.
      rv = số ngày học cuối cùng trước ngày thi dành riêng để ôn tổng và làm đề thử (0-3); phần học chính chia vào các ngày trước đó.
-     Được vượt giờ tối đa mỗi ngày tới 1,5 lần (ít nhất thêm 1 buổi); quá mức đó thì để lại, sang tuần sau buổi chưa xong tự được chia lại vào các ngày còn lại. Tuần cuối trước ngày thi thì vẫn dồn hết.
+     Khi dồn, một ngày được vượt giờ tối đa tới 1,5 lần (ít nhất thêm 1 buổi); quá mức đó thì để lại, tuần sau gợi ý tự tính lại. Môn thi trong tuần này thì vẫn dồn hết.
    ========================================================= */
 const PX_LENS = [25, 30, 45, 60, 90, 120], PX_CAPS = [30, 60, 90, 120, 150, 180, 240, 300, 360, 480], PX_MAXS = 8;
-const PX = { busy:false, strip:false, remap:null, delId:'' };
+const PX = { busy:false, remap:null };
 function pxClean(p){
   if (!p || typeof p !== 'object' || !/^\d{4}-\d{2}-\d{2}$/.test(p.d || '')) return null;
   const s = (Array.isArray(p.s) ? p.s : []).map(x => ({ n:String(x && x.n || '').trim().slice(0, 40), h:Math.max(0, Math.min(500, Math.round((+(x && x.h) || 0) * 2) / 2)), k:[1, 2, 3].includes(+(x && x.k)) ? +x.k : 2, d:/^\d{4}-\d{2}-\d{2}$/.test(x && x.d || '') ? x.d : '' })).filter(x => x.n && x.h > 0).slice(0, PX_MAXS);
@@ -1117,12 +1118,18 @@ function pxDone(P){                                                // số buổ
   wt.forEach(x => { if (x && x.ex === P.id && x.done && !x.r && x.xs >= 0 && x.xs < dn.length) dn[x.xs]++; });
   return dn;
 }
+const pxPending = P => !P.wk || P.redo || pxBefore(P.wk, plKey(0));   // tuần này chưa thêm gợi ý (hoặc vừa sửa kế hoạch)
+const pxMissed = (tasks, P) => tasks.filter(x => x.ex === P.id && !x.r && !x.done && !x.carried && x.day !== null && x.day < plToday0());
+function pxSuggest(P){                                             // các buổi gợi ý của tuần này (chạy thử trên bản sao, không đổi gì)
+  if (!PL.tasks || PL.key !== plKey(0) || PL.off !== 0) return null;
+  const tk = PL.tasks.map(x => ({ ...x })), n0 = tk.length; pxFix(tk, JSON.parse(JSON.stringify(P)), 'add'); return tk.slice(n0);
+}
 /* Xếp việc ôn cho tuần này + dồn buổi đã lỡ. Sửa thẳng mảng tasks (tuần hiện tại, đang mở ở PL); trả về số buổi thêm / dời */
-function pxFix(tasks, P){
+function pxFix(tasks, P, mode){                                     // mode 'add' = thêm buổi gợi ý của tuần này, 'miss' = dồn buổi lỡ; chỉ chạy khi người dùng bấm nút
   const key = plKey(0), ws = plWeekStart(0), we = ws.plus({ days:7 }), today = pxDay0(), di = today.weekday - 1;
   const all = pxDays(P, today), wkDays = all.filter(d => d < we).map(d => d.weekday - 1);
   let added = 0, moved = 0;
-  if (!P.wk || P.redo || pxBefore(P.wk, key)) {
+  if (mode === 'add') {
     const has = P.s.map((_, i) => tasks.filter(x => x.ex === P.id && !x.r && x.xs === i && pxCount(x)).length);
     const rem = P.s.map((_, i) => Math.max(0, pxTot(P, i) - P.dn[i] - has[i])), cnt = P.s.map((_, i) => pxTot(P, i) - rem[i]), sc = pxSched(P, all, rem);
     all.forEach((d, j) => {
@@ -1138,7 +1145,7 @@ function pxFix(tasks, P){
     });
     P.wk = key; P.redo = false;
   }
-  const miss = tasks.filter(x => x.ex === P.id && !x.r && !x.done && !x.carried && x.day !== null && x.day < di);
+  const miss = mode === 'miss' ? pxMissed(tasks, P) : [];
   if (miss.length && wkDays.length) {
     const lastWeek = all.length === wkDays.length, ld = {};         // ngày thi rơi vào tuần này / đầu tuần sau: không còn tuần nào để chia lại, nên vẫn dồn dù vượt giờ tối đa
     wkDays.forEach(d => { ld[d] = tasks.filter(x => x.ex === P.id && x.day === d && pxCount(x)).reduce((a, x) => a + (x.dur || P.len), 0); });
@@ -1155,8 +1162,8 @@ function pxFix(tasks, P){
 async function pxSync(){
   if (PX.busy || PL.off !== 0 || !PL.tasks || PL.key !== plKey(0) || PL.state !== 'ready' || !PL.prefs) return;
   if (window.pxAsk && route.name === 'planner') { window.pxAsk = false; pxForm(); }   // bấm "Lập kế hoạch ôn thi" từ hộp đếm ngược
-  const P = pxPlan(); if (!P) { PX.strip = false; return; }
-  const before = JSON.stringify(P), key = plKey(0), redo = P.redo; pxRemember(P);
+  const P = pxPlan(); if (!P) { PX.remap = null; return; }
+  const before = JSON.stringify(P), key = plKey(0); pxRemember(P);
   PX.busy = true;
   try {
     if (P.wk && pxBefore(P.wk, key)) {                             // sang tuần mới: cộng số buổi đã xong của tuần đã xếp gần nhất (đọc lại 1 lần cho đúng cả khi tick ở máy khác)
@@ -1167,34 +1174,24 @@ async function pxSync(){
       if (PL.off !== 0 || PL.key !== key || !PL.tasks) { pxSave(P); return; }
     }
     let changed = false;
-    if (PX.strip) {                                               // vừa sửa / tạo kế hoạch: bỏ các buổi chưa làm từ hôm nay trở đi để xếp lại theo kế hoạch mới
-      const di = plToday0(), map = PX.remap;
-      const n0 = PL.tasks.length;
-      PL.tasks = PL.tasks.filter(x => !(x.ex === P.id && !x.done && !x.carried && (x.day === null || x.day >= di)));
-      if (map) PL.tasks.forEach(x => { if (x.ex !== P.id) return; const ni = map[x.xs]; if (ni >= 0) x.xs = ni; else { delete x.ex; delete x.xs; } changed = true; });
-      if (PL.tasks.length !== n0) changed = true;
-      PX.strip = false; PX.remap = null;
-    }
-    if (pxEnd(P) > pxDay0()) {
-      const r = pxFix(PL.tasks, P);
-      if (r.added || r.moved) changed = true;
-      if (r.moved) toast(t('px_moved', { n:r.moved }), 5200);
-      else if (redo && r.added) toast(t('px_added', { n:r.added }), 4200);
+    if (PX.remap) {                                               // vừa sửa kế hoạch: buổi ôn đã có đổi số thứ tự môn theo (chỉ đổi nhãn bên trong, không thêm / xoá / dời việc nào)
+      const map = PX.remap; PX.remap = null;
+      PL.tasks.forEach(x => { if (x.ex !== P.id) return; const ni = map[x.xs]; if (ni >= 0) { if (ni !== x.xs) { x.xs = ni; changed = true; } } else { delete x.ex; delete x.xs; delete x.r; changed = true; } });
     }
     if (changed) plSave();
     if (JSON.stringify(P) !== before) pxSave(P);
     if (changed) render(true);
   } finally { PX.busy = false; }
 }
-/* Lúc đăng nhập (plPrefetch): có kế hoạch ôn thi mà tuần này chưa xếp hoặc có buổi bị lỡ thì nạp tuần này như khi mở Planner để xếp luôn,
-   nhờ vậy Phòng tập trung cũng thấy buổi ôn hôm nay. Bỏ qua đọc 7 tuần cũ cho tới khi thật sự mở Planner. */
-function pxWarm(tasks){
-  if (!state.user || PL.tasks || PL.state === 'loading') return;
-  const c = store.get('plx_' + state.user.uid, null), key = plKey(0); if (!c || !c.id || !/^\d{4}-\d{2}-\d{2}$/.test(c.d || '') || c.d <= pxDay0().toISODate()) return;
-  const di = plToday0(), miss = (tasks || []).some(x => x && x.ex === c.id && !x.done && !x.carried && Number.isInteger(x.day) && x.day < di);
-  if (c.wk === key && !miss) return;
-  Object.assign(PL, { uid:state.user.uid, off:0, key:'', tasks:null, gone:[], state:'idle', save:'', prev:null, sel:null, slow:false, hist:{}, raw:{}, moff:0, prefs:null, noHist:true });
-  plLoad();
+function pxSugBlock(P){                                           // gợi ý tuần này + buổi lỡ: chỉ hiện, người dùng bấm mới thay đổi Planner
+  if (PL.off !== 0 || !PL.tasks || PL.key !== plKey(0)) return `<p class="small faint px-sug">${esc(t('px_sug_week'))}</p>`;
+  const miss = pxMissed(PL.tasks, P), mv = miss.length ? `<div class="px-sug px-miss"><p class="small">${esc(t('px_miss', { n:miss.length }))}</p><button type="button" class="btn secondary sm" data-act="pxCatch">${esc(t('px_miss_btn'))}</button></div>` : '';
+  if (!pxPending(P)) return `${mv}<p class="small faint px-sug">${ic('check', 'sm')} ${esc(t('px_sug_done'))}</p>`;
+  const sug = pxSuggest(P) || [];
+  if (!sug.length) return `${mv}<p class="small faint px-sug">${esc(t('px_sug_none'))}</p>`;
+  const ws = plWeekStart(0), days = [...new Set(sug.map(x => x.day))].sort((a, b) => a - b);
+  return `${mv}<div class="px-sug"><b class="small">${esc(t('px_sug_h'))}</b><ul class="px-sugl">${days.map(d => { const l = sug.filter(x => x.day === d); return `<li><b>${esc(t('pl_d' + d))} ${ws.plus({ days:d }).toFormat('dd/MM')}</b> <span>${l.map(x => esc(x.title)).join(' · ')}</span> <small class="faint">(${esc(fmtMin(l.reduce((a, x) => a + x.dur, 0)))})</small></li>`; }).join('')}</ul>
+    <button type="button" class="btn primary sm" data-act="pxAddWeek">${ic('plus', 'sm')} ${esc(t('px_sug_add', { n:sug.length }))}</button><small class="faint">${esc(t('px_sug_note'))}</small></div>`;
 }
 function pxCard(){
   const P = pxPlan(); if (!P) return '';
@@ -1211,6 +1208,7 @@ function pxCard(){
     <p class="small" style="margin:4px 0 8px"><b>${esc(P.n || t('px_def_name'))}</b> · ${esc(head)} · ${esc(sub)}</p>
     <div class="px-tot"><b>${T ? Math.round(Dn / T * 100) : 0}<em>%</em></b><small class="faint">${esc(t('px_sess_done', { n:Dn, m:T }))}</small></div>${plBar(Dn, T)}
     <div class="px-subs${multi ? ' multi' : ''}">${P.s.map(row).join('')}</div>
+    ${n > 0 ? pxSugBlock(P) : ''}
     <p class="small" style="margin:10px 0 0">${esc(msg)}</p>${n > 0 && P.rv ? `<p class="small muted" style="margin:6px 0 0">${esc(t(multi ? 'px_fin_m' : 'px_fin_1', { n:P.rv }))}</p>` : ''}${n > 0 && left && L.peak > P.cap && L.peakDay ? `<p class="small pl-warn" style="margin:6px 0 0">${esc(t('px_peak', { m:fmtMin(L.peak), d:t('pl_d' + (L.peakDay.weekday - 1)) + ' ' + L.peakDay.toFormat('dd/MM'), c:fmtMin(P.cap) }))}</p>` : ''}
     ${n > 0 ? `<p class="small faint" style="margin:6px 0 0">${esc(t('px_auto'))}</p>` : `<button type="button" class="btn secondary sm mt-s" data-act="pxDel">${ic('trash', 'sm')} ${esc(t('px_del'))}</button>`}</section>`;
 }
@@ -1248,14 +1246,20 @@ function pxForm(){
   pxPrev();
   setTimeout(() => { const i = $(name ? 'px-date' : 'px-name'); if (i && !isPhone() && !date) i.focus(); }, 30);
 }
-function pxStripNow(id){                                           // xoá kế hoạch: bỏ các buổi chưa làm từ hôm nay trở đi của tuần này (buổi đã xong vẫn giữ trong lịch sử)
-  if (PL.off !== 0 || PL.key !== plKey(0) || !PL.tasks) return 0;
-  const di = plToday0(), n0 = PL.tasks.length;
-  PL.tasks = PL.tasks.filter(x => !(x.ex === id && !x.done && !x.carried && (x.day === null || x.day >= di)));
-  return n0 - PL.tasks.length;
-}
 Object.assign(ACTIONS, {
   pxEdit: () => { if (PL.prefs) pxForm(); },
+  pxAddWeek: () => {                                               // người dùng bấm: thêm các buổi gợi ý của tuần này vào Planner
+    const P = pxPlan(); if (!P || !PL.tasks || PL.key !== plKey(0) || PL.off !== 0) return;
+    const r = pxFix(PL.tasks, P, 'add'); pxSave(P);
+    if (r.added) { plSave(); toast(t('px_added', { n:r.added }), 4200); } else toast(t('px_sug_none'));
+    render(true);
+  },
+  pxCatch: () => {                                                 // người dùng bấm: dồn buổi lỡ sang các ngày còn lại của tuần
+    const P = pxPlan(); if (!P || !PL.tasks || PL.key !== plKey(0) || PL.off !== 0) return;
+    const r = pxFix(PL.tasks, P, 'miss');
+    if (r.moved) { plSave(); toast(t('px_moved', { n:r.moved }), 5200); } else toast(t('px_miss_full'), 6000);
+    render(true);
+  },
   pxAddRow: () => { const b = $('px-subj'); if (!b || b.children.length >= PX_MAXS) return; b.insertAdjacentHTML('beforeend', pxRow({ n:'', h:'' })); const a = $('px-add'); if (a) a.hidden = b.children.length >= PX_MAXS; const i = b.lastElementChild.querySelector('input'); if (i) i.focus(); },
   pxDelRow: el => { const r = el.closest('.px-sr'), b = $('px-subj'); if (!r || !b) return; if (b.children.length > 1) r.remove(); else r.querySelectorAll('input').forEach(i => { i.value = ''; }); const a = $('px-add'); if (a) a.hidden = b.children.length >= PX_MAXS; pxPrev(); },
   pxSave: () => {
@@ -1271,48 +1275,47 @@ Object.assign(ACTIONS, {
       P.dn = idx.map(j => j >= 0 ? od[j] || 0 : 0);
       PX.remap = old.s.map((_, j) => idx.indexOf(j));
     } else PX.remap = null;
-    PX.strip = true;
     closeModal();
-    if (typeof examGet === 'function' && !examGet()) examSet(P.n, P.d);   // chưa có đếm ngược: dùng luôn ngày thi này cho đếm ngược ở Tổng quan / Phòng tập trung
-    pxSave(P);
+    pxSave(P);                                                     // chỉ lưu kế hoạch: buổi ôn chỉ vào Planner khi bấm "Thêm vào Planner" ở ô Kế hoạch ôn thi
     if (PL.off !== 0) ACTIONS.plWeek({ dataset:{ d:0 } }); else pxSync();
-    render(true);
+    toast(t('px_saved'), 5200); render(true);
   },
   pxDel: () => openModal(`<h3 style="margin-bottom:6px;padding-right:32px">${esc(t('px_del_q'))}</h3><p class="small muted">${esc(t('px_del_sub'))}</p>
     <div class="row mt" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="closeModal">${esc(t('cancel'))}</button><button type="button" class="btn danger" data-act="pxDelGo">${ic('trash', 'sm')} ${esc(t('px_del'))}</button></div>`, true),
   pxDelGo: () => {
     const P = pxPlan(); closeModal(); if (!P) return;
-    const n = pxStripNow(P.id); if (n) plSave();
     PL.prefs = { ...(PL.prefs || {}), exam:null }; pxRemember(null); plSavePrefs({ exam:null });
     toast(t('px_deleted')); render(true);
   },
 });
 CHANGES.pxPrev = () => pxPrev();
 Object.assign(I18N.en, {
+  px_saved:"Plan saved. Check this week’s suggestions in the Exam study plan box and tap \"Add to Planner\" if they suit you.", px_sug_h:"Suggested for this week", px_sug_add:"Add {n} sessions to Planner", px_sug_note:"You can edit or delete them afterwards.", px_sug_none:"No new sessions to suggest for this week.", px_sug_done:"This week’s suggestions are already in your Planner.", px_sug_week:"Go to this week to see the suggestions.", px_miss:"{n} revision sessions from earlier days are not done yet.", px_miss_btn:"Move them to the days left", px_miss_full:"The days left this week are already full, so nothing was moved. Next week’s suggestions will include them.",
   px_next:"next: {s} on {d}", px_done_exam:"exam done", px_fin_1:"The last {n} study days before the exam are kept for full review and practice exams.", px_fin_m:"The last {n} study days before each subject’s exam are kept for full review and a practice exam of that subject.", px_peak:"Busiest day: {d} with {m}, above your daily max ({c}). Add study days, raise the max, trim some hours or move an exam date.", px_sd:"Exam date for this subject", px_sd_hint:"Leave empty to use the main exam date", px_rv:"Review days before each exam", px_rv_sub:"On these days there is no new material for that subject, only full review and a practice exam. Subjects with an earlier exam are revised first and stop once their exam is over. Hard subjects come earlier, and every 4th session is a recall and self-test session.",
   px_task_rv:"Recall & self-test {s} ({n}/{m})", px_recap:"Full review: {s}", px_mock:"Practice exam: {s}", px_k:"How hard", px_k1:"Easy", px_k2:"Medium", px_k3:"Hard", px_rv_0:"None", px_rv_n:"{n} days",   px_h:'Exam study plan', px_new:'Plan my exam revision', px_edit:'Edit exam plan', px_make:'Make my plan', px_btn:'Exam plan',
-  px_desc:'Enter your exam date and the subjects you need to revise. The Planner splits the work into study sessions, day by day until the day before the exam, and puts them in your weeks. If you miss a day, the unfinished sessions move to the days that are left.',
+  px_desc:"Enter your exam date and the subjects you need to revise. The Planner works out a suggested set of study sessions for each day until the exam. Nothing is added to your weeks until you tap \"Add to Planner\", and you can still edit or delete any session.",
   px_name:'Exam', px_date:'Exam date', px_def_name:'My exam', px_subjs:'Subjects', px_subjs_sub:'For each subject, roughly how many hours of revision you need in total.', px_subj:'Subject', px_subj_ph:'e.g. Maths', px_hours:'Hours needed', px_h_unit:'hours', px_add_subj:'Add a subject',
   px_len:'Each session', px_cap:'Max revision per day', px_wd:'Study days',
   px_prev_0:'Add a subject and its hours to see your plan.', px_prev:'{n} sessions of {l} over {d} study days: about {m} a day.', px_nodays:'No study days are left before the exam. Pick more study days or a later date.',
   px_bad_date:'Pick an exam date from tomorrow on.', px_need_subj:'Add at least one subject with its hours.', px_need_h:'Enter the hours for each subject.', px_need_wd:'Pick at least one study day.',
   px_task:'Revise {s} ({n}/{m})', px_added:'Added {n} revision sessions to this week.', px_moved:'Moved {n} missed revision sessions to the days you have left.',
   px_sess_done:'{n}/{m} sessions done', px_need:'{n} sessions left over {d} study days: about {m} a day.', px_all_done:'Every session is done. Use the days left for a light review and rest.', px_over:'The exam date has passed. Well done for getting through it!',
-  px_auto:'Missed a day? Unfinished sessions move to the days you have left by themselves.',
-  px_del:'Delete plan', px_del_q:'Delete this exam plan?', px_del_sub:'Unfinished revision sessions from today on are removed from this week. Sessions you already finished stay in your history.', px_deleted:'Exam plan deleted'
+  px_auto:"These are only suggestions. You decide what goes into your Planner and can change it any time.",
+  px_del:'Delete plan', px_del_q:'Delete this exam plan?', px_del_sub:"Only the plan is deleted. Sessions you already added stay in your Planner as normal tasks.", px_deleted:'Exam plan deleted'
 });
 Object.assign(I18N.vi, {
+  px_saved:"Đã lưu kế hoạch. Xem gợi ý tuần này ở ô Kế hoạch ôn thi, thấy hợp thì bấm \"Thêm vào Planner\".", px_sug_h:"Gợi ý cho tuần này", px_sug_add:"Thêm {n} buổi vào Planner", px_sug_note:"Thêm xong bạn vẫn sửa hay xoá được.", px_sug_none:"Tuần này không có buổi mới nào để gợi ý.", px_sug_done:"Gợi ý tuần này đã có trong Planner của bạn.", px_sug_week:"Mở tuần này để xem gợi ý.", px_miss:"Còn {n} buổi ôn của những ngày trước chưa xong.", px_miss_btn:"Dồn sang những ngày còn lại", px_miss_full:"Những ngày còn lại trong tuần đã kín nên chưa dời buổi nào. Gợi ý tuần sau sẽ tính lại các buổi này.",
   px_next:"môn tiếp theo: {s} ngày {d}", px_done_exam:"đã thi", px_fin_1:"{n} ngày học cuối trước ngày thi dành để ôn tổng và làm đề thử.", px_fin_m:"{n} ngày học cuối trước ngày thi của mỗi môn dành để ôn tổng và làm đề thử môn đó.", px_peak:"Ngày nặng nhất: {d} cần {m}, vượt mức tối đa mỗi ngày ({c}). Bạn thêm ngày học, tăng mức tối đa, bớt số giờ hoặc đổi ngày thi nhé.", px_sd:"Ngày thi môn này", px_sd_hint:"Để trống nếu thi đúng ngày thi chung", px_rv:"Số ngày ôn tổng trước mỗi môn thi", px_rv_sub:"Những ngày này không học bài mới của môn đó, chỉ ôn tổng và làm đề thử. Môn thi sớm được ôn trước, thi xong môn nào thì thôi xếp môn đó. Môn khó được xếp sớm hơn, và cứ 4 buổi thì có 1 buổi ôn lại, tự kiểm tra.",
   px_task_rv:"Ôn lại & tự kiểm tra {s} ({n}/{m})", px_recap:"Ôn tổng: {s}", px_mock:"Làm đề thử: {s}", px_k:"Độ khó", px_k1:"Dễ", px_k2:"Vừa", px_k3:"Khó", px_rv_0:"Không", px_rv_n:"{n} ngày",   px_h:'Kế hoạch ôn thi', px_new:'Lập kế hoạch ôn thi', px_edit:'Sửa kế hoạch ôn thi', px_make:'Lập kế hoạch', px_btn:'Kế hoạch ôn thi',
-  px_desc:'Nhập ngày thi và các môn cần ôn. Planner sẽ chia thành các buổi ôn theo từng ngày cho tới hôm trước ngày thi và xếp vào các tuần của bạn. Lỡ một ngày thì các buổi chưa xong tự dồn sang những ngày còn lại.',
+  px_desc:"Nhập ngày thi và các môn cần ôn. Planner sẽ tính gợi ý các buổi ôn cho từng ngày tới ngày thi. Chưa có gì được thêm vào tuần của bạn cho tới khi bạn bấm \"Thêm vào Planner\", và bạn vẫn sửa hay xoá được từng buổi.",
   px_name:'Kỳ thi', px_date:'Ngày thi', px_def_name:'Kỳ thi của tôi', px_subjs:'Các môn', px_subjs_sub:'Mỗi môn, bạn ước chừng cần ôn tổng cộng bao nhiêu giờ.', px_subj:'Môn', px_subj_ph:'Ví dụ: Toán', px_hours:'Số giờ cần ôn', px_h_unit:'giờ', px_add_subj:'Thêm môn',
   px_len:'Mỗi buổi', px_cap:'Ôn tối đa mỗi ngày', px_wd:'Ngày học',
   px_prev_0:'Thêm môn và số giờ để xem kế hoạch.', px_prev:'{n} buổi, mỗi buổi {l}, trong {d} ngày học: khoảng {m} mỗi ngày.', px_nodays:'Không còn ngày học nào trước ngày thi. Bạn chọn thêm ngày học hoặc ngày thi muộn hơn nhé.',
   px_bad_date:'Bạn chọn ngày thi từ ngày mai trở đi nhé.', px_need_subj:'Thêm ít nhất một môn kèm số giờ.', px_need_h:'Bạn nhập số giờ cho từng môn nhé.', px_need_wd:'Chọn ít nhất một ngày học.',
   px_task:'Ôn {s} ({n}/{m})', px_added:'Đã xếp {n} buổi ôn vào tuần này.', px_moved:'Đã dồn {n} buổi ôn bị lỡ sang những ngày còn lại.',
   px_sess_done:'Xong {n}/{m} buổi', px_need:'Còn {n} buổi trong {d} ngày học: khoảng {m} mỗi ngày.', px_all_done:'Đã xong hết các buổi ôn. Những ngày còn lại bạn ôn nhẹ và nghỉ ngơi nhé.', px_over:'Đã qua ngày thi. Bạn đã cố gắng rất nhiều!',
-  px_auto:'Lỡ một ngày? Buổi chưa xong tự dồn sang những ngày còn lại.',
-  px_del:'Xoá kế hoạch', px_del_q:'Xoá kế hoạch ôn thi này?', px_del_sub:'Các buổi ôn chưa làm từ hôm nay trở đi sẽ được bỏ khỏi tuần này. Buổi đã xong vẫn giữ trong lịch sử.', px_deleted:'Đã xoá kế hoạch ôn thi'
+  px_auto:"Đây chỉ là gợi ý. Bạn tự quyết thêm gì vào Planner và đổi lúc nào cũng được.",
+  px_del:'Xoá kế hoạch', px_del_q:'Xoá kế hoạch ôn thi này?', px_del_sub:"Chỉ xoá kế hoạch. Các buổi ôn bạn đã thêm vẫn ở trong Planner như việc bình thường.", px_deleted:'Đã xoá kế hoạch ôn thi'
 });
 
 /* =========================================================
