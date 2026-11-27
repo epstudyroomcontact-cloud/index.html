@@ -1623,3 +1623,21 @@ body.pl-dragging .pl-strip{min-height:24px;border-radius:10px;outline:1px dashed
 .px-sug{margin-top:10px;padding:10px 12px;border-radius:14px;background:rgba(var(--accent-rgb),.08);display:flex;flex-direction:column;gap:6px;align-items:flex-start}
 p.px-sug{display:block}.px-miss{background:rgba(var(--accent-rgb),.14)}.px-miss p{margin:0}
 .px-sugl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:.8rem;width:100%}.px-sugl b{font-weight:700;margin-right:2px}
+/* kế hoạch ôn thi: buổi gợi ý hiện mờ trên lịch tuần, bấm để nhận, × để bỏ */
+.px-ghost{opacity:.5;outline:2px dashed rgba(42,36,51,.5);outline-offset:-2px;box-shadow:none!important;cursor:copy;transition:opacity .15s}
+.px-ghost:hover,.px-ghost:focus-within{opacity:.92}
+.pl-b.px-ghost{padding-right:24px;z-index:1}
+.px-ghost .px-gp{cursor:inherit;border-style:dashed}
+.px-gx{flex:none;width:22px;height:22px;border:0;border-radius:50%;padding:0;display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.75);color:#2a2433;cursor:pointer}
+.px-gx .ic{width:12px;height:12px}.px-gx:hover{background:#fff}
+.pl-b.px-ghost .px-gx{position:absolute;right:2px;top:2px}
+.pl-chip.px-ghost{position:relative}.pl-chip.px-ghost>span:not(.pl-ck){flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pl-ag.px-ghost{background:transparent;opacity:.75;outline:2px dashed var(--line,rgba(127,127,127,.4))}
+.pl-ag.px-ghost .pl-ck{border:2px dashed var(--accent);background:transparent;color:var(--accent)}
+.pl-ag.px-ghost .px-gx{width:32px;height:32px;background:var(--surface2);color:var(--ink2,inherit)}
+.pl-dt i.px-gd{background:transparent!important;box-shadow:inset 0 0 0 1.5px var(--accent)}
+.px-gdot{display:inline-block;width:10px;height:10px;border-radius:3px;outline:2px dashed var(--accent);outline-offset:-1px;margin-right:6px;vertical-align:-1px}
+.px-sug .link{display:block;margin-top:6px}
+.pl-b.px-ghost{padding-left:7px;padding-right:22px}.pl-b.px-ghost .px-gp{display:none}
+.pl-b.px-ghost .px-gx{width:18px;height:18px;top:3px;right:3px}
+@media(pointer:coarse){.pl-b.px-ghost .px-gx{width:24px;height:24px}.pl-b.px-ghost{padding-right:28px}}

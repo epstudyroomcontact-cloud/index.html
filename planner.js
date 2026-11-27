@@ -270,7 +270,7 @@ function plClean(x){                                              // chuẩn ho�
   const start = /^\d{1,2}:\d{2}$/.test(x.start || '') ? hmStr(Math.min(1439, hm(x.start))) : '';
   let dur = Math.max(0, Math.min(1440, Math.round(+x.dur || 0))); if (start && !dur) dur = 30; if (start) dur = Math.min(dur, 1440 - hm(start));
   const day = Number.isInteger(x.day) && x.day >= 0 && x.day <= 6 ? x.day : null;
-  return { id:String(x.id || plId()), title:String(x.title || '').trim().slice(0, 80), day, start:day === null ? '' : start, dur, c:Math.max(0, Math.min(5, x.c | 0)), done:!!x.done, ...(x.done && x.q >= 1 && x.q <= 5 ? { q:x.q | 0 } : {}), ...(x.carried ? { carried:typeof x.carried === 'string' ? x.carried : true } : {}), ...(x.ex && typeof x.ex === 'string' ? { ex:x.ex.slice(0, 12), xs:Math.max(0, Math.min(7, x.xs | 0)), ...(x.r ? { r:1 } : {}) } : {}) };   // ex/xs: buổi của kế hoạch ôn thi
+  return { id:String(x.id || plId()), title:String(x.title || '').trim().slice(0, 80), day, start:day === null ? '' : start, dur, c:Math.max(0, Math.min(5, x.c | 0)), done:!!x.done, ...(x.done && x.q >= 1 && x.q <= 5 ? { q:x.q | 0 } : {}), ...(x.carried ? { carried:typeof x.carried === 'string' ? x.carried : true } : {}), ...(x.ex && typeof x.ex === 'string' ? { ex:x.ex.slice(0, 12), xs:Math.max(0, Math.min(7, x.xs | 0)), ...(x.r ? { r:1 } : {}), ...(x.g ? { g:String(x.g).slice(0, 8) } : {}) } : {}) };   // ex/xs: buổi của kế hoạch ôn thi (g = id buổi gợi ý đã nhận)
 }
 /* đưa việc đã dời sang tuần sau về lại tuần này (và gỡ bản sao bên tuần sau nếu chưa làm) */
 async function plUncarry(list){
@@ -652,17 +652,19 @@ function plUpsell(){
     <div class="pl-previewhead"><span class="badge">${ic('lock', 'sm')} ${esc(t('pl_preview'))}</span><small class="faint">${esc(t('pl_preview_note'))}</small></div>
     <div class="pl-locked" inert aria-hidden="true">${plPreview()}</div>`;
 }
-function plAgenda(){                                              // điện thoại: danh sách từng ngày thay cho lưới 7 cột (CSS chỉ hiện một trong hai)
+const pxGhostAg = x => `<div class="pl-ag px-ghost" data-act="pxTake" data-g="${esc(x.gi)}" title="${esc(t('px_g_tip'))}"><span class="pl-ck sm px-gp">${ic('plus', 'sm')}</span><div><b>${esc(x.title)}</b><small>${x.start ? esc(x.start) + '–' + esc(hmStr(hm(x.start) + x.dur)) : esc(fmtMin(x.dur))} · ${esc(t('px_g_tag'))}</small></div><button type="button" class="px-gx" data-act="pxSkip" data-g="${esc(x.gi)}" title="${esc(t('px_g_skip'))}" aria-label="${esc(t('px_g_skip'))}">${ic('x', 'sm')}</button></div>`;
+function plAgenda(ghosts){                                        // điện thoại: danh sách từng ngày thay cho lưới 7 cột (CSS chỉ hiện một trong hai)
+  ghosts = ghosts || pxGhosts();
   const ws = plWeekStart(PL.off), today = DT.now().setZone(userTZ), ti = PL.off === 0 ? today.weekday - 1 : 0, di = PL.mday === null || PL.mday === undefined ? ti : PL.mday;
-  const tabs = Array.from({ length:7 }, (_, i) => { const n = PL.tasks.filter(x => x.day === i).length; return `<button type="button" class="pl-dt ${i === di ? 'on' : ''} ${PL.off === 0 && i === ti ? 'today' : ''}" data-act="plMday" data-drop="tab" data-d="${i}"><b>${esc(t('pl_d' + i))}</b><small>${ws.plus({ days:i }).toFormat('dd')}</small><i class="${n ? 'has' : ''}"></i></button>`; }).join('');
-  const list = PL.tasks.filter(x => x.day === di).sort((a, b) => (a.start || '99:99').localeCompare(b.start || '99:99') || a.title.localeCompare(b.title));
-  const row = x => `<div class="pl-ag ${x.done ? 'done' : ''}" data-act="plEdit" data-id="${esc(x.id)}" title="${esc(x.title || '—')}"${plDragAttr(x)}><button type="button" class="pl-ck sm" style="border-color:${PL_COLORS[x.c]}" data-act="plToggle" data-id="${esc(x.id)}" aria-label="${esc(t('pl_f_done'))}">${x.done ? ic('check', 'sm') : ''}</button><span class="pl-agc" style="background:${PL_COLORS[x.c]}"></span><div><b>${esc(x.title || '—')}</b><small>${x.start ? esc(x.start) + '–' + esc(hmStr(hm(x.start) + (x.dur || 0))) : esc(t('pl_allday'))}${x.dur && !x.start ? ' · ' + esc(fmtMin(x.dur)) : ''}${x.q ? ' · ' + esc(t('pl_q_tag', { n:x.q })) : ''}${x.start && plClash(list, x.day, x.start, x.dur, x.id) ? ' · <em class="pl-warn">' + esc(t('pl_clash_tag')) + '</em>' : ''}</small></div></div>`;
-  return `<div class="pl-agenda"><div class="pl-dtabs">${tabs}</div><div class="pl-aglist">${list.length ? list.map(row).join('') : `<p class="muted small">${esc(t('pl_day_empty'))}</p>`}</div><button type="button" class="btn secondary" data-act="plNew" data-day="${di}">${ic('plus', 'sm')} ${esc(t('pl_add'))}</button></div>`;
+  const tabs = Array.from({ length:7 }, (_, i) => { const n = PL.tasks.filter(x => x.day === i).length, g = ghosts.some(x => x.day === i); return `<button type="button" class="pl-dt ${i === di ? 'on' : ''} ${PL.off === 0 && i === ti ? 'today' : ''}" data-act="plMday" data-drop="tab" data-d="${i}"><b>${esc(t('pl_d' + i))}</b><small>${ws.plus({ days:i }).toFormat('dd')}</small><i class="${n ? 'has' : g ? 'has px-gd' : ''}"></i></button>`; }).join('');
+  const list = PL.tasks.filter(x => x.day === di), gl = ghosts.filter(x => x.day === di), all = [...list, ...gl].sort((a, b) => (a.start || '99:99').localeCompare(b.start || '99:99') || a.title.localeCompare(b.title));
+  const row = x => x.ghost ? pxGhostAg(x) : `<div class="pl-ag ${x.done ? 'done' : ''}" data-act="plEdit" data-id="${esc(x.id)}" title="${esc(x.title || '—')}"${plDragAttr(x)}><button type="button" class="pl-ck sm" style="border-color:${PL_COLORS[x.c]}" data-act="plToggle" data-id="${esc(x.id)}" aria-label="${esc(t('pl_f_done'))}">${x.done ? ic('check', 'sm') : ''}</button><span class="pl-agc" style="background:${PL_COLORS[x.c]}"></span><div><b>${esc(x.title || '—')}</b><small>${x.start ? esc(x.start) + '–' + esc(hmStr(hm(x.start) + (x.dur || 0))) : esc(t('pl_allday'))}${x.dur && !x.start ? ' · ' + esc(fmtMin(x.dur)) : ''}${x.q ? ' · ' + esc(t('pl_q_tag', { n:x.q })) : ''}${x.start && plClash(list, x.day, x.start, x.dur, x.id) ? ' · <em class="pl-warn">' + esc(t('pl_clash_tag')) + '</em>' : ''}</small></div></div>`;
+  return `<div class="pl-agenda"><div class="pl-dtabs">${tabs}</div><div class="pl-aglist">${all.length ? all.map(row).join('') : `<p class="muted small">${esc(t('pl_day_empty'))}</p>`}</div><button type="button" class="btn secondary" data-act="plNew" data-day="${di}">${ic('plus', 'sm')} ${esc(t('pl_add'))}</button></div>`;
 }
 function plGrid(){
   const tasks = PL.tasks, ws = plWeekStart(PL.off), nowDT = DT.now().setZone(userTZ), today = nowDT.toISODate(), nowM = nowDT.hour * 60 + nowDT.minute;
-  const timed = tasks.filter(x => x.day !== null && x.start);
-  const g0 = Math.max(0, Math.min(7, ...timed.map(x => Math.floor(hm(x.start) / 60)))), g1 = Math.min(24, Math.max(21, ...timed.map(x => Math.ceil((hm(x.start) + x.dur) / 60))));
+  const timed = tasks.filter(x => x.day !== null && x.start), ghosts = pxGhosts(), gt = ghosts.filter(x => x.start);   // buổi ôn gợi ý: vẽ mờ, bấm để nhận
+  const g0 = Math.max(0, Math.min(7, ...[...timed, ...gt].map(x => Math.floor(hm(x.start) / 60)))), g1 = Math.min(24, Math.max(21, ...[...timed, ...gt].map(x => Math.ceil((hm(x.start) + x.dur) / 60))));
   const hours = Array.from({ length:g1 - g0 }, (_, i) => g0 + i);
   const lane = {};                                                // việc trùng giờ từ trước (dữ liệu cũ) xếp cạnh nhau thay vì chồng lên nhau, để không việc nào bị che
   for (let di = 0; di < 7; di++) {
@@ -680,14 +682,19 @@ function plGrid(){
     const meta = h >= 46, lines = Math.max(1, Math.floor((h - 10 - (meta ? 14 : 0)) / 15)), tip = (x.title || '—') + ' · ' + when;
     return `<div class="pl-b ${x.done ? 'done' : ''}${ln.n > 1 ? ' clash' : ''}${tiny ? ' tiny' : ''}" title="${esc(tip)}" style="top:${top}px;height:${h}px;--pl-ln:${lines};background:${PL_COLORS[x.c]}${ln.n > 1 ? `;left:calc(${ln.l} * 100% / ${ln.n} + 2px);right:auto;width:calc(100% / ${ln.n} - 4px)` : ''}" data-act="plEdit" data-id="${esc(x.id)}"${plDragAttr(x)}><button type="button" class="pl-ck" data-act="plToggle" data-id="${esc(x.id)}" aria-label="${esc(t('pl_f_done'))}">${x.done ? ic('check', 'sm') : ''}</button><div class="pl-bt">${esc(x.title || '—')}${x.q ? ` <small>${x.q}/5</small>` : ''}</div>${meta ? `<div class="pl-bm">${esc(when)}</div>` : ''}${x.carried ? '' : `<i class="pl-rs" data-rs="1" title="${esc(t('pl_dnd_rs'))}"></i>`}</div>`;
   };
+  const gblock = x => {
+    const top = (hm(x.start) - g0 * 60) / 60 * PL_HOUR, h = Math.max(24, x.dur / 60 * PL_HOUR - 2), when = x.start + '–' + hmStr(hm(x.start) + x.dur), meta = h >= 46, lines = Math.max(1, Math.floor((h - 10 - (meta ? 14 : 0)) / 15));
+    return `<div class="pl-b px-ghost${h < 34 ? ' tiny' : ''}" title="${esc(x.title + ' · ' + when + ' · ' + t('px_g_tip'))}" style="top:${top}px;height:${h}px;--pl-ln:${lines};background:${PL_COLORS[x.c]}" data-act="pxTake" data-g="${esc(x.gi)}"><span class="pl-ck px-gp">${ic('plus', 'sm')}</span><div class="pl-bt">${esc(x.title)}</div>${meta ? `<div class="pl-bm">${esc(when)} · ${esc(t('px_g_tag'))}</div>` : ''}<button type="button" class="px-gx" data-act="pxSkip" data-g="${esc(x.gi)}" title="${esc(t('px_g_skip'))}" aria-label="${esc(t('px_g_skip'))}">${ic('x', 'sm')}</button></div>`;
+  };
+  const gchip = x => `<div class="pl-chip px-ghost" style="background:${PL_COLORS[x.c]}" title="${esc(x.title + ' · ' + t('px_g_tip'))}" data-act="pxTake" data-g="${esc(x.gi)}"><span class="pl-ck sm px-gp">${ic('plus', 'sm')}</span><span>${esc(x.title)}</span><button type="button" class="px-gx" data-act="pxSkip" data-g="${esc(x.gi)}" title="${esc(t('px_g_skip'))}" aria-label="${esc(t('px_g_skip'))}">${ic('x', 'sm')}</button></div>`;
   const chip = x => `<div class="pl-chip ${x.done ? 'done' : ''}" style="background:${PL_COLORS[x.c]}" title="${esc(x.title || '—')}" data-act="plEdit" data-id="${esc(x.id)}"${plDragAttr(x)}><button type="button" class="pl-ck sm" data-act="plToggle" data-id="${esc(x.id)}">${x.done ? ic('check', 'sm') : ''}</button><span>${esc(x.title || '—')}</span></div>`;
   const cols = Array.from({ length:7 }, (_, di) => {
     const d = ws.plus({ days:di }), isToday = d.toISODate() === today;
     return { head:`<div class="pl-dh ${isToday ? 'today' : ''}"><b>${esc(t('pl_d' + di))}</b><small>${d.toFormat('dd/MM')}</small></div>`,
-      strip:`<div class="pl-strip" data-drop="strip" data-day="${di}">${tasks.filter(x => x.day === di && !x.start).map(chip).join('')}</div>`,
-      col:`<div class="pl-col ${isToday ? 'today' : ''}" data-act="plNew" data-drop="col" data-day="${di}" data-g0="${g0}" data-g1="${g1}" style="height:${hours.length * PL_HOUR}px">${timed.filter(x => x.day === di).map(block).join('')}${isToday && nowM >= g0 * 60 && nowM < g1 * 60 ? `<i class="pl-now" style="top:${(nowM - g0 * 60) / 60 * PL_HOUR}px"></i>` : ''}</div>` };
+      strip:`<div class="pl-strip" data-drop="strip" data-day="${di}">${tasks.filter(x => x.day === di && !x.start).map(chip).join('')}${ghosts.filter(x => x.day === di && !x.start).map(gchip).join('')}</div>`,
+      col:`<div class="pl-col ${isToday ? 'today' : ''}" data-act="plNew" data-drop="col" data-day="${di}" data-g0="${g0}" data-g1="${g1}" style="height:${hours.length * PL_HOUR}px">${timed.filter(x => x.day === di).map(block).join('')}${gt.filter(x => x.day === di).map(gblock).join('')}${isToday && nowM >= g0 * 60 && nowM < g1 * 60 ? `<i class="pl-now" style="top:${(nowM - g0 * 60) / 60 * PL_HOUR}px"></i>` : ''}</div>` };
   });
-  return `${plAgenda()}<div class="pl-scroll"><div class="pl-grid"><div class="pl-corner"></div>${cols.map(c => c.head).join('')}
+  return `${plAgenda(ghosts)}<div class="pl-scroll"><div class="pl-grid"><div class="pl-corner"></div>${cols.map(c => c.head).join('')}
     <div class="pl-corner"></div>${cols.map(c => c.strip).join('')}
     <div class="pl-hours">${hours.map(h => `<div style="height:${PL_HOUR}px">${String(h).padStart(2, '0')}:00</div>`).join('')}</div>${cols.map(c => c.col).join('')}</div></div>`;
 }
@@ -1031,13 +1038,16 @@ Object.assign(I18N.vi, {
 /* =========================================================
    KẾ HOẠCH ÔN THI (GỢI Ý)
    Lưu ở users/<uid>/planner/_prefs.exam = { id, n:tên kỳ thi, d:'YYYY-MM-DD' ngày thi, s:[{ n:tên môn, h:số giờ cần ôn }], len:phút mỗi buổi, cap:phút ôn tối đa mỗi ngày,
-     w:[thứ được học, 0 = thứ Hai], wk:tuần gần nhất đã xếp việc, dn:[số buổi đã xong ở các tuần trước wk, theo môn], redo:true = xếp lại tuần này (vừa sửa kế hoạch), t }
+     w:[thứ được học, 0 = thứ Hai], wk:tuần gần nhất đã xếp việc, dn:[số buổi đã xong ở các tuần trước wk, theo môn], redo:true = tính lại gợi ý tuần này (vừa sửa kế hoạch),
+     rv, at:'HH:MM' giờ thường bắt đầu ôn, g:{ wk, it:[…] } các buổi gợi ý của tuần (xem pxGen), t }
    Không cần đổi firestore.rules: _prefs nằm trong users/<uid>/planner như mục tiêu tuần và tuần mẫu.
-   KHÔNG TỰ SẮP: web chỉ tính và GỢI Ý. Buổi ôn chỉ vào Planner khi người dùng bấm "Thêm vào Planner" ở ô Kế hoạch ôn thi (pxAddWeek),
-   buổi lỡ chỉ được dồn khi người dùng bấm "Dồn sang ngày còn lại" (pxCatch). Lưu / sửa / xoá kế hoạch không thêm, xoá hay dời việc nào trong Planner.
-   Mỗi buổi ôn là một việc Planner bình thường (nhóm Học tập, không đặt giờ) kèm ex = id kế hoạch, xs = số thứ tự môn.
-   - Gợi ý chỉ tính cho TUẦN HIỆN TẠI (chạy thử trên bản sao, không ghi gì). Bấm thêm thì 1 lần ghi tuần + 1 lần ghi _prefs (wk = tuần đã thêm);
-     sang tuần mới đọc lại tuần đã thêm gần nhất 1 lần để cộng số buổi đã xong (chỉ ghi _prefs, không đụng việc nào).
+   KHÔNG TỰ SẮP: web chỉ tính và GỢI Ý. Buổi ôn gợi ý hiện MỜ ngay trên lưới tuần (và danh sách ngày trên điện thoại), vào giờ trống của bạn
+   (từ giờ "Thường ôn từ" at, mặc định 19:00; hết chỗ thì giờ trống sớm hơn; không còn giờ trống thì hiện ở dải "Không giờ").
+   Bấm một buổi mờ = thêm buổi đó vào Planner (pxTake), bấm × = bỏ (pxSkip). Buổi đã nhận là việc thường, kéo thả / sửa / xoá như mọi việc.
+   Buổi lỡ chỉ được dồn khi người dùng bấm "Dồn sang ngày còn lại" (pxCatch). Lưu / sửa / xoá kế hoạch không thêm, xoá hay dời việc nào trong Planner.
+   Mỗi buổi ôn đã nhận là một việc Planner bình thường (nhóm Học tập) kèm ex = id kế hoạch, xs = số thứ tự môn, g = id buổi gợi ý.
+   - Danh sách gợi ý của tuần (g) tính 1 lần mỗi tuần và lưu trong _prefs.exam (cùng lần ghi khi sang tuần); giờ không lưu mà tìm lúc vẽ.
+     Nhận 1 buổi = 1 lần ghi tuần; bỏ 1 buổi = 1 lần ghi _prefs. Sang tuần mới đọc lại tuần trước 1 lần để cộng số buổi đã xong.
    - Số buổi còn lại của một môn = tổng số buổi − đã xong ở các tuần trước − đã có trong tuần này. Buổi bị xoá hoặc chưa làm sẽ tự có lại trong gợi ý của tuần sau.
    - Bấm "Dồn sang ngày còn lại": buổi chưa xong của ngày đã qua dời sang ngày học còn ít việc ôn nhất trong tuần, trước ngày thi môn đó (ghi "đã dời" như khi dời tay).
      (r:1 = buổi ôn tổng / làm đề thử của những ngày cuối: không tính vào số buổi của môn, không dồn khi lỡ.)
@@ -1054,7 +1064,8 @@ function pxClean(p){
   if (!s.length) return null;
   const w = [...new Set((Array.isArray(p.w) ? p.w : []).map(Number).filter(d => Number.isInteger(d) && d >= 0 && d <= 6))].sort();
   return { id:String(p.id || plId()).slice(0, 12), n:String(p.n || '').trim().slice(0, 60), d:p.d, s, len:PX_LENS.includes(+p.len) ? +p.len : 45, cap:Math.max(30, Math.min(720, Math.round(+p.cap || 120))),
-    w:w.length ? w : [0, 1, 2, 3, 4, 5, 6], wk:/^\d{4}-W\d{1,2}$/.test(p.wk || '') ? p.wk : '', dn:s.map((_, i) => Math.max(0, Math.round(+(Array.isArray(p.dn) && p.dn[i]) || 0))), redo:!!p.redo, rv:[0, 1, 2, 3].includes(+p.rv) ? +p.rv : 0, t:Math.max(0, Math.round(+p.t || 0)) };
+    w:w.length ? w : [0, 1, 2, 3, 4, 5, 6], wk:/^\d{4}-W\d{1,2}$/.test(p.wk || '') ? p.wk : '', dn:s.map((_, i) => Math.max(0, Math.round(+(Array.isArray(p.dn) && p.dn[i]) || 0))), redo:!!p.redo, rv:[0, 1, 2, 3].includes(+p.rv) ? +p.rv : 0, at:/^\d{2}:\d{2}$/.test(p.at || '') && hm(p.at) <= 1320 ? p.at : '19:00',
+    g:p.g && /^\d{4}-W\d{1,2}$/.test(p.g.wk || '') && Array.isArray(p.g.it) ? { wk:p.g.wk, it:p.g.it.slice(0, 150).map(x => ({ i:String(x && x.i || '').slice(0, 8), d:x.d | 0, s:x.s | 0, r:[1, 2].includes(x.r) ? x.r : 0, n:x.n | 0 })).filter(x => x.i && x.d >= 0 && x.d <= 6 && x.s >= 0 && x.s < s.length) } : null, t:Math.max(0, Math.round(+p.t || 0)) };
 }
 const pxPlan = () => pxClean(PL.prefs && PL.prefs.exam);
 const PX_KW = [.8, 1, 1.3];                                         // trọng số xếp sớm theo mức khó
@@ -1118,45 +1129,61 @@ function pxDone(P){                                                // số buổ
   wt.forEach(x => { if (x && x.ex === P.id && x.done && !x.r && x.xs >= 0 && x.xs < dn.length) dn[x.xs]++; });
   return dn;
 }
-const pxPending = P => !P.wk || P.redo || pxBefore(P.wk, plKey(0));   // tuần này chưa thêm gợi ý (hoặc vừa sửa kế hoạch)
 const pxMissed = (tasks, P) => tasks.filter(x => x.ex === P.id && !x.r && !x.done && !x.carried && x.day !== null && x.day < plToday0());
-function pxSuggest(P){                                             // các buổi gợi ý của tuần này (chạy thử trên bản sao, không đổi gì)
-  if (!PL.tasks || PL.key !== plKey(0) || PL.off !== 0) return null;
-  const tk = PL.tasks.map(x => ({ ...x })), n0 = tk.length; pxFix(tk, JSON.parse(JSON.stringify(P)), 'add'); return tk.slice(n0);
+/* Gợi ý của tuần này: P.g = { wk, it:[{ i:id, d:thứ, s:số thứ tự môn, r:0 học / 1 đề thử / 2 ôn tổng, n:buổi thứ mấy của môn }] }.
+   Tính 1 lần cho mỗi tuần (hoặc khi sửa kế hoạch / bấm "Gợi ý lại") và lưu trong _prefs, nên lưới tuần chỉ việc vẽ, không phải tính lại lịch.
+   Giờ của từng buổi gợi ý KHÔNG lưu: lúc vẽ mới tìm giờ trống trong ngày (pxGhosts), nên bạn thêm / dời việc khác thì gợi ý tự né. */
+function pxGen(P, tasks){
+  const we = plWeekStart(0).plus({ days:7 }), all = pxDays(P, pxDay0()), it = [];
+  const has = P.s.map((_, i) => tasks.filter(x => x.ex === P.id && !x.r && x.xs === i && pxCount(x)).length);
+  const rem = P.s.map((_, i) => Math.max(0, pxTot(P, i) - P.dn[i] - has[i])), cnt = P.s.map((_, i) => pxTot(P, i) - rem[i]), sc = pxSched(P, all, rem);
+  all.forEach((d, j) => {
+    if (d >= we) return;
+    const day = d.weekday - 1, hadR = new Set(tasks.filter(x => x.ex === P.id && x.r && x.day === day).map(x => x.xs));   // ngày ôn tổng đã nhận rồi thì không gợi ý lại
+    sc[j].forEach(x => { if (x.r && hadR.has(x.xs)) return; it.push({ i:plId().slice(0, 6), d:day, s:x.xs, r:x.r || 0, n:x.r ? 0 : ++cnt[x.xs] }); });
+  });
+  return { wk:plKey(0), it };
 }
-/* Xếp việc ôn cho tuần này + dồn buổi đã lỡ. Sửa thẳng mảng tasks (tuần hiện tại, đang mở ở PL); trả về số buổi thêm / dời */
-function pxFix(tasks, P, mode){                                     // mode 'add' = thêm buổi gợi ý của tuần này, 'miss' = dồn buổi lỡ; chỉ chạy khi người dùng bấm nút
-  const key = plKey(0), ws = plWeekStart(0), we = ws.plus({ days:7 }), today = pxDay0(), di = today.weekday - 1;
-  const all = pxDays(P, today), wkDays = all.filter(d => d < we).map(d => d.weekday - 1);
-  let added = 0, moved = 0;
-  if (mode === 'add') {
-    const has = P.s.map((_, i) => tasks.filter(x => x.ex === P.id && !x.r && x.xs === i && pxCount(x)).length);
-    const rem = P.s.map((_, i) => Math.max(0, pxTot(P, i) - P.dn[i] - has[i])), cnt = P.s.map((_, i) => pxTot(P, i) - rem[i]), sc = pxSched(P, all, rem);
-    all.forEach((d, j) => {
-      if (d >= we) return;
-      const day = d.weekday - 1, hadR = new Set(tasks.filter(x => x.ex === P.id && x.r && x.day === day).map(x => x.xs));   // ngày ôn tổng đã xếp (sửa kế hoạch giữa tuần): không thêm lần nữa
-      sc[j].forEach(it => {
-        if (tasks.length >= PL_MAX || (it.r && hadR.has(it.xs))) return;
-        const sb = P.s[it.xs];
-        if (it.r) { tasks.push({ ...plClean({ title:t(it.r === 1 ? 'px_mock' : 'px_recap', { s:sb.n }), day, start:'', dur:P.len, c:0 }), ex:P.id, xs:it.xs, r:1 }); added++; return; }
-        const n = ++cnt[it.xs], m = pxTot(P, it.xs);
-        tasks.push({ ...plClean({ title:t(n % 4 === 0 && n < m ? 'px_task_rv' : 'px_task', { s:sb.n, n, m }), day, start:'', dur:P.len, c:0 }), ex:P.id, xs:it.xs }); added++;
-      });
-    });
-    P.wk = key; P.redo = false;
+const pxGTitle = (P, g) => { const sb = P.s[g.s], m = pxTot(P, g.s); return g.r ? t(g.r === 1 ? 'px_mock' : 'px_recap', { s:sb.n }) : t(g.n % 4 === 0 && g.n < m ? 'px_task_rv' : 'px_task', { s:sb.n, n:g.n, m }); };
+const pxHidden = () => !!store.get('px_hide', 0);
+function pxSlot(list, day, dur, from, lo){                          // giờ trống đầu tiên từ `from` (kết thúc trước 23:00); hết chỗ thì giờ trống gần nhất TRƯỚC `from` (không sớm hơn `lo`), cách việc khác 10 phút
+  const s = plFreeSlot(list, day, dur, from); if (s && hm(s) + dur <= 1380) return s;
+  for (let b = Math.floor((from - dur - 10) / 5) * 5; b >= lo; b -= 5) if (!plClash(list, day, hmStr(Math.max(0, b - 10)), dur + 20)) return hmStr(b);
+  return '';
+}
+/* Các buổi gợi ý còn hiện trên lịch tuần này (chưa nhận, chưa bỏ, chưa qua ngày), kèm giờ trống tìm được. Không ghi gì. */
+function pxGhosts(){
+  const P = pxPlan(); if (!P || !P.g || PL.off !== 0 || !PL.tasks || PL.key !== plKey(0) || P.g.wk !== PL.key || pxHidden()) return [];
+  const today = plToday0(), now = DT.now().setZone(userTZ), nowM = now.hour * 60 + now.minute, ws = plWeekStart(0), at = hm(P.at);
+  const taken = new Set(PL.tasks.map(x => x.g).filter(Boolean)), list = PL.tasks.slice(), out = [];
+  P.g.it.forEach(g => {
+    if (g.d < today || taken.has(g.i) || g.s >= P.s.length || pxSEnd(P, g.s) <= ws.plus({ days:g.d })) return;
+    const lo = g.d === today ? Math.max(420, nowM + 10) : 420, start = pxSlot(list, g.d, P.len, Math.max(at, lo), lo);
+    const x = { id:'g_' + g.i, gi:g.i, title:pxGTitle(P, g), day:g.d, start, dur:P.len, c:0, ex:P.id, xs:g.s, r:g.r ? 1 : 0, ghost:true };
+    if (start) list.push(x);
+    out.push(x);
+  });
+  for (let d = 0; d < 7; d++) {                                    // giờ tìm được xếp lại theo thứ tự trong ngày, để buổi môn khó vẫn đứng trước (các buổi dài bằng nhau nên không chồng lên nhau)
+    const l = out.filter(x => x.day === d && x.start), st = l.map(x => x.start).sort(); l.forEach((x, k) => { x.start = st[k]; });
   }
-  const miss = mode === 'miss' ? pxMissed(tasks, P) : [];
+  return out;
+}
+const pxTask = x => ({ ...plClean({ title:x.title, day:x.day, start:x.start, dur:x.dur, c:0 }), ex:x.ex, xs:x.xs, ...(x.r ? { r:1 } : {}), g:x.gi });
+/* Dồn buổi lỡ (chỉ khi người dùng bấm): buổi chưa xong của ngày đã qua sang ngày học còn ít việc ôn nhất trong tuần, trước ngày thi môn đó. Trả về số buổi đã dời */
+function pxMove(tasks, P){
+  const ws = plWeekStart(0), we = ws.plus({ days:7 }), all = pxDays(P, pxDay0()), wkDays = all.filter(d => d < we).map(d => d.weekday - 1), miss = pxMissed(tasks, P);
+  let moved = 0;
   if (miss.length && wkDays.length) {
     const lastWeek = all.length === wkDays.length, ld = {};         // ngày thi rơi vào tuần này / đầu tuần sau: không còn tuần nào để chia lại, nên vẫn dồn dù vượt giờ tối đa
     wkDays.forEach(d => { ld[d] = tasks.filter(x => x.ex === P.id && x.day === d && pxCount(x)).reduce((a, x) => a + (x.dur || P.len), 0); });
     miss.sort((a, b) => a.day - b.day).forEach(x => {
       const ok = x.xs >= 0 && x.xs < P.s.length ? wkDays.filter(v => ws.plus({ days:v }) < pxSEnd(P, x.xs)) : wkDays; if (!ok.length) return;   // chỉ dồn vào ngày trước ngày thi của chính môn đó
       const d = ok.reduce((b, v) => ld[v] < ld[b] ? v : b, ok[0]), w = x.dur || P.len;
-      if (ld[d] + w > Math.max(P.cap * 1.5, P.cap + P.len) && !lastWeek && !(x.xs >= 0 && x.xs < P.s.length && pxSEnd(P, x.xs) <= we)) return;   // môn thi trong tuần này thì vẫn dồn hết   // dồn vượt giờ tối đa một chút thì được; quá nhiều thì để tuần sau chia lại cho đều
+      if (ld[d] + w > Math.max(P.cap * 1.5, P.cap + P.len) && !lastWeek && !(x.xs >= 0 && x.xs < P.s.length && pxSEnd(P, x.xs) <= we)) return;   // dồn vượt giờ tối đa một chút thì được; quá nhiều thì để tuần sau gợi ý lại cho đều (môn thi trong tuần này thì vẫn dồn hết)
       plMark(x, 'm', d); x.day = d; x.start = ''; plLand(x); ld[d] += w; moved++;
     });
   }
-  return { added, moved };
+  return moved;
 }
 /* Gọi khi Planner đang giữ tuần hiện tại và đã có _prefs (cuối plLoad, cuối plPrefs, sau khi lưu / sửa kế hoạch) */
 async function pxSync(){
@@ -1178,20 +1205,21 @@ async function pxSync(){
       const map = PX.remap; PX.remap = null;
       PL.tasks.forEach(x => { if (x.ex !== P.id) return; const ni = map[x.xs]; if (ni >= 0) { if (ni !== x.xs) { x.xs = ni; changed = true; } } else { delete x.ex; delete x.xs; delete x.r; changed = true; } });
     }
+    if (!P.g || P.g.wk !== key || P.redo) { P.g = pxGen(P, PL.tasks); P.wk = key; P.redo = false; }   // gợi ý của tuần này: tính 1 lần (cùng lần ghi _prefs khi sang tuần), chỉ để vẽ mờ trên lịch
     if (changed) plSave();
     if (JSON.stringify(P) !== before) pxSave(P);
-    if (changed) render(true);
+    if (changed || JSON.stringify(P) !== before) render(true);
   } finally { PX.busy = false; }
 }
-function pxSugBlock(P){                                           // gợi ý tuần này + buổi lỡ: chỉ hiện, người dùng bấm mới thay đổi Planner
+function pxGBlock(P){                                             // buổi lỡ + gợi ý trên lịch: chỉ hiện, người dùng bấm mới thay đổi Planner
   if (PL.off !== 0 || !PL.tasks || PL.key !== plKey(0)) return `<p class="small faint px-sug">${esc(t('px_sug_week'))}</p>`;
   const miss = pxMissed(PL.tasks, P), mv = miss.length ? `<div class="px-sug px-miss"><p class="small">${esc(t('px_miss', { n:miss.length }))}</p><button type="button" class="btn secondary sm" data-act="pxCatch">${esc(t('px_miss_btn'))}</button></div>` : '';
-  if (!pxPending(P)) return `${mv}<p class="small faint px-sug">${ic('check', 'sm')} ${esc(t('px_sug_done'))}</p>`;
-  const sug = pxSuggest(P) || [];
-  if (!sug.length) return `${mv}<p class="small faint px-sug">${esc(t('px_sug_none'))}</p>`;
-  const ws = plWeekStart(0), days = [...new Set(sug.map(x => x.day))].sort((a, b) => a - b);
-  return `${mv}<div class="px-sug"><b class="small">${esc(t('px_sug_h'))}</b><ul class="px-sugl">${days.map(d => { const l = sug.filter(x => x.day === d); return `<li><b>${esc(t('pl_d' + d))} ${ws.plus({ days:d }).toFormat('dd/MM')}</b> <span>${l.map(x => esc(x.title)).join(' · ')}</span> <small class="faint">(${esc(fmtMin(l.reduce((a, x) => a + x.dur, 0)))})</small></li>`; }).join('')}</ul>
-    <button type="button" class="btn primary sm" data-act="pxAddWeek">${ic('plus', 'sm')} ${esc(t('px_sug_add', { n:sug.length }))}</button><small class="faint">${esc(t('px_sug_note'))}</small></div>`;
+  const regen = `<button type="button" class="link small" data-act="pxRegen">${esc(t('px_g_regen'))}</button>`;
+  if (pxHidden()) return `${mv}<div class="px-sug"><p class="small faint">${esc(t('px_g_hidden'))}</p><button type="button" class="btn secondary sm" data-act="pxHide">${esc(t('px_g_show'))}</button></div>`;
+  const g = pxGhosts();
+  if (!g.length) return `${mv}<div class="px-sug"><p class="small faint">${esc(t('px_sug_none'))}</p>${regen}</div>`;
+  return `${mv}<div class="px-sug"><p class="small"><span class="px-gdot"></span>${esc(t('px_g_info', { n:g.length }))}</p>
+    <div class="row" style="gap:6px"><button type="button" class="btn primary sm" data-act="pxTakeAll">${ic('plus', 'sm')} ${esc(t('px_g_all', { n:g.length }))}</button><button type="button" class="btn ghost sm" data-act="pxHide">${esc(t('px_g_hide'))}</button></div>${regen}</div>`;
 }
 function pxCard(){
   const P = pxPlan(); if (!P) return '';
@@ -1208,14 +1236,14 @@ function pxCard(){
     <p class="small" style="margin:4px 0 8px"><b>${esc(P.n || t('px_def_name'))}</b> · ${esc(head)} · ${esc(sub)}</p>
     <div class="px-tot"><b>${T ? Math.round(Dn / T * 100) : 0}<em>%</em></b><small class="faint">${esc(t('px_sess_done', { n:Dn, m:T }))}</small></div>${plBar(Dn, T)}
     <div class="px-subs${multi ? ' multi' : ''}">${P.s.map(row).join('')}</div>
-    ${n > 0 ? pxSugBlock(P) : ''}
+    ${n > 0 ? pxGBlock(P) : ''}
     <p class="small" style="margin:10px 0 0">${esc(msg)}</p>${n > 0 && P.rv ? `<p class="small muted" style="margin:6px 0 0">${esc(t(multi ? 'px_fin_m' : 'px_fin_1', { n:P.rv }))}</p>` : ''}${n > 0 && left && L.peak > P.cap && L.peakDay ? `<p class="small pl-warn" style="margin:6px 0 0">${esc(t('px_peak', { m:fmtMin(L.peak), d:t('pl_d' + (L.peakDay.weekday - 1)) + ' ' + L.peakDay.toFormat('dd/MM'), c:fmtMin(P.cap) }))}</p>` : ''}
-    ${n > 0 ? `<p class="small faint" style="margin:6px 0 0">${esc(t('px_auto'))}</p>` : `<button type="button" class="btn secondary sm mt-s" data-act="pxDel">${ic('trash', 'sm')} ${esc(t('px_del'))}</button>`}</section>`;
+    ${n > 0 ? '' : `<button type="button" class="btn secondary sm mt-s" data-act="pxDel">${ic('trash', 'sm')} ${esc(t('px_del'))}</button>`}</section>`;
 }
 const pxRow = s => `<div class="px-sr"><input class="input px-sn" maxlength="40" placeholder="${esc(t('px_subj_ph'))}" value="${esc(s.n)}" aria-label="${esc(t('px_subj'))}" data-change="pxPrev"><label class="px-sh"><input class="input" type="number" min="0.5" max="500" step="0.5" inputmode="decimal" value="${esc(String(s.h))}" placeholder="10" aria-label="${esc(t('px_hours'))}" data-change="pxPrev"><small>${esc(t('px_h_unit'))}</small></label><select class="select px-sk" aria-label="${esc(t('px_k'))}" title="${esc(t('px_k'))}">${[1, 2, 3].map(k => `<option value="${k}" ${(s.k || 2) === k ? 'selected' : ''}>${esc(t('px_k' + k))}</option>`).join('')}</select><button type="button" class="btn ghost icon sm" data-act="pxDelRow" title="${esc(t('pl_delete'))}" aria-label="${esc(t('pl_delete'))}">${ic('x', 'sm')}</button><label class="px-sd"><small>${esc(t('px_sd'))}</small><input class="input" type="date" min="${pxDay0().plus({ days:1 }).toISODate()}" value="${esc(s.d || '')}" aria-label="${esc(t('px_sd'))}" data-change="pxPrev"><small class="faint">${esc(t('px_sd_hint'))}</small></label></div>`;
 function pxRead(){                                                 // đọc form thành kế hoạch thô
   return { n:($('px-name') || {}).value || '', d:($('px-date') || {}).value || '', len:+($('px-len') || {}).value || 45, cap:+($('px-cap') || {}).value || 120,
-    s:[...document.querySelectorAll('#px-subj .px-sr')].map(r => ({ n:r.querySelector('.px-sn').value, h:+r.querySelector('.px-sh input').value || 0, k:+r.querySelector('.px-sk').value || 2, d:r.querySelector('.px-sd input').value || '' })), rv:+(($('px-rv') || {}).value || 0),
+    s:[...document.querySelectorAll('#px-subj .px-sr')].map(r => ({ n:r.querySelector('.px-sn').value, h:+r.querySelector('.px-sh input').value || 0, k:+r.querySelector('.px-sk').value || 2, d:r.querySelector('.px-sd input').value || '' })), rv:+(($('px-rv') || {}).value || 0), at:($('px-at') || {}).value || '19:00',
     w:[...document.querySelectorAll('.px-wd:checked')].map(b => +b.value) };
 }
 function pxPrev(){                                                 // xem trước trong form: tổng số buổi, số ngày học, mỗi ngày cần bao lâu
@@ -1230,7 +1258,7 @@ function pxPrev(){                                                 // xem trư�
 }
 function pxForm(){
   const P = pxPlan(), ex = typeof examGet === 'function' ? examGet() : null, min = pxDay0().plus({ days:1 }).toISODate();
-  const name = P ? P.n : ex ? ex.n : '', date = P ? P.d : ex && ex.d >= min ? ex.d : '', subj = P ? P.s : [{ n:'', h:'' }, { n:'', h:'' }], len = P ? P.len : 45, cap = P ? P.cap : 120, w = P ? P.w : [0, 1, 2, 3, 4, 5, 6], rv = P ? P.rv : 2;
+  const name = P ? P.n : ex ? ex.n : '', date = P ? P.d : ex && ex.d >= min ? ex.d : '', subj = P ? P.s : [{ n:'', h:'' }, { n:'', h:'' }], len = P ? P.len : 45, cap = P ? P.cap : 120, w = P ? P.w : [0, 1, 2, 3, 4, 5, 6], rv = P ? P.rv : 2, at = P ? P.at : '19:00';
   const caps = PX_CAPS.includes(cap) ? PX_CAPS : [...PX_CAPS, cap].sort((a, b) => a - b);
   openModal(`<h3 style="margin-bottom:6px;padding-right:32px">${ic('calendar', 'sm')} ${esc(t(P ? 'px_edit' : 'px_new'))}</h3><p class="small muted">${esc(t('px_desc'))}</p>
     <div class="f2 mt-s"><div class="field"><label class="label" for="px-name">${esc(t('px_name'))}</label><input class="input" id="px-name" maxlength="60" autocomplete="off" placeholder="${esc(t('ex_name_ph'))}" value="${esc(name)}"></div>
@@ -1239,7 +1267,9 @@ function pxForm(){
     <button type="button" class="btn ghost sm mt-s" data-act="pxAddRow" id="px-add"${subj.length >= PX_MAXS ? ' hidden' : ''}>${ic('plus', 'sm')} ${esc(t('px_add_subj'))}</button></div>
     <div class="f2 mt-s"><div class="field"><label class="label" for="px-len">${esc(t('px_len'))}</label><select class="select" id="px-len" data-change="pxPrev">${PX_LENS.map(m => `<option value="${m}" ${m === len ? 'selected' : ''}>${esc(fmtMin(m))}</option>`).join('')}</select></div>
     <div class="field"><label class="label" for="px-cap">${esc(t('px_cap'))}</label><select class="select" id="px-cap" data-change="pxPrev">${caps.map(m => `<option value="${m}" ${m === cap ? 'selected' : ''}>${esc(fmtMin(m))}</option>`).join('')}</select></div></div>
-    <div class="field mt-s"><label class="label" for="px-rv">${esc(t('px_rv'))}</label><select class="select" id="px-rv" data-change="pxPrev">${[0, 1, 2, 3].map(n => `<option value="${n}" ${n === rv ? 'selected' : ''}>${esc(n ? t('px_rv_n', { n }) : t('px_rv_0'))}</option>`).join('')}</select><p class="small faint" style="margin:4px 0 0">${esc(t('px_rv_sub'))}</p></div>
+    <div class="f2 mt-s"><div class="field"><label class="label" for="px-rv">${esc(t('px_rv'))}</label><select class="select" id="px-rv" data-change="pxPrev">${[0, 1, 2, 3].map(n => `<option value="${n}" ${n === rv ? 'selected' : ''}>${esc(n ? t('px_rv_n', { n }) : t('px_rv_0'))}</option>`).join('')}</select></div>
+    <div class="field"><label class="label" for="px-at">${esc(t('px_at'))}</label><input class="input" id="px-at" type="time" step="900" value="${esc(at)}"></div></div>
+    <p class="small faint" style="margin:4px 0 0">${esc(t('px_rv_sub'))} ${esc(t('px_at_sub'))}</p>
     <div class="field mt-s"><label class="label">${esc(t('px_wd'))}</label><div class="row" style="gap:6px">${Array.from({ length:7 }, (_, i) => `<label class="chip pl-dchip"><input type="checkbox" class="px-wd" value="${i}" data-change="pxPrev" ${w.includes(i) ? 'checked' : ''}> ${esc(t('pl_d' + i))}</label>`).join('')}</div></div>
     <p class="small px-prev mt-s" id="px-prev" role="status"></p>
     <div class="row mt" style="justify-content:space-between">${P ? `<button type="button" class="btn danger" data-act="pxDel">${ic('trash', 'sm')} ${esc(t('px_del'))}</button>` : '<span></span>'}<span class="row"><button type="button" class="btn ghost" data-act="closeModal">${esc(t('cancel'))}</button><button type="button" class="btn primary" data-act="pxSave">${esc(t(P ? 'pl_save' : 'px_make'))}</button></span></div>`, true);
@@ -1248,16 +1278,31 @@ function pxForm(){
 }
 Object.assign(ACTIONS, {
   pxEdit: () => { if (PL.prefs) pxForm(); },
-  pxAddWeek: () => {                                               // người dùng bấm: thêm các buổi gợi ý của tuần này vào Planner
-    const P = pxPlan(); if (!P || !PL.tasks || PL.key !== plKey(0) || PL.off !== 0) return;
-    const r = pxFix(PL.tasks, P, 'add'); pxSave(P);
-    if (r.added) { plSave(); toast(t('px_added', { n:r.added }), 4200); } else toast(t('px_sug_none'));
-    render(true);
+  pxTake: el => {                                                  // bấm một buổi gợi ý trên lịch: thêm đúng buổi đó (đúng giờ đang hiện) vào Planner
+    const x = pxGhosts().find(g => g.gi === el.dataset.g); if (!x) return;
+    if (PL.tasks.length >= PL_MAX) return toast(t('pl_max', { n:PL_MAX }));
+    PL.tasks.push(pxTask(x)); plSave(); render(true);
+    toast(t('px_took', { s:x.title, d:t('pl_d' + x.day) + (x.start ? ' ' + x.start : '') }), 3600);
   },
+  pxSkip: el => {                                                  // bỏ một buổi gợi ý (chỉ ghi _prefs; tuần sau buổi đó được tính lại nếu vẫn còn thiếu)
+    const P = pxPlan(); if (!P || !P.g) return;
+    P.g.it = P.g.it.filter(g => g.i !== el.dataset.g); pxSave(P); render(true);
+  },
+  pxTakeAll: () => {
+    const l = pxGhosts(); if (!l.length) return;
+    let n = 0; l.forEach(x => { if (PL.tasks.length < PL_MAX) { PL.tasks.push(pxTask(x)); n++; } });
+    plSave(); toast(t('px_added', { n }), 4200); render(true);
+  },
+  pxRegen: () => {                                                 // tính lại gợi ý của tuần này theo lịch hiện tại (buổi đã bỏ có thể hiện lại)
+    const P = pxPlan(); if (!P || !PL.tasks || PL.key !== plKey(0) || PL.off !== 0) return;
+    P.g = pxGen(P, PL.tasks); P.wk = plKey(0); P.redo = false; pxSave(P); render(true);
+    toast(t(P.g.it.length ? 'px_regen_done' : 'px_sug_none'));
+  },
+  pxHide: () => { store.set('px_hide', pxHidden() ? 0 : 1); render(true); },
   pxCatch: () => {                                                 // người dùng bấm: dồn buổi lỡ sang các ngày còn lại của tuần
     const P = pxPlan(); if (!P || !PL.tasks || PL.key !== plKey(0) || PL.off !== 0) return;
-    const r = pxFix(PL.tasks, P, 'miss');
-    if (r.moved) { plSave(); toast(t('px_moved', { n:r.moved }), 5200); } else toast(t('px_miss_full'), 6000);
+    const moved = pxMove(PL.tasks, P);
+    if (moved) { plSave(); toast(t('px_moved', { n:moved }), 5200); } else toast(t('px_miss_full'), 6000);
     render(true);
   },
   pxAddRow: () => { const b = $('px-subj'); if (!b || b.children.length >= PX_MAXS) return; b.insertAdjacentHTML('beforeend', pxRow({ n:'', h:'' })); const a = $('px-add'); if (a) a.hidden = b.children.length >= PX_MAXS; const i = b.lastElementChild.querySelector('input'); if (i) i.focus(); },
@@ -1290,31 +1335,31 @@ Object.assign(ACTIONS, {
 });
 CHANGES.pxPrev = () => pxPrev();
 Object.assign(I18N.en, {
-  px_saved:"Plan saved. Check this week’s suggestions in the Exam study plan box and tap \"Add to Planner\" if they suit you.", px_sug_h:"Suggested for this week", px_sug_add:"Add {n} sessions to Planner", px_sug_note:"You can edit or delete them afterwards.", px_sug_none:"No new sessions to suggest for this week.", px_sug_done:"This week’s suggestions are already in your Planner.", px_sug_week:"Go to this week to see the suggestions.", px_miss:"{n} revision sessions from earlier days are not done yet.", px_miss_btn:"Move them to the days left", px_miss_full:"The days left this week are already full, so nothing was moved. Next week’s suggestions will include them.",
+  px_saved:"Plan saved. Suggested sessions now show faded on this week’s calendar, in your free time. Tap the ones that suit you to add them.", px_sug_none:"No suggested sessions left for this week.", px_sug_week:"Go to this week to see the suggested sessions on your calendar.",
+  px_at:"Usually study from", px_at_sub:"Suggested sessions go into your free time from this hour, or earlier in the day if the evening is full.", px_g_info:"{n} suggested sessions show faded on your calendar this week, in your free time. Tap one to add it, or × to skip it.", px_g_all:"Add all {n}", px_g_hide:"Hide suggestions", px_g_show:"Show suggestions", px_g_hidden:"Suggestions are hidden from your calendar.", px_g_regen:"Suggest again from my current week", px_g_tag:"suggested", px_g_tip:"Suggested: tap to add to your Planner", px_g_skip:"Skip this suggestion", px_took:"Added “{s}” on {d}. You can drag it like any task.", px_regen_done:"Suggestions for this week updated.", px_miss:"{n} revision sessions from earlier days are not done yet.", px_miss_btn:"Move them to the days left", px_miss_full:"The days left this week are already full, so nothing was moved. Next week’s suggestions will include them.",
   px_next:"next: {s} on {d}", px_done_exam:"exam done", px_fin_1:"The last {n} study days before the exam are kept for full review and practice exams.", px_fin_m:"The last {n} study days before each subject’s exam are kept for full review and a practice exam of that subject.", px_peak:"Busiest day: {d} with {m}, above your daily max ({c}). Add study days, raise the max, trim some hours or move an exam date.", px_sd:"Exam date for this subject", px_sd_hint:"Leave empty to use the main exam date", px_rv:"Review days before each exam", px_rv_sub:"On these days there is no new material for that subject, only full review and a practice exam. Subjects with an earlier exam are revised first and stop once their exam is over. Hard subjects come earlier, and every 4th session is a recall and self-test session.",
   px_task_rv:"Recall & self-test {s} ({n}/{m})", px_recap:"Full review: {s}", px_mock:"Practice exam: {s}", px_k:"How hard", px_k1:"Easy", px_k2:"Medium", px_k3:"Hard", px_rv_0:"None", px_rv_n:"{n} days",   px_h:'Exam study plan', px_new:'Plan my exam revision', px_edit:'Edit exam plan', px_make:'Make my plan', px_btn:'Exam plan',
-  px_desc:"Enter your exam date and the subjects you need to revise. The Planner works out a suggested set of study sessions for each day until the exam. Nothing is added to your weeks until you tap \"Add to Planner\", and you can still edit or delete any session.",
+  px_desc:"Enter your exam date and the subjects you need to revise. The Planner works out study sessions for each day until the exam and shows them faded on your weekly calendar, in your free time. Nothing is added until you tap a session, and you can still move, edit or delete it.",
   px_name:'Exam', px_date:'Exam date', px_def_name:'My exam', px_subjs:'Subjects', px_subjs_sub:'For each subject, roughly how many hours of revision you need in total.', px_subj:'Subject', px_subj_ph:'e.g. Maths', px_hours:'Hours needed', px_h_unit:'hours', px_add_subj:'Add a subject',
   px_len:'Each session', px_cap:'Max revision per day', px_wd:'Study days',
   px_prev_0:'Add a subject and its hours to see your plan.', px_prev:'{n} sessions of {l} over {d} study days: about {m} a day.', px_nodays:'No study days are left before the exam. Pick more study days or a later date.',
   px_bad_date:'Pick an exam date from tomorrow on.', px_need_subj:'Add at least one subject with its hours.', px_need_h:'Enter the hours for each subject.', px_need_wd:'Pick at least one study day.',
-  px_task:'Revise {s} ({n}/{m})', px_added:'Added {n} revision sessions to this week.', px_moved:'Moved {n} missed revision sessions to the days you have left.',
+  px_task:'Revise {s} ({n}/{m})', px_added:'Added {n} revision sessions to this week. You can drag them like any task.', px_moved:'Moved {n} missed revision sessions to the days you have left.',
   px_sess_done:'{n}/{m} sessions done', px_need:'{n} sessions left over {d} study days: about {m} a day.', px_all_done:'Every session is done. Use the days left for a light review and rest.', px_over:'The exam date has passed. Well done for getting through it!',
-  px_auto:"These are only suggestions. You decide what goes into your Planner and can change it any time.",
   px_del:'Delete plan', px_del_q:'Delete this exam plan?', px_del_sub:"Only the plan is deleted. Sessions you already added stay in your Planner as normal tasks.", px_deleted:'Exam plan deleted'
 });
 Object.assign(I18N.vi, {
-  px_saved:"Đã lưu kế hoạch. Xem gợi ý tuần này ở ô Kế hoạch ôn thi, thấy hợp thì bấm \"Thêm vào Planner\".", px_sug_h:"Gợi ý cho tuần này", px_sug_add:"Thêm {n} buổi vào Planner", px_sug_note:"Thêm xong bạn vẫn sửa hay xoá được.", px_sug_none:"Tuần này không có buổi mới nào để gợi ý.", px_sug_done:"Gợi ý tuần này đã có trong Planner của bạn.", px_sug_week:"Mở tuần này để xem gợi ý.", px_miss:"Còn {n} buổi ôn của những ngày trước chưa xong.", px_miss_btn:"Dồn sang những ngày còn lại", px_miss_full:"Những ngày còn lại trong tuần đã kín nên chưa dời buổi nào. Gợi ý tuần sau sẽ tính lại các buổi này.",
+  px_saved:"Đã lưu kế hoạch. Các buổi ôn gợi ý đang hiện mờ trên lịch tuần này, vào giờ trống của bạn. Buổi nào hợp thì bấm vào để thêm.", px_sug_none:"Tuần này không còn buổi gợi ý nào.", px_sug_week:"Mở tuần này để xem các buổi gợi ý trên lịch.",
+  px_at:"Thường ôn từ", px_at_sub:"Buổi gợi ý được đặt vào giờ trống từ giờ này, buổi tối kín thì tìm giờ trống sớm hơn trong ngày.", px_g_info:"{n} buổi ôn gợi ý đang hiện mờ trên lịch tuần này, vào giờ trống của bạn. Bấm vào một buổi để thêm, bấm × để bỏ.", px_g_all:"Thêm cả {n} buổi", px_g_hide:"Ẩn gợi ý", px_g_show:"Hiện gợi ý", px_g_hidden:"Gợi ý đang được ẩn khỏi lịch.", px_g_regen:"Gợi ý lại theo lịch tuần hiện tại", px_g_tag:"gợi ý", px_g_tip:"Gợi ý: bấm để thêm vào Planner", px_g_skip:"Bỏ gợi ý này", px_took:"Đã thêm \"{s}\" vào {d}. Bạn kéo thả được như việc thường.", px_regen_done:"Đã tính lại gợi ý cho tuần này.", px_miss:"Còn {n} buổi ôn của những ngày trước chưa xong.", px_miss_btn:"Dồn sang những ngày còn lại", px_miss_full:"Những ngày còn lại trong tuần đã kín nên chưa dời buổi nào. Gợi ý tuần sau sẽ tính lại các buổi này.",
   px_next:"môn tiếp theo: {s} ngày {d}", px_done_exam:"đã thi", px_fin_1:"{n} ngày học cuối trước ngày thi dành để ôn tổng và làm đề thử.", px_fin_m:"{n} ngày học cuối trước ngày thi của mỗi môn dành để ôn tổng và làm đề thử môn đó.", px_peak:"Ngày nặng nhất: {d} cần {m}, vượt mức tối đa mỗi ngày ({c}). Bạn thêm ngày học, tăng mức tối đa, bớt số giờ hoặc đổi ngày thi nhé.", px_sd:"Ngày thi môn này", px_sd_hint:"Để trống nếu thi đúng ngày thi chung", px_rv:"Số ngày ôn tổng trước mỗi môn thi", px_rv_sub:"Những ngày này không học bài mới của môn đó, chỉ ôn tổng và làm đề thử. Môn thi sớm được ôn trước, thi xong môn nào thì thôi xếp môn đó. Môn khó được xếp sớm hơn, và cứ 4 buổi thì có 1 buổi ôn lại, tự kiểm tra.",
   px_task_rv:"Ôn lại & tự kiểm tra {s} ({n}/{m})", px_recap:"Ôn tổng: {s}", px_mock:"Làm đề thử: {s}", px_k:"Độ khó", px_k1:"Dễ", px_k2:"Vừa", px_k3:"Khó", px_rv_0:"Không", px_rv_n:"{n} ngày",   px_h:'Kế hoạch ôn thi', px_new:'Lập kế hoạch ôn thi', px_edit:'Sửa kế hoạch ôn thi', px_make:'Lập kế hoạch', px_btn:'Kế hoạch ôn thi',
-  px_desc:"Nhập ngày thi và các môn cần ôn. Planner sẽ tính gợi ý các buổi ôn cho từng ngày tới ngày thi. Chưa có gì được thêm vào tuần của bạn cho tới khi bạn bấm \"Thêm vào Planner\", và bạn vẫn sửa hay xoá được từng buổi.",
+  px_desc:"Nhập ngày thi và các môn cần ôn. Planner sẽ tính các buổi ôn cho từng ngày tới ngày thi và hiện mờ trên lịch tuần, vào giờ trống của bạn. Chưa có gì được thêm cho tới khi bạn bấm vào một buổi, và thêm rồi bạn vẫn dời, sửa hay xoá được.",
   px_name:'Kỳ thi', px_date:'Ngày thi', px_def_name:'Kỳ thi của tôi', px_subjs:'Các môn', px_subjs_sub:'Mỗi môn, bạn ước chừng cần ôn tổng cộng bao nhiêu giờ.', px_subj:'Môn', px_subj_ph:'Ví dụ: Toán', px_hours:'Số giờ cần ôn', px_h_unit:'giờ', px_add_subj:'Thêm môn',
   px_len:'Mỗi buổi', px_cap:'Ôn tối đa mỗi ngày', px_wd:'Ngày học',
   px_prev_0:'Thêm môn và số giờ để xem kế hoạch.', px_prev:'{n} buổi, mỗi buổi {l}, trong {d} ngày học: khoảng {m} mỗi ngày.', px_nodays:'Không còn ngày học nào trước ngày thi. Bạn chọn thêm ngày học hoặc ngày thi muộn hơn nhé.',
   px_bad_date:'Bạn chọn ngày thi từ ngày mai trở đi nhé.', px_need_subj:'Thêm ít nhất một môn kèm số giờ.', px_need_h:'Bạn nhập số giờ cho từng môn nhé.', px_need_wd:'Chọn ít nhất một ngày học.',
-  px_task:'Ôn {s} ({n}/{m})', px_added:'Đã xếp {n} buổi ôn vào tuần này.', px_moved:'Đã dồn {n} buổi ôn bị lỡ sang những ngày còn lại.',
+  px_task:'Ôn {s} ({n}/{m})', px_added:'Đã thêm {n} buổi ôn vào tuần này. Bạn kéo thả được như việc thường.', px_moved:'Đã dồn {n} buổi ôn bị lỡ sang những ngày còn lại.',
   px_sess_done:'Xong {n}/{m} buổi', px_need:'Còn {n} buổi trong {d} ngày học: khoảng {m} mỗi ngày.', px_all_done:'Đã xong hết các buổi ôn. Những ngày còn lại bạn ôn nhẹ và nghỉ ngơi nhé.', px_over:'Đã qua ngày thi. Bạn đã cố gắng rất nhiều!',
-  px_auto:"Đây chỉ là gợi ý. Bạn tự quyết thêm gì vào Planner và đổi lúc nào cũng được.",
   px_del:'Xoá kế hoạch', px_del_q:'Xoá kế hoạch ôn thi này?', px_del_sub:"Chỉ xoá kế hoạch. Các buổi ôn bạn đã thêm vẫn ở trong Planner như việc bình thường.", px_deleted:'Đã xoá kế hoạch ôn thi'
 });
 
@@ -1325,7 +1370,7 @@ Object.assign(I18N.vi, {
      Điện thoại có thêm chế độ "Lưới giờ" (vuốt ngang để xem đủ 7 ngày), chọn một lần là nhớ trên máy đó.
    - Tháng: lịch cả tháng dùng lại các tuần đã đọc (PL.raw, plMonthLoad: mỗi tuần đọc 1 lần); bấm một ngày để xem việc của ngày đó, kéo việc sang ngày khác, kể cả sang tuần khác.
    - Dời ngày dùng đúng logic "đã dời" (plMark / plLand) như khi sửa trong form; buổi ôn thi (ex/xs) giữ nguyên, chỉ được dời trong tuần của nó
-     (kế hoạch ôn thi đếm buổi theo từng tuần, xem pxFix). Trùng giờ thì không thả (lưới tuần) hoặc dời sang mà bỏ giờ (lịch tháng / nút ngày).
+     (kế hoạch ôn thi đếm buổi theo từng tuần, xem pxGen). Trùng giờ thì không thả (lưới tuần) hoặc dời sang mà bỏ giờ (lịch tháng / nút ngày).
    - Ghi Firestore: không ghi gì trong lúc kéo. Thả trong tuần đang mở dùng plSave (các lần thả trong 0,5 giây gộp thành 1 lần ghi);
      thả sang tuần khác thì 1 batch ghi cả hai tuần. Không cần đổi firestore.rules (vẫn là users/<uid>/planner/<tuần>).
    ========================================================= */
